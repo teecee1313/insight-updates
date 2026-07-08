@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-121",
+  "version": "2026.07.04-127",
   "url": "https://teecee1313.github.io/insight-updates/insight-trading-locked.html",
-  "notes": "Combined lots at average price in the portfolio, direction-aware volume ratings (green = buying, red = selling), Volume Surge Report with heat + up/down filters, percentage take-profit & stop-loss, click-any-share news, a 60-share training demo, and faster loads."
+  "notes": "Fixes partial data on slow days \u2014 shares whose history was slow to load are now retried automatically, so range, streak, accumulation and score fill in instead of showing \"?\". If any still fail, a one-click \"finish the rest\" appears. Plus a compact mobile training banner and no startup popup."
 }
