@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Insight Trading — Multi-Exchange Share Screener [MASTER]</title>
+<title>Insight Trading — Multi-Exchange Share Screener</title>
 <!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
 <meta name="theme-color" content="#0d1b33">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -359,43 +359,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading v2026.07.04-15 — ABN & trademark · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-133 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
-<div id="ownerModal" style="position:fixed;inset:0;z-index:10001;background:rgba(3,10,22,.85);display:none;align-items:center;justify-content:center;padding:16px;">
-  <div style="max-width:420px;width:100%;background:#0e1b30;border:1px solid #27518f;border-radius:12px;padding:20px;font-family:system-ui,sans-serif;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div style="color:#eef3fb;font-size:16px;font-weight:800;">🔒 Seller Controls (owner only)</div>
-      <button onclick="closeOwnerPanel()" style="background:none;border:none;color:#8fa6c9;font-size:20px;cursor:pointer;line-height:1;">×</button>
-    </div>
-    <div style="color:#f0b849;font-size:10px;margin-bottom:14px;">Owner-only. Do not share your master password. This sets the licence secret used to make & check buyer keys.</div>
-
-    <div id="ownerUnlock">
-      <div id="ownerUnlockSub" style="color:#8fa6c9;font-size:12px;margin-bottom:10px;">Enter your master password.</div>
-      <input type="password" id="ownerMp" placeholder="Master password" autocomplete="off" onkeydown="if(event.key==='Enter')ownerUnlock()" style="width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;margin-bottom:8px;">
-      <input type="password" id="ownerMpConfirm" placeholder="Confirm master password" autocomplete="off" onkeydown="if(event.key==='Enter')ownerUnlock()" style="display:none;width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;margin-bottom:8px;">
-      <button onclick="ownerUnlock()" style="width:100%;padding:10px;border-radius:7px;border:1px solid #FFD200;background:rgba(255,210,0,.15);color:#FFD200;font-weight:700;font-size:13px;cursor:pointer;">Unlock</button>
-    </div>
-
-    <div id="ownerBody" style="display:none;">
-      <div style="color:#8fa6c9;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Licence secret phrase</div>
-      <input type="text" id="ownerSecret" placeholder="Your private secret phrase" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;">
-      <button onclick="ownerSaveSecret()" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid #3fb950;background:rgba(63,185,80,.14);color:#3fb950;font-weight:700;font-size:12px;cursor:pointer;">Save secret</button>
-
-      <div style="height:1px;background:#27518f;margin:16px 0;"></div>
-
-      <div style="color:#8fa6c9;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Generate a buyer key</div>
-      <input type="text" id="ownerBuyer" placeholder="Buyer ID (email or name)" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;">
-      <input type="number" id="ownerTrialDays" min="1" max="365" placeholder="Trial days (blank = permanent licence)" style="width:100%;margin-top:6px;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;box-sizing:border-box;">
-      <button onclick="ownerGenKey()" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid #FFD200;background:rgba(255,210,0,.14);color:#FFD200;font-weight:700;font-size:12px;cursor:pointer;">Generate key</button>
-      <div id="ownerGenOut"></div>
-      <button onclick="showOwnerKeys()" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid #58a6ff;background:rgba(88,166,255,.12);color:#58a6ff;font-weight:700;font-size:12px;cursor:pointer;">🗝 Issued keys (support register)</button>
-    </div>
-
-    <div id="ownerMsg" style="font-size:11px;color:#8fa6c9;margin-top:12px;min-height:14px;font-family:monospace;line-height:1.5;"></div>
-  </div>
-</div>
-
+<!-- Seller Controls removed -->
 <div id="licGate" style="position:fixed;inset:0;z-index:10000;background:#05152e;display:none;align-items:center;justify-content:center;">
   <div style="max-width:380px;width:90%;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
     <svg viewBox="0 0 1024 1024" width="52" height="52" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 10px;"><rect x="150" y="618" width="125" height="174" rx="19" fill="#FFD200"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#FFD200"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#FFD200"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#FFD200"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#FFD200"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#FFD200"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#FFD200"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>
@@ -413,11 +380,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div id="licMsg" style="font-size:11px;color:#8fa6c9;margin-top:12px;min-height:14px;font-family:monospace;line-height:1.5;"></div>
     <div style="color:#5e7aa8;font-size:10px;margin-top:16px;line-height:1.5;">This licence activates on one computer. Keep your key safe — you'll need it if you reinstall.</div>
     <div style="margin-top:14px;"><a href="#" onclick="resetLicence(event)" style="color:#5e7aa8;font-size:10px;text-decoration:underline;cursor:pointer;">Reset activation on this computer</a></div>
-    <div style="margin-top:8px;"><a href="#" onclick="openOwnerPanel();return false;" style="color:#3a4a63;font-size:9px;text-decoration:underline;cursor:pointer;">Seller controls</a></div>
   </div>
 </div>
 
-<div id="appGate" style="position:fixed;inset:0;z-index:9999;background:#05152e;display:flex;align-items:center;justify-content:center;">
+<div id="appGate" style="position:fixed;inset:0;z-index:9999;background:#05152e;display:none;align-items:center;justify-content:center;">
   <div style="max-width:360px;width:90%;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
     <svg viewBox="0 0 520 130" width="300" style="max-width:92%;height:auto;display:block;margin:0 auto 6px;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Insight Trading — Market Analyser">
       <!-- mark on a rounded navy tile -->
@@ -455,7 +421,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <span>Insight<span style="color:var(--gold)"> Trading</span></span>
     <span style="font-size:9px;font-weight:600;letter-spacing:2px;color:var(--muted);">MARKET ANALYSER</span>
     <span id="appVer" style="font-size:8px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;"></span>
-    <span id="masterTag" title="This is YOUR master copy — the one with Seller Controls, owner mode and licence-key generation. Customer copies never show this badge." style="font-size:8px;font-weight:800;letter-spacing:1.5px;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 6px;background:rgba(255,210,0,.10);">👑 MASTER</span>
   </div>
   <div class="hbadge" id="exchBadge">🌐 Multi-Exchange Screener</div>
   <div class="hr2">
@@ -684,10 +649,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
 
         <div class="step-sub2">Other</div>
-        <div style="display:flex;align-items:center;gap:6px;margin:2px 0 4px;font-size:10px;color:var(--muted);">
-          <input type="checkbox" id="privateChk" onchange="setPrivateMode(this.checked)" style="cursor:pointer;margin:0;">
-          <label for="privateChk" style="cursor:pointer;">🔒 Private mode <span style="color:var(--dim);font-size:9px">(hide explanations on hover)</span></label>
-        </div>
+        <!-- Private mode locked ON -->
 
       </div>
   </div>
@@ -818,7 +780,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div style="font-size:9px;color:var(--muted);line-height:1.35;">1-month loads instantly; filtering by volume auto-upgrades your shortlist to real 3-month.</div>
         </div>
         <div id="streakStatus" style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:5px;min-height:12px;"></div>
-        <div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;">Daily data is cached for instant reloads · <a href="#" onclick="clearDataCache(event)" style="color:var(--blue);">clear cache</a> · <a href="#" onclick="checkForUpdateNow();return false;" style="color:var(--gold);" title="Check GitHub for a newer version now">🔄 check for updates</a> · <a href="#" onclick="resetLicence(event)" style="color:var(--dim);">reset licence</a> · <a href="#" onclick="openOwnerPanel();return false;" style="color:var(--dim);" title="Seller controls — licence key generation (your master password)">seller</a> · <a href="#" onclick="showVersionPanel();return false;" style="color:var(--dim);" title="Version history — download a previous version to roll back">versions</a></div>
+        <div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;">Daily data is cached for instant reloads · <a href="#" onclick="clearDataCache(event)" style="color:var(--blue);">clear cache</a> · <a href="#" onclick="checkForUpdateNow();return false;" style="color:var(--gold);" title="Check GitHub for a newer version now">🔄 check for updates</a> · <a href="#" onclick="resetLicence(event)" style="color:var(--dim);">reset licence</a> · <a href="#" onclick="showVersionPanel();return false;" style="color:var(--dim);" title="Version history — download a previous version to roll back">versions</a></div>
         <div id="verLabel" style="font-size:9px;color:var(--dim);margin-top:3px;text-align:center;font-family:var(--mono,monospace);letter-spacing:.03em;"></div>
       </div>
     </div>
@@ -1174,7 +1136,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-133';
+const APP_VERSION='2026.07.04-133-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1644,7 +1606,6 @@ window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._h
 
 
 
-
 let lastScanLabel='';
 let sortKey='volPct', sortDir=-1;
 // Dual-slider scale stops (index 0–8). Index 8 = open-ended top (Any/∞).
@@ -1849,7 +1810,7 @@ const FIXED_GATE=null; /*FIXED_GATE_RECORD*/
 // TRUE in the master copy only. The customer build's transform flips this to
 // false, so master-only behaviour (the distinct master-password gate and the
 // secret tap-to-unlock shortcut) never ships to customers.
-const MASTER_BUILD=true;
+const MASTER_BUILD=false;
 // Secret unlock shortcut for the master, mirroring training mode: five quick
 // taps on the logo within the window (or the #master URL hash) opens the app
 // on a device where the master password was already created — handy on a
@@ -2009,21 +1970,7 @@ setTimeout(checkForUpdate, 5000);
 // Show the running version in the footer so anyone can read it at a glance.
 function _setVerLabel(){try{const el=document.getElementById('verLabel');if(el)el.textContent='Insight Trading · version '+APP_VERSION;}catch(e){}}
 if(document.readyState!=='loading')_setVerLabel();else document.addEventListener('DOMContentLoaded',_setVerLabel);
-// ── Owner mode (hidden) ──────────────────────────────────────────────────────
-// There is NO developer mode in this app. The only bypass is owner mode, which
-// has no UI here at all — it can only be switched on/off by the separate
-// Insight Trading Admin Console on the owner's own computer.
-function devModeOn(){
-  try{
-    // URL-passed owner mode (crosses the file:// storage boundary the Admin can't reach).
-    var q=(location.search+' '+location.hash);
-    if(/[?&#]owner=1\b/.test(q)||/[?&#]ownermode\b/i.test(q)){
-      try{localStorage.setItem('asxScreener.ownerMode.v1','1');}catch(e){}
-      return true;
-    }
-    return localStorage.getItem('asxScreener.ownerMode.v1')==='1'||localStorage.getItem('asxScreener.devmode.v1')==='1';
-  }catch(e){return false;}
-}
+// (Owner mode removed.)
 const LICENCE_REVOKE_URL='';   // optional: baked-in revocation list URL for shipped copies
 const LICENCE_STORE='asxScreener.licence.v1';
 const OWNER_STORE='asxScreener.owner.v1';        // {mpSalt, mpHash, secret}
@@ -2098,7 +2045,10 @@ async function _lic_remoteRevoked(key){
   }catch(e){return false;}                       // offline / blocked → fail-open
 }
 async function initLicence(){
-  if(devModeOn()){ hideLicence&&hideLicence(); startPasswordGate(); return; } // owner mode (set only by the Admin console)
+  /* FAMILY BUILD: no code gate — open straight in. */
+  try{const g=document.getElementById('appGate');if(g)g.style.display='none';}catch(e){}
+  return;
+  /* original gate logic below (unreachable) */
   // The MASTER copy is your own build — it should never sit behind the customer
   // licence gate. It goes straight to the master-password gate instead.
   if(MASTER_BUILD){ hideLicence&&hideLicence(); startPasswordGate(); return; }
@@ -2199,142 +2149,8 @@ async function _mp_hash(pw,saltB64){
   return {salt:btoa(String.fromCharCode(...salt)),hash:btoa(String.fromCharCode(...new Uint8Array(bits)))};
 }
 function _owner(){try{return JSON.parse(localStorage.getItem(OWNER_STORE))||{};}catch(e){return {};}}
-function _ownerSave(o){try{localStorage.setItem(OWNER_STORE,JSON.stringify(o));}catch(e){}}
-function ownerMsg(t,c){const el=document.getElementById('ownerMsg');if(el){el.innerHTML=t;el.style.color=c||'var(--muted)';}}
 
-function openOwnerPanel(){
-  const o=_owner();
-  document.getElementById('ownerModal').style.display='flex';
-  document.getElementById('ownerUnlock').style.display='block';
-  document.getElementById('ownerBody').style.display='none';
-  const sub=document.getElementById('ownerUnlockSub');
-  if(!o.mpHash){ sub.textContent='Set a master password (owner only). Remember it — it protects your licence secret.'; document.getElementById('ownerMpConfirm').style.display='block'; }
-  else { sub.textContent='Enter your master password.'; document.getElementById('ownerMpConfirm').style.display='none'; }
-  ownerMsg('');
-  setTimeout(()=>{const el=document.getElementById('ownerMp');if(el)el.focus();},80);
-}
-function closeOwnerPanel(){document.getElementById('ownerModal').style.display='none';document.getElementById('ownerMp').value='';const c=document.getElementById('ownerMpConfirm');if(c)c.value='';}
-
-async function ownerUnlock(){
-  const pw=document.getElementById('ownerMp').value;
-  if(!pw){ownerMsg('Enter a master password.','#f0b849');return;}
-  const o=_owner();
-  if(!o.mpHash){
-    const pw2=document.getElementById('ownerMpConfirm').value;
-    if(pw.length<4){ownerMsg('Use at least 4 characters.','#f0b849');return;}
-    if(pw!==pw2){ownerMsg('Passwords do not match.','#f85149');return;}
-    const rec=await _mp_hash(pw);
-    o.mpSalt=rec.salt;o.mpHash=rec.hash;_ownerSave(o);
-    _showOwnerBody();
-  }else{
-    const rec=await _mp_hash(pw,o.mpSalt);
-    if(rec.hash===o.mpHash)_showOwnerBody();
-    else ownerMsg('Wrong master password.','#f85149');
-  }
-}
-function _showOwnerBody(){
-  document.getElementById('ownerUnlock').style.display='none';
-  document.getElementById('ownerBody').style.display='block';
-  const o=_owner();
-  document.getElementById('ownerSecret').value=o.secret||'';
-  ownerMsg('');
-  _ownerGenClear();
-}
-function ownerSaveSecret(){
-  const sec=document.getElementById('ownerSecret').value.trim();
-  if(!sec){ownerMsg('Enter a secret phrase.','#f0b849');return;}
-  const o=_owner();o.secret=sec;_ownerSave(o);
-  ownerMsg('✓ Secret saved. Keys are now generated & checked with this phrase.','#3fb950');
-}
-// ── Issued-keys register ─────────────────────────────────────────────────────
-// Every key generated on this machine is recorded (buyer, key, type, expiry)
-// so you can help a customer who loses theirs. No passwords are ever stored —
-// the app never sees them in recoverable form.
-const OWNERKEYS_STORE='asxScreener.ownerKeys.v1';
-function _ownerKeys(){try{const a=JSON.parse(localStorage.getItem(OWNERKEYS_STORE));return Array.isArray(a)?a:[];}catch(e){return [];}}
-function _ownerKeysSave(a){try{localStorage.setItem(OWNERKEYS_STORE,JSON.stringify(a));}catch(e){}}
-function _ownerKeysRecord(buyer,key,exp){
-  const a=_ownerKeys();
-  if(a.some(r=>r.key===key))return;                 // no duplicates
-  a.unshift({buyer,key,exp:exp||null,created:new Date().toISOString().slice(0,16).replace('T',' ')});
-  _ownerKeysSave(a);
-}
-function ownerKeyDelete(key){
-  if(!confirm('Remove this key from the register? (The key itself keeps working — this only deletes the record.)'))return;
-  _ownerKeysSave(_ownerKeys().filter(r=>r.key!==key));
-  showOwnerKeys();
-}
-function exportOwnerKeysCSV(){
-  const a=_ownerKeys();
-  if(!a.length){alert('No keys recorded yet.');return;}
-  const esc=x=>{const v=String(x==null?'':x);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-  let csv='Insight Trading — issued licence keys (keep this file private)\n© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293\nBuyer,Key,Type,Expires,Generated\n';
-  a.forEach(r=>{csv+=[esc(r.buyer),r.key,r.exp?'Trial':'Permanent',r.exp?(r.exp.slice(0,4)+'-'+r.exp.slice(4,6)+'-'+r.exp.slice(6,8)):'',r.created].join(',')+'\n';});
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const el=document.createElement('a');el.href=URL.createObjectURL(blob);
-  el.download=`issued-keys_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(el);el.click();document.body.removeChild(el);
-}
-function showOwnerKeys(){
-  const a=_ownerKeys();
-  const today=_lic_todayYMD();
-  const rows=a.map(r=>{
-    const expired=r.exp&&today>r.exp;
-    const type=r.exp?`<span style="color:${expired?'var(--red)':'var(--orange)'}">Trial · ${expired?'EXPIRED ':''}${r.exp.slice(0,4)}-${r.exp.slice(4,6)}-${r.exp.slice(6,8)}</span>`
-                    :'<span style="color:var(--green)">Permanent</span>';
-    return `<tr>
-      <td style="padding:5px 6px;max-width:130px;overflow:hidden;text-overflow:ellipsis;">${String(r.buyer).replace(/</g,'&lt;')}</td>
-      <td style="padding:5px 6px;font-family:var(--mono);font-size:9px;white-space:nowrap;">${r.key} <a href="#" onclick="navigator.clipboard&&navigator.clipboard.writeText('${r.key}');return false;" style="color:var(--blue);">copy</a></td>
-      <td style="padding:5px 6px;font-size:9px;">${type}</td>
-      <td style="padding:5px 6px;font-size:9px;color:var(--muted);white-space:nowrap;">${r.created}</td>
-      <td style="padding:5px 6px;"><a href="#" onclick="ownerKeyDelete('${r.key}');return false;" style="color:var(--dim);">✕</a></td>
-    </tr>`;
-  }).join('');
-  // This machine's own activation record (e.g. your test activation).
-  let act='';
-  try{
-    const rec=JSON.parse(localStorage.getItem(LICENCE_STORE));
-    if(rec&&rec.key)act=`<div style="font-size:10px;color:var(--muted);margin-top:10px;">Activated on THIS computer: <span style="font-family:var(--mono);color:var(--text)">${rec.key}</span> · buyer “${String(rec.buyer).replace(/</g,'&lt;')}”${rec.exp?' · trial expires '+rec.exp.slice(0,4)+'-'+rec.exp.slice(4,6)+'-'+rec.exp.slice(6,8):''}</div>`;
-  }catch(e){}
-  showModal(`
-    <div style="font-weight:700;font-size:15px;color:var(--text);">🗝 Issued keys — support register</div>
-    <div style="font-size:10px;color:var(--muted);margin:6px 0 10px;">Every key generated on this computer, for helping customers who lose theirs. Passwords are never stored (help them via the “forgot password?” links instead). Activations happen on each customer's own computer — they can't be seen from here.</div>
-    ${a.length?`<div style="overflow:auto;border:1px solid var(--border);border-radius:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:10px;">
-        <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:5px 6px;">Buyer</th><th style="text-align:left;padding:5px 6px;">Key</th><th style="text-align:left;padding:5px 6px;">Type / expiry</th><th style="text-align:left;padding:5px 6px;">Generated</th><th></th></tr></thead>
-        <tbody>${rows}</tbody></table></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button onclick="exportOwnerKeysCSV()" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📤 Export CSV (private)</button>
-      </div>`
-    :'<div style="font-size:10px;color:var(--muted);padding:10px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No keys recorded yet — keys are added here automatically each time you generate one.</div>'}
-    ${act}
-  `);
-}
-function _ownerGenClear(){const el=document.getElementById('ownerGenOut');if(el)el.textContent='';}
-async function ownerGenKey(){
-  const o=_owner();
-  const sec=(document.getElementById('ownerSecret').value.trim())||o.secret;
-  if(!sec){ownerMsg('Set and save a secret phrase first.','#f0b849');return;}
-  const buyer=(document.getElementById('ownerBuyer').value||'').trim();
-  if(!buyer){ownerMsg('Enter a buyer ID (email or name).','#f0b849');return;}
-  // generate with the CURRENT box secret (so it matches what you'll save)
-  const trialDays=parseInt((document.getElementById('ownerTrialDays')||{}).value)||0;
-  let exp=null;
-  if(trialDays>0){
-    const d=new Date(Date.now()+trialDays*86400000);
-    exp=d.toISOString().slice(0,10).replace(/-/g,'');
-  }
-  const enc=new TextEncoder();
-  const key=await crypto.subtle.importKey('raw',enc.encode(sec),{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  const sig=await crypto.subtle.sign('HMAC',key,enc.encode(buyer.toLowerCase()+(exp?('|'+exp):'')));
-  const b=new Uint8Array(sig);let hex='';for(let i=0;i<6;i++)hex+=b[i].toString(16).padStart(2,'0');hex=hex.toUpperCase();
-  const out=`PNMA-${hex.slice(0,4)}-${hex.slice(4,8)}-${hex.slice(8,12)}`+(exp?`-T${exp}`:'');
-  _ownerKeysRecord(buyer,out,exp);
-  document.getElementById('ownerGenOut').innerHTML=`<div style="margin-top:8px;padding:10px;border:1px dashed var(--gold);border-radius:7px;background:rgba(255,210,0,.08);text-align:center;"><div style="font-family:var(--mono);font-size:16px;font-weight:800;color:var(--gold);letter-spacing:1px;">${out}</div><div style="font-size:9px;color:var(--muted);margin-top:4px;">for “${buyer}”${exp?` · <span style="color:var(--orange)">trial — expires ${exp.slice(0,4)}-${exp.slice(4,6)}-${exp.slice(6,8)}</span>`:' · permanent'} · <a href="#" onclick="navigator.clipboard&&navigator.clipboard.writeText('${out}');return false;" style="color:var(--blue);">copy</a></div></div>`;
-  ownerMsg('Give this buyer their ID + this key. Make sure the secret above is saved.','var(--muted)');
-}
-
-
+// (Seller Controls removed.)
 async function _gate_hash(pw,saltB64){
   const salt=saltB64?Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0)):crypto.getRandomValues(new Uint8Array(16));
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
@@ -2348,8 +2164,6 @@ function gateMsg(t,c){const el=document.getElementById('gateMsg');if(el){el.text
 let _gateSetupMode=false;
 function startPasswordGate(){initGate();}
 function initGate(){
-  // Owner mode (Admin console only) → skip the password gate.
-  if(devModeOn()){document.getElementById('appGate').style.display='none';return;}
   // If crypto unavailable, let the app open (can't hash safely).
   if(!window.crypto||!crypto.subtle){document.getElementById('appGate').style.display='none';return;}
   // ── FIXED PERSONAL CODE: one baked-in code, verify only, no setup ever. ──
@@ -8712,7 +8526,7 @@ function initCollapsibleGroups(){
 // behind filters, scans and scores isn't revealed to anyone watching or using
 // the app. Titles are parked in data-ttip and restored if switched off.
 const PRIVATE_STORE='asxScreener.privateMode.v1';
-function privateOn(){try{return localStorage.getItem(PRIVATE_STORE)!=='0';}catch(e){return true;}} // default ON
+function privateOn(){return true;} // LOCKED ON
 function stripTitles(){
   document.querySelectorAll('[title]').forEach(el=>{
     if(el.id==='gatePass')return;
@@ -8728,7 +8542,8 @@ function applyPrivateMode(){
   if(on)stripTitles();else restoreTitles();
   const c=document.getElementById('privateChk');if(c)c.checked=on;
 }
-function setPrivateMode(on){
+function setPrivateMode(on){ on=true; // locked on
+
   try{localStorage.setItem(PRIVATE_STORE,on?'1':'0');}catch(e){}
   applyPrivateMode();
   const ls=document.getElementById('loadStatus');
@@ -8997,8 +8812,6 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
-
-
 
 
 
