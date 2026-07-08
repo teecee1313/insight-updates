@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Insight Trading — Multi-Exchange Share Screener [MASTER]</title>
+<title>Insight Trading — Multi-Exchange Share Screener</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
@@ -349,43 +349,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading v2026.07.04-15 — ABN & trademark · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-127 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
-<div id="ownerModal" style="position:fixed;inset:0;z-index:10001;background:rgba(3,10,22,.85);display:none;align-items:center;justify-content:center;padding:16px;">
-  <div style="max-width:420px;width:100%;background:#0e1b30;border:1px solid #27518f;border-radius:12px;padding:20px;font-family:system-ui,sans-serif;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div style="color:#eef3fb;font-size:16px;font-weight:800;">🔒 Seller Controls (owner only)</div>
-      <button onclick="closeOwnerPanel()" style="background:none;border:none;color:#8fa6c9;font-size:20px;cursor:pointer;line-height:1;">×</button>
-    </div>
-    <div style="color:#f0b849;font-size:10px;margin-bottom:14px;">Owner-only. Do not share your master password. This sets the licence secret used to make & check buyer keys.</div>
-
-    <div id="ownerUnlock">
-      <div id="ownerUnlockSub" style="color:#8fa6c9;font-size:12px;margin-bottom:10px;">Enter your master password.</div>
-      <input type="password" id="ownerMp" placeholder="Master password" autocomplete="off" onkeydown="if(event.key==='Enter')ownerUnlock()" style="width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;margin-bottom:8px;">
-      <input type="password" id="ownerMpConfirm" placeholder="Confirm master password" autocomplete="off" onkeydown="if(event.key==='Enter')ownerUnlock()" style="display:none;width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;margin-bottom:8px;">
-      <button onclick="ownerUnlock()" style="width:100%;padding:10px;border-radius:7px;border:1px solid #FFD200;background:rgba(255,210,0,.15);color:#FFD200;font-weight:700;font-size:13px;cursor:pointer;">Unlock</button>
-    </div>
-
-    <div id="ownerBody" style="display:none;">
-      <div style="color:#8fa6c9;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Licence secret phrase</div>
-      <input type="text" id="ownerSecret" placeholder="Your private secret phrase" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;">
-      <button onclick="ownerSaveSecret()" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid #3fb950;background:rgba(63,185,80,.14);color:#3fb950;font-weight:700;font-size:12px;cursor:pointer;">Save secret</button>
-
-      <div style="height:1px;background:#27518f;margin:16px 0;"></div>
-
-      <div style="color:#8fa6c9;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Generate a buyer key</div>
-      <input type="text" id="ownerBuyer" placeholder="Buyer ID (email or name)" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:7px;background:#0a2148;border:1px solid #27518f;color:#eef3fb;font-size:14px;box-sizing:border-box;">
-      <input type="number" id="ownerTrialDays" min="1" max="365" placeholder="Trial days (blank = permanent licence)" style="width:100%;margin-top:6px;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;box-sizing:border-box;">
-      <button onclick="ownerGenKey()" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid #FFD200;background:rgba(255,210,0,.14);color:#FFD200;font-weight:700;font-size:12px;cursor:pointer;">Generate key</button>
-      <div id="ownerGenOut"></div>
-      <button onclick="showOwnerKeys()" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid #58a6ff;background:rgba(88,166,255,.12);color:#58a6ff;font-weight:700;font-size:12px;cursor:pointer;">🗝 Issued keys (support register)</button>
-    </div>
-
-    <div id="ownerMsg" style="font-size:11px;color:#8fa6c9;margin-top:12px;min-height:14px;font-family:monospace;line-height:1.5;"></div>
-  </div>
-</div>
-
+<!-- Seller Controls removed -->
 <div id="licGate" style="position:fixed;inset:0;z-index:10000;background:#05152e;display:none;align-items:center;justify-content:center;">
   <div style="max-width:380px;width:90%;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
     <svg viewBox="0 0 1024 1024" width="52" height="52" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 10px;"><rect x="150" y="618" width="125" height="174" rx="19" fill="#FFD200"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#FFD200"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#FFD200"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#FFD200"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#FFD200"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#FFD200"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#FFD200"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>
@@ -403,11 +370,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div id="licMsg" style="font-size:11px;color:#8fa6c9;margin-top:12px;min-height:14px;font-family:monospace;line-height:1.5;"></div>
     <div style="color:#5e7aa8;font-size:10px;margin-top:16px;line-height:1.5;">This licence activates on one computer. Keep your key safe — you'll need it if you reinstall.</div>
     <div style="margin-top:14px;"><a href="#" onclick="resetLicence(event)" style="color:#5e7aa8;font-size:10px;text-decoration:underline;cursor:pointer;">Reset activation on this computer</a></div>
-    <div style="margin-top:8px;"><a href="#" onclick="openOwnerPanel();return false;" style="color:#3a4a63;font-size:9px;text-decoration:underline;cursor:pointer;">Seller controls</a></div>
   </div>
 </div>
 
-<div id="appGate" style="position:fixed;inset:0;z-index:9999;background:#05152e;display:flex;align-items:center;justify-content:center;">
+<div id="appGate" style="position:fixed;inset:0;z-index:9999;background:#05152e;display:none;align-items:center;justify-content:center;">
   <div style="max-width:360px;width:90%;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
     <svg viewBox="0 0 520 130" width="300" style="max-width:92%;height:auto;display:block;margin:0 auto 6px;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Insight Trading — Market Analyser">
       <!-- mark on a rounded navy tile -->
@@ -445,7 +411,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <span>Insight<span style="color:var(--gold)"> Trading</span></span>
     <span style="font-size:9px;font-weight:600;letter-spacing:2px;color:var(--muted);">MARKET ANALYSER</span>
     <span id="appVer" style="font-size:8px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;"></span>
-    <span id="masterTag" title="This is YOUR master copy — the one with Seller Controls, owner mode and licence-key generation. Customer copies never show this badge." style="font-size:8px;font-weight:800;letter-spacing:1.5px;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 6px;background:rgba(255,210,0,.10);">👑 MASTER</span>
   </div>
   <div class="hbadge" id="exchBadge">🌐 Multi-Exchange Screener</div>
   <div class="hr2">
@@ -665,10 +630,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
 
         <div class="step-sub2">Other</div>
-        <div style="display:flex;align-items:center;gap:6px;margin:2px 0 4px;font-size:10px;color:var(--muted);">
-          <input type="checkbox" id="privateChk" onchange="setPrivateMode(this.checked)" style="cursor:pointer;margin:0;">
-          <label for="privateChk" style="cursor:pointer;">🔒 Private mode <span style="color:var(--dim);font-size:9px">(hide explanations on hover)</span></label>
-        </div>
+        <!-- Private mode locked ON -->
 
       </div>
   </div>
@@ -799,7 +761,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div style="font-size:9px;color:var(--muted);line-height:1.35;">1-month loads instantly; filtering by volume auto-upgrades your shortlist to real 3-month.</div>
         </div>
         <div id="streakStatus" style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:5px;min-height:12px;"></div>
-        <div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;">Daily data is cached for instant reloads · <a href="#" onclick="clearDataCache(event)" style="color:var(--blue);">clear cache</a> · <a href="#" onclick="resetLicence(event)" style="color:var(--dim);">reset licence</a> · <a href="#" onclick="openOwnerPanel();return false;" style="color:var(--dim);" title="Seller controls — licence key generation (your master password)">seller</a> · <a href="#" onclick="showVersionPanel();return false;" style="color:var(--dim);" title="Version history — download a previous version to roll back">versions</a></div>
+        <div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;">Daily data is cached for instant reloads · <a href="#" onclick="clearDataCache(event)" style="color:var(--blue);">clear cache</a> · <a href="#" onclick="checkForUpdateNow();return false;" style="color:var(--gold);" title="Check GitHub for a newer version now">🔄 check for updates</a> · <a href="#" onclick="resetLicence(event)" style="color:var(--dim);">reset licence</a> · <a href="#" onclick="showVersionPanel();return false;" style="color:var(--dim);" title="Version history — download a previous version to roll back">versions</a></div>
+        <div id="verLabel" style="font-size:9px;color:var(--dim);margin-top:3px;text-align:center;font-family:var(--mono,monospace);letter-spacing:.03em;"></div>
       </div>
     </div>
 
@@ -1154,7 +1117,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-121';
+const APP_VERSION='2026.07.04-127-family';
 const COPYRIGHT='© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293';
 const APP_SOURCE_SNAPSHOT=(function(){try{return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}catch(e){return '';}})();
 function _verDB(){return new Promise((res,rej)=>{
@@ -1584,6 +1547,12 @@ window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._h
 
 
 
+
+
+
+
+
+
 let lastScanLabel='';
 let sortKey='volPct', sortDir=-1;
 // Dual-slider scale stops (index 0–8). Index 8 = open-ended top (Any/∞).
@@ -1784,11 +1753,11 @@ const GATE_STORE='asxScreener.appGate.v1';
 // null for the normal (create-your-own) behaviour. Set it via the Admin
 // Console → "🔒 Lock this copy with my code", which fills in the record below
 // and downloads your personal locked copy.
-const FIXED_GATE={"salt":"vK62vC4jsWaPYelFeVzkwQ==","hash":"kMscRKzWhrB6oDrpi9TflEnEId845bahE9abco7WAYQ="}; /*FIXED_GATE_RECORD*/
+const FIXED_GATE=null; /*FIXED_GATE_RECORD*/
 // TRUE in the master copy only. The customer build's transform flips this to
 // false, so master-only behaviour (the distinct master-password gate and the
 // secret tap-to-unlock shortcut) never ships to customers.
-const MASTER_BUILD=true;
+const MASTER_BUILD=false;
 // Secret unlock shortcut for the master, mirroring training mode: five quick
 // taps on the logo within the window (or the #master URL hash) opens the app
 // on a device where the master password was already created — handy on a
@@ -1915,22 +1884,40 @@ async function checkForUpdate(){
     showUpdateToast(info);
   }catch(e){/* offline / host down → silent; never bothers the user */}
 }
-setTimeout(checkForUpdate, 5000);
-// ── Owner mode (hidden) ──────────────────────────────────────────────────────
-// There is NO developer mode in this app. The only bypass is owner mode, which
-// has no UI here at all — it can only be switched on/off by the separate
-// Insight Trading Admin Console on the owner's own computer.
-function devModeOn(){
+// Manual "check now" — always gives visible feedback (unlike the silent auto-check),
+// so you can confirm the update system is working and see your exact status.
+async function checkForUpdateNow(){
+  const say=(msg,ok)=>{
+    const old=document.getElementById('updToast'); if(old)old.remove();
+    const d=document.createElement('div');
+    d.id='updToast';
+    d.style.cssText='position:fixed;left:14px;bottom:14px;z-index:9000;background:#0d1b33;border:1px solid '+(ok?'#3fb950':'#FFD200')+';border-radius:10px;padding:12px 30px 12px 14px;max-width:320px;box-shadow:0 8px 26px rgba(0,0,0,.45);font:600 11px system-ui,sans-serif;color:#eef3fb;';
+    d.innerHTML=msg+'<span id="updToastX" style="position:absolute;top:6px;right:9px;cursor:pointer;color:#8fa6c9;font-size:13px;">✕</span>';
+    document.body.appendChild(d);
+    const x=document.getElementById('updToastX'); if(x)x.onclick=()=>d.remove();
+  };
+  try{sessionStorage.removeItem('asxScreener.updDismiss');}catch(e){}
+  if(!UPDATE_CHECK_URL){say('⚠ No update source is configured in this copy.');return;}
+  say('🔄 Checking for updates…');
   try{
-    // URL-passed owner mode (crosses the file:// storage boundary the Admin can't reach).
-    var q=(location.search+' '+location.hash);
-    if(/[?&#]owner=1\b/.test(q)||/[?&#]ownermode\b/i.test(q)){
-      try{localStorage.setItem('asxScreener.ownerMode.v1','1');}catch(e){}
-      return true;
+    const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),8000);
+    let r; try{ r=await fetch(UPDATE_CHECK_URL,{cache:'no-store',signal:ctrl.signal}); } finally{ clearTimeout(t); }
+    if(!r||!r.ok){say('⚠ Couldn\u2019t reach the update server. Check your internet, then try again.');return;}
+    const info=await r.json();
+    if(!info||!info.version){say('⚠ The update file couldn\u2019t be read.');return;}
+    if(_verNum(info.version)>_verNum(APP_VERSION)){ const o=document.getElementById('updToast'); if(o)o.remove(); showUpdateToast(info); }
+    else if(_verNum(info.version)===_verNum(APP_VERSION)){
+      say('✅ <b style="color:#3fb950">You\u2019re up to date</b> — running the latest version (<b>'+_updEsc(APP_VERSION)+'</b>).',true);
+    } else {
+      say('✅ <b style="color:#3fb950">You\u2019re ahead</b> — your version (<b>'+_updEsc(APP_VERSION)+'</b>) is newer than the one online.',true);
     }
-    return localStorage.getItem('asxScreener.ownerMode.v1')==='1'||localStorage.getItem('asxScreener.devmode.v1')==='1';
-  }catch(e){return false;}
+  }catch(e){ say('⚠ Update check failed (likely offline). Your app still works normally.'); }
 }
+setTimeout(checkForUpdate, 5000);
+// Show the running version in the footer so anyone can read it at a glance.
+function _setVerLabel(){try{const el=document.getElementById('verLabel');if(el)el.textContent='Insight Trading · version '+APP_VERSION;}catch(e){}}
+if(document.readyState!=='loading')_setVerLabel();else document.addEventListener('DOMContentLoaded',_setVerLabel);
+// (Owner mode removed.)
 const LICENCE_REVOKE_URL='';   // optional: baked-in revocation list URL for shipped copies
 const LICENCE_STORE='asxScreener.licence.v1';
 const OWNER_STORE='asxScreener.owner.v1';        // {mpSalt, mpHash, secret}
@@ -2005,7 +1992,10 @@ async function _lic_remoteRevoked(key){
   }catch(e){return false;}                       // offline / blocked → fail-open
 }
 async function initLicence(){
-  if(devModeOn()){ hideLicence&&hideLicence(); startPasswordGate(); return; } // owner mode (set only by the Admin console)
+  /* FAMILY BUILD: no code gate — open straight in. */
+  try{const g=document.getElementById('appGate');if(g)g.style.display='none';}catch(e){}
+  return;
+  /* original gate logic below (unreachable) */
   // The MASTER copy is your own build — it should never sit behind the customer
   // licence gate. It goes straight to the master-password gate instead.
   if(MASTER_BUILD){ hideLicence&&hideLicence(); startPasswordGate(); return; }
@@ -2106,142 +2096,8 @@ async function _mp_hash(pw,saltB64){
   return {salt:btoa(String.fromCharCode(...salt)),hash:btoa(String.fromCharCode(...new Uint8Array(bits)))};
 }
 function _owner(){try{return JSON.parse(localStorage.getItem(OWNER_STORE))||{};}catch(e){return {};}}
-function _ownerSave(o){try{localStorage.setItem(OWNER_STORE,JSON.stringify(o));}catch(e){}}
-function ownerMsg(t,c){const el=document.getElementById('ownerMsg');if(el){el.innerHTML=t;el.style.color=c||'var(--muted)';}}
 
-function openOwnerPanel(){
-  const o=_owner();
-  document.getElementById('ownerModal').style.display='flex';
-  document.getElementById('ownerUnlock').style.display='block';
-  document.getElementById('ownerBody').style.display='none';
-  const sub=document.getElementById('ownerUnlockSub');
-  if(!o.mpHash){ sub.textContent='Set a master password (owner only). Remember it — it protects your licence secret.'; document.getElementById('ownerMpConfirm').style.display='block'; }
-  else { sub.textContent='Enter your master password.'; document.getElementById('ownerMpConfirm').style.display='none'; }
-  ownerMsg('');
-  setTimeout(()=>{const el=document.getElementById('ownerMp');if(el)el.focus();},80);
-}
-function closeOwnerPanel(){document.getElementById('ownerModal').style.display='none';document.getElementById('ownerMp').value='';const c=document.getElementById('ownerMpConfirm');if(c)c.value='';}
-
-async function ownerUnlock(){
-  const pw=document.getElementById('ownerMp').value;
-  if(!pw){ownerMsg('Enter a master password.','#f0b849');return;}
-  const o=_owner();
-  if(!o.mpHash){
-    const pw2=document.getElementById('ownerMpConfirm').value;
-    if(pw.length<4){ownerMsg('Use at least 4 characters.','#f0b849');return;}
-    if(pw!==pw2){ownerMsg('Passwords do not match.','#f85149');return;}
-    const rec=await _mp_hash(pw);
-    o.mpSalt=rec.salt;o.mpHash=rec.hash;_ownerSave(o);
-    _showOwnerBody();
-  }else{
-    const rec=await _mp_hash(pw,o.mpSalt);
-    if(rec.hash===o.mpHash)_showOwnerBody();
-    else ownerMsg('Wrong master password.','#f85149');
-  }
-}
-function _showOwnerBody(){
-  document.getElementById('ownerUnlock').style.display='none';
-  document.getElementById('ownerBody').style.display='block';
-  const o=_owner();
-  document.getElementById('ownerSecret').value=o.secret||'';
-  ownerMsg('');
-  _ownerGenClear();
-}
-function ownerSaveSecret(){
-  const sec=document.getElementById('ownerSecret').value.trim();
-  if(!sec){ownerMsg('Enter a secret phrase.','#f0b849');return;}
-  const o=_owner();o.secret=sec;_ownerSave(o);
-  ownerMsg('✓ Secret saved. Keys are now generated & checked with this phrase.','#3fb950');
-}
-// ── Issued-keys register ─────────────────────────────────────────────────────
-// Every key generated on this machine is recorded (buyer, key, type, expiry)
-// so you can help a customer who loses theirs. No passwords are ever stored —
-// the app never sees them in recoverable form.
-const OWNERKEYS_STORE='asxScreener.ownerKeys.v1';
-function _ownerKeys(){try{const a=JSON.parse(localStorage.getItem(OWNERKEYS_STORE));return Array.isArray(a)?a:[];}catch(e){return [];}}
-function _ownerKeysSave(a){try{localStorage.setItem(OWNERKEYS_STORE,JSON.stringify(a));}catch(e){}}
-function _ownerKeysRecord(buyer,key,exp){
-  const a=_ownerKeys();
-  if(a.some(r=>r.key===key))return;                 // no duplicates
-  a.unshift({buyer,key,exp:exp||null,created:new Date().toISOString().slice(0,16).replace('T',' ')});
-  _ownerKeysSave(a);
-}
-function ownerKeyDelete(key){
-  if(!confirm('Remove this key from the register? (The key itself keeps working — this only deletes the record.)'))return;
-  _ownerKeysSave(_ownerKeys().filter(r=>r.key!==key));
-  showOwnerKeys();
-}
-function exportOwnerKeysCSV(){
-  const a=_ownerKeys();
-  if(!a.length){alert('No keys recorded yet.');return;}
-  const esc=x=>{const v=String(x==null?'':x);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-  let csv='Insight Trading — issued licence keys (keep this file private)\n© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293\nBuyer,Key,Type,Expires,Generated\n';
-  a.forEach(r=>{csv+=[esc(r.buyer),r.key,r.exp?'Trial':'Permanent',r.exp?(r.exp.slice(0,4)+'-'+r.exp.slice(4,6)+'-'+r.exp.slice(6,8)):'',r.created].join(',')+'\n';});
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const el=document.createElement('a');el.href=URL.createObjectURL(blob);
-  el.download=`issued-keys_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(el);el.click();document.body.removeChild(el);
-}
-function showOwnerKeys(){
-  const a=_ownerKeys();
-  const today=_lic_todayYMD();
-  const rows=a.map(r=>{
-    const expired=r.exp&&today>r.exp;
-    const type=r.exp?`<span style="color:${expired?'var(--red)':'var(--orange)'}">Trial · ${expired?'EXPIRED ':''}${r.exp.slice(0,4)}-${r.exp.slice(4,6)}-${r.exp.slice(6,8)}</span>`
-                    :'<span style="color:var(--green)">Permanent</span>';
-    return `<tr>
-      <td style="padding:5px 6px;max-width:130px;overflow:hidden;text-overflow:ellipsis;">${String(r.buyer).replace(/</g,'&lt;')}</td>
-      <td style="padding:5px 6px;font-family:var(--mono);font-size:9px;white-space:nowrap;">${r.key} <a href="#" onclick="navigator.clipboard&&navigator.clipboard.writeText('${r.key}');return false;" style="color:var(--blue);">copy</a></td>
-      <td style="padding:5px 6px;font-size:9px;">${type}</td>
-      <td style="padding:5px 6px;font-size:9px;color:var(--muted);white-space:nowrap;">${r.created}</td>
-      <td style="padding:5px 6px;"><a href="#" onclick="ownerKeyDelete('${r.key}');return false;" style="color:var(--dim);">✕</a></td>
-    </tr>`;
-  }).join('');
-  // This machine's own activation record (e.g. your test activation).
-  let act='';
-  try{
-    const rec=JSON.parse(localStorage.getItem(LICENCE_STORE));
-    if(rec&&rec.key)act=`<div style="font-size:10px;color:var(--muted);margin-top:10px;">Activated on THIS computer: <span style="font-family:var(--mono);color:var(--text)">${rec.key}</span> · buyer “${String(rec.buyer).replace(/</g,'&lt;')}”${rec.exp?' · trial expires '+rec.exp.slice(0,4)+'-'+rec.exp.slice(4,6)+'-'+rec.exp.slice(6,8):''}</div>`;
-  }catch(e){}
-  showModal(`
-    <div style="font-weight:700;font-size:15px;color:var(--text);">🗝 Issued keys — support register</div>
-    <div style="font-size:10px;color:var(--muted);margin:6px 0 10px;">Every key generated on this computer, for helping customers who lose theirs. Passwords are never stored (help them via the “forgot password?” links instead). Activations happen on each customer's own computer — they can't be seen from here.</div>
-    ${a.length?`<div style="overflow:auto;border:1px solid var(--border);border-radius:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:10px;">
-        <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:5px 6px;">Buyer</th><th style="text-align:left;padding:5px 6px;">Key</th><th style="text-align:left;padding:5px 6px;">Type / expiry</th><th style="text-align:left;padding:5px 6px;">Generated</th><th></th></tr></thead>
-        <tbody>${rows}</tbody></table></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button onclick="exportOwnerKeysCSV()" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📤 Export CSV (private)</button>
-      </div>`
-    :'<div style="font-size:10px;color:var(--muted);padding:10px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No keys recorded yet — keys are added here automatically each time you generate one.</div>'}
-    ${act}
-  `);
-}
-function _ownerGenClear(){const el=document.getElementById('ownerGenOut');if(el)el.textContent='';}
-async function ownerGenKey(){
-  const o=_owner();
-  const sec=(document.getElementById('ownerSecret').value.trim())||o.secret;
-  if(!sec){ownerMsg('Set and save a secret phrase first.','#f0b849');return;}
-  const buyer=(document.getElementById('ownerBuyer').value||'').trim();
-  if(!buyer){ownerMsg('Enter a buyer ID (email or name).','#f0b849');return;}
-  // generate with the CURRENT box secret (so it matches what you'll save)
-  const trialDays=parseInt((document.getElementById('ownerTrialDays')||{}).value)||0;
-  let exp=null;
-  if(trialDays>0){
-    const d=new Date(Date.now()+trialDays*86400000);
-    exp=d.toISOString().slice(0,10).replace(/-/g,'');
-  }
-  const enc=new TextEncoder();
-  const key=await crypto.subtle.importKey('raw',enc.encode(sec),{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  const sig=await crypto.subtle.sign('HMAC',key,enc.encode(buyer.toLowerCase()+(exp?('|'+exp):'')));
-  const b=new Uint8Array(sig);let hex='';for(let i=0;i<6;i++)hex+=b[i].toString(16).padStart(2,'0');hex=hex.toUpperCase();
-  const out=`PNMA-${hex.slice(0,4)}-${hex.slice(4,8)}-${hex.slice(8,12)}`+(exp?`-T${exp}`:'');
-  _ownerKeysRecord(buyer,out,exp);
-  document.getElementById('ownerGenOut').innerHTML=`<div style="margin-top:8px;padding:10px;border:1px dashed var(--gold);border-radius:7px;background:rgba(255,210,0,.08);text-align:center;"><div style="font-family:var(--mono);font-size:16px;font-weight:800;color:var(--gold);letter-spacing:1px;">${out}</div><div style="font-size:9px;color:var(--muted);margin-top:4px;">for “${buyer}”${exp?` · <span style="color:var(--orange)">trial — expires ${exp.slice(0,4)}-${exp.slice(4,6)}-${exp.slice(6,8)}</span>`:' · permanent'} · <a href="#" onclick="navigator.clipboard&&navigator.clipboard.writeText('${out}');return false;" style="color:var(--blue);">copy</a></div></div>`;
-  ownerMsg('Give this buyer their ID + this key. Make sure the secret above is saved.','var(--muted)');
-}
-
-
+// (Seller Controls removed.)
 async function _gate_hash(pw,saltB64){
   const salt=saltB64?Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0)):crypto.getRandomValues(new Uint8Array(16));
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
@@ -2255,8 +2111,6 @@ function gateMsg(t,c){const el=document.getElementById('gateMsg');if(el){el.text
 let _gateSetupMode=false;
 function startPasswordGate(){initGate();}
 function initGate(){
-  // Owner mode (Admin console only) → skip the password gate.
-  if(devModeOn()){document.getElementById('appGate').style.display='none';return;}
   // If crypto unavailable, let the app open (can't hash safely).
   if(!window.crypto||!crypto.subtle){document.getElementById('appGate').style.display='none';return;}
   // ── FIXED PERSONAL CODE: one baked-in code, verify only, no setup ever. ──
@@ -5289,7 +5143,8 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   // was fast an hour ago may be overloaded now.
   async function _tryProxy(pi){
     const ctrl=new AbortController();
-    const timer=setTimeout(()=>ctrl.abort(), 8000);
+    const timer=setTimeout(()=>ctrl.abort(), 5500); // was 8000 — abandon a stalling proxy sooner
+    const t0=(performance&&performance.now)?performance.now():Date.now();
     try{
       const r=await fetch(proxies[pi](url),{headers:{'Accept':'application/json'},signal:ctrl.signal});
       if(!r.ok)throw new Error('http '+r.status);
@@ -5297,7 +5152,10 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       if(!(txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{')))throw new Error('bad body');
       const data=JSON.parse(txt);
       const out=Array.isArray(data)?data:(data.quotes||data.data||data.Quotes||data.result||data.results||[]);
-      return {out,pi};
+      const ms=((performance&&performance.now)?performance.now():Date.now())-t0;
+      // Track how slow the chosen route is running so we can re-race if it degrades.
+      window._lastProxyMs=ms;
+      return {out,pi,ms};
     }finally{ clearTimeout(timer); }
   }
   let got=null;
@@ -5307,6 +5165,11 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   }else{
     const order=[window._goodHistProxy,0,1,2].filter((v,i,a)=>a.indexOf(v)===i);
     for(const pi of order){ try{ got=await _tryProxy(pi); break; }catch(e){/* next */} }
+    // If the chosen route answered but was SLOW (>3.5s), forget it so the next
+    // fetch re-races and can find a faster proxy. A slow proxy never "fails",
+    // so without this it would drag the whole load. Count slow hits; drop after 3.
+    if(got&&got.ms>3500){ window._slowProxyRun=(window._slowProxyRun||0)+1; if(window._slowProxyRun>=3){window._goodHistProxy=null;window._slowProxyRun=0;} }
+    else if(got){ window._slowProxyRun=0; }
   }
   if(got){
     _histCache.set(ckey,got.out);
@@ -6012,6 +5875,19 @@ function scoreUnusual(s){
 // uses (streaks, volume avg & surge, volume streak, technicals, accumulation,
 // score). In-memory, no network, runs in milliseconds — so Top 20 and every
 // scan always rank on TODAY.
+// Show a one-line hint when the free CORS proxies are running slow, so the user
+// knows the sluggishness is the network (not the app) and what they can do.
+function _maybeSlowNetworkHint(){
+  try{
+    if((window._lastProxyMs||0)>3500){
+      const ls=document.getElementById('loadStatus');
+      if(ls && !document.getElementById('_slowHint')){
+        ls.insertAdjacentHTML('beforeend',
+          '<div id="_slowHint" style="font-size:9px;color:#f0b849;margin-top:4px;line-height:1.4;">\uD83D\uDC0C The free data proxy is running slow right now (this comes and goes through the day \u2014 it\u2019s the network, not the app). Loads will still finish. Tip: after a <b>Download all</b> for offline use, later loads read from your own computer and are instant.</div>');
+      }
+    }
+  }catch(e){}
+}
 function _freshenSeriesFromBulk(){
   const dd=(window._exchDataDate||{})[currentExch];
   if(!dd||!Array.isArray(allData)||!allData.length)return 0;
@@ -6818,6 +6694,7 @@ async function autoRunTechnicals(){
       if(ls)ls.innerHTML=`📐 Preparing technicals… <strong>${Math.min(i+BATCH,set.length)}/${set.length}</strong> <span style="font-size:9px;color:var(--dim)">(incl. watchlist)</span>`;
       const results=await Promise.all(slice.map(s=>fetchHistory(s.exchange,s.ticker,apiKey,fetchDays).catch(()=>null)));
       results.forEach((hist,j)=>{const s=slice[j];if(Array.isArray(hist)&&hist.length>=2){try{computeTechnicals(s,hist);}catch(e){}}});
+      _maybeSlowNetworkHint();
       if(i+BATCH<set.length)await new Promise(r=>setTimeout(r,600));
     }
     if(typeof applyF==='function')applyF();
@@ -7040,7 +6917,18 @@ async function prepareAllSignals(auto){
       if(_pf)_pf.style.width=pct+'%';
       if(ls)ls.innerHTML=`⚡ Loading everything… <strong>${doneN.toLocaleString()}/${ranked.length.toLocaleString()}</strong> shares · ${pct}% <span style="font-size:9px;color:var(--dim)">(streaks · accum · score · technicals · range · charts)</span>`;
       const _forceNet=!!window._forceLiveRefresh; // set by "Refresh live from API"
-      const results=await Promise.all(slice.map(s=>fetchHistory(s.exchange,s.ticker,apiKey,fetchDays,_forceNet).catch(()=>null)));
+      // Fetch with a light retry so a momentarily slow/failed proxy doesn't leave
+      // the share stuck on "?" — the main cause of partial data on slow days.
+      const _fetchOne=async(s)=>{
+        for(let a=0;a<2;a++){
+          const r=await fetchHistory(s.exchange,s.ticker,apiKey,fetchDays,_forceNet).catch(()=>null);
+          if(Array.isArray(r)&&r.length>=2)return r;
+          if(a===0)await new Promise(z=>setTimeout(z,300));
+        }
+        return null;
+      };
+      const results=await Promise.all(slice.map(s=>_fetchOne(s)));
+      let _sliceFailed=0;
       results.forEach((hist,j)=>{
         const s=slice[j];
         if(Array.isArray(hist)&&hist.length>=2){
@@ -7066,18 +6954,53 @@ async function prepareAllSignals(auto){
             if(typeof accumDays==='function')s.accum10=accumDays(s,10);
             if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
           }catch(e){}
-        }
+        } else { _sliceFailed++; (window._prepFailed=window._prepFailed||[]).push(s); }
         done++;
       });
+      _maybeSlowNetworkHint&&_maybeSlowNetworkHint();
       if(i+BATCH<ranked.length && !(window._healCount>i*0.8))await new Promise(r=>setTimeout(r,350)); // rate-limit gap (skipped when serving from disk/heal)
     }
+    // ── Retry pass: shares whose history failed (slow/blocked proxy) are retried
+    //    once more so partial data fills in instead of staying on "?". ──
+    const _failed=(window._prepFailed||[]).slice(); window._prepFailed=[];
+    if(_failed.length && !window._prepAbort){
+      if(ls)ls.innerHTML=`🔁 Finishing ${_failed.length.toLocaleString()} shares that were slow to load…`;
+      for(let i=0;i<_failed.length;i+=BATCH){
+        if(window._prepAbort)break;
+        const slice=_failed.slice(i,i+BATCH);
+        const results=await Promise.all(slice.map(async s=>{
+          for(let a=0;a<3;a++){const r=await fetchHistory(s.exchange,s.ticker,apiKey,fetchDays,true).catch(()=>null);if(Array.isArray(r)&&r.length>=2)return r;await new Promise(z=>setTimeout(z,400*(a+1)));}
+          return null;
+        }));
+        results.forEach((hist,j)=>{
+          const s=slice[j];
+          if(Array.isArray(hist)&&hist.length>=2){try{
+            s.daysUp=countStreak(hist);s.streakCalced=true;s.newsFlag=newsProxy(hist);
+            try{s.series=_sortedCloses(hist).map(r=>({d:r.d,c:r.c,v:r.v}));}catch(e){}
+            const avg3=computeVolAvg(hist,effVolWindow());
+            if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
+            computeTechnicals(s,hist);
+            if(typeof accumDays==='function')s.accum10=accumDays(s,10);
+            if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
+          }catch(e){}}
+        });
+        if(i+BATCH<_failed.length)await new Promise(r=>setTimeout(r,500));
+      }
+    }
+    const _stillMissing=allData.filter(s=>!s.streakCalced && (s.price>0)).length;
     // re-apply filters/sort now that every field is populated
     if(typeof applyF==='function')applyF(); else if(typeof doApply==='function')doApply();
     const _stopBtn2=document.getElementById('prepStopBtn'); if(_stopBtn2)_stopBtn2.style.display='none';
     if(_pf)_pf.style.width='100%';
     const _phase=document.getElementById('loadPhase'); if(_phase)_phase.style.display='none';
     setTimeout(()=>{ if(_pw)_pw.style.display='none'; },1500);
-    if(!window._prepAbort && ls)ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>`;
+    if(!window._prepAbort && ls){
+      if(_stillMissing>0){
+        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${(ranked.length-_stillMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_stillMissing.toLocaleString()} still need data</span> — the data proxy was slow for those. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data.`;
+      } else {
+        ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>`;
+      }
+    }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
   finally{window._prepRunning=false;const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;}
 }
@@ -7422,8 +7345,10 @@ function _restoreBulkButtons(){
 async function downloadEverything(){
   if(window._bulkRunning)return;
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
-  if(!apiKey){alert('Enter your API key first.');return;}
-  if(!allData.length){alert('Load an exchange first (so the app knows which shares to download).');return;}
+  const _lbl=document.getElementById('bulkLbl')||document.getElementById('loadStatus');
+  const _say=(m)=>{ if(_lbl)_lbl.innerHTML='<span style="color:#f0b849">'+m+'</span>'; };
+  if(!apiKey){_say('Enter your API key first (top of Setup), then press Download all.');return;}
+  if(!allData.length){_say('Load an exchange first, then Download all will save it for offline use.');return;}
   // The download saves EVERYTHING loaded (types are a live-load setting only).
   // The one optional narrowing here is the "gainers only" checkbox below.
   let targets=allData.slice();
@@ -8435,7 +8360,7 @@ initLicence();loadWatchlists();updateWatchBtn();initKeyLock();refreshMyReportBtn
 // behind filters, scans and scores isn't revealed to anyone watching or using
 // the app. Titles are parked in data-ttip and restored if switched off.
 const PRIVATE_STORE='asxScreener.privateMode.v1';
-function privateOn(){try{return localStorage.getItem(PRIVATE_STORE)!=='0';}catch(e){return true;}} // default ON
+function privateOn(){return true;} // LOCKED ON
 function stripTitles(){
   document.querySelectorAll('[title]').forEach(el=>{
     if(el.id==='gatePass')return;
@@ -8451,7 +8376,8 @@ function applyPrivateMode(){
   if(on)stripTitles();else restoreTitles();
   const c=document.getElementById('privateChk');if(c)c.checked=on;
 }
-function setPrivateMode(on){
+function setPrivateMode(on){ on=true; // locked on
+
   try{localStorage.setItem(PRIVATE_STORE,on?'1':'0');}catch(e){}
   applyPrivateMode();
   const ls=document.getElementById('loadStatus');
@@ -8634,7 +8560,15 @@ function setAutoLoad(on){
       if(ls)ls.innerHTML='<span style="color:var(--gold)">⬇ First run: downloading all ASX data to your computer so everything works offline.</span>';
       setPhase('This happens once — you can keep using the app as it fills');
       if(!allData.length) loadData();
-      setTimeout(()=>{ try{ if(typeof downloadEverything==='function' && !window._bulkRunning) downloadEverything(); }catch(e){} }, 4000);
+      // Wait until the exchange list has actually loaded before starting the bulk
+      // download — otherwise it fires with nothing to download. Poll up to ~20s;
+      // if data never arrives (no key / offline), quietly do nothing (no popup).
+      let _tries=0;
+      const _startDl=setInterval(()=>{
+        _tries++;
+        if(allData.length){ clearInterval(_startDl); try{ if(typeof downloadEverything==='function' && !window._bulkRunning) downloadEverything(); }catch(e){} }
+        else if(_tries>=10){ clearInterval(_startDl); /* gave up quietly — user can press Download all when ready */ }
+      }, 2000);
     } else {
       if(ls)ls.innerHTML='<span style="color:var(--gold)">⚙ Enter your API key in Setup &amp; data to begin.</span>';
       setPhase('The app will then download everything for offline use automatically');
@@ -8808,12 +8742,37 @@ syncP();syncV();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- ═══════════ EMBEDDED TRAINING LAYER (hidden until unlocked) ═══════════ -->
 <style>
-#trainBanner{position:fixed;top:0;left:0;right:0;z-index:100001;background:linear-gradient(90deg,#6d28d9,#9333ea);color:#fff;font:600 12px 'Space Grotesk',sans-serif;padding:7px 14px;display:none;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.3);}
-#trainBanner button{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:4px 10px;font:600 11px 'Space Grotesk';cursor:pointer;}
+#trainBanner{position:fixed;top:0;left:0;right:0;z-index:100001;background:linear-gradient(90deg,#6d28d9,#9333ea);color:#fff;font:600 12px 'Space Grotesk',sans-serif;padding:6px 12px;display:none;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.3);}
+#trainBanner .tb-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#trainBanner .tb-btns{display:flex;gap:6px;align-items:center;flex:none;}
+#trainBanner button{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:4px 9px;font:600 11px 'Space Grotesk';cursor:pointer;white-space:nowrap;}
+#tbCollapse{padding:4px 8px!important;font-size:13px!important;line-height:1;}
 body.training-on{padding-top:34px;}
 body.training-on #trainBanner{display:flex;}
+body.training-min #trainBanner .tb-txt{display:none;}
+body.training-min #trainBanner .tb-full{display:none;}
+body.training-min{padding-top:30px;}
+@media(max-width:640px){
+  #trainBanner{padding:5px 9px;font-size:11px;gap:6px;}
+  #trainBanner .tb-txt{font-size:10.5px;}
+  #trainBanner .tb-txt .tb-long{display:none;}
+  #trainBanner button{padding:4px 7px;font-size:10px;}
+  body.training-on{padding-top:30px;}
+}
 .tt-pop{position:fixed;z-index:500;max-width:300px;background:#0d1b33;border:1px solid #9333ea;border-radius:10px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.5);font:400 12px 'Inter',sans-serif;color:#eef3fb;line-height:1.5;pointer-events:none;opacity:0;transition:opacity .1s;}
 .tt-pop.show{opacity:1;}
 .tt-pop b{color:#c88bff;font-family:'Space Grotesk';display:block;margin-bottom:4px;font-size:12.5px;}
@@ -8832,10 +8791,11 @@ body.training-on #trainCoverage{display:block;}
 </style>
 
 <div id="trainBanner">
-  <span>🎓 TRAINING MODE — hover ANY control (dashed purple outline) for an explanation. <button onclick="disableTrainingMode()" style="margin-left:8px;">Exit training</button></span>
-  <span style="display:flex;gap:8px;align-items:center;">
-    <button onclick="loadDemoData()" id="demoBtn" style="background:rgba(255,210,0,.25);border-color:#FFD200;">📊 Load demo data</button>
-    <button onclick="toggleTrainTips()" id="tipToggleBtn">Tooltips: ON</button>
+  <span class="tb-txt"><b>🎓 TRAINING</b><span class="tb-long"> — hover any control (dashed purple) for an explanation.</span> <button onclick="disableTrainingMode()" class="tb-full" style="margin-left:6px;">Exit</button></span>
+  <span class="tb-btns">
+    <button onclick="loadDemoData()" id="demoBtn" style="background:rgba(255,210,0,.25);border-color:#FFD200;">📊 Demo data</button>
+    <button onclick="toggleTrainTips()" id="tipToggleBtn" class="tb-full">Tooltips: ON</button>
+    <button onclick="tbToggleMin()" id="tbCollapse" title="Shrink / expand this banner">▲</button>
   </span>
 </div>
 <button id="helpToggle" onclick="toggleHelpPanel()">📖 Help guide</button>
@@ -9009,6 +8969,10 @@ window.toggleTrainTips=function(){
   _tipsOn=!_tipsOn;
   const b=document.getElementById('tipToggleBtn');if(b)b.textContent='Tooltips: '+(_tipsOn?'ON':'OFF');
   if(!_tipsOn)_hideTT();
+};
+window.tbToggleMin=function(){
+  const min=document.body.classList.toggle('training-min');
+  const b=document.getElementById('tbCollapse'); if(b)b.textContent=min?'▼':'▲';
 };
 function _attachOne(el,info){
   if(el.getAttribute('data-train'))return;
