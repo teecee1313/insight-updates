@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-128",
+  "version": "2026.07.04-129",
   "url": "https://teecee1313.github.io/insight-updates/insight-trading-locked.html",
-  "notes": "Exiting training mode now clears the demo data so you return to a clean slate instead of being left with the practice shares. Plus the partial-data retry fix, compact mobile training banner, and no startup popup."
+  "notes": "You can now show every share, not just the top 1,000 \u2014 a \"Show all\" link appears when the list is longer, so nothing is hidden. Plus exiting training clears demo data, the partial-data retry fix, and a compact mobile training banner."
 }

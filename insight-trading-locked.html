@@ -349,7 +349,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-128 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-129 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
 <!-- Seller Controls removed -->
@@ -1117,7 +1117,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-128-family';
+const APP_VERSION='2026.07.04-129-family';
 const COPYRIGHT='© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293';
 const APP_SOURCE_SNAPSHOT=(function(){try{return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}catch(e){return '';}})();
 function _verDB(){return new Promise((res,rej)=>{
@@ -1543,6 +1543,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -2936,9 +2937,25 @@ function render(){
   }
   document.getElementById('tblwrap').style.display='block';document.getElementById('noResults').style.display='none';document.getElementById('emptyState').style.display='none';
   const cnt=filtered.length;
-  document.getElementById('rcount').textContent=cnt>1000?`${cnt.toLocaleString()} stocks (top 1,000 shown — search to narrow)`:`${cnt.toLocaleString()} stock${cnt!==1?'s':''}`;
-  renderRows(filtered.slice(0,1000));
+  // Render cap keeps very large lists snappy. Default 1,000; users can lift it to
+  // show every share via the "Show all" link (may be slower on phones with 2,000+).
+  const cap=(window._rowCap||1000);
+  if(cnt>cap){
+    document.getElementById('rcount').innerHTML=`${cnt.toLocaleString()} stocks (top ${cap.toLocaleString()} shown) · <a href="#" onclick="_showAllRows();return false;" style="color:var(--blue);font-weight:700;">Show all ${cnt.toLocaleString()}</a> <span style="font-size:9px;color:var(--dim)">(may be slower)</span>`;
+  } else {
+    document.getElementById('rcount').textContent=`${cnt.toLocaleString()} stock${cnt!==1?'s':''}`+(window._rowCap>1000&&cnt>1000?' · all shown':'');
+  }
+  renderRows(filtered.slice(0,cap));
 }
+// Lift the render cap to show every filtered share. Stays on until the user
+// reloads or clicks back to the fast view.
+function _showAllRows(){
+  window._rowCap=999999;
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML='<span style="color:var(--gold)">Showing all shares… (scrolling/sorting may be slower with thousands of rows)</span>';
+  try{ (typeof applyF==='function'?applyF():render&&render()); }catch(e){}
+}
+function _showFastRows(){ window._rowCap=1000; try{ (typeof applyF==='function'?applyF():render&&render()); }catch(e){} }
 
 // Build table rows from any array of stock objects (used by both the main
 // filtered view and the filter-independent watchlist view).
@@ -8648,6 +8665,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
