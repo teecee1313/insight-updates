@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-116",
+  "version": "2026.07.04-118",
   "url": "https://teecee1313.github.io/insight-updates/insight-trading-locked.html",
-  "notes": "Percentage take-profit & stop-loss, Volume Surge Report with heat filters, click-any-share news, volume surge ratings, faster loads, and personal code lock."
+  "notes": "Direction-aware volume ratings (green=buying, red=selling), percentage take-profit & stop-loss, Volume Surge Report with heat + up/down filters, click-any-share news, and faster loads."
 }
