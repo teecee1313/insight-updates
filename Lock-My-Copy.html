@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lock My Copy — Insight Trading</title>
+<style>
+  :root{--navy:#0d1b33;--navy2:#002B5C;--gold:#FFD200;--red:#E21937;--text:#e8eef7;--muted:#8fa6c9;--dim:#5a6b85;--bg3:#122murky;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:linear-gradient(160deg,#0d1b33,#001830);color:#e8eef7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:24px;}
+  .wrap{max-width:620px;margin:0 auto;}
+  h1{font-size:22px;margin:8px 0 2px;}
+  .sub{color:#8fa6c9;font-size:13px;margin-bottom:22px;line-height:1.5;}
+  .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:20px;margin-bottom:16px;}
+  .step{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;}
+  .num{flex:none;width:22px;height:22px;border-radius:50%;background:rgba(255,210,0,.15);border:1px solid #FFD200;color:#FFD200;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  label{display:block;font-size:12px;color:#8fa6c9;margin:14px 0 5px;font-weight:600;}
+  input[type=file],input[type=text],input[type=password]{width:100%;padding:11px 12px;border-radius:9px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);color:#e8eef7;font-size:14px;}
+  input[type=file]{padding:9px;}
+  button{width:100%;margin-top:18px;padding:13px;border-radius:10px;border:1px solid #FFD200;background:rgba(255,210,0,.16);color:#FFD200;font-weight:800;font-size:15px;cursor:pointer;letter-spacing:.3px;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  button:hover:not(:disabled){background:rgba(255,210,0,.26);}
+  .msg{margin-top:14px;font-size:13px;line-height:1.5;padding:11px 13px;border-radius:9px;display:none;}
+  .ok{background:rgba(63,185,80,.12);border:1px solid #3fb950;color:#8ff0a4;}
+  .err{background:rgba(226,25,55,.12);border:1px solid #E21937;color:#ff9caa;}
+  .hint{font-size:11px;color:#5a6b85;margin-top:4px;line-height:1.5;}
+  code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-size:12px;}
+  .brand{color:#FFD200;font-weight:800;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">🦋 INSIGHT TRADING</div>
+  <h1>🔒 Lock My Copy</h1>
+  <div class="sub">Bake <b>your personal code</b> into the app so every device you open it on just asks for that one code — with no way for anyone to create a different one or take it over. For your own and family use.</div>
+
+  <div class="card">
+    <div class="step"><div class="num">1</div><div>Choose your <b>master</b> app file (<code>insight-trading.html</code>).</div></div>
+    <label>App file to lock</label>
+    <input type="file" id="file" accept=".html,text/html">
+    <div class="hint">Pick the newest <code>insight-trading.html</code> from your Downloads. This tool never uploads it anywhere — everything happens on your device.</div>
+
+    <div class="step" style="margin-top:20px;"><div class="num">2</div><div>Type the code you want to use. <b>Use the same code you already use.</b></div></div>
+    <label>Your code</label>
+    <input type="password" id="code" placeholder="Enter your code" autocomplete="off">
+    <label>Type it again to confirm</label>
+    <input type="password" id="code2" placeholder="Enter the same code again" autocomplete="off">
+    <div class="hint">The code itself is never stored in the file — only a one-way scrambled fingerprint (PBKDF2-SHA-256, 150,000 rounds). Nobody can read your code out of the file, but the right code will always unlock it.</div>
+
+    <div class="step" style="margin-top:20px;"><div class="num">3</div><div>Download your locked copy and use it on every device.</div></div>
+    <button id="go" disabled>🔒 Create my locked copy</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card" style="font-size:12px;color:#8fa6c9;line-height:1.6;">
+    <b style="color:#e8eef7;">How to use it afterwards</b><br>
+    • The download is named <code>insight-trading-locked.html</code>. Put that file on any computer, phone or tablet you like — it will always ask for your code and open with it.<br>
+    • There is no "create a password" screen and no reset-to-setup — the code is fixed in the file. To change it later, just run this tool again on a fresh <code>insight-trading.html</code> with a new code.<br>
+    • Keep one un-locked <code>insight-trading.html</code> as your working master for future updates; lock a copy whenever you want to deploy.
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let fileText=null, fileName='insight-trading-locked.html';
+
+$('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{fileText=r.result;checkReady();
+    if(!/FIXED_GATE_RECORD/.test(fileText)&&!/const FIXED_GATE=/.test(fileText)){
+      show('⚠ This file doesn\u2019t look like a lock-ready Insight Trading app (v110+). Use the newest insight-trading.html.','err');
+    } else {hide();}
+  };
+  r.readAsText(f);
+});
+['code','code2'].forEach(id=>$(id).addEventListener('input',checkReady));
+function checkReady(){$('go').disabled=!(fileText&&$('code').value.length>=1);}
+function show(t,c){const m=$('msg');m.innerHTML=t;m.className='msg '+c;m.style.display='block';}
+function hide(){$('msg').style.display='none';}
+
+async function hashCode(pw){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,256);
+  const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+  return {salt:b64(salt),hash:b64(bits)};
+}
+
+$('go').addEventListener('click',async()=>{
+  hide();
+  const c1=$('code').value, c2=$('code2').value;
+  if(c1.length<1){show('Enter a code.','err');return;}
+  if(c1!==c2){show('The two codes don\u2019t match — type the same code in both boxes.','err');return;}
+  if(!window.crypto||!crypto.subtle){show('This browser can\u2019t create the secure lock. Try Chrome, Edge, Safari or Firefox.','err');return;}
+  if(!fileText){show('Choose your app file first.','err');return;}
+  try{
+    const rec=await hashCode(c1);
+    const literal='const FIXED_GATE='+JSON.stringify(rec)+'; /*FIXED_GATE_RECORD*/';
+    let out;
+    if(/const FIXED_GATE=null; \/\*FIXED_GATE_RECORD\*\//.test(fileText)){
+      out=fileText.replace('const FIXED_GATE=null; /*FIXED_GATE_RECORD*/',literal);
+    }else if(/const FIXED_GATE=[^\n]*\/\*FIXED_GATE_RECORD\*\//.test(fileText)){
+      out=fileText.replace(/const FIXED_GATE=[^\n]*\/\*FIXED_GATE_RECORD\*\//,literal);
+    }else{
+      show('Couldn\u2019t find the lock marker in this file. Use the newest insight-trading.html (v110+).','err');return;
+    }
+    const blob=new Blob([out],{type:'text/html'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='insight-trading-locked.html';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    show('✓ Done! Your locked copy <b>insight-trading-locked.html</b> is downloading. Open it on any device — it will ask for your code and open with it. No one can set a different code.','ok');
+    $('code').value='';$('code2').value='';checkReady();
+  }catch(e){show('Something went wrong: '+e.message,'err');}
+});
+</script>
+</body>
+</html>
