@@ -3,8 +3,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Insight Trading — Multi-Exchange Share Screener</title>
+<!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
+<meta name="theme-color" content="#0d1b33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Insight Trading">
+<meta name="application-name" content="Insight Trading">
+<!-- Chart-bars icon (navy bg, gold ascending bars) as an inline SVG data URI -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230d1b33'/%3E%3Crect x='104' y='300' width='60' height='128' rx='10' fill='%23FFD200'/%3E%3Crect x='196' y='232' width='60' height='196' rx='10' fill='%23FFD200'/%3E%3Crect x='288' y='168' width='60' height='260' rx='10' fill='%23FFD200'/%3E%3Crect x='380' y='96' width='60' height='332' rx='10' fill='%23FFD200'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230d1b33'/%3E%3Crect x='104' y='300' width='60' height='128' rx='10' fill='%23FFD200'/%3E%3Crect x='196' y='232' width='60' height='196' rx='10' fill='%23FFD200'/%3E%3Crect x='288' y='168' width='60' height='260' rx='10' fill='%23FFD200'/%3E%3Crect x='380' y='96' width='60' height='332' rx='10' fill='%23FFD200'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
@@ -349,7 +359,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-130 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-133 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
 <!-- Seller Controls removed -->
@@ -490,6 +500,15 @@ tr:hover td{background:rgba(255,255,255,.02);}
             oninput="try{localStorage.setItem('asxScreener.apiKey',this.value);}catch(e){}">
           <button id="keyEditBtn" onclick="toggleKeyEdit()" style="width:100%;margin-top:5px;padding:6px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🔓 Unlock to edit key</button>
           <div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;"><a href="#" onclick="resetKeyEditPw(event)" style="color:var(--dim);">forgot password?</a> · <a href="#" onclick="clearSavedKey(event)" style="color:var(--dim);">clear saved key</a></div>
+        </div>
+
+        <!-- Optional: live news API key (test) -->
+        <div class="field" style="margin-bottom:10px;">
+          <label>📰 News API key <span style="float:right;font-weight:400;font-size:9px;color:var(--dim);">optional · free tier</span></label>
+          <input type="password" id="newsApiKey" value="" placeholder="marketaux free api_token…"
+            oninput="setNewsApiKey(this.value)">
+          <div id="newsKeyMsg" style="font-size:9px;color:var(--dim);margin-top:4px;"></div>
+          <div style="font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;">Get a free key at <a href="https://www.marketaux.com" target="_blank" style="color:var(--blue);">marketaux.com</a> to test live inline headlines in each share's Deep dive. Leave blank to keep using the free news buttons. Free tier is limited — news loads only when you open a share, and is cached.</div>
         </div>
 
         <!-- (CSV load/export removed.) -->
@@ -1117,7 +1136,34 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-130-family';
+const APP_VERSION='2026.07.04-133-family';
+// ── Make the app installable (PWA) without needing a separate manifest file ──
+// We build the manifest in-memory and attach it as a Blob URL, so the whole app
+// stays a single HTML file you can upload as-is. Phones/desktops then offer
+// "Install" / "Add to Home screen" with the proper name and chart-bars icon.
+(function(){try{
+  const icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230d1b33'/%3E%3Crect x='104' y='300' width='60' height='128' rx='10' fill='%23FFD200'/%3E%3Crect x='196' y='232' width='60' height='196' rx='10' fill='%23FFD200'/%3E%3Crect x='288' y='168' width='60' height='260' rx='10' fill='%23FFD200'/%3E%3Crect x='380' y='96' width='60' height='332' rx='10' fill='%23FFD200'/%3E%3C/svg%3E";
+  const manifest={
+    name:"Insight Trading — Share Screener",
+    short_name:"Insight Trading",
+    description:"Multi-exchange end-of-day share screener.",
+    start_url:".",
+    scope:".",
+    display:"standalone",
+    orientation:"any",
+    background_color:"#05152e",
+    theme_color:"#0d1b33",
+    icons:[
+      {src:icon,sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"},
+      {src:icon,sizes:"192x192",type:"image/svg+xml",purpose:"any maskable"}
+    ]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('link');
+  link.rel='manifest'; link.href=url;
+  document.head.appendChild(link);
+}catch(e){}})();
 const COPYRIGHT='© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293';
 const APP_SOURCE_SNAPSHOT=(function(){try{return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}catch(e){return '';}})();
 function _verDB(){return new Promise((res,rej)=>{
@@ -1543,6 +1589,9 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
+
 
 
 
@@ -2261,6 +2310,8 @@ function initKeyLock(){
   try{
     const saved=localStorage.getItem('asxScreener.apiKey');
     if(saved)document.getElementById('apiKey').value=saved;
+    const nk=localStorage.getItem(NEWSAPI_KEY_STORE);
+    if(nk){const el=document.getElementById('newsApiKey');if(el)el.value=nk;}
   }catch(e){}
   applyKeyEditState(false); // start locked
 }
@@ -2904,6 +2955,61 @@ function newsSearchFor(ticker,exch,name){
     ? `${ticker} ASX ${name||''} share news`
     : `${ticker} ${name||''} stock news`;
   return `https://news.google.com/search?q=${encodeURIComponent(q.trim())}`;
+}
+// ── LIVE NEWS ENRICHMENT (test layer) ─────────────────────────────────────────
+// Fetches real headlines on-demand from marketaux (free tier + ASX support).
+// Only called when you open a share's deep dive — never for all shares — so it
+// stays within a small free quota. Cached 45 min. If no key or no result, the
+// app silently falls back to the existing click-through news buttons.
+const NEWSAPI_KEY_STORE='asxScreener.newsApiKey.v1';
+function newsApiKey(){try{return (localStorage.getItem(NEWSAPI_KEY_STORE)||'').trim();}catch(e){return '';}}
+function setNewsApiKey(v){try{localStorage.setItem(NEWSAPI_KEY_STORE,(v||'').trim());}catch(e){} const el=document.getElementById('newsKeyMsg'); if(el)el.textContent=newsApiKey()?'✓ Saved. Open any share\u2019s Deep dive to see live headlines.':'Cleared.';}
+const _newsCache={};
+async function fetchLiveNews(ticker,exch,name){
+  const key=newsApiKey(); if(!key)return {ok:false,reason:'nokey'};
+  const ck=ticker+'|'+exch;
+  const c=_newsCache[ck];
+  if(c && (Date.now()-c.t)<45*60*1000) return {ok:true,items:c.items,cached:true};
+  const sym = exch==='ASX' ? ticker+'.AX' : ticker;
+  const url=`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(sym)}&filter_entities=true&language=en&limit=5&api_token=${encodeURIComponent(key)}`;
+  try{
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),7000);
+    let r;try{r=await fetch(url,{signal:ctrl.signal});}finally{clearTimeout(t);}
+    if(!r.ok){
+      if(exch==='ASX'){
+        const url2=`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(ticker)}&filter_entities=true&language=en&limit=5&api_token=${encodeURIComponent(key)}`;
+        const r2=await fetch(url2).catch(()=>null);
+        if(r2&&r2.ok){const d2=await r2.json();const items2=(d2.data||[]).map(_mapNews);_newsCache[ck]={t:Date.now(),items:items2};return {ok:true,items:items2};}
+      }
+      return {ok:false,reason:'http'+r.status};
+    }
+    const d=await r.json();
+    const items=(d.data||[]).map(_mapNews);
+    _newsCache[ck]={t:Date.now(),items};
+    return {ok:true,items};
+  }catch(e){ return {ok:false,reason:'neterr'}; }
+}
+function _mapNews(a){return {title:a.title||'(untitled)',url:a.url||'#',source:a.source||'',published:a.published_at||'',snippet:(a.snippet||a.description||'').slice(0,160)};}
+function _newsAge(iso){try{const d=new Date(iso);const mins=(Date.now()-d.getTime())/60000;if(mins<60)return Math.round(mins)+'m ago';if(mins<1440)return Math.round(mins/60)+'h ago';return Math.round(mins/1440)+'d ago';}catch(e){return '';}}
+async function loadDeepDiveNews(ticker,exch,name){
+  const box=document.getElementById('ddNews'); if(!box)return;
+  if(!newsApiKey()){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">💡 Add a free marketaux API key in Setup → to test live inline headlines here. Without it, use the news buttons above.</div>'; return; }
+  box.innerHTML='<div style="font-size:10px;color:var(--dim);">📰 Loading live headlines…</div>';
+  const res=await fetchLiveNews(ticker,exch,name);
+  if(!res.ok){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">No live feed right now ('+(res.reason||'error')+'). Use the 📰/🏛 buttons above.</div>'; return; }
+  if(!res.items.length){
+    const annUrl=newsUrlFor(ticker,exch);
+    const annLabel=exch==='ASX'?'🏛 Official ASX announcements':'🏛 Official company filings';
+    box.innerHTML='<div style="font-size:10px;color:#f0b849;line-height:1.45;margin-bottom:6px;">No wire-service news for <b>'+ticker+'</b> — normal for ASX small-caps (journalists rarely cover them, but the company\u2019s official filings do exist).</div>'+
+      '<a href="'+annUrl+'" target="_blank" style="display:block;text-align:center;padding:9px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.14);color:var(--blue);font:700 12px var(--sans);text-decoration:none;">'+annLabel+' ↗</a>'+
+      '<div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;">This is the primary source — every price-sensitive event is lodged here first.</div>';
+    return;
+  }
+  box.innerHTML='<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">📰 Live headlines '+(res.cached?'(cached)':'')+':</div>'+
+    res.items.map(n=>`<a href="${n.url}" target="_blank" style="display:block;padding:6px 8px;margin-bottom:4px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);text-decoration:none;">
+      <div style="font-size:11px;color:var(--text);line-height:1.35;">${n.title}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:2px;">${n.source} · ${_newsAge(n.published)}</div>
+    </a>`).join('');
 }
 function tickerUrlFor(ticker,exch){
   if(exch==='ASX')return`https://www.marketindex.com.au/asx/${ticker.toLowerCase()}`;
@@ -6334,7 +6440,9 @@ function deepDive(ticker){
   <div style="display:flex;gap:6px;margin-bottom:8px;">
     <a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.10);color:#ff9caa;font:700 11px var(--sans);text-decoration:none;">📰 Latest news</a>
     <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 11px var(--sans);text-decoration:none;">🏛 ${s.exchange==='ASX'?'ASX announcements':'Company filings'} ↗</a>
-  </div>`;
+  </div>
+  <div id="ddNews" style="margin-bottom:8px;"></div>`;
+  setTimeout(()=>{try{loadDeepDiveNews(s.ticker,s.exchange,s.name);}catch(e){}},50);
 
   html+=sub('Price &amp; volume');
   html+=row('Last close',fmtP(px,s.currency));
@@ -8704,6 +8812,12 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
+
+
 
 
 
