@@ -349,7 +349,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-127 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-128 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
 <!-- Seller Controls removed -->
@@ -1117,7 +1117,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-127-family';
+const APP_VERSION='2026.07.04-128-family';
 const COPYRIGHT='© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293';
 const APP_SOURCE_SNAPSHOT=(function(){try{return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}catch(e){return '';}})();
 function _verDB(){return new Promise((res,rej)=>{
@@ -1543,6 +1543,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -8754,6 +8756,10 @@ syncP();syncV();
 
 
 
+
+
+
+
 <!-- ═══════════ EMBEDDED TRAINING LAYER (hidden until unlocked) ═══════════ -->
 <style>
 #trainBanner{position:fixed;top:0;left:0;right:0;z-index:100001;background:linear-gradient(90deg,#6d28d9,#9333ea);color:#fff;font:600 12px 'Space Grotesk',sans-serif;padding:6px 12px;display:none;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.3);}
@@ -8949,7 +8955,7 @@ const DEMO_DATA=[{"ticker": "A200", "name": "BetaShares A200 ETF", "price": 115.
 let _tipsOn=true, _ttEl=null;
 
 window.loadDemoData=function(){
-  if(window.__setDemoData){window.__setDemoData(DEMO_DATA);}
+  if(window.__setDemoData){window.__setDemoData(DEMO_DATA);window._demoLoaded=true;}
 };
 function _showTT(el,info){
   if(!_tipsOn)return;
@@ -9015,8 +9021,25 @@ window.enableTrainingMode=function(){
 };
 window.disableTrainingMode=function(){
   document.body.classList.remove('training-on');
+  document.body.classList.remove('training-min');
   try{sessionStorage.removeItem('asxScreener.trainingUnlocked');}catch(e){}
   _hideTT();
+  // Clear the demo/practice data so exiting training leaves a clean slate —
+  // otherwise the fake demo shares stay on screen after you leave.
+  try{
+    if(window._demoLoaded || (typeof allData!=='undefined' && allData.length && allData[0] && allData[0]._history)){
+      allData=[]; if(typeof filtered!=='undefined')filtered=[];
+      window._demoLoaded=false;
+      try{_histCache&&_histCache.clear&&_histCache.clear();}catch(e){}
+      // repaint the (now empty) table and counters, and show a gentle prompt
+      try{applyF&&applyF();}catch(e){}
+      try{render&&render();}catch(e){}
+      try{dots&&dots();}catch(e){}
+      try{mp&&mp();}catch(e){}
+      const ls=document.getElementById('loadStatus');
+      if(ls)ls.innerHTML='<span style="color:var(--gold)">Exited training. Demo data cleared — enter your API key &amp; load an exchange for live data.</span>';
+    }
+  }catch(e){}
 };
 // If already unlocked this session, re-enable on load.
 try{ if(sessionStorage.getItem('asxScreener.trainingUnlocked')==='1'){ window.addEventListener('load',()=>setTimeout(()=>window.enableTrainingMode&&window.enableTrainingMode(),800)); } }catch(e){}
