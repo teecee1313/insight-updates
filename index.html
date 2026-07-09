@@ -1143,7 +1143,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-141-family';
+const APP_VERSION='2026.07.04-142-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5465,6 +5465,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u=>u, // direct (in case CORS is allowed)
+    u=>`https://thingproxy.freeboard.io/fetch/${u}`,
   ];
   // FASTEST-ROUTE RACING: on the first fetch, try ALL routes at once and keep
   // whichever answers fastest; every later fetch uses that route directly.
@@ -5492,14 +5493,14 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   let got=null;
   if(window._goodHistProxy==null){
     // Race every route — fastest valid answer wins and becomes the route.
-    try{ got=await Promise.any([_tryProxy(2),_tryProxy(0),_tryProxy(1)]); }catch(e){/* all failed */}
+    try{ got=await Promise.any([_tryProxy(2),_tryProxy(0),_tryProxy(1),_tryProxy(3)]); }catch(e){/* all failed */}
   }else{
-    const order=[window._goodHistProxy,0,1,2].filter((v,i,a)=>a.indexOf(v)===i);
+    const order=[window._goodHistProxy,0,1,2,3].filter((v,i,a)=>a.indexOf(v)===i);
     for(const pi of order){ try{ got=await _tryProxy(pi); break; }catch(e){/* next */} }
     // If the chosen route answered but was SLOW (>3.5s), forget it so the next
     // fetch re-races and can find a faster proxy. A slow proxy never "fails",
-    // so without this it would drag the whole load. Count slow hits; drop after 3.
-    if(got&&got.ms>3500){ window._slowProxyRun=(window._slowProxyRun||0)+1; if(window._slowProxyRun>=3){window._goodHistProxy=null;window._slowProxyRun=0;} }
+    // so without this it would drag the whole load. Count slow hits; drop after 2.
+    if(got&&got.ms>3500){ window._slowProxyRun=(window._slowProxyRun||0)+1; if(window._slowProxyRun>=2){window._goodHistProxy=null;window._slowProxyRun=0;} }
     else if(got){ window._slowProxyRun=0; }
   }
   if(got){
