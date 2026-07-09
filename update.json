@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-146",
+  "version": "2026.07.04-147",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Portfolio recovery made easy: if your portfolio goes missing, open 💼 Portfolio and tap '↩ Restore my portfolio from the automatic backup' to bring it straight back from the on-device backup. (Tip: install the app to your home screen so the browser can't clear your data.)"
+  "notes": "New: a '📂 Load from saved data (instant)' button appears when you have an offline download — it loads your saved shares straight from your device with no network and no waiting on slow proxies. Use it when the normal load is crawling. Press ⚡ Load afterwards for fresh prices."
 }
