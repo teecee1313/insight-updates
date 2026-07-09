@@ -1144,7 +1144,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-148-family';
+const APP_VERSION='2026.07.04-149-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8947,7 +8947,7 @@ function initCollapsibleGroups(){
   try{ _refreshOfflineBtn(); }catch(e){}
   try{ _backupCritical(); }catch(e){} // ensure a fresh backup exists after load
 })();
-(function(){const v='v'+APP_VERSION;const a=document.getElementById('appVer');if(a)a.textContent=v;const g=document.getElementById('gateVer');if(g)g.textContent='Insight Trading '+v;const vs=document.getElementById('verStampV');if(vs)vs.textContent=v;})();(function(){const sel=document.getElementById('volWinSel');if(sel)sel.value=String(volAvgWindow);})();(function(){const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);const lbl=document.getElementById('rangeColLbl');if(lbl){lbl.textContent='Range';}})();initLang();setTimeout(function(){var e=document.getElementById('verStamp');if(e)e.remove();},5000);
+(function(){const v='v'+APP_VERSION.replace(/-(family|testing|customer|master|admin)$/,'');const a=document.getElementById('appVer');if(a)a.textContent=v;const g=document.getElementById('gateVer');if(g)g.textContent='Insight Trading '+v;const vs=document.getElementById('verStampV');if(vs)vs.textContent=v;})();(function(){const sel=document.getElementById('volWinSel');if(sel)sel.value=String(volAvgWindow);})();(function(){const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);const lbl=document.getElementById('rangeColLbl');if(lbl){lbl.textContent='Range';}})();initLang();setTimeout(function(){var e=document.getElementById('verStamp');if(e)e.remove();},5000);
 // ── Auto-load at startup (toggleable) ────────────────────────────────────────
 // If enabled and an API key is saved, automatically load the last-used exchange
 // on open. loadData() then auto-runs the volume + streak pipeline once data is
