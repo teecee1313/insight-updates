@@ -3,8 +3,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Insight Trading — Multi-Exchange Share Screener</title>
+<!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
+<meta name="theme-color" content="#0d1b33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Insight Trading">
+<meta name="application-name" content="Insight Trading">
+<!-- Chart-bars icon (navy bg, gold ascending bars) as an inline SVG data URI -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230d1b33'/%3E%3Crect x='104' y='300' width='60' height='128' rx='10' fill='%23FFD200'/%3E%3Crect x='196' y='232' width='60' height='196' rx='10' fill='%23FFD200'/%3E%3Crect x='288' y='168' width='60' height='260' rx='10' fill='%23FFD200'/%3E%3Crect x='380' y='96' width='60' height='332' rx='10' fill='%23FFD200'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230d1b33'/%3E%3Crect x='104' y='300' width='60' height='128' rx='10' fill='%23FFD200'/%3E%3Crect x='196' y='232' width='60' height='196' rx='10' fill='%23FFD200'/%3E%3Crect x='288' y='168' width='60' height='260' rx='10' fill='%23FFD200'/%3E%3Crect x='380' y='96' width='60' height='332' rx='10' fill='%23FFD200'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
@@ -349,7 +359,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-129 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-137 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
 <!-- Seller Controls removed -->
@@ -483,13 +493,29 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="adv-note" style="margin-top:6px;">The app loads and prepares everything automatically. Use this only to force a manual refresh.</div>
 
         <!-- API key -->
-        <div class="adv-note">Your data connection. Set once; it's remembered and locked.</div>
+        <div class="adv-note">Your data connection. Enter it once — it's remembered.</div>
         <div class="field" style="margin-bottom:10px;">
-          <label>EODData API Key <span id="keyEditState" style="float:right;font-weight:400;font-size:10px;color:var(--muted);">🔒 locked</span></label>
-          <input type="password" id="apiKey" value="" placeholder="your EODData apiKey…" readonly
-            oninput="try{localStorage.setItem('asxScreener.apiKey',this.value);}catch(e){}">
-          <button id="keyEditBtn" onclick="toggleKeyEdit()" style="width:100%;margin-top:5px;padding:6px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🔓 Unlock to edit key</button>
-          <div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;"><a href="#" onclick="resetKeyEditPw(event)" style="color:var(--dim);">forgot password?</a> · <a href="#" onclick="clearSavedKey(event)" style="color:var(--dim);">clear saved key</a></div>
+          <!-- When a key is saved, this whole row collapses to a small "Change" button.
+               When empty, it shows the input so you can enter one. -->
+          <div id="keyEntryRow">
+            <label>EODData API Key</label>
+            <input type="password" id="apiKey" value="" placeholder="your EODData apiKey…"
+              oninput="try{localStorage.setItem('asxScreener.apiKey',this.value);}catch(e){} _refreshKeyUI();">
+            <div style="font-size:9px;color:var(--dim);margin-top:4px;">Get one free at eodhd.com · saved on this device only.</div>
+          </div>
+          <div id="keySavedRow" style="display:none;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--green);flex:1;">🔑 API key saved <span style="color:var(--dim);font-size:9px;">(hidden)</span></span>
+            <button onclick="changeApiKey()" style="padding:5px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">✏ Change key</button>
+          </div>
+        </div>
+
+        <!-- Optional: live news API key (test) -->
+        <div class="field" style="margin-bottom:10px;">
+          <label>📰 News API key <span style="float:right;font-weight:400;font-size:9px;color:var(--dim);">optional · free tier</span></label>
+          <input type="password" id="newsApiKey" value="" placeholder="marketaux free api_token…"
+            oninput="setNewsApiKey(this.value)">
+          <div id="newsKeyMsg" style="font-size:9px;color:var(--dim);margin-top:4px;"></div>
+          <div style="font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;">Get a free key at <a href="https://www.marketaux.com" target="_blank" style="color:var(--blue);">marketaux.com</a> to test live inline headlines in each share's Deep dive. Leave blank to keep using the free news buttons. Free tier is limited — news loads only when you open a share, and is cached.</div>
         </div>
 
         <!-- (CSV load/export removed.) -->
@@ -1117,7 +1143,34 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-129-family';
+const APP_VERSION='2026.07.04-137-family';
+// ── Make the app installable (PWA) without needing a separate manifest file ──
+// We build the manifest in-memory and attach it as a Blob URL, so the whole app
+// stays a single HTML file you can upload as-is. Phones/desktops then offer
+// "Install" / "Add to Home screen" with the proper name and chart-bars icon.
+(function(){try{
+  const icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230d1b33'/%3E%3Crect x='104' y='300' width='60' height='128' rx='10' fill='%23FFD200'/%3E%3Crect x='196' y='232' width='60' height='196' rx='10' fill='%23FFD200'/%3E%3Crect x='288' y='168' width='60' height='260' rx='10' fill='%23FFD200'/%3E%3Crect x='380' y='96' width='60' height='332' rx='10' fill='%23FFD200'/%3E%3C/svg%3E";
+  const manifest={
+    name:"Insight Trading — Share Screener",
+    short_name:"Insight Trading",
+    description:"Multi-exchange end-of-day share screener.",
+    start_url:".",
+    scope:".",
+    display:"standalone",
+    orientation:"any",
+    background_color:"#05152e",
+    theme_color:"#0d1b33",
+    icons:[
+      {src:icon,sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"},
+      {src:icon,sizes:"192x192",type:"image/svg+xml",purpose:"any maskable"}
+    ]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('link');
+  link.rel='manifest'; link.href=url;
+  document.head.appendChild(link);
+}catch(e){}})();
 const COPYRIGHT='© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293';
 const APP_SOURCE_SNAPSHOT=(function(){try{return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}catch(e){return '';}})();
 function _verDB(){return new Promise((res,rej)=>{
@@ -1543,6 +1596,14 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
+
+
+
+
+
+
 
 
 
@@ -2225,83 +2286,104 @@ async function changeAppPassword(){
 }
 
 // ── API key (remembered locally; app is already password-gated) ──────────
+// ── RESILIENT BACKUP LAYER ───────────────────────────────────────────────────
+// Some mobile browsers occasionally clear localStorage (e.g. on reload after an
+// update, or under storage pressure), which would wipe the saved API key,
+// portfolio and watchlists. To prevent that, we mirror those critical values
+// into IndexedDB (much stickier) and auto-restore them if localStorage is empty.
+const _CRIT_KEYS=['asxScreener.apiKey','asxScreener.paperTrades.v1','asxScreener.watchlists.v1','asxScreener.brokerage.v1'];
+function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
+async function _backupCritical(){
+  try{const db=await _backupDB();if(!db)return;const tx=db.transaction('kv','readwrite');const st=tx.objectStore('kv');
+    _CRIT_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)st.put(v,k);}catch(e){}});
+  }catch(e){}
+}
+async function _restoreCriticalIfMissing(){
+  try{const db=await _backupDB();if(!db)return false;let restored=false;
+    for(const k of _CRIT_KEYS){
+      let cur=null;try{cur=localStorage.getItem(k);}catch(e){}
+      if(cur==null){
+        const v=await new Promise(r=>{const g=db.transaction('kv').objectStore('kv').get(k);g.onsuccess=()=>r(g.result);g.onerror=()=>r(null);});
+        if(v!=null){try{localStorage.setItem(k,v);restored=true;}catch(e){}}
+      }
+    }
+    return restored;
+  }catch(e){return false;}
+}
+// Mirror on any change to a critical key (wrap setItem once).
+(function(){try{
+  if(window._critWrapped)return; window._critWrapped=true;
+  const _origSet=localStorage.setItem.bind(localStorage);
+  localStorage.setItem=function(k,v){ _origSet(k,v); if(_CRIT_KEYS.indexOf(k)>=0){ setTimeout(_backupCritical,50); } };
+}catch(e){}})();
+
 function initKeyLock(){
   try{
     const saved=localStorage.getItem('asxScreener.apiKey');
-    if(saved)document.getElementById('apiKey').value=saved;
+    if(saved){const el=document.getElementById('apiKey');if(el)el.value=saved;}
+    const nk=localStorage.getItem(NEWSAPI_KEY_STORE);
+    if(nk){const el=document.getElementById('newsApiKey');if(el)el.value=nk;}
   }catch(e){}
-  applyKeyEditState(false); // start locked
+  _refreshKeyUI();
+  _maybeFirstRunKeyPrompt();
 }
-
-// ── Password lock for EDITING the API key (separate from the app password) ──
-const KEYEDIT_STORE='asxScreener.keyEditPw.v1';
-let _keyEditUnlocked=false;
-function _keyEdit_stored(){try{return JSON.parse(localStorage.getItem(KEYEDIT_STORE));}catch(e){return null;}}
-function applyKeyEditState(unlocked){
-  _keyEditUnlocked=unlocked;
-  const inp=document.getElementById('apiKey');
-  const st=document.getElementById('keyEditState');
-  const btn=document.getElementById('keyEditBtn');
-  if(!inp)return; // apiKey lives in the Setup overlay; skip if not in DOM yet
-  if(unlocked){
-    inp.removeAttribute('readonly');
-    if(st){st.textContent='🔓 editable';st.style.color='var(--green)';}
-    if(btn){btn.textContent='🔒 Lock key editing';}
-  }else{
-    inp.setAttribute('readonly','');
-    if(st){st.textContent='🔒 locked';st.style.color='var(--muted)';}
-    if(btn){btn.textContent='🔓 Unlock to edit key';}
-  }
+// Show the saved-state (collapsed) row when a key exists, else the input row.
+function _refreshKeyUI(){
+  let has=false; try{has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();}catch(e){}
+  const entry=document.getElementById('keyEntryRow');
+  const saved=document.getElementById('keySavedRow');
+  if(entry&&saved){ entry.style.display=has?'none':'block'; saved.style.display=has?'flex':'none'; }
 }
-async function toggleKeyEdit(){
-  if(_keyEditUnlocked){applyKeyEditState(false);return;} // re-lock
-  if(!window.crypto||!crypto.subtle){applyKeyEditState(true);return;} // no crypto → allow
-  const stored=_keyEdit_stored();
-  if(!stored){
-    // First time → the user CREATES their own key-edit password (their choice,
-    // not something the seller provides).
-    const pw=prompt('CREATE a password to protect your API key from being changed.\n\nThis is a NEW password of your own choosing — it is not provided by the seller. (Separate from your app password.)');
-    if(pw===null)return;
-    if(pw.length<4){alert('Password must be at least 4 characters.');return;}
-    const pw2=prompt('Confirm password:');
-    if(pw2===null)return;
-    if(pw!==pw2){alert('Passwords did not match.');return;}
-    const rec=await _gate_hash(pw);
-    try{localStorage.setItem(KEYEDIT_STORE,JSON.stringify(rec));}catch(e){alert('Could not save password.');return;}
-    applyKeyEditState(true);
-  }else{
-    const pw=prompt('Enter the password to edit the API key:');
-    if(pw===null)return;
-    const rec=await _gate_hash(pw,stored.salt);
-    if(rec.hash===stored.hash)applyKeyEditState(true);
-    else alert('Wrong password.');
-  }
+// "Change key" → reveal the input again so it can be edited/replaced.
+function changeApiKey(){
+  const entry=document.getElementById('keyEntryRow');
+  const saved=document.getElementById('keySavedRow');
+  if(entry&&saved){ entry.style.display='block'; saved.style.display='none'; const i=document.getElementById('apiKey'); if(i){i.focus();i.select&&i.select();} }
 }
-// Forgot the key-edit password → clear it so a new one can be set. The field
-// stays LOCKED afterwards (reset can't be used to sneak the key open); the next
-// "Unlock" simply sets a fresh password.
-function resetKeyEditPw(ev){
-  if(ev)ev.preventDefault();
-  if(!_keyEdit_stored()){alert('No key-edit password is set yet.');return;}
-  if(!confirm('Reset the API-key edit password?\n\nThe saved password will be cleared and the key stays locked. Next time you click "Unlock to edit key" you can set a new password.'))return;
-  try{localStorage.removeItem(KEYEDIT_STORE);}catch(e){}
-  applyKeyEditState(false); // stay locked
-  alert('Key-edit password cleared. Click "Unlock to edit key" to set a new one.');
+// First-run pop-up: if there's no key yet, gently ask for one. Once entered it
+// never shows again (the key is saved and the field collapses to a button).
+function _maybeFirstRunKeyPrompt(){
+  try{
+    if(window._keyPromptShown)return;
+    const has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();
+    if(has)return;
+    // don't stack over the app gate; wait until the app is visible
+    const gate=document.getElementById('appGate');
+    if(gate && getComputedStyle(gate).display!=='none'){ setTimeout(_maybeFirstRunKeyPrompt,1200); return; }
+    window._keyPromptShown=true;
+    _showKeyPrompt();
+  }catch(e){}
 }
-// Wipe the saved API key from memory (auto-save still active for next entry).
-function clearSavedKey(ev){
-  if(ev)ev.preventDefault();
-  if(!confirm('Clear the saved API key from this browser?\n\nYou will need to re-enter it. (It will auto-save again once you type a new one.)'))return;
-  try{localStorage.removeItem('asxScreener.apiKey');}catch(e){}
-  const inp=document.getElementById('apiKey');
-  if(inp){
-    const wasLocked=inp.hasAttribute('readonly');
-    inp.removeAttribute('readonly');
-    inp.value='';
-    if(wasLocked)inp.setAttribute('readonly','');
-  }
-  alert('Saved API key cleared.');
+function _showKeyPrompt(){
+  if(document.getElementById('keyPromptOv'))return;
+  const ov=document.createElement('div');
+  ov.id='keyPromptOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(3,10,22,.72);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML=`<div style="background:#0d1b33;border:1px solid var(--gold,#FFD200);border-radius:14px;max-width:340px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="font:700 15px system-ui,sans-serif;color:#eef3fb;margin-bottom:6px;">🔑 Enter your data API key</div>
+    <div style="font-size:11px;color:#9fb2cc;line-height:1.5;margin-bottom:12px;">One-time setup. Paste your EODData (eodhd.com) API key to load live market data. It's saved on this device and you won't be asked again.</div>
+    <input id="keyPromptInput" type="text" placeholder="paste API key here…" style="width:100%;box-sizing:border-box;background:#05152e;border:1px solid #24406e;border-radius:8px;color:#eef3fb;padding:11px;font-size:13px;margin-bottom:10px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="_keyPromptSave()" style="flex:1;background:var(--gold,#FFD200);color:#0d1b33;border:none;border-radius:8px;padding:11px;font:700 13px system-ui;cursor:pointer;">Save &amp; start</button>
+      <button onclick="_keyPromptSkip()" style="background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:8px;padding:11px 14px;font:600 12px system-ui;cursor:pointer;">Later</button>
+    </div>
+    <div style="font-size:9px;color:#5f7599;margin-top:10px;text-align:center;">No key yet? Get one free at <a href="https://eodhd.com" target="_blank" style="color:#58a6ff;">eodhd.com</a> · or tap Later and use Training/Demo mode.</div>
+  </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>{const i=document.getElementById('keyPromptInput');if(i)i.focus();},100);
 }
+function _keyPromptSave(){
+  const i=document.getElementById('keyPromptInput'); if(!i)return;
+  const v=(i.value||'').trim();
+  if(!v){ i.style.borderColor='#E21937'; i.placeholder='Please paste your key, or tap Later'; return; }
+  try{localStorage.setItem('asxScreener.apiKey',v);}catch(e){}
+  const f=document.getElementById('apiKey'); if(f)f.value=v;
+  _refreshKeyUI();
+  const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove();
+  // kick off a data load now that we have a key
+  try{ if(typeof loadData==='function' && !allData.length) loadData(); }catch(e){}
+}
+function _keyPromptSkip(){ const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove(); }
 
 function sw(t){document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('on'));document.getElementById('tab-'+t).classList.add('on');document.getElementById('panel-'+t).classList.add('on');}
 function mp(){if(!allData.length)return;document.getElementById('applyBtn').disabled=false;document.getElementById('pending').style.display='block';}
@@ -2873,6 +2955,61 @@ function newsSearchFor(ticker,exch,name){
     : `${ticker} ${name||''} stock news`;
   return `https://news.google.com/search?q=${encodeURIComponent(q.trim())}`;
 }
+// ── LIVE NEWS ENRICHMENT (test layer) ─────────────────────────────────────────
+// Fetches real headlines on-demand from marketaux (free tier + ASX support).
+// Only called when you open a share's deep dive — never for all shares — so it
+// stays within a small free quota. Cached 45 min. If no key or no result, the
+// app silently falls back to the existing click-through news buttons.
+const NEWSAPI_KEY_STORE='asxScreener.newsApiKey.v1';
+function newsApiKey(){try{return (localStorage.getItem(NEWSAPI_KEY_STORE)||'').trim();}catch(e){return '';}}
+function setNewsApiKey(v){try{localStorage.setItem(NEWSAPI_KEY_STORE,(v||'').trim());}catch(e){} const el=document.getElementById('newsKeyMsg'); if(el)el.textContent=newsApiKey()?'✓ Saved. Open any share\u2019s Deep dive to see live headlines.':'Cleared.';}
+const _newsCache={};
+async function fetchLiveNews(ticker,exch,name){
+  const key=newsApiKey(); if(!key)return {ok:false,reason:'nokey'};
+  const ck=ticker+'|'+exch;
+  const c=_newsCache[ck];
+  if(c && (Date.now()-c.t)<45*60*1000) return {ok:true,items:c.items,cached:true};
+  const sym = exch==='ASX' ? ticker+'.AX' : ticker;
+  const url=`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(sym)}&filter_entities=true&language=en&limit=5&api_token=${encodeURIComponent(key)}`;
+  try{
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),7000);
+    let r;try{r=await fetch(url,{signal:ctrl.signal});}finally{clearTimeout(t);}
+    if(!r.ok){
+      if(exch==='ASX'){
+        const url2=`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(ticker)}&filter_entities=true&language=en&limit=5&api_token=${encodeURIComponent(key)}`;
+        const r2=await fetch(url2).catch(()=>null);
+        if(r2&&r2.ok){const d2=await r2.json();const items2=(d2.data||[]).map(_mapNews);_newsCache[ck]={t:Date.now(),items:items2};return {ok:true,items:items2};}
+      }
+      return {ok:false,reason:'http'+r.status};
+    }
+    const d=await r.json();
+    const items=(d.data||[]).map(_mapNews);
+    _newsCache[ck]={t:Date.now(),items};
+    return {ok:true,items};
+  }catch(e){ return {ok:false,reason:'neterr'}; }
+}
+function _mapNews(a){return {title:a.title||'(untitled)',url:a.url||'#',source:a.source||'',published:a.published_at||'',snippet:(a.snippet||a.description||'').slice(0,160)};}
+function _newsAge(iso){try{const d=new Date(iso);const mins=(Date.now()-d.getTime())/60000;if(mins<60)return Math.round(mins)+'m ago';if(mins<1440)return Math.round(mins/60)+'h ago';return Math.round(mins/1440)+'d ago';}catch(e){return '';}}
+async function loadDeepDiveNews(ticker,exch,name){
+  const box=document.getElementById('ddNews'); if(!box)return;
+  if(!newsApiKey()){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">💡 Add a free marketaux API key in Setup → to test live inline headlines here. Without it, use the news buttons above.</div>'; return; }
+  box.innerHTML='<div style="font-size:10px;color:var(--dim);">📰 Loading live headlines…</div>';
+  const res=await fetchLiveNews(ticker,exch,name);
+  if(!res.ok){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">No live feed right now ('+(res.reason||'error')+'). Use the 📰/🏛 buttons above.</div>'; return; }
+  if(!res.items.length){
+    const annUrl=newsUrlFor(ticker,exch);
+    const annLabel=exch==='ASX'?'🏛 Official ASX announcements':'🏛 Official company filings';
+    box.innerHTML='<div style="font-size:10px;color:#f0b849;line-height:1.45;margin-bottom:6px;">No wire-service news for <b>'+ticker+'</b> — normal for ASX small-caps (journalists rarely cover them, but the company\u2019s official filings do exist).</div>'+
+      '<a href="'+annUrl+'" target="_blank" style="display:block;text-align:center;padding:9px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.14);color:var(--blue);font:700 12px var(--sans);text-decoration:none;">'+annLabel+' ↗</a>'+
+      '<div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center;">This is the primary source — every price-sensitive event is lodged here first.</div>';
+    return;
+  }
+  box.innerHTML='<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">📰 Live headlines '+(res.cached?'(cached)':'')+':</div>'+
+    res.items.map(n=>`<a href="${n.url}" target="_blank" style="display:block;padding:6px 8px;margin-bottom:4px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);text-decoration:none;">
+      <div style="font-size:11px;color:var(--text);line-height:1.35;">${n.title}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:2px;">${n.source} · ${_newsAge(n.published)}</div>
+    </a>`).join('');
+}
 function tickerUrlFor(ticker,exch){
   if(exch==='ASX')return`https://www.marketindex.com.au/asx/${ticker.toLowerCase()}`;
   if(exch==='LSE')return`https://www.londonstockexchange.com/stock/${ticker}`;
@@ -3256,6 +3393,46 @@ function updatePaperPrices(){
 // purchase — like a real limit order. Fill = target price (or the open, if the
 // day gapped above the target). Sell date = the day it actually hit.
 // Falls back to a close-price check if the OHLC fetch fails.
+// Undo a sale from the history ledger: return the shares to holdings, reverse
+// the cash, and remove the history entry. For fixing an erroneous auto-sell
+// (e.g. a stop-loss that fired on a bad data point).
+// NOTE: The ↩ undo button was removed from the history rows (v137) but this
+// function is kept. To restore the button, re-add to the P/L cell in the history
+// row: <button onclick="undoSale('DATE','TICKER','BUYDATE')">↩ undo</button>
+// You can also still trigger it from the browser console: undoSale(sellDate,ticker,buyDate)
+function undoSale(sellDate,ticker,buyDate){
+  const p=_paper();
+  const idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+  if(idx<0){alert('Could not find that trade to undo.');return;}
+  const t=p.history[idx];
+  const msg=`Undo this sale?\n\n${t.ticker}: sold ${t.qty} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate}.\n\nThis returns the ${t.qty} shares to your holdings and reverses the ${fmtP(t.proceeds,t.currency)} cash. Use this if a stop-loss fired on bad price data.`;
+  if(!confirm(msg))return;
+  // reverse the cash
+  p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
+  // restore the holding (merge if the same ticker/buyDate lot exists)
+  p.holdings=p.holdings||[];
+  const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
+  if(existing){
+    const totQty=existing.qty+t.qty;
+    existing.invested=+(existing.invested+t.invested).toFixed(2);
+    existing.qty=totQty;
+  } else {
+    p.holdings.push({
+      id:'h'+Date.now()+Math.random().toString(36).slice(2,6),
+      ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,
+      qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,
+      lastPrice:t.buyPrice,lastDate:t.buyDate,
+      target:t.target||0,stop:0,note:t.note||null,
+      tgtChecked:new Date().toISOString().slice(0,10) // don't re-scan history that caused the bad sell
+    });
+  }
+  // remove the history entry
+  p.history.splice(idx,1);
+  _paperSave(_paperPrune(p));
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Its stop-loss was cleared so it won't re-trigger; set a new one if you want.`;
+  showPortfolio();
+}
 async function checkAutoSellTargets(){
   if(window._tgtChecking)return [];
   const apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
@@ -3279,16 +3456,32 @@ async function checkAutoSellTargets(){
               hi:parseFloat(qField(q,['high','High'])),
               lo:parseFloat(qField(q,['low','Low']))
             })).filter(x=>x.d&&x.d>h.buyDate).sort((a,b)=>a.d<b.d?-1:1);
+            // Sanity band: reject corrupt/glitched OHLC rows so a bad data point
+            // (e.g. a spurious low far below the real range) can't trigger a false
+            // stop/target. A genuine price stays within a sane multiple of the buy
+            // price; anything wildly outside that is a data error, not a real move.
+            const _bp=(h.buyPrice>0?h.buyPrice:(h.lastPrice>0?h.lastPrice:0));
+            const _sane=(v)=>isFinite(v)&&v>0&&(_bp<=0||(v>=_bp*0.15 && v<=_bp*6));
             for(const day of days){
+              // Skip any day whose values look corrupt (out of a sane band).
+              const oOK=_sane(day.o), hiOK=_sane(day.hi), loOK=_sane(day.lo);
               // Stop-loss (downside) — checked first, conservative
               if(h.stop>0){
-                if(isFinite(day.o)&&day.o<=h.stop){hit={date:day.d,fill:day.o,why:'stop'};break;}    // gapped below → open
-                if(isFinite(day.lo)&&day.lo<=h.stop){hit={date:day.d,fill:h.stop,why:'stop'};break;}  // dipped to stop
+                // A real gap-down opens somewhere near the stop, not wildly below it.
+                // If the "open" is more than 35% below the stop, that's almost
+                // certainly a corrupt/mis-scaled data point — fill AT the stop
+                // instead of at an absurd price. Prevents phantom stop-outs like
+                // selling a $125 share at $29 because of one bad data row.
+                if(oOK&&day.o<=h.stop){
+                  const fill=(day.o < h.stop*0.65) ? h.stop : day.o; // clamp glitchy gaps
+                  hit={date:day.d,fill,why:'stop'};break;
+                }
+                if(loOK&&day.lo<=h.stop&&day.lo>=h.stop*0.4){hit={date:day.d,fill:h.stop,why:'stop'};break;} // ignore absurd lows
               }
               // Take-profit target (upside)
               if(h.target>0){
-                if(isFinite(day.o)&&day.o>=h.target){hit={date:day.d,fill:day.o,why:'target'};break;}
-                if(isFinite(day.hi)&&day.hi>=h.target){hit={date:day.d,fill:h.target,why:'target'};break;}
+                if(oOK&&day.o>=h.target){hit={date:day.d,fill:day.o,why:'target'};break;}
+                if(hiOK&&day.hi>=h.target){hit={date:day.d,fill:h.target,why:'target'};break;}
               }
             }
             if(!hit&&days.length)h.tgtChecked=days[days.length-1].d; // scanned through here
@@ -3296,8 +3489,11 @@ async function checkAutoSellTargets(){
         }catch(e){/* fall through to close check */}
       }
       // Fallback when no OHLC available: last close reaching target/stop still sells.
-      if(!hit && h.target>0 && h.lastPrice>=h.target)hit={date:new Date().toISOString().slice(0,10),fill:h.lastPrice,why:'target'};
-      if(!hit && h.stop>0 && h.lastPrice<=h.stop)hit={date:new Date().toISOString().slice(0,10),fill:h.lastPrice,why:'stop'};
+      // Same sanity guard — a corrupt last price shouldn't trigger a sell.
+      const _bp2=(h.buyPrice>0?h.buyPrice:0);
+      const _lpSane=isFinite(h.lastPrice)&&h.lastPrice>0&&(_bp2<=0||(h.lastPrice>=_bp2*0.15&&h.lastPrice<=_bp2*6));
+      if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:new Date().toISOString().slice(0,10),fill:h.lastPrice,why:'target'};
+      if(!hit && _lpSane && h.stop>0 && h.lastPrice<=h.stop)hit={date:new Date().toISOString().slice(0,10),fill:h.lastPrice,why:'stop'};
       if(hit){
         const proceeds=+(h.qty*hit.fill).toFixed(2);
         const plAbs=+(proceeds-h.invested).toFixed(2);
@@ -6302,7 +6498,9 @@ function deepDive(ticker){
   <div style="display:flex;gap:6px;margin-bottom:8px;">
     <a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.10);color:#ff9caa;font:700 11px var(--sans);text-decoration:none;">📰 Latest news</a>
     <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 11px var(--sans);text-decoration:none;">🏛 ${s.exchange==='ASX'?'ASX announcements':'Company filings'} ↗</a>
-  </div>`;
+  </div>
+  <div id="ddNews" style="margin-bottom:8px;"></div>`;
+  setTimeout(()=>{try{loadDeepDiveNews(s.ticker,s.exchange,s.name);}catch(e){}},50);
 
   html+=sub('Price &amp; volume');
   html+=row('Last close',fmtP(px,s.currency));
@@ -8364,7 +8562,14 @@ function initCollapsibleGroups(){
   });
 }
 
-initLicence();loadWatchlists();updateWatchBtn();initKeyLock();refreshMyReportBtn();refreshRoutineBtn();initCollapsibleGroups();initSidebarLayout();applyAssetMode();refreshPortfolioBtn();applyAdvFilters();saveVersionSnapshot();applyPrivateMode();
+// Restore API key / portfolio / watchlist from the sticky IndexedDB backup
+// FIRST (in case a browser reload cleared localStorage), then run init so the
+// app reads the recovered values instead of starting blank.
+(async function(){
+  try{ await _restoreCriticalIfMissing(); }catch(e){}
+  initLicence();loadWatchlists();updateWatchBtn();initKeyLock();refreshMyReportBtn();refreshRoutineBtn();initCollapsibleGroups();initSidebarLayout();applyAssetMode();refreshPortfolioBtn();applyAdvFilters();saveVersionSnapshot();applyPrivateMode();
+  try{ _backupCritical(); }catch(e){} // ensure a fresh backup exists after load
+})();
 (function(){const v='v'+APP_VERSION;const a=document.getElementById('appVer');if(a)a.textContent=v;const g=document.getElementById('gateVer');if(g)g.textContent='Insight Trading '+v;})();(function(){const sel=document.getElementById('volWinSel');if(sel)sel.value=String(volAvgWindow);})();(function(){const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);const lbl=document.getElementById('rangeColLbl');if(lbl){lbl.textContent='Range';}})();initLang();setTimeout(function(){var e=document.getElementById('verStamp');if(e)e.remove();},5000);
 // ── Auto-load at startup (toggleable) ────────────────────────────────────────
 // If enabled and an API key is saved, automatically load the last-used exchange
@@ -8665,6 +8870,22 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
