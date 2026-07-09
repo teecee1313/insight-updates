@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-141",
+  "version": "2026.07.04-142",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tidied the Portfolio: the ⚙ consolidation/delete tool is hidden again for a cleaner look. Your API and news keys stay saved (from v140)."
+  "notes": "Speed tuning for slow-network days: added a third data route to the fetch race and made the app drop a sluggish proxy faster. Tip: tap 'Download all' once after the day's data is out — later loads then read from your device and are near-instant."
 }
