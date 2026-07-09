@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-148",
+  "version": "2026.07.04-149",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed the share History view showing a duplicate top row ('Today' repeating the latest day) when using offline/saved data. Offline history now shows only the real dated rows from your last download, with no misleading 'Today' line."
+  "notes": "Small tidy-up: the version number shown at the top no longer displays the internal build tag, so it reads cleanly (e.g. v2026.07.04-149). No change to how updates work."
 }
