@@ -897,7 +897,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div class="fglbl">Buying Signals <span class="clr" onclick="clrFg('buy')">clear</span></div>
         <div class="hint">Select signals to filter. Use Match Mode for AND / OR logic.</div>
         <div class="chks">
-          <div class="chk"><input type="checkbox" id="cDir"  onchange="mp()"><label for="cDir">Director / Insider Buying</label><span class="bdg">DIR</span></div>
+          <div class="chk"><input type="checkbox" id="cDir"  onchange="mp()"><label for="cDir">Possible accumulation</label><span class="bdg">ACCUM</span></div>
           <div class="chk"><input type="checkbox" id="cInst" onchange="mp()"><label for="cInst">Institutional Accumulation</label><span class="bdg">INST</span></div>
           <div class="chk"><input type="checkbox" id="cES"   onchange="mp()"><label for="cES">Unusual EOD Activity</label><span class="bdg">EOD</span></div>
           <div class="chk"><input type="checkbox" id="cBS"   onchange="mp()"><label for="cBS">Large Block Trades</label><span class="bdg">BLK</span></div>
@@ -1020,7 +1020,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div>
     <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('dir')" title="Show only shares with directional buying"><div class="sv"      id="sD">0</div><div class="sl">Dir Buying</div></div>
+    <div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div>
     <div class="notice" id="notice">—</div>
@@ -1143,7 +1143,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-137-family';
+const APP_VERSION='2026.07.04-139-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2629,7 +2629,7 @@ function mkBadges(){
   if(F.volStreakDays>0)add(`📊 Vol streak ${F.volStreakDays}+d`,'volstreak');
   if(F.minScore>0)add(`⭐ Score ${F.minScore}+/10`,'score');
   if(g('cEod'))add('EOD Spike','vbeh');if(g('cBlk'))add('Block Trade','vbeh');
-  if(g('cDir'))add('Dir Buy','buy');if(g('cInst'))add('Institutional','buy');
+  if(g('cDir'))add('Possible accum','buy');if(g('cInst'))add('Institutional','buy');
   if(g('cES'))add('EOD Signal','buy');if(g('cBS'))add('Block Signal','buy');
   if(F.cap!=='any')add(`Cap: ${F.cap}`,'cap');
   if(!g('cOrd')||!g('cETF')||!g('cLIC')||!g('cREIT')||!g('cOpt')||!g('cPref')||!g('cBond')||!g('cSpec')||g('cNA'))add('Type filter','type');
@@ -3114,7 +3114,7 @@ function renderRows(rows){
     else                           newsProx=`<span class="tag" style="color:var(--muted)" title="Run a scan or Refresh streaks to estimate recent announcements.">— not checked</span>`;
     const newsTag=`<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">${newsProx}<a href="${nu}" target="_blank" class="news-link"><span class="tag tm">📄 Verify ↗</span></a></div>`;
     let sg='';
-    if(s.dirBuy)sg+='<span class="tag tdr">👔 Dir</span>';if(s.instBuy)sg+='<span class="tag tin">🏦 Inst</span>';
+    if(s.dirBuy)sg+='<span class="tag tdr" title="Estimate from price+volume — NOT confirmed director filings. Tap a share and use the official director-trades link to verify.">🔍 Accum?</span>';if(s.instBuy)sg+='<span class="tag tin" title="Estimate from price+volume — not confirmed institutional filings.">🏦 Inst?</span>';
     if(s.unusualEod)sg+='<span class="tag te">👁 EOD</span>';
     // Block trade with inferred direction: ▲ accumulation (buys), ▼ distribution (sell-off)
     if(s.blockTrade){
@@ -3865,6 +3865,114 @@ function paperSetNote(id){
   _paperSave(p);
   showPortfolio();
 }
+// ── Corporate-action / cleanup tool for a holding ────────────────────────────
+// A share consolidation (reverse split, e.g. 10→1) or a split (e.g. 1→5) changes
+// the share COUNT and the per-share PRICE, but NOT the money you put in. If the
+// app's price data has already jumped to the post-consolidation price, the stored
+// quantity is now wrong and the P/L looks crazy. This lets you:
+//   • apply the ratio → qty and buy price are rescaled so your invested $ (cost
+//     basis) is preserved and P/L reads correctly again, OR
+//   • delete the holding completely (a clean way to reverse a buy you don't want).
+function paperAdjust(id){
+  const p=_paper();
+  const lots=_lotsFor(p,id);
+  if(!lots.length)return;
+  const tk=lots[0].ticker, cur=lots[0].currency;
+  const totQty=lots.reduce((a,l)=>a+l.qty,0);
+  const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
+  const avg=totQty>0?totInv/totQty:0;
+  const px=lots[0].lastPrice||lots[0].buyPrice;
+  const many=lots.length>1?` · ${lots.length} lots`:'';
+  showModal(`
+    <div style="font-weight:700;font-size:15px;color:var(--text);">⚙ Adjust ${tk}</div>
+    <div style="font-size:11px;color:var(--muted);margin:4px 0 12px;">Holding <strong style="color:var(--text)">${totQty.toLocaleString()}</strong> shares · avg buy ${fmtP(avg,cur)}${many} · last price ${fmtP(px,cur)}</div>
+
+    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 11px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:3px;">🔁 Share consolidation / split</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Enter the ratio the company announced. A <strong>consolidation</strong> (reverse split) reduces your share count and lifts the price — e.g. <strong>10 → 1</strong> turns 1,000 shares into 100. A <strong>split</strong> does the opposite — e.g. <strong>1 → 5</strong>. Your invested amount (${fmtP(totInv,cur)}) stays the same; only the share count and average buy price are rescaled so your P/L stays correct.</div>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:8px;">
+        <input type="number" id="adjOld" min="1" step="1" value="10" style="width:70px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;text-align:center;box-sizing:border-box;" oninput="_adjPrev('${id}')">
+        <span style="font-size:16px;color:var(--muted);">→</span>
+        <input type="number" id="adjNew" min="1" step="1" value="1" style="width:70px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;text-align:center;box-sizing:border-box;" oninput="_adjPrev('${id}')">
+        <span style="font-size:10px;color:var(--muted);">(old → new)</span>
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:8px;">
+        ${[['10→1',10,1],['5→1',5,1],['4→1',4,1],['2→1',2,1],['1→2',1,2],['1→5',1,5]].map(([lbl,o,n])=>`<button onclick="document.getElementById('adjOld').value=${o};document.getElementById('adjNew').value=${n};_adjPrev('${id}')" style="flex:1;padding:4px 2px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">${lbl}</button>`).join('')}
+      </div>
+      <div id="adjPrev" style="font-size:10px;color:var(--muted);min-height:26px;background:var(--bg3);border-radius:6px;padding:6px 8px;"></div>
+      <button onclick="paperApplyRatio('${id}')" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 12px var(--sans);cursor:pointer;">Apply consolidation / split</button>
+    </div>
+
+    <div style="border:1px solid var(--red);border-radius:8px;padding:10px 11px;">
+      <div style="font-size:11px;font-weight:700;color:#ff9caa;margin-bottom:3px;">🗑 Delete this holding</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Removes ${tk} from your portfolio completely, as if the buy never happened. The cash you spent (${fmtP(totInv,cur)}) is returned to your balance. This does <strong>not</strong> record a sale or any profit/loss — use it to undo a mistaken buy or clear a broken holding. Can't be undone.</div>
+      <button onclick="paperDeleteHolding('${id}')" style="width:100%;padding:9px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 12px var(--sans);cursor:pointer;">Delete holding &amp; refund cash</button>
+    </div>
+    <div style="font-size:9px;color:var(--orange);margin-top:10px;">Paper trading only — practice, not advice.</div>
+  `);
+  setTimeout(()=>_adjPrev(id),80);
+}
+// Live preview of what the ratio will do.
+function _adjPrev(id){
+  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const cur=lots[0].currency;
+  const totQty=lots.reduce((a,l)=>a+l.qty,0);
+  const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
+  const oldN=parseFloat((document.getElementById('adjOld')||{}).value)||0;
+  const newN=parseFloat((document.getElementById('adjNew')||{}).value)||0;
+  const el=document.getElementById('adjPrev');if(!el)return;
+  if(oldN<=0||newN<=0){el.textContent='Enter the ratio (both sides must be 1 or more).';return;}
+  const factor=newN/oldN;                 // new shares per old share
+  const newQty=Math.round(totQty*factor);
+  if(newQty<1){el.innerHTML='<span style="color:#ff9caa">That ratio would leave less than 1 share — check the numbers.</span>';return;}
+  const newAvg=totInv/newQty;
+  const kind=factor<1?'Consolidation':'Split';
+  el.innerHTML=`${kind}: <strong style="color:var(--text)">${totQty.toLocaleString()}</strong> → <strong style="color:var(--gold)">${newQty.toLocaleString()}</strong> shares · avg buy ${fmtP(totInv/totQty,cur)} → <strong style="color:var(--gold)">${fmtP(newAvg,cur)}</strong><br><span style="color:var(--dim)">Invested unchanged at ${fmtP(totInv,cur)}. Any 🎯 target / 🛑 stop is rescaled too.</span>`;
+}
+// Apply the consolidation/split to every lot in the holding.
+function paperApplyRatio(id){
+  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const oldN=parseFloat((document.getElementById('adjOld')||{}).value)||0;
+  const newN=parseFloat((document.getElementById('adjNew')||{}).value)||0;
+  if(oldN<=0||newN<=0){alert('Enter a valid ratio — both sides must be 1 or more.');return;}
+  const factor=newN/oldN;
+  const tk=lots[0].ticker, cur=lots[0].currency;
+  const totQty=lots.reduce((a,l)=>a+l.qty,0);
+  const newTot=Math.round(totQty*factor);
+  if(newTot<1){alert('That ratio would leave less than a whole share. Please check the numbers.');return;}
+  const kind=factor<1?'consolidation':'split';
+  if(!confirm(`Apply ${oldN}→${newN} ${kind} to ${tk}?\n\n${totQty.toLocaleString()} → ${newTot.toLocaleString()} shares. Your invested amount and cost basis are preserved; the per-share buy price is rescaled so P/L stays correct.`))return;
+  for(const l of lots){
+    const inv=(l.invested!=null?l.invested:l.qty*l.buyPrice);
+    let nq=Math.round(l.qty*factor);
+    if(nq<1)nq=1;                              // never zero a lot out
+    l.qty=nq;
+    l.buyPrice=+(inv/nq).toFixed(nq>0&&inv/nq<1?6:4);
+    l.invested=+inv.toFixed(2);               // unchanged
+    if(l.target)l.target=+(l.target/factor).toFixed(l.target/factor<1?6:4);
+    if(l.stop)l.stop=+(l.stop/factor).toFixed(l.stop/factor<1?6:4);
+    // Rescale the stored last price so the "Now" column and P/L line up with the
+    // post-consolidation share count until fresh data loads.
+    if(l.lastPrice)l.lastPrice=+(l.lastPrice/factor).toFixed(l.lastPrice/factor<1?6:4);
+    l.consolidatedAt=new Date().toISOString().slice(0,10);
+    l.note=((l.note?l.note+' · ':'')+`${oldN}→${newN} ${kind} applied`).slice(0,140);
+  }
+  _paperSave(p);
+  showPortfolio();
+}
+// Delete a holding entirely and refund the invested cash (reverse a buy).
+function paperDeleteHolding(id){
+  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const tk=lots[0].ticker, cur=lots[0].currency;
+  const totQty=lots.reduce((a,l)=>a+l.qty,0);
+  const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
+  if(!confirm(`Delete ${tk} completely?\n\n${totQty.toLocaleString()} shares removed and ${fmtP(totInv,cur)} returned to your cash. No sale or P/L is recorded. This can't be undone.`))return;
+  const ids=new Set(lots.map(l=>l.id));
+  p.holdings=(p.holdings||[]).filter(x=>!ids.has(x.id));
+  p.cash=+((p.cash||0)+totInv).toFixed(2);     // refund the money that was tied up
+  _paperSave(_paperPrune?_paperPrune(p):p);
+  showPortfolio();
+}
 // One-click: sell the ENTIRE holding at the last close, no dialog.
 function paperSellMarket(id){
   const p=_paper();
@@ -4319,7 +4427,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
-      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change auto-sell price target" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss (auto-sells if the price falls to it)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
+      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change auto-sell price target" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss (auto-sells if the price falls to it)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperAdjust('${h.id}')" title="Apply a share consolidation / split, or delete this holding completely (reverse a buy)" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
     </tr>`;
   }).join('');
   const totPl=totVal-totInv, totC=totPl>0.005?'var(--green)':totPl<-0.005?'var(--red)':'var(--muted)';
@@ -4955,8 +5063,8 @@ function _openSurgeReport(rows){
       <td class="r">${fmtV(s.volume)}</td>
       <td class="r">${fmtV(s.avgVol)}${thin?` <span style="color:#b8860b" title="only ${x.volN} days of history — rough">⚠${x.volN}d</span>`:''}</td>
       <td class="r" style="color:${s.chgPct>0?'#0a0':s.chgPct<0?'#c00':'#666'};">${s.chgPct>=0?'+':''}${(s.chgPct||0).toFixed(1)}%</td>
-      <td>${s.newsFlag==='likely'?'📢':s.newsFlag==='quiet'?'🔇':'—'}</td>
-      <td><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank">📰</a> · <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank">🏛</a></td>
+      <td>${s.newsFlag==='likely'?'📢':s.newsFlag==='quiet'?'🔇':'—'}${s.dirBuy?' <span title="Possible accumulation — price+volume estimate, NOT confirmed director filings. Use the 🧑\u200d💼 link to verify.">🔍</span>':''}</td>
+      <td><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank">📰</a> · <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank">🏛</a>${s.exchange==='ASX'?` · <a href="https://www.marketindex.com.au/asx/${s.ticker.toLowerCase()}/directors" target="_blank" title="Official director interests &amp; trades for ${s.ticker}">🧑\u200d💼</a>`:''}</td>
     </tr>`;
   }).join('');
   const chip=(k,txt,col,bg)=>`<button data-filt="${k}" onclick="_surgeFilter('${k}',this)" style="padding:5px 11px;border-radius:14px;border:1px solid ${col};background:${bg};color:${col};font-weight:700;font-size:12px;cursor:pointer;margin:0 4px 6px 0;">${txt}${k!=='all'&&k!=='hotplus'&&counts[k]!=null?` (${counts[k]})`:''}</button>`;
@@ -4974,7 +5082,7 @@ function _openSurgeReport(rows){
   <div style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#002B5C;">🔥 Insight <span style="color:#C9A100">Trading</span></div>
   <h1>Volume Surge Report</h1>
   <div class="sub">${rows.length} shares · ${currentExch} · generated ${when} · hottest first</div>
-  <div class="note"><b>What this shows:</b> how far today's volume is above each share's own average day. Higher = more unusual activity — often (not always) tied to news. <b>A data summary, not a buy signal or advice.</b> Verify via the 📰 / 🏛 links before acting. Rows marked ⚠Nd have thin history, so treat those %s as rough.</div>
+  <div class="note"><b>What this shows:</b> how far today's volume is above each share's own average day. Higher = more unusual activity — often (not always) tied to news. <b>A data summary, not a buy signal or advice.</b> Verify via the 📰 / 🏛 links before acting. Rows marked ⚠Nd have thin history, so treat those %s as rough.<br>A 🔍 in the News column = <b>possible accumulation</b> (a price+volume pattern only — <b>NOT</b> a confirmed director trade). The 🧑‍💼 link opens the official director interests &amp; trades page to check for real filings.</div>
   <div class="scale">Heat = how far above average today's volume is: 🌋 Extreme +1000% · Intense +500% · Hot +300% · Warm +150% · Mild +60%. <b>Colour = price direction:</b> 🟢 green = price UP (buying) · 🔴 red = price DOWN (selling). A big-volume fall is heavy selling, not a bullish signal.</div>
   <div class="filt">
     ${chip('all','Show all ('+rows.length+')','#333','#eee')}
@@ -4992,7 +5100,7 @@ function _openSurgeReport(rows){
   </div>
   <button onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;font-size:13px;cursor:pointer;">🖨 Print / Save as PDF</button>
   <table><thead><tr>
-    <th>#</th><th>Ticker</th><th>Name</th><th>Rating</th><th>Vol vs avg</th><th>× avg</th><th>Volume</th><th>Avg vol</th><th>Chg</th><th>News</th><th>Links</th>
+    <th>#</th><th>Ticker</th><th>Name</th><th>Rating</th><th>Vol vs avg</th><th>× avg</th><th>Volume</th><th>Avg vol</th><th>Chg</th><th>News · 🔍accum</th><th>Links · 🧑‍💼dir</th>
   </tr></thead><tbody>${rowHtml}</tbody></table>
   <p style="color:#888;font-size:10px;margin-top:14px;">Generated by <b>Insight Trading</b>. End-of-day figures; surge ratings are estimates from price/volume, not confirmed data or advice. © 2026 Insight Trading™ · ABN 49 691 811 293</p>
   <script>
@@ -5022,6 +5130,13 @@ function printRatedReport(){
     const band=band10(r.score);
     const bandColor=band.c.includes('green')?'#0a0':band.c.includes('gold')?'#C9A100':band.c.includes('orange')?'#d97706':'#888';
     const np=s.newsFlag==='likely'?'📢 Likely':s.newsFlag==='quiet'?'🔇 Quiet':'—';
+    const flags=[];
+    if(s.dirBuy)flags.push('🔍 Poss. accum');
+    if(s.instBuy)flags.push('🏦 Inst?');
+    if(s.unusualEod)flags.push('👁 Unusual EOD');
+    if(s.blockTrade)flags.push('📦 Block trade');
+    const flagsCell=flags.length?flags.join('<br>'):'—';
+    const dirLink=s.exchange==='ASX'?` · <a href="https://www.marketindex.com.au/asx/${s.ticker.toLowerCase()}/directors" target="_blank" title="Official director interests &amp; trades (Appendix 3Y) for ${s.ticker}">🧑‍💼 Director trades ↗</a>`:'';
     return `<tr>
       <td class="r">${i+1}</td>
       <td><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="font-weight:800;color:#002B5C;text-decoration:none;" title="Open news for ${s.ticker}">${s.ticker} ↗</a></td>
@@ -5029,8 +5144,9 @@ function printRatedReport(){
       <td class="r" style="font-weight:800;color:${bandColor};font-size:14px;">${r.score}<span style="font-size:9px;color:#999">/10</span></td>
       <td style="color:${bandColor};">${band.t}</td>
       <td>${r.parts.length?r.parts.join(' · '):'No active bullish signals'}</td>
+      <td style="font-size:10px;">${flagsCell}</td>
       <td>${np}</td>
-      <td><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank">📰 News</a> · <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank">Announcements ↗</a></td>
+      <td><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank">📰 News</a> · <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank">Announcements ↗</a>${dirLink}</td>
     </tr>`;
   }).join('');
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Watch Score /10 — Insight Trading</title>
@@ -5052,10 +5168,10 @@ function printRatedReport(){
   </div>
   <h1>Watch Score /10</h1>
   <div class="sub">${_lastRated.length} shares · ${currentExch} · generated ${when}</div>
-  <div class="note"><strong>This is a data summary, not a buy signal or financial advice.</strong> The /10 score is accumulation-weighted — mostly days with price up AND volume 50%+ above average in the last 10 days, blended with price/volume streaks and momentum. It is the same score used by Top 20 to Watch and the ⭐ Score column. A high score does not mean a share is a good investment — verify everything against official announcements and do your own research before trading.</div>
+  <div class="note"><strong>This is a data summary, not a buy signal or financial advice.</strong> The /10 score is accumulation-weighted — mostly days with price up AND volume 50%+ above average in the last 10 days, blended with price/volume streaks and momentum. It is the same score used by Top 20 to Watch and the ⭐ Score column. A high score does not mean a share is a good investment — verify everything against official announcements and do your own research before trading.<br><br><strong>About the Flags column:</strong> "🔍 Poss. accum" and "🏦 Inst?" are <strong>estimates from price and volume only</strong> — they are <strong>NOT</strong> confirmed director, insider or institutional filings. For real director buying/selling, use the <strong>🧑‍💼 Director trades</strong> link on each ASX row, which opens the official Appendix 3Y interests &amp; trades page.</div>
   <button onclick="window.print()" style="margin-bottom:14px;padding:8px 16px;font-size:13px;cursor:pointer;">🖨 Print / Save as PDF</button>
   <table><thead><tr>
-    <th>#</th><th>Ticker</th><th>Name</th><th>Score</th><th>Strength</th><th>Signals contributing</th><th>News 5d (est.)</th><th>News &amp; sources</th>
+    <th>#</th><th>Ticker</th><th>Name</th><th>Score</th><th>Strength</th><th>Signals contributing</th><th>Flags (est.)</th><th>News 5d (est.)</th><th>News &amp; sources</th>
   </tr></thead><tbody>${rowsHtml}</tbody></table>
   <p style="color:#888;font-size:10px;margin-top:16px;">Generated by <strong>Insight Trading</strong>. Figures are end-of-day. Scores and news flags are estimates from price/volume action, not confirmed data. Verify all figures against official sources before trading.<br>© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293</p>
   </body></html>`;
@@ -9095,7 +9211,7 @@ const TRAIN_HELP={
   "newsFilterBtn":{t:"Filter by news",d:"Shows only shares the app flags as having likely recent news (a sharp move or volume spike in the last 5 days)."},
   "cEod":{t:"Ordinary shares",d:"Include normal company shares (the main type most people trade)."},
   "cBlk":{t:"Include blocks",d:"Include block-trade-flagged rows."},
-  "cDir":{t:"Directors",d:"Include director-related flags where available."},
+  "cDir":{t:"Possible accumulation",d:"A price + volume pattern that can accompany quiet buying (modest gain on above-average volume). This is an ESTIMATE from price data — NOT confirmed director or insider filings. Tap any share and use the official 'director trades' link to check the real Appendix 3Y filings."},
   "cInst":{t:"Institutional",d:"Include institutional-activity flags."},
   "cES":{t:"EOD summary",d:"Include end-of-day summary rows."},
   "cBS":{t:"Balance-sheet type",d:"Include this share category."},

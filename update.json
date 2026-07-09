@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-137",
+  "version": "2026.07.04-139",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Stop-loss bad-data fix, cleaner trade history, plus all recent improvements. You are on the latest version."
+  "notes": "New: fix a share consolidation or split from your Portfolio (the ⚙ button on any holding) so prices and P/L stay correct — or delete a holding completely to reverse a buy. Reports now flag possible accumulation honestly and link to official director-trade filings."
 }
