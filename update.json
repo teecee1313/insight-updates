@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-142",
+  "version": "2026.07.04-145",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Speed tuning for slow-network days: added a third data route to the fetch race and made the app drop a sluggish proxy faster. Tip: tap 'Download all' once after the day's data is out — later loads then read from your device and are near-instant."
+  "notes": "Restores the ⚙ tool on holdings (fix a consolidation/split or delete a holding). New: an ↩ undo button on every sold trade — use it to put shares back if a stop/target sold them. Also: shares you buy are now protected from auto-selling until at least a day later, so glitchy next-morning data can't sell a fresh purchase."
 }
