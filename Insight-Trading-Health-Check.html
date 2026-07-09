@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insight Trading — Health Check</title>
+<style>
+  :root{--navy:#0d1b33;--gold:#FFD200;--green:#3fb950;--red:#E21937;--blue:#58a6ff;--muted:#8fa6c9;--bg2:#12203a;--border:#243657;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:system-ui,-apple-system,Arial,sans-serif;background:var(--navy);color:#e8eef7;padding:18px;max-width:760px;margin:0 auto;}
+  h1{font-size:19px;margin:0 0 2px;display:flex;align-items:center;gap:8px;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:16px;}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .card h2{font-size:13px;margin:0 0 8px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;}
+  button{background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;width:100%;margin-bottom:12px;}
+  button:disabled{opacity:.5;cursor:default;}
+  .row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+  .row:last-child{border-bottom:none;}
+  .ico{flex-shrink:0;width:18px;text-align:center;font-size:14px;}
+  .nm{flex:1;}
+  .nm small{display:block;color:var(--muted);font-size:10px;margin-top:2px;word-break:break-word;}
+  .ok{color:var(--green);} .bad{color:var(--red);} .warn{color:var(--gold);} .dim{color:var(--muted);}
+  .big{font-size:15px;font-weight:800;padding:10px;border-radius:8px;text-align:center;margin-bottom:12px;}
+  .big.ok{background:rgba(63,185,80,.15);color:var(--green);}
+  .big.bad{background:rgba(226,25,55,.15);color:#ff9caa;}
+  .big.run{background:rgba(88,166,255,.12);color:var(--blue);}
+  code{background:#0a1526;padding:1px 5px;border-radius:4px;font-size:11px;color:var(--gold);}
+  .note{font-size:10px;color:var(--muted);line-height:1.6;margin-top:6px;}
+  a{color:var(--blue);}
+</style>
+</head>
+<body>
+  <h1>🩺 Insight Trading — Health Check</h1>
+  <div class="sub">Checks your live site and, if you open this next to your files, the local builds too. Run it any time — especially after uploading an update.</div>
+
+  <div class="card">
+    <h2>What this checks</h2>
+    <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+      1. Your <strong>live site</strong> loads and reports its version.<br>
+      2. The live <strong>version matches</strong> what <code>update.json</code> says (catches the "still says the old version" cache problem).<br>
+      3. Each page's code <strong>parses with no JavaScript errors</strong>.<br>
+      4. The core building blocks (app version, key functions) are present.
+    </div>
+  </div>
+
+  <button id="run" onclick="runAll()">▶ Run health check now</button>
+  <div id="overall"></div>
+  <div id="results"></div>
+
+  <div class="card">
+    <h2>Notes</h2>
+    <div class="note">
+      • This checks that the <strong>files are healthy</strong>. It can't see live data-loading on a phone (that depends on the free data proxies and each person's API key), so a "bad data day" isn't a file fault and won't show here.<br>
+      • If the live version lags after an upload, it's usually a cache — wait 1–2 minutes and re-run, or hard-refresh.<br>
+      • Runs entirely in your browser. Nothing is sent anywhere.
+    </div>
+  </div>
+
+<script>
+const LIVE_BASE='https://teecee1313.github.io/insight-updates/';
+// The builds to check locally IF this file sits in the same folder as them.
+const LOCAL_BUILDS=[
+  'index.html','insight-trading.html','insight-trading-family.html','insight-trading-locked.html',
+  'insight-trading-customer.html','insight-trading-admin.html','insight-trading-training.html','asx-screener.html'
+];
+
+function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;}
+function verOf(html){const m=html.match(/APP_VERSION='([^']*)'/)||html.match(/LATEST_APP_VERSION='([^']*)'/);return m?m[1]:null;}
+
+// Parse every <script> block with the Function constructor — same idea as the
+// build-time check. Returns {ok, error}.
+function parseCheck(html){
+  const blocks=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
+  for(let i=0;i<blocks.length;i++){
+    const b=blocks[i];
+    if(!b.trim())continue;
+    if(/\bsrc\s*=/.test(blocks[i]))continue;
+    try{ new Function(b); }
+    catch(e){ return {ok:false, error:'script block '+(i+1)+': '+e.message}; }
+  }
+  return {ok:true};
+}
+
+async function fetchText(url){
+  const bust=url+(url.includes('?')?'&':'?')+'_cb='+Date.now(); // cache-bust
+  const r=await fetch(bust,{cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return await r.text();
+}
+
+function addRow(container,ico,cls,name,detail){
+  const r=el('div','row');
+  r.appendChild(el('div','ico '+cls,ico));
+  const n=el('div','nm','<span class="'+cls+'">'+name+'</span>'+(detail?'<small>'+detail+'</small>':''));
+  r.appendChild(n);
+  container.appendChild(r);
+}
+
+async function runAll(){
+  const btn=document.getElementById('run'); btn.disabled=true;
+  const res=document.getElementById('results'); res.innerHTML='';
+  const ov=document.getElementById('overall');
+  ov.className='big run'; ov.textContent='Running checks…';
+  let problems=0, checks=0;
+
+  // ── 1. LIVE SITE ──
+  const liveCard=el('div','card'); liveCard.appendChild(el('h2',null,'Live site'));
+  res.appendChild(liveCard);
+  let liveVer=null, jsonVer=null;
+  try{
+    const html=await fetchText(LIVE_BASE);
+    liveVer=verOf(html);
+    checks++;
+    if(liveVer){ addRow(liveCard,'✅','ok','Live app loads','version '+liveVer); }
+    else { addRow(liveCard,'⚠️','warn','Live app loaded but no version found','the page may be an error page'); problems++; }
+    const pc=parseCheck(html); checks++;
+    if(pc.ok) addRow(liveCard,'✅','ok','Live app code parses (no JS errors)');
+    else { addRow(liveCard,'❌','bad','Live app has a JavaScript error',pc.error); problems++; }
+  }catch(e){ addRow(liveCard,'❌','bad','Could not load the live app',e.message+' — check your connection or the URL'); problems++; checks++; }
+
+  try{
+    const j=JSON.parse(await fetchText(LIVE_BASE+'update.json'));
+    jsonVer=j.version; checks++;
+    addRow(liveCard,'✅','ok','update.json loads','says version '+jsonVer);
+  }catch(e){ addRow(liveCard,'❌','bad','Could not load update.json',e.message); problems++; checks++; }
+
+  // version match
+  checks++;
+  if(liveVer&&jsonVer){
+    const lv=liveVer.replace(/-family|-customer|-training/,'');
+    if(lv===jsonVer) addRow(liveCard,'✅','ok','Live version matches update.json','both '+jsonVer);
+    else { addRow(liveCard,'❌','bad','Version MISMATCH','app is '+liveVer+' but update.json says '+jsonVer+' — likely a cache; wait 1–2 min and re-run, or you uploaded only one of the two files'); problems++; }
+  } else { addRow(liveCard,'⚠️','warn','Couldn\'t compare versions','one of the files didn\'t load'); }
+
+  // ── 2. LOCAL BUILDS (only if reachable next to this file) ──
+  const localCard=el('div','card'); localCard.appendChild(el('h2',null,'Local build files (if in same folder)'));
+  res.appendChild(localCard);
+  let anyLocal=false;
+  for(const f of LOCAL_BUILDS){
+    try{
+      const html=await fetchText(f);
+      anyLocal=true;
+      const v=verOf(html);
+      const pc=parseCheck(html);
+      if(pc.ok) addRow(localCard,'✅','ok',f,'v'+(v||'?')+' · parses OK');
+      else { addRow(localCard,'❌','bad',f,pc.error); problems++; }
+      checks++;
+    }catch(e){ /* file not reachable — skip silently */ }
+  }
+  if(!anyLocal){
+    addRow(localCard,'ℹ️','dim','No local files found next to this page','That\'s fine — the live checks above are what matter. To check local files too, keep this page in the same folder as your build files and open it from there.');
+  }
+
+  // ── overall ──
+  if(problems===0){ ov.className='big ok'; ov.textContent='✅ All good — '+checks+' checks passed'; }
+  else { ov.className='big bad'; ov.textContent='❌ '+problems+' problem'+(problems>1?'s':'')+' found (see red items below)'; }
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
