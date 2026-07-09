@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-139",
+  "version": "2026.07.04-141",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New: fix a share consolidation or split from your Portfolio (the ⚙ button on any holding) so prices and P/L stay correct — or delete a holding completely to reverse a buy. Reports now flag possible accumulation honestly and link to official director-trade filings."
+  "notes": "Tidied the Portfolio: the ⚙ consolidation/delete tool is hidden again for a cleaner look. Your API and news keys stay saved (from v140)."
 }
