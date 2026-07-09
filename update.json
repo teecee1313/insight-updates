@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-147",
+  "version": "2026.07.04-148",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New: a '📂 Load from saved data (instant)' button appears when you have an offline download — it loads your saved shares straight from your device with no network and no waiting on slow proxies. Use it when the normal load is crawling. Press ⚡ Load afterwards for fresh prices."
+  "notes": "Fixed the share History view showing a duplicate top row ('Today' repeating the latest day) when using offline/saved data. Offline history now shows only the real dated rows from your last download, with no misleading 'Today' line."
 }
