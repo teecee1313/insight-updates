@@ -359,7 +359,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (family build) v2026.07.04-137 · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
+<div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (testing build) <span id="verStampV"></span> · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
 <div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
 
 <!-- Seller Controls removed -->
@@ -1143,7 +1143,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-142-family';
+const APP_VERSION='2026.07.04-145-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2293,22 +2293,88 @@ async function changeAppPassword(){
 // into IndexedDB (much stickier) and auto-restore them if localStorage is empty.
 const _CRIT_KEYS=['asxScreener.apiKey','asxScreener.newsApiKey.v1','asxScreener.paperTrades.v1','asxScreener.watchlists.v1','asxScreener.brokerage.v1'];
 function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
+// Does a stored JSON string hold ANY real content? An empty object {}, empty
+// array [], the default one-empty-list watchlist, or a holdings-less paper store
+// all count as "empty" — so we never let an empty value overwrite a good backup,
+// and we treat an empty current value as recoverable.
+function _critHasContent(k,raw){
+  if(raw==null||raw==='')return false;
+  let v;try{v=JSON.parse(raw);}catch(e){return true;} // unparseable but present → keep as-is
+  if(v==null)return false;
+  if(k==='asxScreener.watchlists.v1'){
+    // {} → empty. {'My Watchlist':{}} (or any lists that are all empty) → empty.
+    const lists=Object.values(v||{});
+    return lists.some(l=>l&&Object.keys(l).length>0);
+  }
+  if(k==='asxScreener.paperTrades.v1'){
+    return !!((v.holdings&&v.holdings.length)||(v.history&&v.history.length)||(v.orders&&v.orders.length));
+  }
+  if(Array.isArray(v))return v.length>0;
+  if(typeof v==='object')return Object.keys(v).length>0;
+  return String(raw).trim().length>0;   // plain string key (e.g. an api key)
+}
+async function _readBackup(db,k){
+  return await new Promise(r=>{try{const g=db.transaction('kv').objectStore('kv').get(k);g.onsuccess=()=>r(g.result);g.onerror=()=>r(null);}catch(e){r(null);}});
+}
 async function _backupCritical(){
-  try{const db=await _backupDB();if(!db)return;const tx=db.transaction('kv','readwrite');const st=tx.objectStore('kv');
-    _CRIT_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)st.put(v,k);}catch(e){}});
+  try{const db=await _backupDB();if(!db)return;
+    for(const k of _CRIT_KEYS){
+      try{
+        const v=localStorage.getItem(k);
+        if(v==null)continue;
+        // Never overwrite a backup that HAS content with an empty current value —
+        // this is what stops a wiped/empty watchlist from destroying the backup.
+        if(!_critHasContent(k,v)){
+          const existing=await _readBackup(db,k);
+          if(existing!=null&&_critHasContent(k,existing))continue; // keep the good one
+        }
+        const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);
+      }catch(e){}
+    }
   }catch(e){}
 }
 async function _restoreCriticalIfMissing(){
   try{const db=await _backupDB();if(!db)return false;let restored=false;
     for(const k of _CRIT_KEYS){
       let cur=null;try{cur=localStorage.getItem(k);}catch(e){}
-      if(cur==null){
-        const v=await new Promise(r=>{const g=db.transaction('kv').objectStore('kv').get(k);g.onsuccess=()=>r(g.result);g.onerror=()=>r(null);});
-        if(v!=null){try{localStorage.setItem(k,v);restored=true;}catch(e){}}
+      // Restore when the current value is missing OR empty while the backup has
+      // real content (the "empty watchlist reappears" recovery).
+      if(!_critHasContent(k,cur)){
+        const v=await _readBackup(db,k);
+        if(v!=null&&_critHasContent(k,v)){try{localStorage.setItem(k,v);restored=true;}catch(e){}}
       }
     }
     return restored;
   }catch(e){return false;}
+}
+// Manual one-tap recovery from the IndexedDB backup (wired to a button). Returns
+// a short human message about what came back.
+async function restoreFromBackup(){
+  try{
+    const db=await _backupDB();
+    if(!db){alert('No backup store is available on this device.');return;}
+    let msg=[];
+    for(const k of _CRIT_KEYS){
+      const v=await _readBackup(db,k);
+      const cur=localStorage.getItem(k);
+      if(v!=null&&_critHasContent(k,v)&&!_critHasContent(k,cur)){
+        try{localStorage.setItem(k,v);
+          if(k==='asxScreener.watchlists.v1')msg.push('watchlist');
+          else if(k==='asxScreener.paperTrades.v1')msg.push('paper portfolio');
+          else if(k==='asxScreener.apiKey')msg.push('API key');
+          else if(k==='asxScreener.newsApiKey.v1')msg.push('news key');
+          else if(k==='asxScreener.brokerage.v1')msg.push('brokerage setting');
+        }catch(e){}
+      }
+    }
+    if(msg.length){
+      try{loadWatchlists&&loadWatchlists();updateWatchBtn&&updateWatchBtn();initKeyLock&&initKeyLock();}catch(e){}
+      try{if(watchViewOn&&typeof applyF==='function')applyF();}catch(e){}
+      alert('Restored from backup: '+msg.join(', ')+'.');
+    }else{
+      alert('Nothing to restore — the backup is empty or your current data already matches it. (Backups are made on this device only.)');
+    }
+  }catch(e){alert('Could not read the backup on this device.');}
 }
 // Mirror on any change to a critical key (wrap setItem once).
 (function(){try{
@@ -3074,9 +3140,12 @@ function render(){
   }
   document.getElementById('tblwrap').style.display='block';document.getElementById('noResults').style.display='none';document.getElementById('emptyState').style.display='none';
   const cnt=filtered.length;
-  // Render cap keeps very large lists snappy. Default 1,000; users can lift it to
-  // show every share via the "Show all" link (may be slower on phones with 2,000+).
-  const cap=(window._rowCap||1000);
+  // Render cap keeps very large lists snappy. Phones get a smaller default (250)
+  // because even a one-shot 1,000-row table is heavy to lay out on mobile; desktop
+  // keeps 1,000. Users can always lift it via the "Show all" link. Once a user
+  // chooses a cap this session (_rowCap set), we respect it.
+  const _defCap=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches)?250:1000;
+  const cap=(window._rowCap||_defCap);
   if(cnt>cap){
     document.getElementById('rcount').innerHTML=`${cnt.toLocaleString()} stocks (top ${cap.toLocaleString()} shown) · <a href="#" onclick="_showAllRows();return false;" style="color:var(--blue);font-weight:700;">Show all ${cnt.toLocaleString()}</a> <span style="font-size:9px;color:var(--dim)">(may be slower)</span>`;
   } else {
@@ -3097,8 +3166,14 @@ function _showFastRows(){ window._rowCap=1000; try{ (typeof applyF==='function'?
 // Build table rows from any array of stock objects (used by both the main
 // filtered view and the filter-independent watchlist view).
 function renderRows(rows){
-  const tbody=document.getElementById('tbody');tbody.innerHTML='';
-  rows.forEach(s=>{
+  const tbody=document.getElementById('tbody');
+  // Build the ENTIRE table body as one HTML string and inject it in a single
+  // write. The old version created 1000 <tr> elements and appended them one at a
+  // time — on a phone every sort/filter re-render reflowed the page 1000× and
+  // froze the UI. One innerHTML assignment is dramatically faster.
+  let out='';
+  for(let ri=0;ri<rows.length;ri++){
+    const s=rows[ri];
     const up=s.chgPct>0.005,dn=s.chgPct<-0.005;
     const bp=Math.min(Math.abs(s.volPct)/400*100,100);
     const vc=s.volPct>=300?'h3':s.volPct>=200?'h2':s.volPct>=100?'h1':'lo';
@@ -3124,10 +3199,6 @@ function renderRows(rows){
       else sg+='<span class="tag tb">🔷 Blk</span>';
     }
     if(!sg)sg='<span style="color:var(--dim)">—</span>';
-    // Unusual-activity badge (from the Unusual Activity scan) — shows score +
-    // the patterns hit on hover. Estimate only.
-    // Sharp-mover score (from the Sharp Movers scan) — how abnormal today's
-    // move is for this share (× its own typical daily range).
     if(s.speedScore>0){
       const nf=s.newsFlag==='likely'?'📢':'🔍';
       sg=`<span class="tag" style="background:rgba(226,25,55,.15);border:1px solid var(--red);color:#ff9caa;font-weight:700" title="Sharp move: ${s.speedMoveMult}× this share's typical daily move, on ${s.speedVolRatio}× normal volume. ${s.newsFlag==='likely'?'Has a likely-news flag.':'No obvious news reason yet.'} Estimate — verify via link.">🚨 ${s.speedScore} ${nf}</span> `+sg;
@@ -3136,32 +3207,33 @@ function renderRows(rows){
       const names=s.unusualHits.map(h=>h.label).join(' · ');
       sg=`<span class="tag" style="background:rgba(255,165,0,.18);border:1px solid var(--orange);color:var(--orange);font-weight:700" title="Unusual patterns (estimate, not advice): ${names}. Verify via the link.">🔍 ${s.unusualScore}</span> `+sg;
     }
+    // volSurgeRating is computed ONCE here (was computed twice per row before).
+    const _sr=s.volCalced?volSurgeRating(s.volPct,s.chgPct):null;
+    const _srBadge=(_sr&&_sr.key!=='normal'&&_sr.key!=='cold')?`<div style="margin-top:2px"><span style="display:inline-block;padding:0 6px;border-radius:9px;background:${_sr.bg};color:${_sr.color};font-weight:700;font-size:8px;">${_sr.label}</span></div>`:'';
     const starred=inWatch(s.ticker);
     const isSel=selected.has(s.ticker);
-    const tr=document.createElement('tr');
-    if(isSel)tr.style.background='rgba(56,139,253,.08)';
-    tr.innerHTML=`
+    out+=`<tr${isSel?' style="background:rgba(56,139,253,.08)"':''}>
 <td style="text-align:center;"><input type="checkbox" ${isSel?'checked':''} onclick="toggleSelect('${s.ticker}')"></td>
 <td style="text-align:center;cursor:pointer;font-size:15px;color:${starred?'var(--gold)':'var(--dim)'}" onclick="toggleStar('${s.ticker}')" title="${starred?'Remove from':'Add to'} watchlist">${starred?'★':'☆'}</td>
 <td><div class="tick-wrap">
   <a href="${tu}" target="_blank" class="tick-link"><span class="tick-code">${s.ticker}</span><span style="font-size:9px;color:var(--dim)">↗</span></a>
   <span class="tick-name" title="${s.name}">${s.name}</span>
-  <div class="tick-links"><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="color:#ff9caa;font-weight:600;" title="Search the news for ${s.ticker}">📰 News</a><a href="${nu}" target="_blank">Announcements ↗</a><a href="#" onclick="deepDive('${s.ticker}');return false;" style="color:#c88bff;font-weight:600;">🔬 Deep dive</a><a href="#" onclick="showChart('${s.ticker}');return false;" style="color:var(--gold);">📈 Chart</a><a href="#" onclick="showShareDetail('${s.ticker}');return false;" style="color:var(--gold);">📊 History</a><a href="#" onclick="showTechnicals('${s.ticker}');return false;" style="color:#58a6ff;">📐 Technicals</a><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);">💼 Buy</a><span class="exch-tag">${s.exchange}</span></div>
+  <div class="tick-links"><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="color:#ff9caa;font-weight:600;" title="Search the news for ${s.ticker}">📰 News</a><a href="${nu}" target="_blank">Announcements ↗</a><a href="#" onclick="deepDive('${s.ticker}');return false;" style="color:#c88bff;font-weight:600;">🔬 Deep dive</a><a href="#" onclick="showChart('${s.ticker}');return false;" style="color:var(--gold);">📈 Chart</a><a href="#" onclick="showShareDetail('${s.ticker}');return false;" style="color:var(--gold);">📊 History</a><a href="#" onclick="showTechnicals('${s.ticker}');return false;" style="color:#58a6ff;">📐 Technicals</a><a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:#e0a0ff;" title="One-page printable report for ${s.ticker}">🖨 Report</a><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);">💼 Buy</a><span class="exch-tag">${s.exchange}</span></div>
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)}</span></td>
 <td style="text-align:center;">${_rangeCell(s)}</td>
 <td><div class="vw"><div class="vbg"><div class="vfl" style="width:${s.volCalced?bp:0}%"></div></div>
-    <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'?'}</span></div>${s.volCalced&&s.avgVol?`<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}</div>`:''}${(()=>{const _r=s.volCalced?volSurgeRating(s.volPct,s.chgPct):null;return _r&&_r.key!=='normal'&&_r.key!=='cold'?`<div style="margin-top:2px"><span style="display:inline-block;padding:0 6px;border-radius:9px;background:${_r.bg};color:${_r.color};font-weight:700;font-size:8px;">${_r.label}</span></div>`:'';})()}</td>
+    <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'?'}</span></div>${s.volCalced&&s.avgVol?`<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}</div>`:''}${_srBadge}</td>
 <td><span style="font-family:var(--mono);font-size:11px">${fmtV(s.volume)}</span>${s.volCalced?`<br><span style="font-family:var(--mono);font-size:9px;color:${volDepthGood(s.volWindow)?'var(--green)':'var(--muted)'}">avg ${fmtV(s.avgVol)} · ${s.volWindow||''}</span>`:''}</td>
 <td><div class="str">${dts}</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">${s.streakCalced?s.daysUp+'d':'?'}</div></td>
 <td><div class="str">${vds}</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">${s.volStreakCalced?(s.volDays||0)+'d':'?'}</div></td>
 <td style="text-align:center;">${s.accum10!=null?`<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${s.accum10>=5?'var(--gold)':s.accum10>=3?'var(--green)':'var(--muted)'}">${s.accum10}</span><span style="font-size:8px;color:var(--dim)">/10</span>`:'<span style="color:var(--dim)">?</span>'}</td>
 <td style="text-align:center;">${s.watchScore!=null?`<span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${s.watchScore>=7?'var(--green)':s.watchScore>=4?'var(--gold)':s.watchScore>=2?'var(--orange)':'var(--muted)'}">${s.watchScore}</span><span style="font-size:8px;color:var(--dim)">/10</span>`:'<span style="color:var(--dim)">?</span>'}</td>
-<td>${newsTag}</td><td>${sg}</td>`;
-    tbody.appendChild(tr);
-  });
+<td>${newsTag}</td><td>${sg}</td></tr>`;
+  }
+  tbody.innerHTML=out;   // single DOM write
 }
 
 function sb(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=k==='ticker'||k==='name'?1:-1;}document.getElementById('sortSel').value=k;render();}
@@ -3173,6 +3245,94 @@ function sb(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=k==='ticker'||k
 // Click 📊 History on a row → a day-by-day breakdown of price, change, volume,
 // vol-vs-average, streaks, accumulation and score AS OF each day, computed from
 // the retained series (no extra API calls). Period: 1/3/7/14/20 days.
+// ── One-share printable report ───────────────────────────────────────────────
+// A clean, one-page detail sheet for a SINGLE share: headline price/change, the
+// key stats, the signal flags (honestly labelled as estimates), a short recent-
+// history table, and official-source links. Opens a print-ready tab.
+function printShareReport(ticker){
+  const s=allData.find(x=>x.ticker===ticker);
+  if(!s){alert('Share not found.');return;}
+  const cur=s.currency;
+  const up=s.chgPct>0.005,dn=s.chgPct<-0.005;
+  const chgCol=up?'#0a7a0a':dn?'#c00':'#666';
+  const when=new Date().toLocaleString();
+  const brand=`<svg viewBox="0 0 1024 1024" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><rect x="150" y="618" width="125" height="174" rx="19" fill="#C9A100"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#C9A100"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#C9A100"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#C9A100"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#C9A100"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#C9A100"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#C9A100"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>`;
+  // Signal flags — honest labels.
+  const flags=[];
+  if(s.dirBuy)flags.push('🔍 Possible accumulation <span class="est">(price+volume estimate — NOT a confirmed director filing)</span>');
+  if(s.instBuy)flags.push('🏦 Possible institutional interest <span class="est">(estimate, not a confirmed filing)</span>');
+  if(s.unusualEod)flags.push('👁 Unusual end-of-day move <span class="est">(estimate)</span>');
+  if(s.blockTrade){const d=s.blockDir||blockDirection(s);flags.push(`📦 Possible block trade${d==='up'?' ▲ (accumulation)':d==='down'?' ▼ (distribution)':''} <span class="est">(estimate)</span>`);}
+  if(s.newsFlag==='likely')flags.push('📢 Likely price-sensitive announcement in last 5d <span class="est">(estimate — verify via announcements link)</span>');
+  else if(s.newsFlag==='quiet')flags.push('🔇 No obvious announcement footprint last 5d <span class="est">(estimate)</span>');
+  if(s.speedScore>0)flags.push(`🚨 Sharp move: ${s.speedMoveMult}× typical daily move on ${s.speedVolRatio}× volume <span class="est">(estimate)</span>`);
+  const flagsHtml=flags.length?flags.map(f=>`<li>${f}</li>`).join(''):'<li style="color:#888;">No signal flags on the latest data.</li>';
+  // Stat rows.
+  const stat=(k,v)=>`<tr><td class="k">${k}</td><td class="v">${v}</td></tr>`;
+  const scoreCol=(v)=>v>=7?'#0a7a0a':v>=4?'#b8860b':v>=2?'#c07000':'#888';
+  const statsHtml=[
+    stat('Last price',`<strong>${fmtP(s.price,cur)}</strong>`),
+    stat('Change',`<span style="color:${chgCol};font-weight:700;">${up?'+':''}${(s.chgPct||0).toFixed(2)}% (${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)})</span>`),
+    stat('Volume',`${fmtV(s.volume)}${s.volCalced&&s.avgVol?` · vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}`:''}`),
+    s.volCalced?stat('Volume vs average',`${s.volPct>=0?'+':''}${s.volPct}%`):'',
+    s.watchScore!=null?stat('Watch Score',`<strong style="color:${scoreCol(s.watchScore)};font-size:15px;">${s.watchScore}/10</strong> <span class="est">(accumulation-weighted estimate)</span>`):'',
+    s.accum10!=null?stat('Accumulation (10-day)',`${s.accum10}/10`):'',
+    s.streakCalced?stat('Up-day streak',`${s.daysUp||0} day(s)`):'',
+    s.volStreakCalced?stat('High-volume streak',`${s.volDays||0} day(s)`):'',
+    (s.rangePos!=null)?stat('Position in day range',`${s.rangePos}% ${s.rangePos<=25?'(near low)':s.rangePos>=75?'(near high)':'(mid)'}`):'',
+  ].filter(Boolean).join('');
+  // Recent history mini-table (last 10 sessions from retained series).
+  let histHtml='';
+  if(Array.isArray(s.series)&&s.series.length>1){
+    const ser=s.series.slice(-10);
+    const rows=ser.map((x,i)=>{
+      const prev=i>0?ser[i-1].c:(s.series.length>s.series.indexOf(ser[0])?null:null);
+      const pc=i>0?ser[i-1].c:null;
+      const chg=pc&&pc>0?((x.c-pc)/pc*100):null;
+      const cc=chg==null?'#666':chg>0?'#0a7a0a':chg<0?'#c00':'#666';
+      return `<tr><td>${x.d}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
+    }).join('');
+    histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  const nu=newsUrlFor(s.ticker,s.exchange), ns=newsSearchFor(s.ticker,s.exchange,s.name), tu=tickerUrlFor(s.ticker,s.exchange);
+  const dirLink=s.exchange==='ASX'?`<a href="https://www.marketindex.com.au/asx/${s.ticker.toLowerCase()}/directors" target="_blank">🧑‍💼 Official director trades (Appendix 3Y) ↗</a>`:'';
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${s.ticker} — Share Report — Insight Trading</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:26px;max-width:760px;}
+    .top{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#002B5C;}
+    h1{font-size:24px;margin:12px 0 0;} h1 .ex{font-size:13px;color:#888;font-weight:600;}
+    .name{color:#555;font-size:14px;margin:2px 0 14px;}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#002B5C;border-bottom:2px solid #eee;padding-bottom:4px;margin:20px 0 8px;}
+    table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:6px;}
+    td.k{color:#666;width:44%;padding:5px 8px;border-bottom:1px solid #eee;}
+    td.v{padding:5px 8px;border-bottom:1px solid #eee;}
+    .est{color:#999;font-size:10px;font-weight:400;}
+    ul.flags{margin:6px 0;padding-left:20px;font-size:12px;} ul.flags li{margin:4px 0;}
+    table.hist th,table.hist td{border:1px solid #ddd;padding:4px 7px;text-align:left;}
+    table.hist th{background:#f3f3f3;} table.hist .r{text-align:right;font-family:'Courier New',monospace;}
+    .links a{display:inline-block;margin:3px 12px 3px 0;color:#002B5C;font-weight:600;font-size:12px;text-decoration:none;}
+    .note{background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:9px 11px;font-size:10.5px;color:#7a5c00;margin:16px 0;}
+    .foot{color:#888;font-size:10px;margin-top:16px;border-top:1px solid #eee;padding-top:8px;}
+    @media print{@page{size:portrait;margin:12mm;}button{display:none!important;}body{margin:0;max-width:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;}a{color:#002B5C;text-decoration:none;}h2{page-break-after:avoid;}table,ul{page-break-inside:avoid;}}
+  </style></head><body>
+  <div class="top">${brand} Insight <span style="color:#C9A100">Trading</span></div>
+  <h1>${s.ticker} <span class="ex">· ${s.exchange}</span></h1>
+  <div class="name">${s.name||''}</div>
+  <button onclick="window.print()" style="margin-bottom:8px;padding:8px 16px;font-size:13px;cursor:pointer;">🖨 Print / Save as PDF</button>
+  <h2>Key figures</h2>
+  <table>${statsHtml}</table>
+  <h2>Signal flags <span class="est" style="text-transform:none;letter-spacing:0;">— estimates from price &amp; volume, not confirmed filings</span></h2>
+  <ul class="flags">${flagsHtml}</ul>
+  ${histHtml}
+  <h2>Verify at official sources</h2>
+  <div class="links"><a href="${nu}" target="_blank">🏛 Company announcements ↗</a><a href="${ns}" target="_blank">📰 News search ↗</a><a href="${tu}" target="_blank">📈 Price page ↗</a>${dirLink}</div>
+  <div class="note"><strong>This is a data summary, not financial advice or a buy/sell signal.</strong> All figures are end-of-day and may be delayed. The Watch Score and every signal flag are <strong>estimates inferred from price and volume action</strong> — they are not confirmed director, insider, institutional or announcement filings. Always verify against the official sources above and do your own research before trading.</div>
+  <div class="foot">Generated by <strong>Insight Trading</strong> · ${when}<br>© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293</div>
+  </body></html>`;
+  const w=window.open('','_blank');
+  if(!w){alert('Pop-up blocked. Please allow pop-ups for this page to open the report.');return;}
+  w.document.write(html);w.document.close();
+}
 function showShareDetail(ticker,days){
   const n=days||7;
   window._detailTicker=ticker;
@@ -3441,8 +3601,20 @@ async function checkAutoSellTargets(){
   if(!targeted.length)return [];
   window._tgtChecking=true;
   const autoSold=[];let changed=false;
+  // A freshly-bought holding must not auto-sell on the very next data check —
+  // morning/opening data is often glitchy, and a surprise next-day sale on a
+  // share you just bought is almost never what the user intended. Require at
+  // least one calendar day to have passed since the buy before targets/stops arm.
+  const _todayStr=new Date().toISOString().slice(0,10);
+  const _armed=(h)=>{
+    if(!h.buyDate)return true;
+    // buyDate is YYYY-MM-DD (or ISO). Arm only once today is strictly after it.
+    const bd=String(h.buyDate).slice(0,10);
+    return _todayStr>bd;
+  };
   try{
     for(const h of targeted.slice()){
+      if(!_armed(h))continue; // skip holdings bought today — give them a day first
       let hit=null; // {date, fill}
       if(apiKey){
         try{
@@ -4427,7 +4599,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
-      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change auto-sell price target" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss (auto-sells if the price falls to it)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <!-- ⚙ Adjust (consolidation/split + delete) button hidden by request. To restore, re-insert: <button onclick="paperAdjust('${'$'}{h.id}')" title="Apply a share consolidation / split, or delete this holding completely (reverse a buy)" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙</button> — the paperAdjust/paperApplyRatio/paperDeleteHolding/_adjPrev functions are still defined and can also be called from the console. --> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
+      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change auto-sell price target" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss (auto-sells if the price falls to it)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperAdjust('${h.id}')" title="Apply a share consolidation / split, or delete this holding completely (reverse a buy)" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
     </tr>`;
   }).join('');
   const totPl=totVal-totInv, totC=totPl>0.005?'var(--green)':totPl<-0.005?'var(--red)':'var(--muted)';
@@ -4441,7 +4613,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Put these shares back into your holdings and reverse the cash. Use this if a stop/target fired on bad price data, or to undo a sale." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:600 9px var(--sans);cursor:pointer;">↩ undo</button></td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
@@ -4661,6 +4833,10 @@ function openWatchManager(){
       <button onclick="shareWatchEmail()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--blue);background:rgba(56,139,253,.1);color:var(--blue);font:600 11px var(--sans);cursor:pointer;">✉️ Email</button>
       <button onclick="renameWatch()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;">Rename</button>
       <button onclick="deleteWatch()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--red);background:rgba(248,81,73,.1);color:var(--red);font:600 11px var(--sans);cursor:pointer;">Delete</button>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+      <button onclick="restoreFromBackup().then(()=>{try{openWatchManager();}catch(e){}})" title="If your watchlist went missing (e.g. the browser cleared its storage), this pulls it back from the automatic on-device backup." style="padding:6px 10px;border-radius:5px;border:1px solid var(--blue);background:rgba(56,139,253,.10);color:var(--blue);font:600 11px var(--sans);cursor:pointer;">↩ Restore from backup</button>
+      <div style="font-size:8px;color:var(--dim);margin-top:5px;line-height:1.5;">Watchlist gone missing? This recovers it from the automatic backup kept on this device. Backups are per-device — they don't sync between phones. For the most durable saving, install the app to your home screen.</div>
     </div>`;
   showModal(html);
 }
@@ -5076,6 +5252,16 @@ function _openSurgeReport(rows){
     th{background:#f0f0f0;position:sticky;top:0;} td.r{text-align:right;font-family:'Courier New',monospace;}
     tr:nth-child(even){background:#fafafa;} tr.hide{display:none;}
     .note{background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;font-size:10px;color:#7a5c00;margin:12px 0;}
+    @media print{
+      @page{size:landscape;margin:10mm;}
+      button{display:none!important;}
+      body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      table{font-size:9px;width:100%;table-layout:fixed;}
+      th,td{padding:3px 4px;word-break:break-word;overflow-wrap:anywhere;position:static;}
+      a{color:#002B5C;text-decoration:none;}
+      tr{page-break-inside:avoid;} tr.hide{display:none;}
+      thead{display:table-header-group;}
+    }
     .filt{margin:6px 0 12px;} .scale{font-size:10px;color:#666;margin:2px 0 10px;line-height:1.6;}
     @media print{button{display:none;} th{position:static;}}
   </style></head><body>
@@ -5160,7 +5346,16 @@ function printRatedReport(){
     td.r{text-align:right;font-family:'Courier New',monospace;}
     tr:nth-child(even){background:#fafafa;}
     .note{background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;font-size:10px;color:#7a5c00;margin:12px 0;}
-    @media print{button{display:none;}}
+    @media print{
+      @page{size:landscape;margin:10mm;}
+      button{display:none;}
+      body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      table{font-size:9px;width:100%;table-layout:fixed;}
+      th,td{padding:3px 4px;word-break:break-word;overflow-wrap:anywhere;}
+      a{color:#002B5C;text-decoration:none;}
+      tr{page-break-inside:avoid;}
+      thead{display:table-header-group;}
+    }
   </style></head><body>
   <div style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#002B5C;letter-spacing:-.2px;">
     <svg viewBox="0 0 1024 1024" width="20" height="20" xmlns="http://www.w3.org/2000/svg" ><rect x="150" y="618" width="125" height="174" rx="19" fill="#C9A100"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#C9A100"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#C9A100"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#C9A100"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#C9A100"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#C9A100"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#C9A100"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>
@@ -6612,6 +6807,7 @@ function deepDive(ticker){
   let html=`<div style="font-weight:700;font-size:16px;color:var(--text);">🔬 ${s.ticker} <span style="font-size:11px;color:var(--muted)">${s.name||''}</span></div>
   <div style="font-size:9px;color:var(--dim);margin:4px 0 8px;">Everything Insight Trading computes for this share — plus links to official sources for shareholders, directors & news. Estimates from price/volume, not advice.</div>
   <button onclick="showChart('${s.ticker}')" style="width:100%;margin-bottom:8px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">📈 Open price chart</button>
+  <button onclick="printShareReport('${s.ticker}')" style="width:100%;margin-bottom:8px;padding:8px;border-radius:7px;border:1px solid #c88bff;background:rgba(200,139,255,.12);color:#e0a0ff;font:700 11px var(--sans);cursor:pointer;">🖨 Printable one-page report</button>
   <div style="display:flex;gap:6px;margin-bottom:8px;">
     <a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.10);color:#ff9caa;font:700 11px var(--sans);text-decoration:none;">📰 Latest news</a>
     <a href="${newsUrlFor(s.ticker,s.exchange)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 11px var(--sans);text-decoration:none;">🏛 ${s.exchange==='ASX'?'ASX announcements':'Company filings'} ↗</a>
@@ -8687,7 +8883,7 @@ function initCollapsibleGroups(){
   initLicence();loadWatchlists();updateWatchBtn();initKeyLock();refreshMyReportBtn();refreshRoutineBtn();initCollapsibleGroups();initSidebarLayout();applyAssetMode();refreshPortfolioBtn();applyAdvFilters();saveVersionSnapshot();applyPrivateMode();
   try{ _backupCritical(); }catch(e){} // ensure a fresh backup exists after load
 })();
-(function(){const v='v'+APP_VERSION;const a=document.getElementById('appVer');if(a)a.textContent=v;const g=document.getElementById('gateVer');if(g)g.textContent='Insight Trading '+v;})();(function(){const sel=document.getElementById('volWinSel');if(sel)sel.value=String(volAvgWindow);})();(function(){const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);const lbl=document.getElementById('rangeColLbl');if(lbl){lbl.textContent='Range';}})();initLang();setTimeout(function(){var e=document.getElementById('verStamp');if(e)e.remove();},5000);
+(function(){const v='v'+APP_VERSION;const a=document.getElementById('appVer');if(a)a.textContent=v;const g=document.getElementById('gateVer');if(g)g.textContent='Insight Trading '+v;const vs=document.getElementById('verStampV');if(vs)vs.textContent=v;})();(function(){const sel=document.getElementById('volWinSel');if(sel)sel.value=String(volAvgWindow);})();(function(){const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);const lbl=document.getElementById('rangeColLbl');if(lbl){lbl.textContent='Range';}})();initLang();setTimeout(function(){var e=document.getElementById('verStamp');if(e)e.remove();},5000);
 // ── Auto-load at startup (toggleable) ────────────────────────────────────────
 // If enabled and an API key is saved, automatically load the last-used exchange
 // on open. loadData() then auto-runs the volume + streak pipeline once data is
