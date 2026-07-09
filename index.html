@@ -490,7 +490,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="sp" id="sp"></div>
       <span id="loadLbl" data-i18n="loadData">⚡ Load / refresh now</span>
     </button>
-    <div class="adv-note" style="margin-top:6px;">The app loads and prepares everything automatically. Use this only to force a manual refresh.</div>
+    <button id="offlineLoadBtn" onclick="loadOfflineNow()" style="display:none;width:100%;padding:8px;border-radius:6px;border:1px solid #58a6ff;background:rgba(88,166,255,.12);color:#58a6ff;font:700 12px var(--sans);cursor:pointer;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;" title="Load the data you already downloaded, instantly — no network, no waiting on proxies. Prices are from your last download.">📂 Load from saved data (instant)</button>
+    <div class="adv-note" style="margin-top:6px;">The app loads and prepares everything automatically. Use this only to force a manual refresh. <strong>📂 Load from saved data</strong> appears when you have an offline download — it's instant and skips the network.</div>
 
         <!-- API key -->
         <div class="adv-note">Your data connection. Enter it once — it's remembered.</div>
@@ -1143,7 +1144,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-146-family';
+const APP_VERSION='2026.07.04-147-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7742,6 +7743,56 @@ async function histCount(){
   if(!_cacheOn)return 0;const db=await cacheOpen();if(!db)return 0;
   return new Promise(res=>{try{const tx=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE).count();tx.onsuccess=()=>res(tx.result||0);tx.onerror=()=>res(0);}catch(e){res(0);}});
 }
+// Load straight from downloaded/offline data — NO network, NO API key, instant.
+// This is the fast path for "I have data saved, just show it": it skips the
+// direct→proxy→AI-proxy chain entirely (which can crawl for a minute on slow-
+// proxy days) and reads the share list from the on-device history store.
+async function loadOfflineNow(){
+  const exch=document.getElementById('exchSel').value;
+  currentExch=exch;
+  const btn=document.getElementById('offlineLoadBtn');
+  const statusEl=document.getElementById('loadStatus');
+  const progWrap=document.getElementById('progWrap');
+  const progFill=document.getElementById('progFill');
+  if(btn)btn.disabled=true;
+  if(statusEl)statusEl.innerHTML='<span style="color:#58a6ff">📂 Loading your saved data…</span>';
+  if(progWrap){progWrap.style.display='block';progFill.style.width='30%';}
+  try{
+    const offlineRows=await buildListFromOffline(exch);
+    if(!offlineRows||!offlineRows.length){
+      if(statusEl)statusEl.innerHTML=`<span style="color:var(--orange)">No saved data found for ${exch}. Use "⬇ Download all" first, or check you picked the same exchange you downloaded.</span>`;
+      if(btn)btn.disabled=false;
+      if(progWrap)setTimeout(()=>progWrap.style.display='none',600);
+      return;
+    }
+    allData=offlineRows;
+    window._offlineMode=true;
+    if(progFill)progFill.style.width='100%';
+    document.getElementById('emptyState').style.display='none';
+    const notice=document.getElementById('notice');
+    if(notice)notice.innerHTML=`📂 ${exch} · offline · ${offlineRows.length.toLocaleString()} shares from your saved data`;
+    const sb=document.getElementById('statsBar'); if(sb)sb.style.display='flex';
+    const tb=document.getElementById('toolbar'); if(tb)tb.style.display='flex';
+    const eb=document.getElementById('exchBadge'); if(eb)eb.textContent=`🌐 ${exch} — ${offlineRows.length.toLocaleString()} stocks (offline)`;
+    if(typeof doReset==='function')doReset(); else if(typeof applyF==='function')applyF();
+    if(typeof prepAllOn==='function' && prepAllOn()) setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400);
+    if(statusEl)statusEl.innerHTML=`<span style="color:var(--green)">📂 Loaded ${offlineRows.length.toLocaleString()} ${exch} shares from your saved data (offline — no network used). Prices are from your last download; press ⚡ Load for today's fresh prices.</span>`;
+    if(btn)btn.disabled=false;
+    if(progWrap)setTimeout(()=>progWrap.style.display='none',800);
+  }catch(e){
+    if(statusEl)statusEl.innerHTML=`<span style="color:var(--red)">Couldn't read saved data: ${e.message}</span>`;
+    if(btn)btn.disabled=false;
+    if(progWrap)setTimeout(()=>progWrap.style.display='none',600);
+  }
+}
+// Show/hide the offline button depending on whether any saved data exists.
+async function _refreshOfflineBtn(){
+  try{
+    const n=await histCount();
+    const b=document.getElementById('offlineLoadBtn');
+    if(b)b.style.display=n>0?'flex':'none';
+  }catch(e){}
+}
 async function histClearAll(){const db=await cacheOpen();if(!db)return;try{db.transaction(HIST_STORE,'readwrite').objectStore(HIST_STORE).clear();}catch(e){}}
 
 // Fetch just the SYMBOL LIST (share codes) for an exchange — used by the
@@ -8022,6 +8073,7 @@ async function retryFailedDownload(){
   updateOfflineStatus();
 }
 async function updateOfflineStatus(){
+  try{ _refreshOfflineBtn(); }catch(e){}
   const n=await histCount();
   const el=document.getElementById('offlineStat');
   if(!el)return;
@@ -8885,6 +8937,7 @@ function initCollapsibleGroups(){
 (async function(){
   try{ await _restoreCriticalIfMissing(); }catch(e){}
   initLicence();loadWatchlists();updateWatchBtn();initKeyLock();refreshMyReportBtn();refreshRoutineBtn();initCollapsibleGroups();initSidebarLayout();applyAssetMode();refreshPortfolioBtn();applyAdvFilters();saveVersionSnapshot();applyPrivateMode();
+  try{ _refreshOfflineBtn(); }catch(e){}
   try{ _backupCritical(); }catch(e){} // ensure a fresh backup exists after load
 })();
 (function(){const v='v'+APP_VERSION;const a=document.getElementById('appVer');if(a)a.textContent=v;const g=document.getElementById('gateVer');if(g)g.textContent='Insight Trading '+v;const vs=document.getElementById('verStampV');if(vs)vs.textContent=v;})();(function(){const sel=document.getElementById('volWinSel');if(sel)sel.value=String(volAvgWindow);})();(function(){const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);const lbl=document.getElementById('rangeColLbl');if(lbl){lbl.textContent='Range';}})();initLang();setTimeout(function(){var e=document.getElementById('verStamp');if(e)e.remove();},5000);
