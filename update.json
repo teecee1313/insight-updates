@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-129",
+  "version": "2026.07.04-137",
   "url": "https://teecee1313.github.io/insight-updates/insight-trading-locked.html",
-  "notes": "You can now show every share, not just the top 1,000 \u2014 a \"Show all\" link appears when the list is longer, so nothing is hidden. Plus exiting training clears demo data, the partial-data retry fix, and a compact mobile training banner."
+  "notes": "Tidied the trade history now that the stop-loss bad-data bug is fixed \u2014 the undo button has been removed for a cleaner look, with the underlying safeguard kept in place. Includes the stop-loss data protection from the previous updates."
 }
