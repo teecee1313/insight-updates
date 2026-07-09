@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-145",
+  "version": "2026.07.04-146",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Restores the ⚙ tool on holdings (fix a consolidation/split or delete a holding). New: an ↩ undo button on every sold trade — use it to put shares back if a stop/target sold them. Also: shares you buy are now protected from auto-selling until at least a day later, so glitchy next-morning data can't sell a fresh purchase."
+  "notes": "Portfolio recovery made easy: if your portfolio goes missing, open 💼 Portfolio and tap '↩ Restore my portfolio from the automatic backup' to bring it straight back from the on-device backup. (Tip: install the app to your home screen so the browser can't clear your data.)"
 }
