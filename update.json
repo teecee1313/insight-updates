@@ -1,5 +1,5 @@
 {
   "version": "2026.07.04-137",
-  "url": "https://teecee1313.github.io/insight-updates/insight-trading-locked.html",
-  "notes": "Tidied the trade history now that the stop-loss bad-data bug is fixed \u2014 the undo button has been removed for a cleaner look, with the underlying safeguard kept in place. Includes the stop-loss data protection from the previous updates."
+  "url": "https://teecee1313.github.io/insight-updates/",
+  "notes": "Stop-loss bad-data fix, cleaner trade history, plus all recent improvements. You are on the latest version."
 }
