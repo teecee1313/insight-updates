@@ -1144,7 +1144,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-147-family';
+const APP_VERSION='2026.07.04-148-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3401,10 +3401,17 @@ function showShareDetail(ticker,days){
   // also counts, covering any timezone edge the data source has.)
   const _lastD=ser.length>0?String(ser[ser.length-1].d).slice(0,10):'';
   const histHasToday = _lastD!=='' && _lastD>=todayStr;
+  // In OFFLINE mode there is no genuine "today" — the top-level price/volume are
+  // just the last values downloaded, so a synthetic "Today" row would simply
+  // duplicate the newest dated row (and mislabel old data as today). Also guard
+  // against stale live data: if the newest history row is not actually today, the
+  // top-level figures are from that older session, so don't relabel them "Today".
+  const _dataIsStale = _lastD!=='' && _lastD<todayStr;
+  const _suppressToday = !!window._offlineMode || _dataIsStale;
   // Synthetic "Today" row only when history lags (no today row yet), and only
   // when no range is set or today falls inside it. Its Vol-vs-Avg uses the SAME
   // baseline average as the dated rows so the numbers agree.
-  if(!histHasToday && (!ranged || ((!from||from<=todayStr)&&(!to||to>=todayStr))))
+  if(!_suppressToday && !histHasToday && (!ranged || ((!from||from<=todayStr)&&(!to||to>=todayStr))))
     rowsData.push({d:'Today',o:openFor(todayStr)||(s.open>0?s.open:null),c:s.price,chg:s.chgPct||0,v:s.volume,vp:(baseAvg>0&&s.volume>0)?Math.round(((s.volume-baseAvg)/baseAvg)*100):null,ps:s.daysUp||0,vs:s.volDays||0,acc:s.accum10!=null?s.accum10:'—',sc:s.watchScore!=null?s.watchScore:'—',live:true});
   for(let i=ser.length-1;i>=0;i--){
     const d=ser[i].d;
