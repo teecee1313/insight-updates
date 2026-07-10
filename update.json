@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-157",
+  "version": "2026.07.04-158",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Better announcements for US shares (NYSE/NASDAQ): the 🏛 Announcements link now opens the clear per-share SEC-filings page (8-Ks, results, insider trades) instead of Yahoo's confusing news page, with the official SEC EDGAR filings as an alternative. ASX announcements unchanged."
+  "notes": "The printable share report now includes a plain-English summary of what the data is showing, plus a '📋 Copy AI prompt' button — tap it, paste into Claude or ChatGPT, and get a balanced AI deep-dive for free (uses an AI you already have open). Both are honest data summaries, not advice."
 }
