@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-153",
+  "version": "2026.07.04-154",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New: every printable report (one-share, Watch Score, Volume Surge) now has a '📝 My notes' box. Type your notes on the report before printing and they appear on the printout. Leave it blank and it prints ruled lines to write on by hand."
+  "notes": "The in-app guide now explains exactly how every rating is calculated — Sharp Mover, Watch Score /10, Accumulation, Volume Surge, Trading Range, streaks, news flag and Unusual Activity. Open the 📖 Help guide and scroll to 'How the ratings & scores are calculated'."
 }
