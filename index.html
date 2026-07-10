@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-154-family';
+const APP_VERSION='2026.07.04-156-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -2402,6 +2404,7 @@ function _refreshKeyUI(){
   const entry=document.getElementById('keyEntryRow');
   const saved=document.getElementById('keySavedRow');
   if(entry&&saved){ entry.style.display=has?'none':'block'; saved.style.display=has?'flex':'none'; }
+  try{ refreshBulkReady(); }catch(e){}
 }
 // "Change key" → reveal the input again so it can be edited/replaced.
 function changeApiKey(){
@@ -2567,7 +2570,7 @@ function setBuyDays(n){
   if(F.buyDays>0 && !allData.some(s=>Array.isArray(s.series))){
     const st=document.getElementById('loadStatus');
     if(st)st.innerHTML='Loading price/volume history for buying-streak…';
-    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
+    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();try{refreshBulkReady();}catch(e){}if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
   }else{
     mp();dots();
   }
@@ -2585,7 +2588,7 @@ function setAccumMin(n){
   if(F.accumMin>0 && !allData.some(s=>Array.isArray(s.series))){
     const st=document.getElementById('loadStatus');
     if(st)st.innerHTML='Loading price/volume history for accumulation…';
-    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
+    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();try{refreshBulkReady();}catch(e){}if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
   }else{
     mp();dots();
   }
@@ -2603,7 +2606,7 @@ function setVolStreakDays(n){
   if(F.volStreakDays>0 && !allData.some(s=>s.volStreakCalced)){
     const st=document.getElementById('loadStatus');
     if(st)st.innerHTML='Loading volume history for streak…';
-    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
+    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();try{refreshBulkReady();}catch(e){}if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
   }else{
     mp();dots();
   }
@@ -2622,7 +2625,7 @@ function setMinScore(n){
   if(F.minScore>0 && !allData.some(s=>s.volCalced)){
     const st=document.getElementById('loadStatus');
     if(st)st.innerHTML='Loading data for strength scoring…';
-    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
+    bulkVolume().then(()=>{mp();dots();applyF();maybeAutoMyReport();try{refreshBulkReady();}catch(e){}if(prepAllOn())setTimeout(()=>prepareAllSignals(true),600);else if(autoTechOn())setTimeout(autoRunTechnicals,700);});
   }else{
     mp();dots();
   }
@@ -5247,7 +5250,7 @@ function rateSelected(){
     const newsTag=s.newsFlag==='likely'?'<span style="font-size:9px;color:#ff9caa">📢 likely news</span>':s.newsFlag==='quiet'?'<span style="font-size:9px;color:var(--green)">🔇 quiet</span>':'';
     return `<div style="padding:8px 4px;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <span style="font-weight:700;color:var(--text);font-size:12px;">${s.ticker} ${newsTag}</span>
+        <span style="font-weight:700;color:var(--text);font-size:12px;"><a href="#" onclick="printShareReport('${s.ticker}');return false;" title="Open the printable one-page report for ${s.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${s.ticker} 🖨</a> ${newsTag}</span>
         <span style="display:flex;align-items:center;gap:8px;">
           <span style="font-weight:800;font-size:15px;color:${band.c};">${r.score}</span>
           <span style="font-size:9px;color:var(--dim);">/10</span>
@@ -6617,7 +6620,7 @@ function showTop10Panel(pairs){
     const b=band10(r.score);
     return `<div style="padding:8px 4px;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <span style="font-weight:700;color:var(--text);font-size:12px;">${i+1}. ${s.ticker}</span>
+        <span style="font-weight:700;color:var(--text);font-size:12px;">${i+1}. <a href="#" onclick="printShareReport('${s.ticker}');return false;" title="Open the printable one-page report for ${s.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${s.ticker} 🖨</a></span>
         <span style="display:flex;align-items:center;gap:8px;">
           <span style="font-weight:800;font-size:16px;color:${b.c};">${r.score}</span>
           <span style="font-size:9px;color:var(--dim);">/10</span>
@@ -6630,7 +6633,7 @@ function showTop10Panel(pairs){
   }).join('');
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10</div>
-    <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links.</div>
+    <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links. <span style="color:var(--gold)">Tap any share code (🖨) to open its printable report.</span></div>
     <div style="max-height:44vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:2px 10px;">${rows}</div>
     <div style="display:flex;gap:8px;margin-top:12px;">
       <button onclick="exportTop20CSV()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:600 12px var(--sans);cursor:pointer;">📤 Save CSV</button>
@@ -8030,14 +8033,43 @@ function _restoreBulkButtons(){
   const btn=document.getElementById('bulkBtn'), stopBtn=document.getElementById('bulkStopBtn');
   if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='⬇ Download all (this exchange)';btn.onclick=downloadEverything;}
   if(stopBtn){stopBtn.style.display='none';stopBtn.disabled=false;stopBtn.style.opacity='1';stopBtn.textContent='■ Stop download';}
+  try{ refreshBulkReady(); }catch(e){}
+}
+function refreshBulkReady(){
+  const btn=document.getElementById('bulkBtn');
+  if(!btn||window._bulkRunning)return;
+  const hasKey=!!((document.getElementById('apiKey')||{}).value||'').trim();
+  const hasData=(typeof allData!=='undefined')&&allData.length>0;
+  if(!hasKey){
+    btn.style.opacity='.6';
+    btn.textContent='⬇ Download all — enter API key first';
+    btn.title='Download all needs your API key. Open Setup & data and enter it, then this lights up.';
+  }else if(!hasData){
+    btn.style.opacity='.6';
+    btn.textContent='⬇ Download all — load an exchange first';
+    btn.title='Load an exchange (press ⚡ Load) first, then Download all can save it for offline use.';
+  }else{
+    btn.style.opacity='1';
+    btn.textContent='⬇ Download all (this exchange)';
+    btn.title='Save every share on this exchange to your device for instant offline use.';
+  }
 }
 async function downloadEverything(){
   if(window._bulkRunning)return;
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
   const _lbl=document.getElementById('bulkLbl')||document.getElementById('loadStatus');
   const _say=(m)=>{ if(_lbl)_lbl.innerHTML='<span style="color:#f0b849">'+m+'</span>'; };
-  if(!apiKey){_say('Enter your API key first (top of Setup), then press Download all.');return;}
-  if(!allData.length){_say('Load an exchange first, then Download all will save it for offline use.');return;}
+  if(!apiKey){
+    _say('⚠ Enter your API key first (in Setup &amp; data), then press Download all.');
+    alert('Download all needs your API key.\n\nIt saves the price history for every share, which requires your free EODData key.\n\n1. Open "⚙ Setup & data" (top of the panel)\n2. Enter your API key in the key box\n3. Then press "⬇ Download all" again.');
+    try{const s=document.getElementById('setupGroup')||document.getElementById('advGroup'); if(s&&s.scrollIntoView)s.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+    return;
+  }
+  if(!allData.length){
+    _say('⚠ Load an exchange first, then Download all will save it for offline use.');
+    alert('Load an exchange first.\n\nDownload all saves the exchange you have on screen for offline use — so there needs to be one loaded.\n\n1. Pick your exchange (e.g. ASX)\n2. Press "⚡ Load / refresh now" and let it load\n3. Then press "⬇ Download all".');
+    return;
+  }
   // The download saves EVERYTHING loaded (types are a live-load setting only).
   // The one optional narrowing here is the "gainers only" checkbox below.
   let targets=allData.slice();
@@ -8178,6 +8210,7 @@ async function retryFailedDownload(){
 }
 async function updateOfflineStatus(){
   try{ _refreshOfflineBtn(); }catch(e){}
+  try{ refreshBulkReady(); }catch(e){}
   const n=await histCount();
   const el=document.getElementById('offlineStat');
   if(!el)return;
@@ -9344,6 +9377,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 
