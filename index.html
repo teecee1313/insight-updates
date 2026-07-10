@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-156-family';
+const APP_VERSION='2026.07.04-157-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -3052,6 +3053,22 @@ function volSurgeRating(volPct,chgPct){
 }
 function newsUrlFor(ticker,exch){
   if(exch==='ASX')return`https://www.marketindex.com.au/asx/${ticker.toLowerCase()}#announcements`;
+  // For US-listed shares (NYSE/NASDAQ), the real equivalent of ASX announcements
+  // is SEC filings — 8-K (breaking news), 10-K/10-Q (results), Form 4 (insider
+  // trades). Nasdaq's per-share SEC-filings page is the clearest, laid out by
+  // ticker in plain English — much easier than Yahoo's mixed news page.
+  if(exch==='NYSE'||exch==='NASDAQ'||exch==='AMEX'||exch==='OTC'||exch==='US')
+    return`https://www.nasdaq.com/market-activity/stocks/${ticker.toLowerCase()}/sec-filings`;
+  if(exch==='LSE')return`https://www.londonstockexchange.com/stock/${ticker}/announcements`;
+  return`https://finance.yahoo.com/quote/${ticker}/news/`;
+}
+// A cleaner per-share filings alternative. For US shares this is the OFFICIAL
+// SEC EDGAR filings (definitive government source); for ASX it's the official
+// ASX company page.
+function announceAltUrlFor(ticker,exch){
+  if(exch==='NYSE'||exch==='NASDAQ'||exch==='AMEX'||exch==='OTC'||exch==='US')
+    return`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(ticker)}&type=8-K&dateb=&owner=include&count=40`;
+  if(exch==='ASX')return`https://www.asx.com.au/markets/company/${ticker.toUpperCase()}`;
   return`https://finance.yahoo.com/quote/${ticker}/news/`;
 }
 // A broader NEWS search (Google News) for a share — catches media coverage the
@@ -9377,6 +9394,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 

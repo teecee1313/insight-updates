@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-156",
+  "version": "2026.07.04-157",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "In Top 20 to Watch and the Watch Score list, you can now tap any share code (🖨) to open its printable one-page report — price, signals, history and official links — ready to print or save as PDF."
+  "notes": "Better announcements for US shares (NYSE/NASDAQ): the 🏛 Announcements link now opens the clear per-share SEC-filings page (8-Ks, results, insider trades) instead of Yahoo's confusing news page, with the official SEC EDGAR filings as an alternative. ASX announcements unchanged."
 }
