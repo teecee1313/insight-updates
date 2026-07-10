@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-149",
+  "version": "2026.07.04-153",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Small tidy-up: the version number shown at the top no longer displays the internal build tag, so it reads cleanly (e.g. v2026.07.04-149). No change to how updates work."
+  "notes": "New: every printable report (one-share, Watch Score, Volume Surge) now has a '📝 My notes' box. Type your notes on the report before printing and they appear on the printout. Leave it blank and it prints ruled lines to write on by hand."
 }
