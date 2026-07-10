@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-154",
+  "version": "2026.07.04-156",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The in-app guide now explains exactly how every rating is calculated — Sharp Mover, Watch Score /10, Accumulation, Volume Surge, Trading Range, streaks, news flag and Unusual Activity. Open the 📖 Help guide and scroll to 'How the ratings & scores are calculated'."
+  "notes": "In Top 20 to Watch and the Watch Score list, you can now tap any share code (🖨) to open its printable one-page report — price, signals, history and official links — ready to print or save as PDF."
 }
