@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-157-family';
+const APP_VERSION='2026.07.04-158-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -3390,6 +3391,57 @@ function printShareReport(ticker){
   }
   const nu=newsUrlFor(s.ticker,s.exchange), ns=newsSearchFor(s.ticker,s.exchange,s.name), tu=tickerUrlFor(s.ticker,s.exchange);
   const dirLink=s.exchange==='ASX'?`<a href="${directorUrlFor(s.ticker,s.exchange)}" target="_blank">🧑‍💼 Official director trades (ASX announcements) ↗</a> · <a href="${directorAltUrlFor(s.ticker,s.exchange)}" target="_blank" style="color:#888">alt ↗</a>`:'';
+  // ── Plain-English auto-summary (Option C) — built from the numbers, no AI ─────
+  // A human-readable paragraph so the report always says SOMETHING in words, not
+  // just a table. Purely descriptive of the data; explicitly not advice.
+  const _sm=[];
+  const dir = up?'up':dn?'down':'flat';
+  _sm.push(`${s.ticker}${s.name?' ('+s.name+')':''} last traded at ${fmtP(s.price,cur)}, ${dir==='flat'?'little changed':dir+' '+Math.abs(s.chgPct||0).toFixed(1)+'%'} on the latest session.`);
+  if(s.volCalced&&s.volPct!=null){
+    if(s.volPct>=60)_sm.push(`Volume was heavy — about ${(1+s.volPct/100).toFixed(1)}× its ${s.volWindow||'usual'} average${up?', with the price rising (buyers active)':dn?', while the price fell (sellers active)':''}.`);
+    else if(s.volPct<=-40)_sm.push(`Volume was light (${Math.abs(s.volPct)}% below average), so the move carries less weight.`);
+    else _sm.push(`Volume was around normal for this share.`);
+  }
+  if(s.accum10!=null){
+    if(s.accum10>=5)_sm.push(`It has closed up on above-average volume ${s.accum10} of the last 10 days — a possible accumulation footprint (steady buying), though index buying looks identical, so treat it as a flag to research, not proof.`);
+    else if(s.accum10>=3)_sm.push(`It shows some accumulation (${s.accum10}/10 up-on-volume days), an early/building pattern.`);
+    else _sm.push(`Little accumulation lately (${s.accum10}/10 up-on-volume days).`);
+  }
+  if(s.streakCalced&&s.daysUp>=3)_sm.push(`Price is on a ${s.daysUp}-day up-streak.`);
+  if(s.rangePos!=null){
+    if(s.rangePos>=75)_sm.push(`It's sitting near the top of its recent range (${s.rangePos}%) — extended.`);
+    else if(s.rangePos<=25)_sm.push(`It's near the bottom of its recent range (${s.rangePos}%); a floor can hold or break.`);
+  }
+  if(s.watchScore!=null)_sm.push(`Overall Watch Score ${s.watchScore}/10 (${s.watchScore>=7?'Strong':s.watchScore>=4?'Building':s.watchScore>=2?'Early':'Minimal'}) — an accumulation-weighted estimate.`);
+  if(s.newsFlag==='likely')_sm.push(`There's a price/volume footprint consistent with recent news — verify via the announcements link before concluding anything.`);
+  else if(s.newsFlag==='quiet')_sm.push(`No obvious announcement footprint in the last 5 days.`);
+  _sm.push(`All figures are end-of-day estimates from price and volume — not confirmed filings, and not advice. Verify against official sources and do your own research.`);
+  const summaryText=_sm.join(' ');
+
+  // ── AI prompt (Option A) — bundled data for pasting into an AI chat ───────────
+  const hist = (Array.isArray(s.series)?s.series.slice(-10):[]).map(x=>`${x.d}: close ${fmtP(x.c,cur)}, vol ${fmtV(x.v||0)}`).join('\n');
+  const flagsPlain = flags.length?flags.map(f=>'- '+f.replace(/<[^>]*>/g,'')).join('\n'):'- none';
+  const aiPrompt=
+`You are a careful, balanced equities research assistant. Give me a concise, plain-English review of the share below. Be even-handed — cover both the bullish and bearish reading, note what the data can and cannot tell us, and DO NOT give financial advice or a buy/sell recommendation. End with 3 specific questions I should research next and where to check them (official announcements, financials).
+
+All figures are END-OF-DAY estimates derived from price and volume only — they are NOT confirmed director/insider/institutional filings or announcements.
+
+SHARE: ${s.ticker}${s.name?' — '+s.name:''} (${s.exchange})
+Last price: ${fmtP(s.price,cur)}
+Change: ${(s.chgPct||0).toFixed(2)}%
+Volume: ${fmtV(s.volume)}${s.avgVol?` (avg ${fmtV(s.avgVol)}, ${s.volPct>=0?'+':''}${s.volPct}% vs avg)`:''}
+Watch Score: ${s.watchScore!=null?s.watchScore+'/10':'n/a'}
+Accumulation (10-day up-on-volume days): ${s.accum10!=null?s.accum10+'/10':'n/a'}
+Up-day streak: ${s.streakCalced?(s.daysUp||0):'n/a'}
+Position in recent range: ${s.rangePos!=null?s.rangePos+'%':'n/a'}
+Signal flags (estimates):
+${flagsPlain}
+
+Recent sessions (oldest to newest):
+${hist||'n/a'}
+
+Please structure your answer as: (1) one-paragraph summary, (2) bullish reading, (3) bearish reading / cautions, (4) 3 things to research next.`;
+
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${s.ticker} — Share Report — Insight Trading</title>
   <style>
     body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:26px;max-width:760px;}
@@ -3407,6 +3459,11 @@ function printShareReport(ticker){
     .links a{display:inline-block;margin:3px 12px 3px 0;color:#002B5C;font-weight:600;font-size:12px;text-decoration:none;}
     .note{background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:9px 11px;font-size:10.5px;color:#7a5c00;margin:16px 0;}
     .foot{color:#888;font-size:10px;margin-top:16px;border-top:1px solid #eee;padding-top:8px;}
+    .summary{background:#f0f6ff;border:1px solid #cfe0f5;border-radius:8px;padding:11px 13px;font-size:12.5px;line-height:1.6;color:#1a2a3a;margin:6px 0;}
+    .aibox{border:1px solid #d7c7ee;border-radius:8px;padding:11px 13px;margin:6px 0;background:#faf7ff;}
+    .aibox textarea{width:100%;min-height:90px;font:11px/1.5 'Courier New',monospace;border:1px solid #d7c7ee;border-radius:6px;padding:8px;box-sizing:border-box;background:#fff;color:#333;resize:vertical;}
+    .aibtn{padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;border-radius:7px;border:1px solid #7c3aed;background:#f3ecff;color:#6d28d9;}
+    @media print{.aibox{display:none!important;}}
     ${_REPORT_NOTES_CSS}
     @media print{@page{size:portrait;margin:12mm;}button{display:none!important;}body{margin:0;max-width:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;}a{color:#002B5C;text-decoration:none;}h2{page-break-after:avoid;}table,ul{page-break-inside:avoid;}}
   </style></head><body>
@@ -3416,6 +3473,14 @@ function printShareReport(ticker){
   <button onclick="window.print()" style="margin-bottom:8px;padding:8px 16px;font-size:13px;cursor:pointer;">🖨 Print / Save as PDF</button>
   <h2>Key figures</h2>
   <table>${statsHtml}</table>
+  <h2>Plain-English summary</h2>
+  <div class="summary">${summaryText}</div>
+  <div class="aibox">
+    <div style="font-weight:700;font-size:12px;color:#6d28d9;margin-bottom:5px;">🤖 AI deep-dive prompt</div>
+    <div style="font-size:11px;color:#555;margin-bottom:8px;line-height:1.5;">Want a fuller review? Tap Copy, then paste into Claude or ChatGPT for a balanced deep-dive. Costs nothing — it uses an AI you already have open. (This box doesn't print.)</div>
+    <button class="aibtn" onclick="(function(b){var t=document.getElementById('aiPromptText');t.select();try{navigator.clipboard.writeText(t.value);}catch(e){document.execCommand('copy');}b.textContent='✓ Copied — now paste into your AI';setTimeout(function(){b.textContent='📋 Copy AI prompt';},2500);})(this)">📋 Copy AI prompt</button>
+    <textarea id="aiPromptText" readonly style="margin-top:8px;">${aiPrompt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+  </div>
   <h2>Signal flags <span class="est" style="text-transform:none;letter-spacing:0;">— estimates from price &amp; volume, not confirmed filings</span></h2>
   <ul class="flags">${flagsHtml}</ul>
   ${histHtml}
@@ -9394,6 +9459,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
