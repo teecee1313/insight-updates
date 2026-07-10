@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-158",
+  "version": "2026.07.04-159",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The printable share report now includes a plain-English summary of what the data is showing, plus a '📋 Copy AI prompt' button — tap it, paste into Claude or ChatGPT, and get a balanced AI deep-dive for free (uses an AI you already have open). Both are honest data summaries, not advice."
+  "notes": "Training & help brought fully up to date. The training app now has a guided 🎓 Lessons course — six short lessons covering getting started, the ratings, the scans, watchlists, paper trading, and reports/AI. The in-app help guide and tooltips now also cover the newest features (AI report prompt, clearer Download-all, US SEC filings, tappable Top-20 codes)."
 }

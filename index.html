@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-158-family';
+const APP_VERSION='2026.07.04-159-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -9599,6 +9600,8 @@ syncP();syncV();
 
 
 
+
+
 <!-- ═══════════ EMBEDDED TRAINING LAYER (hidden until unlocked) ═══════════ -->
 <style>
 #trainBanner{position:fixed;top:0;left:0;right:0;z-index:100001;background:linear-gradient(90deg,#6d28d9,#9333ea);color:#fff;font:600 12px 'Space Grotesk',sans-serif;padding:6px 12px;display:none;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.3);}
@@ -9672,7 +9675,7 @@ const TRAIN_HELP={
   "autoTechChk":{t:"Run technicals at startup",d:"Automatically computes moving averages, RSI, 52-week range etc. for the top shares plus your watchlist when the app opens."},
   "prepAllChk":{t:"Prepare ALL signals at startup",d:"Automatically computes streaks, accumulation, score AND technicals at startup, so the Streak/Vol/Accum/Score columns fill in without running a scan. Uses API calls each open."},
   "prepDepth":{t:"Preparation depth",d:"How many shares (ranked by volume) get full signals prepared at startup. Top 250 is a balanced default; ALL is complete but slow and API-heavy."},
-  "bulkBtn":{t:"Download all data for offline use",d:"Downloads deep history for EVERY share and stores it on this computer. Takes 30–40 min once, but afterwards everything works offline and startup is faster."},
+  "bulkBtn":{t:"Download all data for offline use",d:"Downloads deep history for EVERY share and stores it on this device. Takes a while once, but afterwards everything works offline and loads near-instantly (via the 📂 Load from saved data button). It needs two things first, and the button tells you which is missing: it reads 'enter API key first' if your key isn't in, or 'load an exchange first' if no exchange is loaded — and dims until it's ready. Tap it anyway and a popup explains the exact steps."},
   "streakBtn":{t:"Redownload API data",d:"Re-fetches fresh history and recomputes signals for the shares currently shown (not the whole exchange). Updates what you're looking at."},
   "privateChk":{t:"Private mode",d:"Hides the explanatory hover tooltips for a cleaner screen or screen-sharing. In the customer app this is locked on."},
   "smartBtn":{t:"Smart Money Scan",d:"Finds shares rising 2+ days in a row on volume 50%+ above their average — the classic 'quiet accumulation' footprint. The flagship report."},
@@ -9778,11 +9781,14 @@ const ONCLICK_HELP={
   "showShareDetail":{t:"Price history",d:"Shows a day-by-day breakdown of the share's price, change and volume over time."},
   "showTechnicals":{t:"Technicals detail",d:"Shows this share's technical indicators — moving averages, RSI, 52-week position, OBV and more — in plain language."},
   "paperBuy":{t:"Practice buy",d:"Opens the paper-trading order ticket to buy this share with practice money — no real funds. Set a take-profit and stop-loss by % or exact price, and add a note on why you're buying. Note: a freshly-bought share won't auto-sell on its target/stop until at least a day later, so glitchy next-morning data can't sell a new purchase out from under you."},
-  "printShareReport":{t:"Printable share report",d:"Opens a clean one-page report for this single share — headline price/change, key figures, the signal flags (honestly labelled as estimates), a recent-sessions history table, and links to official sources including the ASX director-trades page. Has a 📝 My notes box you can type into before printing, and a 🖨 Print / Save as PDF button. Reachable from the 🖨 Report link on a row or the button in Deep dive."},
+  "printShareReport":{t:"Printable share report",d:"Opens a clean one-page report for this single share. It now includes: a PLAIN-ENGLISH SUMMARY that describes what the data is showing in words; a 📋 COPY AI PROMPT button — tap it, paste into Claude or ChatGPT, and get a balanced AI deep-dive for free (it uses an AI you already have open, so it costs nothing); the key figures; the signal flags (honestly labelled as estimates); a recent-sessions history; a 📝 My notes box to type into before printing; and links to official sources. For US shares the announcements link goes to the clear SEC-filings page, not Yahoo. Reachable from the 🖨 Report link on a row, the button in Deep dive, or by tapping a share code in Top 20 / Watch Score lists."},
   "paperAdjust":{t:"Adjust holding (consolidation / delete)",d:"On a portfolio holding, opens a tool to either apply a share consolidation or split (enter the ratio, e.g. 10→1 — your invested amount stays the same while the share count and average buy price are rescaled so your profit/loss stays correct), or delete the holding completely and refund the cash (a clean way to reverse a mistaken buy). Paper trading only."},
   "undoSale":{t:"Undo sale",d:"On a sold trade in your portfolio history, puts the shares back into your holdings and reverses the cash. Use it if a stop-loss or target sold a share on bad price data, or to undo a sale you didn't mean."},
   "restoreFromBackup":{t:"Restore from backup",d:"Recovers your watchlist and portfolio from the automatic backup kept on this device — use it if they ever go missing (e.g. your browser cleared its storage). Backups are per-device and don't move between phones. Installing the app to your home screen is the surest way to stop data being cleared."},
   "newsSearchFor":{t:"News",d:"Opens a live news search for this share (company name + ticker) in a new tab — real, current media coverage. The most accurate way to answer 'why did this move?'. Needs internet."},
+  "aiPrompt":{t:"Copy AI prompt",d:"On the printable share report — copies a ready-made, balanced research prompt containing all of this share's data to your clipboard. Paste it into Claude or ChatGPT (in another tab) for a full deep-dive review. It's free: it uses an AI you already have open, not a paid service. The prompt tells the AI to give both the bullish and bearish reading, avoid buy/sell advice, and end with things to research."},
+  "reportSummary":{t:"Plain-English summary",d:"On the printable share report — a readable paragraph the app writes from this share's own numbers (price move, volume vs average, accumulation, streaks, range position, Watch Score). It's a description of the data in words, not advice, and it prints with the report."},
+  "announcements_US":{t:"Announcements (US shares)",d:"For NYSE/NASDAQ shares the 🏛 Announcements link opens the clear per-share SEC-filings page — 8-K (breaking news), 10-K/10-Q (results), Form 4 (insider trades) — which is much easier to read than Yahoo. The official SEC EDGAR filings are the alternative source."},
   "volumeSurgeReport":{t:"Volume Surge Report",d:"Opens a printable report ranking every share by how far today's volume beats its own average — hottest first. Each row is tagged 🟢 buying (price up) or 🔴 selling (price down). Filter buttons at the top narrow it to a heat level (Warm → Extreme) or to just risers / just fallers. One-click 📰 News and 🏛 announcement links on every row. A data summary, not advice."}
 };
 const RATINGS_HELP={
