@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-153-family';
+const APP_VERSION='2026.07.04-154-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -9473,6 +9474,8 @@ syncP();syncV();
 
 
 
+
+
 <!-- ═══════════ EMBEDDED TRAINING LAYER (hidden until unlocked) ═══════════ -->
 <style>
 #trainBanner{position:fixed;top:0;left:0;right:0;z-index:100001;background:linear-gradient(90deg,#6d28d9,#9333ea);color:#fff;font:600 12px 'Space Grotesk',sans-serif;padding:6px 12px;display:none;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.3);}
@@ -9529,9 +9532,11 @@ body.training-on #trainCoverage{display:block;}
 const TRAIN_HELP={
   "sidebarToggle":{t:"Hide / show panel",d:"Collapses the left control panel to give the results table more room. Click again to bring it back."},
   "langSel":{t:"Language",d:"Switches the app's language. Menus and labels translate; your data stays the same."},
-  "pfBtn":{t:"Portfolio",d:"Opens your paper-trading portfolio — practice positions, cash, profit/loss and trade history (no real money). Opens large by default. Inside: a stats strip (win rate, avg win/loss, best & worst trade), Unrealised vs Realised P/L, an optional brokerage-fee simulation, a benchmark line vs the ASX index, and a 💰 'set starting balance' link so your return % is measured against the real bankroll you started with. If the % ever looks wrong, an orange banner offers a one-click fix."},
+  "pfBtn":{t:"Portfolio",d:"Opens your paper-trading portfolio — practice positions, cash, profit/loss and trade history (no real money). Opens large by default. Inside: a stats strip (win rate, avg win/loss, best & worst trade), Unrealised vs Realised P/L, an optional brokerage-fee simulation, a benchmark line vs the ASX index, and a 💰 'set starting balance' link so your return % is measured against the real bankroll you started with. Each holding has a ⚙ button to apply a share consolidation/split or delete a holding, and a 📝 note button. Sold trades show an ↩ undo button to put shares back if a stop/target sold them wrongly. A gold '↩ Restore my portfolio from the automatic backup' button recovers your whole portfolio if it ever goes missing. If the % ever looks wrong, an orange banner offers a one-click fix."},
   "watchToggle":{t:"Watchlist view",d:"Shows only the shares you've starred. The number in brackets is how many you're watching. Click to toggle between your watchlist and the full list."},
-  "myReportBtn":{t:"My Report",d:"Your saved personal report — a custom set of shares and settings you can return to in one click."},
+  "myReportBtn":{t:"My Report",d:"Your saved personal report — a custom set of filters you can return to in one click. Tap to apply it; right-click (or long-press) to delete it. Set your filters, then press 💾 Save to store them here."},
+  "myReportAutoBtn":{t:"Auto-run My Report",d:"Turn this on and your saved ⭐ My Report is applied automatically every time data loads — so you land straight on your report instead of tapping it each time. Tap again to turn off. You must save a My Report first. When on, it reads '⚡ Auto-run ON' in green."},
+  "offlineLoadBtn":{t:"Load from saved data (instant)",d:"Appears only when you've downloaded data for offline use. Loads your saved shares straight from this device — no network, no waiting on data proxies, near-instant. Use it when the normal load is crawling on a slow-network day. Prices shown are from your last download; press ⚡ Load afterwards for today's fresh prices."},
   "routineBtn":{t:"Run daily routine",d:"Runs your saved sequence of scans/steps in order — a one-click 'do my usual morning check' button."},
   "exchSel":{t:"Exchange selector",d:"Pick which market to load — ASX (Australia) plus 20+ global exchanges. The app pulls that exchange's end-of-day price and volume data. Start here."},
   "loadBtn":{t:"Load Exchange Data",d:"Fetches the latest end-of-day snapshot (prices & volumes) for every share on the selected exchange, using your API key. The first thing to press."},
@@ -9568,7 +9573,7 @@ const TRAIN_HELP={
   "newsFilterBtn":{t:"Filter by news",d:"Shows only shares the app flags as having likely recent news (a sharp move or volume spike in the last 5 days)."},
   "cEod":{t:"Ordinary shares",d:"Include normal company shares (the main type most people trade)."},
   "cBlk":{t:"Include blocks",d:"Include block-trade-flagged rows."},
-  "cDir":{t:"Possible accumulation",d:"A price + volume pattern that can accompany quiet buying (modest gain on above-average volume). This is an ESTIMATE from price data — NOT confirmed director or insider filings. Tap any share and use the official 'director trades' link to check the real Appendix 3Y filings."},
+  "cDir":{t:"Directors",d:"Include director-related flags where available."},
   "cInst":{t:"Institutional",d:"Include institutional-activity flags."},
   "cES":{t:"EOD summary",d:"Include end-of-day summary rows."},
   "cBS":{t:"Balance-sheet type",d:"Include this share category."},
@@ -9646,12 +9651,26 @@ const ONCLICK_HELP={
   "loadPlan":{t:"Preset filter plan",d:"One-click filter recipes — each sets several filters at once for a common search."},
   "toggleAdvFilters":{t:"Show advanced filters",d:"Reveals or hides the full filter controls — price, volume, change %, streaks, accumulation, direction and share types."},
   "openMultiDownload":{t:"Download multiple exchanges",d:"Opens a picker to download offline data for several markets at once."},
-  "deepDive":{t:"Deep dive",d:"Opens a full single-share panel — every signal and technical the app computes, plus links to official shareholder, director and announcement sources."},
+  "deepDive":{t:"Deep dive",d:"Opens a full single-share panel — every signal and technical the app computes, plus a 🖨 printable one-page report button and links to official sources for shareholders, director trades (the official ASX company announcements page — the real source of Appendix 3Y filings) and news."},
   "showShareDetail":{t:"Price history",d:"Shows a day-by-day breakdown of the share's price, change and volume over time."},
   "showTechnicals":{t:"Technicals detail",d:"Shows this share's technical indicators — moving averages, RSI, 52-week position, OBV and more — in plain language."},
-  "paperBuy":{t:"Practice buy",d:"Opens the paper-trading order ticket to buy this share with practice money — no real funds. Set a take-profit and stop-loss by % or exact price, and add a note on why you're buying."},
+  "paperBuy":{t:"Practice buy",d:"Opens the paper-trading order ticket to buy this share with practice money — no real funds. Set a take-profit and stop-loss by % or exact price, and add a note on why you're buying. Note: a freshly-bought share won't auto-sell on its target/stop until at least a day later, so glitchy next-morning data can't sell a new purchase out from under you."},
+  "printShareReport":{t:"Printable share report",d:"Opens a clean one-page report for this single share — headline price/change, key figures, the signal flags (honestly labelled as estimates), a recent-sessions history table, and links to official sources including the ASX director-trades page. Has a 📝 My notes box you can type into before printing, and a 🖨 Print / Save as PDF button. Reachable from the 🖨 Report link on a row or the button in Deep dive."},
+  "paperAdjust":{t:"Adjust holding (consolidation / delete)",d:"On a portfolio holding, opens a tool to either apply a share consolidation or split (enter the ratio, e.g. 10→1 — your invested amount stays the same while the share count and average buy price are rescaled so your profit/loss stays correct), or delete the holding completely and refund the cash (a clean way to reverse a mistaken buy). Paper trading only."},
+  "undoSale":{t:"Undo sale",d:"On a sold trade in your portfolio history, puts the shares back into your holdings and reverses the cash. Use it if a stop-loss or target sold a share on bad price data, or to undo a sale you didn't mean."},
+  "restoreFromBackup":{t:"Restore from backup",d:"Recovers your watchlist and portfolio from the automatic backup kept on this device — use it if they ever go missing (e.g. your browser cleared its storage). Backups are per-device and don't move between phones. Installing the app to your home screen is the surest way to stop data being cleared."},
   "newsSearchFor":{t:"News",d:"Opens a live news search for this share (company name + ticker) in a new tab — real, current media coverage. The most accurate way to answer 'why did this move?'. Needs internet."},
   "volumeSurgeReport":{t:"Volume Surge Report",d:"Opens a printable report ranking every share by how far today's volume beats its own average — hottest first. Each row is tagged 🟢 buying (price up) or 🔴 selling (price down). Filter buttons at the top narrow it to a heat level (Warm → Extreme) or to just risers / just fallers. One-click 📰 News and 🏛 announcement links on every row. A data summary, not advice."}
+};
+const RATINGS_HELP={
+  "Sharp Mover score":{t:"🚨 Sharp Mover score",d:"Measures how abnormal TODAY is for that specific share — because a 10% move means a lot for a calm stock and little for a jumpy one. Formula: score = (move multiple) × (volume ratio). Move multiple = today's % change ÷ the share's typical daily move (its average day-to-day % swing). So a share that normally moves ~2% and moved 8% today = 4×. Volume ratio = today's volume ÷ its average volume (capped at 10× so one wild day can't dominate). Example: 4× its normal move on 3× normal volume ≈ 4 × 3 = 12. A 69 means an extreme move on very heavy volume for itself; a 7 is milder but still notable. To be scored at all (normal sensitivity) a share must move ≥8% today, ≥3× its typical move, AND ≥2× its average volume — loosen/tighten with the sensitivity setting. 📢 = a likely-news reason; 🔍 = no obvious reason yet. Higher = more out of character — an estimate of 'something unusual here', NOT a buy signal and it can't tell good news from bad. Check the news link to find out why."},
+  "Watch Score /10":{t:"⭐ Watch Score /10",d:"An accumulation-weighted score built by adding up four ingredients, capped at 10: (1) ACCUMULATION is the backbone — 0.7 points for each of the last 10 days that closed UP on volume ≥50% above average, up to 7 points. (2) PRICE STREAK — 0.4 points per consecutive up-day, up to 1.5. (3) VOLUME STREAK — 0.3 points per consecutive above-average-volume day, up to 1. (4) TODAY'S MOMENTUM — up to 0.5 for a solid green day. So most of the score comes from days where price AND volume rose together — the footprint of steady buying. Bands: 7+ = Strong, 4–6.9 = Building, 2–3.9 = Early, under 2 = Minimal. It's the same score used by Top 20 to Watch and the ⭐ Score column. A high score means 'worth researching', NOT 'good investment' — verify against announcements."},
+  "Accumulation 10d":{t:"📊 Accumulation (10 days)",d:"Simply: out of the last 10 trading days, how many were an UP day (closed higher than the day before) AND had volume at least 50% above the share's average. It's a running count (not consecutive) so it still catches persistent buying even with the odd down day in between. A high number (say 6–8 of 10) is the classic 'quiet accumulation' footprint — steady buying on heavy volume. It's the biggest single driver of the Watch Score /10. An estimate from price/volume only — index buying and genuine accumulation look identical, so verify."},
+  "Vol Surge %":{t:"📈 Volume Surge %",d:"How far today's volume is above (or below) this share's OWN average day, as a percentage. +100% = double its normal volume; +300% = four times; -50% = half. The coloured heat chip translates that into words: Mild (+60%, ~1.6–2.5× average) · Warm (+150%, 2.5–4×) · Hot (+300%, 4–6×) · Intense (+500%, 6–11×) · Extreme (+1000%, 10×+, very rare). Below +60% shows Normal or Quiet. The chip COLOUR shows direction from today's price move: 🟢 green = price up (heavy buying) · 🔴 red = price down (heavy selling). A big-volume FALL is heavy selling, not bullish. A data label, not advice."},
+  "Trading Range position":{t:"📉 Trading Range & position",d:"The band the share has normally traded in over the window you choose (3 days up to 3 months), and where the price sits inside it now. Position: 0% = sitting right at the floor (recent low), 100% = at the ceiling (recent high), 50% = mid-band. Calculated as (price − range low) ÷ (range high − range low). A stability badge (stable / loose / trending) tells you how reliable the band is — a 'trending' share is on the move, so the range means less. '▼ near low' is flagged when price is in the bottom ~fifth of a genuine (non-trending) range — highlighted as WORTH RESEARCHING, never as a buy signal. A floor can hold (bounce) or break (keep falling); end-of-day data can't tell which."},
+  "Price / Volume streak":{t:"🔥 Price streak & Volume streak",d:"Price streak = how many days in a row the price has closed higher — a running count of the current up-run. Longer = more persistent buying. Volume streak = how many days in a row volume stayed above average — sustained heavy trading. Both feed the Watch Score (price streak up to 1.5 pts, volume streak up to 1 pt). On their own they're momentum indicators, not advice — a long streak can also mean a share is overextended."},
+  "News 5d flag":{t:"📢 News (5-day) flag",d:"An ESTIMATE of whether a share likely had price-sensitive news in the last 5 days, inferred purely from price and volume action — a sharp move or volume spike. 📢 Likely news = a footprint consistent with an announcement. 🔇 Quiet = no obvious footprint. It is NOT reading actual announcements — always confirm with the 📰 News or 🏛 Announcements link. Its main use is splitting Sharp Movers into 'moved on likely news' vs 'moved for no obvious reason yet' (the latter being the more intriguing case)."},
+  "Unusual Activity score":{t:"🔍 Unusual Activity score",d:"Scores each share against five end-of-day patterns that are individually unremarkable but together suggest 'something odd here' — e.g. an out-of-character move, a volume spike, an unusual close within the day's range, a gap, and a block-trade footprint. More patterns hitting at once = a higher score. It's a pattern-spotting estimate to shortlist shares for a closer look — NOT manipulation detection and NOT advice. Verify each via the news/announcement links."}
 };
 const ONCLICK_ARG_HELP={
   "loadPlan('breakout')":{t:"🚀 Breakout preset",d:"Sets filters to find shares breaking out — rising strongly on above-average volume, near recent highs. A ready-made 'what's breaking out today' search."},
@@ -9724,7 +9743,13 @@ const HELP_SECTIONS=[
 window.toggleHelpPanel=function(){
   const p=document.getElementById('helpPanel'); p.classList.toggle('open');
   if(p.classList.contains('open')&&!document.getElementById('helpContent').innerHTML){
-    document.getElementById('helpContent').innerHTML=HELP_SECTIONS.map(s=>'<div class="hp-sec"><h4>'+s.h+'</h4><p>'+s.p+'</p></div>').join('');
+    let html=HELP_SECTIONS.map(s=>'<div class="hp-sec"><h4>'+s.h+'</h4><p>'+s.p+'</p></div>').join('');
+    const rk=(typeof RATINGS_HELP!=='undefined')?Object.keys(RATINGS_HELP):[];
+    if(rk.length){
+      html+='<div class="hp-sec" style="border-top:2px solid rgba(255,210,0,.4);margin-top:6px;padding-top:10px;"><h4>🔢 How the ratings &amp; scores are calculated</h4><p>Exactly how each number the app shows is worked out. Every one is an estimate from end-of-day price &amp; volume — a reason to research, not advice.</p></div>';
+      rk.forEach(function(k){var v=RATINGS_HELP[k];html+='<div class="hp-sec"><h4>'+v.t+'</h4><p>'+v.d+'</p></div>';});
+    }
+    document.getElementById('helpContent').innerHTML=html;
   }
 };
 // Activated by the training-code unlock (Ctrl+Shift+T).
