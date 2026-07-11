@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-182",
+  "version": "2026.07.04-184",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Multiple saved markets: if you've downloaded more than one exchange (e.g. ASX and NYSE), tapping 'Load your saved shares' now lets you choose which market to load. Each exchange is stored separately, so they never mix."
+  "notes": "Watchlists now filter to the exchange you've loaded — so when you're viewing ASX, your watchlist shows only its ASX shares (with a note that shares from other exchanges are hidden). Load a different market and those appear instead. Your lists stay intact; this only changes what's shown."
 }

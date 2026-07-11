@@ -389,7 +389,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
   #resizeHandle{display:none !important;}
   #vResizeHandle{display:none !important;}
   .setup-row{height:auto !important;overflow:visible !important;}
-  .left,.left.hidden{width:100% !important;display:flex !important;border-right:none;border-bottom:2px solid var(--border);max-height:none;}
+  .left,.left.hidden{width:100% !important;display:flex !important;border-right:none;border-bottom:2px solid var(--border);max-height:none;overflow:visible !important;}
+  /* Simple mode on phones: let the whole panel scroll so the last cards
+     (My portfolio / My watchlist) are always reachable, not cut off. */
+  body.simple-mode #simplePanel{padding-bottom:40px;}
   .left .load-zone{display:block;padding:10px;}
   /* Sections 1, 2, 3 each become full-width, stacked */
   .setup-row{display:block;}
@@ -1280,7 +1283,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-182-open';
+const APP_VERSION='2026.07.04-184-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1733,6 +1736,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -5267,6 +5272,16 @@ function deleteWatch(){
 // Render the active watchlist INDEPENDENTLY of current filters.
 function renderWatch(){
   let rows=Object.values(curWL());
+  const totalInList=rows.length;
+  // Filter to the exchange currently loaded, so you only see shares you can act
+  // on right now. If nothing's loaded yet, show everything.
+  const loadedExch = (typeof currentExch!=='undefined' && currentExch) ? currentExch : '';
+  let hiddenOther=0;
+  if(loadedExch && (typeof allData!=='undefined' && Array.isArray(allData) && allData.length)){
+    const before=rows.length;
+    rows=rows.filter(s=>!s.exchange || s.exchange===loadedExch);
+    hiddenOther=before-rows.length;
+  }
   const srch=(document.getElementById('searchBox').value||'').toLowerCase().trim();
   if(srch)rows=rows.filter(s=>(s.ticker+' '+(s.name||'')).toLowerCase().includes(srch));
   const sk=document.getElementById('sortSel').value;
@@ -5275,9 +5290,12 @@ function renderWatch(){
   document.getElementById('tblwrap').style.display='block';
   document.getElementById('noResults').style.display='none';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('rcount').textContent=`${rows.length} in ${activeWatch}`;
+  document.getElementById('rcount').textContent=`${rows.length} in ${activeWatch}`+(hiddenOther>0?` · ${hiddenOther} on other exchanges hidden`:'');
   if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">“${activeWatch}” is empty. Click the ☆ star on any share to add it — it stays saved here regardless of filters.</td></tr>`;
+    const msg = (hiddenOther>0)
+      ? `“${activeWatch}” has ${totalInList} share${totalInList>1?'s':''}, but none are on ${loadedExch}. Load a different exchange to see them, or star some ${loadedExch} shares.`
+      : `“${activeWatch}” is empty. Click the ☆ star on any share to add it — it stays saved here regardless of filters.`;
+    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">${msg}</td></tr>`;
     statsBar();return;
   }
   renderRows(rows);
@@ -9967,6 +9985,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 
