@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-172",
+  "version": "2026.07.04-177",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Running a new scan or report now resets the view to a clean slate first — the previous scan's filters, search box and status messages are cleared automatically, so each report starts fresh instead of stacking on the last one."
+  "notes": "Softened the saved-data message so it reads as a friendly tip, not an error: it now gently reminds you to open the app from its web link or home-screen icon (not a downloaded file copy) so your saved data, watchlist and portfolio persist."
 }
