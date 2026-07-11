@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-165",
+  "version": "2026.07.04-166",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Internal tidy-up ahead of the subscription launch: removed the old 'family' wording from the codebase (it was never shown to you anyway). No change to how the app looks or works — all your features and data are exactly as before."
+  "notes": "Mobile fix: reports and scan popups now open as a full-screen sheet on phones, so nothing gets hidden under the browser's address bar — the whole report scrolls and the Close button is always in reach. Desktop is unchanged."
 }

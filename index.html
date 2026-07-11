@@ -245,6 +245,23 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .modal-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:5px;border:2px solid var(--bg2);}
 .modal-scroll::-webkit-scrollbar-thumb:hover{background:var(--muted);}
 .modal-scroll{scrollbar-width:thin;scrollbar-color:var(--border2) transparent;}
+/* MOBILE: reports/scan popups become a full-height sheet so nothing hides under
+   the browser's address bar. Uses 100dvh (dynamic viewport height) which — unlike
+   vh — accounts for Android Chrome's collapsing address bar, the exact reason
+   content was getting cut off. Top-aligned, not centred, so the header label and
+   the Close button are always reachable. */
+@media (max-width:640px){
+  #appModal{align-items:stretch!important;justify-content:stretch!important;}
+  #appModal #modalBox{
+    width:100vw!important;max-width:100vw!important;min-width:0!important;
+    height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+    border-radius:0!important;border-left:none!important;border-right:none!important;
+    resize:none!important;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px)!important;
+  }
+  #appModal #modalBox .modal-scroll{padding-right:4px!important;margin-right:0!important;-webkit-overflow-scrolling:touch;}
+  #appModal #modalBox button{min-height:40px;}
+  #appModal #modalBox .mb-resizehint{display:none!important;}
+}
 table{width:100%;border-collapse:collapse;font-size:12px;}
 thead{position:sticky;top:0;background:var(--bg2);z-index:10;}
 th{padding:8px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
@@ -1145,7 +1162,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-165-open';
+const APP_VERSION='2026.07.04-166-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1615,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -5101,7 +5119,7 @@ function showModal(html,label){
     ${_lbl?`<div style="flex:none;display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;background:linear-gradient(90deg,var(--navy,#0d1b33),rgba(13,27,51,.6));border:1px solid var(--gold,#FFD200);border-radius:8px;"><span style="font:800 13px var(--sans);color:var(--gold,#FFD200);letter-spacing:.2px;">${_lbl}</span></div>`:''}
     <div class="modal-scroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:14px;margin-right:-6px;">${html}</div>
     <div style="text-align:right;margin-top:12px;flex:none;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:8px;color:var(--dim);">↘ drag corner to resize</span>
+      <span class="mb-resizehint" style="font-size:8px;color:var(--dim);">↘ drag corner to resize</span>
       <span>
         <button onclick="toggleModalMax()" title="Maximise / restore" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">⛶ Max</button>
         <button onclick="closeModal()" style="padding:6px 14px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">Close</button>
@@ -9510,6 +9528,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
