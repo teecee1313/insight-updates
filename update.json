@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-160",
+  "version": "2026.07.04-162",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training/help panels tidied: the hover tooltips no longer pop over the open Help guide or Lessons panel (no more overlapping popups), and both panels now have a 'drag to move' handle so you can slide them aside to see the data underneath."
+  "notes": "Smart Money 3+/4+/5+ day scans now look for shares up that many days in a row where BOTH price rose AND volume was heavy on each of those days — a stricter, truer accumulation pattern. Results are ranked so the strongest price+volume streaks come first."
 }
