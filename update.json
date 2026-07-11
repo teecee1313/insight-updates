@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-184",
+  "version": "2026.07.04-186",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Watchlists now filter to the exchange you've loaded — so when you're viewing ASX, your watchlist shows only its ASX shares (with a note that shares from other exchanges are hidden). Load a different market and those appear instead. Your lists stay intact; this only changes what's shown."
+  "notes": "Training & help refreshed to match all the latest changes: instant offline loading and the fresh-prices button, choosing between multiple saved markets, reports and print/PDF opening inside the app on phones, and watchlists following the loaded exchange. Now 12 lessons, 62 steps."
 }
