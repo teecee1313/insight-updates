@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-166",
+  "version": "2026.07.04-167",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Mobile fix: reports and scan popups now open as a full-screen sheet on phones, so nothing gets hidden under the browser's address bar — the whole report scrolls and the Close button is always in reach. Desktop is unchanged."
+  "notes": "Mobile Portfolio fix: the holdings and history tables no longer squash on phones. The share-code column now stays frozen on the left while the table scrolls sideways, so you can see every share and reach the 🎯/🛑/⚙/Sell buttons that were cut off before."
 }
