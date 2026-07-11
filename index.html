@@ -245,6 +245,16 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .modal-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:5px;border:2px solid var(--bg2);}
 .modal-scroll::-webkit-scrollbar-thumb:hover{background:var(--muted);}
 .modal-scroll{scrollbar-width:thin;scrollbar-color:var(--border2) transparent;}
+/* Portfolio holdings: table on desktop, stacked cards on phones (toggled in the
+   640px media query below). Cards are hidden by default (desktop). */
+.pf-cards{display:none;}
+.pf-card{border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:var(--bg2);}
+.pf-card .pf-card-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px;}
+.pf-card .pf-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px;margin-bottom:7px;}
+.pf-card .pf-card-grid span{color:var(--muted);}
+.pf-card .pf-card-grid b{color:var(--text);float:right;}
+.pf-card .pf-card-actions{display:flex;flex-wrap:wrap;gap:5px;}
+.pf-card .pf-card-actions button{flex:1 1 auto;min-height:38px;}
 /* MOBILE: reports/scan popups become a full-height sheet so nothing hides under
    the browser's address bar. Uses 100dvh (dynamic viewport height) which — unlike
    vh — accounts for Android Chrome's collapsing address bar, the exact reason
@@ -261,6 +271,12 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
   #appModal #modalBox .modal-scroll{padding-right:4px!important;margin-right:0!important;-webkit-overflow-scrolling:touch;}
   #appModal #modalBox button{min-height:40px;}
   #appModal #modalBox .mb-resizehint{display:none!important;}
+/* Portfolio on phones: the 7-column holdings/history tables don't fit a narrow
+     screen, so we hide the wide table and show a stacked "card" per holding
+     instead (built in JS). Each card shows the share, the numbers as labelled
+     rows, and the action buttons full-width — nothing gets cut off. */
+  .pf-tablewrap{display:none!important;}
+  .pf-cards{display:block!important;}
   /* Portfolio holdings/history tables: on phones don't squash the columns —
      let the table scroll sideways and FREEZE the first column (the share code)
      so you can always see which row is which while scrolling to the actions. */
@@ -1174,7 +1190,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-167-open';
+const APP_VERSION='2026.07.04-168-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1627,6 +1643,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -4814,6 +4831,38 @@ function showPortfolio(exSel){
       <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change auto-sell price target" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss (auto-sells if the price falls to it)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperAdjust('${h.id}')" title="Apply a share consolidation / split, or delete this holding completely (reverse a buy)" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
     </tr>`;
   }).join('');
+  // Mobile stacked-card version of the same holdings (CSS shows this on phones,
+  // the table on desktop). Everything the row shows, laid out vertically so no
+  // column is ever cut off.
+  const cards=hold.map(h=>{
+    const px=h.lastPrice||h.buyPrice, val=h.qty*px, pl=val-h.invested, plp=h.invested>0?(pl/h.invested)*100:0;
+    const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
+    const tgt=h.target?`🎯 ${fmtP(h.target,h.currency)}`:'';
+    const stp=h.stop?`🛑 ${fmtP(h.stop,h.currency)}`:'';
+    const note=h.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-top:4px;">📝 ${String(h.note).slice(0,60)}${h.note.length>60?'…':''}</div>`:'';
+    const btn=(fn,arg,title,label,style)=>`<button onclick="${fn}('${arg}')" title="${title}" style="${style}">${label}</button>`;
+    return `<div class="pf-card">
+      <div class="pf-card-top">
+        <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${h.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${h.ticker} 🖨</a></strong>
+        <span style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(1)}%)</span>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}</div>
+      <div class="pf-card-grid">
+        <div><span>Qty</span> <b>${h.qty.toLocaleString()}</b></div>
+        <div><span>Buy</span> <b>${fmtP(h.buyPrice,h.currency)}</b></div>
+        <div><span>Now</span> <b>${fmtP(px,h.currency)}</b></div>
+        <div><span>Value</span> <b>${fmtP(val,h.currency)}</b></div>
+      </div>${note}
+      <div class="pf-card-actions">
+        ${btn('paperSetTarget',h.id,'Set / change auto-sell price target','🎯 Target',`padding:5px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
+        ${btn('paperSetStop',h.id,'Set / change stop-loss','🛑 Stop',`padding:5px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
+        ${btn('paperSetNote',h.id,'Add / edit the trade note','📝 Note',`padding:5px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
+        ${btn('paperAdjust',h.id,'Consolidation / split, or delete this holding','⚙ Adjust',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
+        ${btn('paperSellMarket',h.id,'Sell the whole holding now at the last close','💵 Sell @ mkt',`padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`)}
+        ${btn('paperSell',h.id,'Sell part or all — choose quantity','Part…',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
+      </div>
+    </div>`;
+  }).join('');
   const totPl=totVal-totInv, totC=totPl>0.005?'var(--green)':totPl<-0.005?'var(--red)':'var(--muted)';
   const histRows=hist.map(t=>{
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
@@ -4884,6 +4933,7 @@ function showPortfolio(exSel){
         <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:5px 6px;">Share</th><th style="text-align:right;padding:5px 6px;">Qty</th><th style="text-align:right;padding:5px 6px;">Buy</th><th style="text-align:right;padding:5px 6px;">Now</th><th style="text-align:right;padding:5px 6px;">Value</th><th style="text-align:right;padding:5px 6px;">P/L</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
+      <div class="pf-cards">${cards}</div>
       <div style="display:flex;justify-content:space-between;font-size:10px;margin:6px 2px;color:var(--muted);">
         <span>Invested: <strong style="color:var(--text)">${totInv.toFixed(2)}</strong></span>
         <span>Value: <strong style="color:var(--text)">${totVal.toFixed(2)}</strong></span>
@@ -9541,6 +9591,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
