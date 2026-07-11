@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-163",
+  "version": "2026.07.04-165",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "You can now tap a share code in your Portfolio (holdings and sold-trade history) to open its printable report — same as in Top 20 and the Watchlist. If that share's exchange data isn't loaded, it now tells you to load it first instead of a vague error."
+  "notes": "Internal tidy-up ahead of the subscription launch: removed the old 'family' wording from the codebase (it was never shown to you anyway). No change to how the app looks or works — all your features and data are exactly as before."
 }
