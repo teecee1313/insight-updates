@@ -261,6 +261,18 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
   #appModal #modalBox .modal-scroll{padding-right:4px!important;margin-right:0!important;-webkit-overflow-scrolling:touch;}
   #appModal #modalBox button{min-height:40px;}
   #appModal #modalBox .mb-resizehint{display:none!important;}
+  /* Portfolio holdings/history tables: on phones don't squash the columns —
+     let the table scroll sideways and FREEZE the first column (the share code)
+     so you can always see which row is which while scrolling to the actions. */
+  .pf-tablewrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  .pf-tablewrap table.pf-holdings, .pf-tablewrap table.pf-history{min-width:560px;width:auto!important;}
+  .pf-tablewrap table.pf-holdings th:first-child,
+  .pf-tablewrap table.pf-holdings td:first-child,
+  .pf-tablewrap table.pf-history th:first-child,
+  .pf-tablewrap table.pf-history td:first-child{
+    position:sticky;left:0;z-index:2;background:var(--bg2);
+    box-shadow:2px 0 4px rgba(0,0,0,.35);
+  }
 }
 table{width:100%;border-collapse:collapse;font-size:12px;}
 thead{position:sticky;top:0;background:var(--bg2);z-index:10;}
@@ -1162,7 +1174,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-166-open';
+const APP_VERSION='2026.07.04-167-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1615,6 +1627,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -4866,8 +4879,8 @@ function showPortfolio(exSel){
       </div>${statsHtml}`;
     })():''}
     <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Current holdings${ex==='ALL'?'':' · '+ex} (${hold.length})</div>
-    ${hold.length?`<div style="max-height:46vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:10px;">
+    ${hold.length?`<div class="pf-tablewrap" style="max-height:46vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
+      <table class="pf-holdings" style="width:100%;border-collapse:collapse;font-size:10px;">
         <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:5px 6px;">Share</th><th style="text-align:right;padding:5px 6px;">Qty</th><th style="text-align:right;padding:5px 6px;">Buy</th><th style="text-align:right;padding:5px 6px;">Now</th><th style="text-align:right;padding:5px 6px;">Value</th><th style="text-align:right;padding:5px 6px;">P/L</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
@@ -4926,8 +4939,8 @@ function showPortfolio(exSel){
       </div>`;
     })():''}
     <div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Trade history${ex==='ALL'?'':' · '+ex} · last 12 months shown (${hist.length}) <span style="font-weight:400;font-size:8px;color:var(--dim)">· all trades ever are kept — 📤 CSV exports the full ledger</span></div>
-    ${hist.length?`<div style="max-height:40vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:10px;">
+    ${hist.length?`<div class="pf-tablewrap" style="max-height:40vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
+      <table class="pf-history" style="width:100%;border-collapse:collapse;font-size:10px;">
         <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:4px 6px;">Share</th><th style="text-align:right;padding:4px 6px;">Held</th><th style="text-align:right;padding:4px 6px;">Qty</th><th style="text-align:right;padding:4px 6px;">Buy → Sell</th><th style="text-align:right;padding:4px 6px;">P/L</th></tr></thead>
         <tbody>${histRows}</tbody>
       </table></div>
@@ -9528,6 +9541,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
