@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-159",
+  "version": "2026.07.04-160",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training & help brought fully up to date. The training app now has a guided 🎓 Lessons course — six short lessons covering getting started, the ratings, the scans, watchlists, paper trading, and reports/AI. The in-app help guide and tooltips now also cover the newest features (AI report prompt, clearer Download-all, US SEC filings, tappable Top-20 codes)."
+  "notes": "Training/help panels tidied: the hover tooltips no longer pop over the open Help guide or Lessons panel (no more overlapping popups), and both panels now have a 'drag to move' handle so you can slide them aside to see the data underneath."
 }

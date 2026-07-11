@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-159-family';
+const APP_VERSION='2026.07.04-160-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -9602,6 +9604,10 @@ syncP();syncV();
 
 
 
+
+
+
+
 <!-- ═══════════ EMBEDDED TRAINING LAYER (hidden until unlocked) ═══════════ -->
 <style>
 #trainBanner{position:fixed;top:0;left:0;right:0;z-index:100001;background:linear-gradient(90deg,#6d28d9,#9333ea);color:#fff;font:600 12px 'Space Grotesk',sans-serif;padding:6px 12px;display:none;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.3);}
@@ -9627,6 +9633,9 @@ body.training-min{padding-top:30px;}
 body.training-on [data-train]{position:relative;outline:1px dashed rgba(147,51,234,.35);outline-offset:1px;}
 #helpPanel{position:fixed;right:0;top:34px;bottom:0;width:320px;background:#0a1526;border-left:2px solid #9333ea;z-index:390;overflow-y:auto;padding:18px 18px 40px;transform:translateX(340px);transition:transform .25s;box-shadow:-8px 0 30px rgba(0,0,0,.4);}
 #helpPanel.open{transform:translateX(0);}
+.panel-drag{cursor:grab;user-select:none;font:600 10px monospace;color:#8fa6c9;background:rgba(147,51,234,.12);border:1px dashed rgba(147,51,234,.4);border-radius:6px;padding:5px 8px;margin:-4px 0 10px;text-align:center;letter-spacing:1px;}
+.panel-drag:active{cursor:grabbing;}
+#helpPanel.dragged{transition:none;}
 #helpPanel h3{font:700 15px 'Space Grotesk';color:#c88bff;margin:0 0 4px;}
 #helpPanel .hp-sec{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(143,166,201,.15);}
 #helpPanel .hp-sec h4{font:700 10px 'Space Grotesk';color:#FFD200;margin:0 0 5px;text-transform:uppercase;letter-spacing:.4px;}
@@ -9649,6 +9658,7 @@ body.training-on #trainCoverage{display:block;}
 <button id="helpToggle" onclick="toggleHelpPanel()">📖 Help guide</button>
 <div id="trainCoverage"></div>
 <div id="helpPanel">
+  <div class="panel-drag" id="helpDrag" title="Drag to move this panel">⣿ drag to move</div>
   <button class="hp-close" onclick="toggleHelpPanel()">✕</button>
   <h3>📖 Insight Trading — Guide</h3>
   <div id="helpContent"></div>
@@ -9820,6 +9830,8 @@ window.loadDemoData=function(){
 };
 function _showTT(el,info){
   if(!_tipsOn)return;
+  const _hp=document.getElementById('helpPanel');
+  if(_hp&&_hp.classList.contains('open'))return; // don't overlap the open guide
   _hideTT();
   const p=document.createElement('div');p.className='tt-pop';
   p.innerHTML='<b>'+info.t+'</b>'+info.d;
@@ -9832,6 +9844,18 @@ function _showTT(el,info){
   requestAnimationFrame(()=>p.classList.add('show'));
 }
 function _hideTT(){ if(_ttEl){_ttEl.remove();_ttEl=null;} }
+function _makePanelDraggable(panelId,handleId){
+  const p=document.getElementById(panelId), h=document.getElementById(handleId);
+  if(!p||!h||h.getAttribute('data-drag'))return;
+  h.setAttribute('data-drag','1');
+  let sx,sy,ox,oy,drag=false;
+  const start=(e)=>{drag=true;p.classList.add('dragged');const pt=e.touches?e.touches[0]:e;const r=p.getBoundingClientRect();p.style.transform='none';p.style.right='auto';p.style.left=r.left+'px';p.style.top=r.top+'px';sx=pt.clientX;sy=pt.clientY;ox=r.left;oy=r.top;e.preventDefault();};
+  const move=(e)=>{if(!drag)return;const pt=e.touches?e.touches[0]:e;let nx=ox+(pt.clientX-sx),ny=oy+(pt.clientY-sy);nx=Math.max(-p.offsetWidth+60,Math.min(nx,window.innerWidth-60));ny=Math.max(0,Math.min(ny,window.innerHeight-50));p.style.left=nx+'px';p.style.top=ny+'px';};
+  const end=()=>{drag=false;};
+  h.addEventListener('mousedown',start);document.addEventListener('mousemove',move);document.addEventListener('mouseup',end);
+  h.addEventListener('touchstart',start,{passive:false});document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',end);
+}
+function _redockPanel(panelId){const p=document.getElementById(panelId);if(!p)return;p.classList.remove('dragged');p.style.transform='';p.style.left='';p.style.top='';p.style.right='';}
 window.toggleTrainTips=function(){
   _tipsOn=!_tipsOn;
   const b=document.getElementById('tipToggleBtn');if(b)b.textContent='Tooltips: '+(_tipsOn?'ON':'OFF');
@@ -9870,7 +9894,11 @@ const HELP_SECTIONS=[
  {h:"Honest reminder",p:"Every score and signal is an <b>estimate from end-of-day price and volume</b> — a reason to research, not advice."}
 ];
 window.toggleHelpPanel=function(){
-  const p=document.getElementById('helpPanel'); p.classList.toggle('open');
+  const p=document.getElementById('helpPanel');
+  const opening=!p.classList.contains('open');
+  if(opening){ _redockPanel('helpPanel'); }
+  p.classList.toggle('open');
+  if(opening){ _makePanelDraggable('helpPanel','helpDrag'); }
   if(p.classList.contains('open')&&!document.getElementById('helpContent').innerHTML){
     let html=HELP_SECTIONS.map(s=>'<div class="hp-sec"><h4>'+s.h+'</h4><p>'+s.p+'</p></div>').join('');
     const rk=(typeof RATINGS_HELP!=='undefined')?Object.keys(RATINGS_HELP):[];
