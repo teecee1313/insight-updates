@@ -668,9 +668,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
         <div class="step-sub2">Smart Money — stronger streaks</div>
         <div class="scan-grid3">
-          <button onclick="smartMoneyScan(3)" class="scan-mini" title="Gainers up 3+ consecutive days AND volume ≥50% above average">3+ days<br><span style="font-weight:400;font-size:8px;opacity:.75;">up · vol 50%+</span></button>
-          <button onclick="smartMoneyScan(4)" class="scan-mini" title="Gainers up 4+ consecutive days AND volume ≥50% above average">4+ days<br><span style="font-weight:400;font-size:8px;opacity:.75;">up · vol 50%+</span></button>
-          <button onclick="smartMoneyScan(5)" class="scan-mini" title="Gainers up 5+ consecutive days AND volume ≥50% above average">5+ days<br><span style="font-weight:400;font-size:8px;opacity:.75;">up · vol 50%+</span></button>
+          <button onclick="smartMoneyScan(3)" class="scan-mini" title="Shares up 3+ days in a row where price rose AND volume was ≥50% above average on those days (ranked so the strongest price+volume streaks come first)">3+ days<br><span style="font-weight:400;font-size:8px;opacity:.75;">price + volume up</span></button>
+          <button onclick="smartMoneyScan(4)" class="scan-mini" title="Shares up 4+ days in a row where price rose AND volume was ≥50% above average on those days (ranked so the strongest price+volume streaks come first)">4+ days<br><span style="font-weight:400;font-size:8px;opacity:.75;">price + volume up</span></button>
+          <button onclick="smartMoneyScan(5)" class="scan-mini" title="Shares up 5+ days in a row where price rose AND volume was ≥50% above average on those days (ranked so the strongest price+volume streaks come first)">5+ days<br><span style="font-weight:400;font-size:8px;opacity:.75;">price + volume up</span></button>
         </div>
         <button onclick="smartMoneyScan(2,true)" class="scan-mini" style="width:100%;margin-top:5px;border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.08);">🌐 Scan all shares <span style="font-weight:400;opacity:.8;">· volume surge, any direction</span></button>
 
@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-160-family';
+const APP_VERSION='2026.07.04-162-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -2879,6 +2881,7 @@ function showRoutineSummary(results){
         <button onclick="viewRoutineResult(${i})" ${r.count?'':'disabled'} style="padding:4px 10px;border-radius:5px;border:1px solid var(--blue);background:rgba(56,139,253,.12);color:var(--blue);font:600 10px var(--sans);cursor:${r.count?'pointer':'default'};opacity:${r.count?1:.4};">View</button>
       </span>
     </div>`).join('');
+  window._modalLabel='⚡ Daily routine';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">Daily routine · ${results.length} reports</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${total} total matches across all reports · ${new Date().toLocaleDateString()}</div>
@@ -2920,6 +2923,7 @@ function manageReports(){
         <button onclick="deleteReport(${i})" style="padding:4px 9px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.1);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Delete</button>
       </span>
     </div>`).join('');
+  window._modalLabel='📋 Manage reports';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:10px;">Saved reports · ${list.length}</div>
     <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:2px 10px;">${rows}</div>
@@ -3503,6 +3507,7 @@ function showShareDetail(ticker,days){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s){alert('Share not found.');return;}
   if(!Array.isArray(s.series)||s.series.length<2){
+    window._modalLabel='🔬 Share detail';
     showModal(`<div style="font-weight:700;font-size:15px;color:var(--text);">📊 ${ticker} — history</div>
       <div style="font-size:11px;color:var(--muted);margin-top:8px;">No history loaded yet for this share. Load the exchange (history builds automatically), then try again.</div>`);
     return;
@@ -3969,6 +3974,7 @@ function _paperPctSync(which){
 function paperBuy(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s||!(s.price>0)){alert('Share not found or no price loaded.');return;}
+  window._modalLabel='🛒 Practice buy';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper buy — ${s.ticker}</div>
     <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">${s.name||''} · last close ${fmtP(s.price,s.currency)} · 💵 cash available: <strong style="color:var(--green)">${_paper().cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
@@ -4363,6 +4369,7 @@ function paperSell(id){
   const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
   const avg=totQty>0?totInv/totQty:0;
   const lotLine=lots.length>1?`<span style="color:var(--gold)"> · ${lots.length} lots combined, avg ${fmtP(avg,cur)}</span>`:'';
+  window._modalLabel='💵 Practice sell';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Sell ${tk}</div>
     <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">Holding ${totQty.toLocaleString()} shares · avg buy ${fmtP(avg,cur)}${lotLine} · last close ${fmtP(px,cur)}</div>
@@ -4789,6 +4796,7 @@ function showPortfolio(exSel){
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
   window._modalBig=true;                    // portfolio opens large by default
+  window._modalLabel='💼 Portfolio (paper trading)';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper Trading Portfolio <span style="font-size:8px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
@@ -5061,9 +5069,14 @@ function renderWatch(){
 // ═══════════════════════════════════
 //  SHARE — email (mailto), copy to clipboard, download CSV.
 // ═══════════════════════════════════
-function showModal(html){
+function showModal(html,label){
   let m=document.getElementById('appModal');
   const _big=!!window._modalBig; window._modalBig=false; // consume the one-shot flag
+  // Label = which report/scan we're in, shown as a header badge. Use the explicit
+  // param if given, otherwise a value set just before the call, then clear it so
+  // it doesn't leak to the next unlabelled modal.
+  const _lbl = label || window._modalLabel || '';
+  window._modalLabel = ''; window._curModalLabel = _lbl;
   if(!m){
     m=document.createElement('div');m.id='appModal';
     m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:flex;align-items:center;justify-content:center;';
@@ -5082,6 +5095,7 @@ function showModal(html){
   try{const key=_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
   const hStyle=sz.h>0?`height:${Math.min(sz.h,window.innerHeight*0.95)}px;`:'';
   m.innerHTML=`<div id="modalBox" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
+    ${_lbl?`<div style="flex:none;display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;background:linear-gradient(90deg,var(--navy,#0d1b33),rgba(13,27,51,.6));border:1px solid var(--gold,#FFD200);border-radius:8px;"><span style="font:800 13px var(--sans);color:var(--gold,#FFD200);letter-spacing:.2px;">${_lbl}</span></div>`:''}
     <div class="modal-scroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:14px;margin-right:-6px;">${html}</div>
     <div style="text-align:right;margin-top:12px;flex:none;display:flex;align-items:center;justify-content:space-between;">
       <span style="font-size:8px;color:var(--dim);">↘ drag corner to resize</span>
@@ -5346,6 +5360,7 @@ function rateSelected(){
       <div style="font-size:9px;color:var(--muted);line-height:1.4;">${r.parts.length?r.parts.join(' · '):'No active bullish signals'}</div>
     </div>`;
   }).join('');
+  window._modalLabel='⭐ Watch Score — top rated shares';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">⭐ Watch score · ${rated.length} shares</div>
     <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Scored out of 10 — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column (mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum). <strong>A data summary, not a buy signal or advice.</strong> Verify via the ↗ links.</div>
@@ -5922,6 +5937,32 @@ function qField(q,names){
     if(q[uc]!=null)return q[uc];
   }
   return undefined;
+}
+function countStreakBoth(history){
+  // Count consecutive most-recent days where BOTH price rose (close > prior close)
+  // AND that day's volume was above the trailing average — i.e. genuine "up on
+  // volume" days in a row. Used by Smart Money so a 3/4/5-day pick really means
+  // 3/4/5 days of price up AND heavy volume, not just a price streak.
+  if(!Array.isArray(history)||history.length<3)return 0;
+  const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
+  const getClose=q=>parseFloat(qField(q,['close','Close','c']));
+  const getVol=q=>parseFloat(qField(q,['volume','Volume','v']));
+  const h=history.slice().sort((a,b)=>getDate(b).localeCompare(getDate(a))); // newest first
+  let streak=0;
+  for(let i=0;i<h.length-1;i++){
+    const close=getClose(h[i]), prevClose=getClose(h[i+1]);
+    const vol=getVol(h[i]);
+    if(isNaN(close)||isNaN(prevClose)||isNaN(vol))break;
+    // trailing average volume of the days BEFORE this one (up to 20 back)
+    const before=h.slice(i+1, i+21);
+    let sum=0,n=0;
+    for(const q of before){const v=getVol(q); if(!isNaN(v)&&v>0){sum+=v;n++;}}
+    const avg=n>0?sum/n:0;
+    const priceUp = close>prevClose;
+    const volUp = avg>0 && vol>=avg*1.5; // volume ≥50% above trailing average
+    if(priceUp && volUp) streak++; else break;
+  }
+  return streak;
 }
 function countStreak(history){
   // Count consecutive most-recent days where close > prior day's close.
@@ -6716,6 +6757,7 @@ function showTop10Panel(pairs){
       <div style="font-size:9px;color:var(--muted);line-height:1.4;">${r.parts.length?r.parts.join(' · '):'No active signals'}</div>
     </div>`;
   }).join('');
+  window._modalLabel='🏆 Top 20 to Watch';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10</div>
     <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links. <span style="color:var(--gold)">Tap any share code (🖨) to open its printable report.</span></div>
@@ -7110,6 +7152,7 @@ function showTechnicals(ticker){
   const px=s.price;
   const crossTxt=s.cross==='golden'?'<span style="color:var(--green)">✨ Golden cross</span>':s.cross==='death'?'<span style="color:#ff6b6b">💀 Death cross</span>':s.cross==='bull'?'<span style="color:var(--green)">Bullish (50>200)</span>':s.cross==='bear'?'<span style="color:#ff9caa">Bearish (50<200)</span>':'—';
   const rsiTxt=s.rsi==null?'—':`${s.rsi} `+(s.rsiState==='overbought'?'<span style="color:#ff6b6b">overbought</span>':s.rsiState==='oversold'?'<span style="color:var(--green)">oversold</span>':'<span style="color:var(--muted)">neutral</span>');
+  window._modalLabel='📈 Technical Signals';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">📐 ${s.ticker} <span style="font-size:11px;color:var(--muted)">${s.name||''}</span></div>
     <div style="font-size:9px;color:var(--dim);margin:4px 0 10px;">Technical indicators from closing-price history · estimates, not advice.</div>
@@ -7309,6 +7352,7 @@ async function smartMoneyScan(minDays,scanAll){
     if(Array.isArray(hist)&&hist.length>=2){
       histOk++;
       s.daysUp=countStreak(hist);
+      s.daysUpVol=countStreakBoth(hist); // consecutive days: price UP and volume heavy
       s.streakCalced=true;
       s.newsFlag=newsProxy(hist);
       try{computeTechnicals(s,hist);}catch(e){}
@@ -7349,10 +7393,10 @@ async function smartMoneyScan(minDays,scanAll){
   }else{
     filtered=allData.filter(s=>
       s.price>0 &&
-      s.streakCalced && s.daysUp>=minDays &&
+      s.streakCalced && (s.daysUpVol>=minDays || (s.daysUp>=minDays && s.volPct>=50)) &&
       s.volCalced && isFinite(s.volPct) && s.volPct>=50 &&
       s.chgPct>0
-    ).sort((a,b)=>b.volPct-a.volPct);
+    ).sort((a,b)=>(b.daysUpVol||0)-(a.daysUpVol||0) || b.volPct-a.volPct);
   }
   lastScanLabel=scanAll?`Volume Scan (all shares)`:`Smart Money ${minDays}+ day`;
 
@@ -8011,6 +8055,7 @@ const DOWNLOADABLE_EXCH=['ASX','NYSE','NASDAQ','AMEX','LSE','TSX','TSXV','NSE','
 function openMultiDownload(){
   const saved=(()=>{try{return JSON.parse(localStorage.getItem('asxScreener.dlExch.v1'))||['ASX'];}catch(e){return ['ASX'];}})();
   const boxes=DOWNLOADABLE_EXCH.map(x=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text);padding:4px 8px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;margin:2px;"><input type="checkbox" class="dlExchChk" value="${x}" ${saved.includes(x)?'checked':''} style="cursor:pointer;margin:0;"> ${x}</label>`).join('');
+  window._modalLabel='⬇ Download data';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">⬇ Download multiple exchanges for offline use</div>
     <div style="font-size:11px;color:var(--muted);margin:8px 0;line-height:1.5;">Tick the markets to download. Each is fetched share-by-share and stored on this computer, so you can research them all offline afterwards. Downloading several large markets can take a long time and uses a lot of API calls — the app will estimate before starting.</div>
@@ -9462,6 +9507,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 
