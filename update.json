@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-167",
+  "version": "2026.07.04-168",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Mobile Portfolio fix: the holdings and history tables no longer squash on phones. The share-code column now stays frozen on the left while the table scrolls sideways, so you can see every share and reach the 🎯/🛑/⚙/Sell buttons that were cut off before."
+  "notes": "Portfolio now displays properly on phones: instead of a wide table with cut-off columns, each holding shows as a clean card — share code and profit/loss on top, the numbers in a tidy grid, and full-width Target / Stop / Note / Adjust / Sell buttons. Nothing is hidden. Desktop keeps the table."
 }
