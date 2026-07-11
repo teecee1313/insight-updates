@@ -74,6 +74,8 @@ body:not(.simple-mode) #simplePanel{display:none;}
 .simple-load-btn:active{transform:scale(.99);}
 .simple-load-btn.done{border-color:var(--green);background:rgba(63,185,80,.12);color:var(--green);}
 .simple-load-hint{font-size:10.5px;color:var(--muted);text-align:center;margin-top:5px;}
+.simple-fresh-btn{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 12px var(--sans);cursor:pointer;}
+.simple-fresh-btn:hover{border-color:var(--gold);color:var(--gold);}
 .simple-grid{display:flex;flex-direction:column;gap:10px;}
 .simple-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:15px 16px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;transition:transform .1s,box-shadow .15s;position:relative;}
 .simple-card:active{transform:scale(.99);}
@@ -1274,7 +1276,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-170-open';
+const APP_VERSION='2026.07.04-172-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1727,6 +1729,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -2874,6 +2878,18 @@ function doReset(){
   cp();applyF();dots();mkBadges();
 }
 function ls(){if(allData.length)applyF();}
+function _resetBeforeScan(){
+  try{
+    rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gSM','any','sm');F.daysMin=0;
+    resetPctBand();resetVolBand();resetPriceBand();resetAbsVolBand();resetBuyDays();resetVolStreakDays();resetMinScore();resetAccumMin();
+    ['cEod','cBlk','cDir','cInst','cES','cBS','cNA'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
+    ['cOrd','cETF','cLIC','cSpec'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=true;});
+    const sb=document.getElementById('searchBox');if(sb)sb.value='';
+    // clear any lingering status lines from a previous scan
+    ['smartStatus','planStatus','simpleStatus'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='';});
+    cp();dots();mkBadges();
+  }catch(_){}
+}
 
 // ── "My Report" — save the current filter set as a reusable preset ──────────
 // Stored in localStorage so it persists across sessions and is editable
@@ -5549,6 +5565,7 @@ function rateSelected(){
 // heat-level filter buttons. A data summary, NOT advice.
 async function volumeSurgeReport(){
   exitWatchView&&exitWatchView();
+  _resetBeforeScan();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('surgeBtn');
   if(!allData.length){if(st)st.textContent='Load an exchange first.';return;}
@@ -6640,6 +6657,7 @@ function typicalDailyMove(series){
 
 async function speedingTicketScan(){
   exitWatchView();
+  _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   if(!apiKey){if(st)st.textContent='Enter your API key first.';return;}
@@ -6850,6 +6868,7 @@ function _freshenSeriesFromBulk(){
 }
 async function topTenScan(){
   exitWatchView();
+  _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('top10Btn');
@@ -7342,6 +7361,7 @@ function showTechnicals(ticker){
 }
 async function allSignalsScan(){
   exitWatchView();
+  _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('allSigBtn');
@@ -7413,6 +7433,7 @@ async function allSignalsScan(){
 
 async function unusualScan(){
   exitWatchView();
+  _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('unusualBtn');
@@ -7458,6 +7479,7 @@ async function unusualScan(){
 
 async function smartMoneyScan(minDays,scanAll){
   exitWatchView();
+  _resetBeforeScan();
   minDays=minDays||2;
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
@@ -9317,27 +9339,59 @@ function initAppMode(){
   try{mode=localStorage.getItem(APP_MODE_KEY)||'simple';}catch(_){}
   setAppMode(mode==='advanced'?'advanced':'simple');
 }
-function _refreshSimpleLoad(){
+async function _refreshSimpleLoad(){
   const btn=document.getElementById('simpleLoadBtn');
+  const fresh=document.getElementById('simpleFreshBtn');
+  const hint=document.getElementById('simpleLoadHint');
   if(!btn)return;
   const loaded = Array.isArray(window.allData) && allData.length>0;
-  if(loaded){ btn.textContent='✓ Market loaded — tap a button below'; btn.classList.add('done'); }
-  else { btn.textContent="⚡ Load today's shares"; btn.classList.remove('done'); }
-}
-async function simpleLoad(){
-  const st=document.getElementById('simpleStatus');
-  const hasKey = (function(){try{return !!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
-  if(!hasKey && !(window.allData&&allData.length)){
-    // no key yet — send them to load with a clear nudge (Demo works without a key)
-    if(st)st.innerHTML='Tip: enter your free data key in Advanced ⚙, or use 📊 Demo data to try it out.';
+  let saved=0; try{ saved=await histCount(); }catch(_){}
+  if(loaded){
+    btn.textContent='✓ Market loaded — tap a report below';
+    btn.classList.add('done');
+    if(fresh)fresh.style.display='inline-block';
+    if(hint)hint.textContent=window._offlineMode?'Showing your saved data. Tap ⚡ for today\u2019s fresh prices.':'Tap ⚡ any time for the latest prices.';
+  }else if(saved>0){
+    btn.textContent='📂 Load your saved shares (instant)';
+    btn.classList.remove('done');
+    if(fresh)fresh.style.display='inline-block';
+    if(hint)hint.textContent='Instant — no internet needed. Or tap ⚡ for today\u2019s fresh prices.';
+  }else{
+    btn.textContent="⚡ Load today's shares";
+    btn.classList.remove('done');
+    if(fresh)fresh.style.display='none';
+    if(hint)hint.textContent='Loads the market so the buttons below can work.';
   }
-  if(st)st.textContent='Loading the market…';
+}
+async function simpleLoad(fresh){
+  const st=document.getElementById('simpleStatus');
+  const hasKey = (function(){try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
+  // How much saved (offline) data is on the device?
+  let saved=0; try{ saved=await histCount(); }catch(_){}
+  // DEFAULT = fast: if we have saved data and the caller didn't force fresh,
+  // load instantly from the device with no network and no waiting.
+  if(!fresh && saved>0){
+    if(st)st.textContent='Loading your saved data…';
+    try{ await loadOfflineNow(); }catch(e){}
+    _refreshSimpleLoad();
+    if(st)st.textContent = (window.allData&&allData.length)
+      ? (allData.length+' shares ready (from saved data). Tap ⚡ fresh prices for today\u2019s.')
+      : 'Could not read saved data — try ⚡ fresh prices.';
+    return;
+  }
+  // Otherwise we need a live load, which needs an API key.
+  if(!hasKey){
+    if(st)st.innerHTML='To load live prices you need your free data key. Open ⚙ Advanced to add it, or press 📊 Demo to try the app with sample shares.';
+    _refreshSimpleLoad();
+    return;
+  }
+  if(st)st.textContent='Getting today\u2019s prices… (first load can take a moment)';
   try{
     if(typeof loadData==='function'){ await loadData(); }
     else if(typeof startLoad==='function'){ await startLoad(); }
   }catch(e){}
   _refreshSimpleLoad();
-  if(st)st.textContent = (window.allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Try Advanced ⚙ to check your data key.';
+  if(st)st.textContent = (window.allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
 }
 function simpleRun(what){
   const st=document.getElementById('simpleStatus');
@@ -9737,6 +9791,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 
