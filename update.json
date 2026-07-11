@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-180",
+  "version": "2026.07.04-182",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed: tapping a share in a report list now opens its report properly. On phones the report now opens neatly inside the app (a new browser tab was being silently blocked before). Also made the Top picks card match the flat style of the others."
+  "notes": "Multiple saved markets: if you've downloaded more than one exchange (e.g. ASX and NYSE), tapping 'Load your saved shares' now lets you choose which market to load. Each exchange is stored separately, so they never mix."
 }

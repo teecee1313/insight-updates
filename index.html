@@ -573,7 +573,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </optgroup>
       </select>
     </div>
-    <button id="loadBtn" onclick="loadData()">
+    <button id="loadBtn" onclick="loadData(true)">
       <div class="sp" id="sp"></div>
       <span id="loadLbl" data-i18n="loadData">⚡ Load / refresh now</span>
     </button>
@@ -1280,7 +1280,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-180-open';
+const APP_VERSION='2026.07.04-182-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1733,6 +1733,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -8175,6 +8177,26 @@ async function cachePut(exch,dateStr,rows){
 // This is what makes offline research possible: once downloaded, each share's
 // price history is stored on disk (IndexedDB) and reused with no API call.
 function histKey(exch,ticker){return `${exch}:${String(ticker).toUpperCase()}`;}
+async function offlineExchangeList(){
+  if(!_cacheOn)return [];
+  const db=await cacheOpen(); if(!db)return [];
+  const counts={};
+  await new Promise(res=>{
+    try{
+      const store=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE);
+      const req=store.openCursor();
+      req.onsuccess=e=>{
+        const cur=e.target.result;
+        if(!cur){res();return;}
+        const k=String(cur.key); const sep=k.indexOf(':');
+        if(sep>0){ const ex=k.slice(0,sep); counts[ex]=(counts[ex]||0)+1; }
+        cur.continue();
+      };
+      req.onerror=()=>res();
+    }catch(e){res();}
+  });
+  return Object.keys(counts).sort().map(ex=>({exch:ex, count:counts[ex]}));
+}
 async function histGet(exch,ticker){
   if(!_cacheOn)return null;
   const db=await cacheOpen();if(!db)return null;
@@ -9107,11 +9129,15 @@ function mapRecord(r,exch,currency,today){
 //  Tries direct browser fetch first, then routes via Claude
 //  web_search proxy if CORS blocks the direct call.
 // ═══════════════════════════════════
-async function loadData(){
+async function loadData(userClick){
   if(typeof _histClearCache==="function")_histClearCache();
   const apiKey=document.getElementById('apiKey').value.trim();
   const exch=document.getElementById('exchSel').value;
-  if(!apiKey){alert('Please enter your EODData API key.');return;}
+  if(!apiKey){
+    let hasOffline=false; try{ hasOffline=(window._offlineMode||(await histCount())>0); }catch(_){}
+    if(userClick===true && !hasOffline){ alert('Please enter your EODData API key.'); }
+    return;
+  }
 
   const btn=document.getElementById('loadBtn');
   const spEl=document.getElementById('sp');
@@ -9448,6 +9474,20 @@ async function _refreshSimpleLoad(){
       : 'Loads the market so the buttons below can work.';
   }
 }
+function _simpleExchangePicker(exs){
+  const rows=exs.map(function(e){return '<button onclick="_loadOfflineExchange(\''+e.exch+'\')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;margin-bottom:8px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font:700 15px var(--sans);cursor:pointer;"><span>\ud83c\udf10 '+e.exch+'</span><span style="font-size:11px;color:var(--muted);font-family:var(--mono);">'+e.count.toLocaleString()+' shares</span></button>';}).join('');
+  window._modalLabel='\ud83d\udcc2 Choose saved market';
+  showModal('<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">You have more than one market saved. Pick which one to load:</div>'+rows, '\ud83d\udcc2 Choose saved market');
+}
+async function _loadOfflineExchange(exch){
+  var sel=document.getElementById('exchSel'); if(sel)sel.value=exch;
+  var m=document.getElementById('appModal'); if(m)m.remove();
+  var st=document.getElementById('simpleStatus');
+  if(st)st.textContent='Loading your saved '+exch+' data\u2026';
+  try{ await loadOfflineNow(); }catch(e){}
+  _refreshSimpleLoad();
+  if(st)st.textContent = (window.allData&&allData.length) ? (allData.length+' '+exch+' shares ready. Tap a report below.') : ('Could not read saved '+exch+' data.');
+}
 async function simpleLoad(fresh){
   const st=document.getElementById('simpleStatus');
   const hasKey = (function(){try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
@@ -9456,6 +9496,14 @@ async function simpleLoad(fresh){
   // DEFAULT = fast: if we have saved data and the caller didn't force fresh,
   // load instantly from the device with no network and no waiting.
   if(!fresh && saved>0){
+    // If more than one exchange is saved offline, let the user choose which one.
+    let exs=[]; try{ exs=await offlineExchangeList(); }catch(_){}
+    if(exs.length>1){
+      _simpleExchangePicker(exs);
+      return;
+    }
+    // Only one saved exchange (or the helper is unavailable) — load it directly.
+    if(exs.length===1){ const sel=document.getElementById('exchSel'); if(sel)sel.value=exs[0].exch; }
     if(st)st.textContent='Loading your saved data…';
     try{ await loadOfflineNow(); }catch(e){}
     _refreshSimpleLoad();
@@ -9478,6 +9526,7 @@ async function simpleLoad(fresh){
   _refreshSimpleLoad();
   if(st)st.textContent = (window.allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
 }
+
 function simpleRun(what){
   try{ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur(); }catch(_){}
   const st=document.getElementById('simpleStatus');
@@ -9918,6 +9967,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 
