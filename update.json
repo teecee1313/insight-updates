@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-162",
+  "version": "2026.07.04-163",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Smart Money 3+/4+/5+ day scans now look for shares up that many days in a row where BOTH price rose AND volume was heavy on each of those days — a stricter, truer accumulation pattern. Results are ranked so the strongest price+volume streaks come first."
+  "notes": "You can now tap a share code in your Portfolio (holdings and sold-trade history) to open its printable report — same as in Top 20 and the Watchlist. If that share's exchange data isn't loaded, it now tells you to load it first instead of a vague error."
 }

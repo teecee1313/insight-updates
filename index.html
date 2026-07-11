@@ -1145,7 +1145,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-162-family';
+const APP_VERSION='2026.07.04-163-family';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1598,6 +1598,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -3353,7 +3354,7 @@ function _reportNotesBox(){
 // history table, and official-source links. Opens a print-ready tab.
 function printShareReport(ticker){
   const s=allData.find(x=>x.ticker===ticker);
-  if(!s){alert('Share not found.');return;}
+  if(!s){alert(ticker+"'s data isn't loaded right now, so a full report can't be built.\n\nLoad the exchange it's on (press ⚡ Load, or 📂 Load from saved data), then open the report again.");return;}
   const cur=s.currency;
   const up=s.chgPct>0.005,dn=s.chgPct<-0.005;
   const chgCol=up?'#0a7a0a':dn?'#c00':'#666';
@@ -4771,7 +4772,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong>${h.ticker}</strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,new Date().toISOString().slice(0,10))+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,new Date().toISOString().slice(0,10))+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
@@ -4784,7 +4785,7 @@ function showPortfolio(exSel){
   const histRows=hist.map(t=>{
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:4px 6px;"><strong>${t.ticker}</strong> <span style="font-size:8px;color:var(--dim)">${t.exchange}</span>${(function(){
+      <td style="padding:4px 6px;"><strong><a href="#" onclick="printShareReport('${t.ticker}');return false;" title="Open the printable report for ${t.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${t.ticker} 🖨</a></strong> <span style="font-size:8px;color:var(--dim)">${t.exchange}</span>${(function(){
         const ex=t.trigger==='stop'?'<span style="font-size:8px;color:#ff9caa">🛑 stop-loss</span>':t.trigger==='target'?'<span style="font-size:8px;color:var(--gold)">🎯 target</span>':t.auto?'<span style="font-size:8px;color:var(--gold)">🎯 auto</span>':'<span style="font-size:8px;color:var(--muted)">sold at market</span>';
         return ' '+ex;
       })()}${t.partial?' <span style="font-size:8px;color:var(--dim)">(partial)</span>':''}${t.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(t.note).replace(/"/g,'&quot;')}">📝 ${String(t.note).slice(0,40)}${t.note.length>40?'…':''}</span>`:''}</td>
@@ -9507,6 +9508,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
