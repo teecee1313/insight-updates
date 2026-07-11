@@ -1278,7 +1278,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-177-open';
+const APP_VERSION='2026.07.04-178-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1731,6 +1731,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -6481,7 +6482,9 @@ async function calcStreaksForPlan(p){
   for(const s of targets){
     st.innerHTML=`📈 ${p.label} · streaks ${++done}/${targets.length}…`;
     scanProgSet((done/targets.length)*95);
-    const hist=await fetchHistory(s.exchange,s.ticker,apiKey,95);
+    let hist;
+    if(window._offlineMode){ hist = Array.isArray(s.series) ? s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v})) : null; }
+    else { hist = await fetchHistory(s.exchange,s.ticker,apiKey,95); }
     if(Array.isArray(hist)&&hist.length>=2){
       s.daysUp=countStreak(hist);s.streakCalced=true;
       s.newsFlag=newsProxy(hist);
@@ -6489,7 +6492,7 @@ async function calcStreaksForPlan(p){
       const avg3=computeVolAvg(hist,effVolWindow());
       if(avg3>0){s.avgVol=avg3;s.avg3mo=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
     }
-    await new Promise(r=>setTimeout(r,180));
+    if(!window._offlineMode) await new Promise(r=>setTimeout(r,180));
   }
   scanProgHide();
   applyF();
@@ -7525,7 +7528,7 @@ async function smartMoneyScan(minDays,scanAll){
   if(!apiKey && !(allData&&allData.length)){st.textContent='Enter your API key first (or load your saved data).';return;}
   if(!allData.length){
     st.textContent='Loading exchange first…';
-    await loadData();
+    if(!window._offlineMode) await loadData();
     if(!allData.length){st.textContent='Could not load exchange.';return;}
   }
   if(btn){btn.disabled=true;btn.style.opacity='.6';}
@@ -7578,7 +7581,9 @@ async function smartMoneyScan(minDays,scanAll){
   for(const s of candidates){
     st.textContent=`Step 2/3 · checking ${++done}/${candidates.length}…`;
     scanProgSet(10 + (done/candidates.length)*80);
-    const hist=await fetchHistory(s.exchange,s.ticker,apiKey,95);
+    let hist;
+    if(window._offlineMode){ hist = Array.isArray(s.series) ? s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v})) : null; }
+    else { hist = await fetchHistory(s.exchange,s.ticker,apiKey,95); }
     if(Array.isArray(hist)&&hist.length>=2){
       histOk++;
       s.daysUp=countStreak(hist);
@@ -7600,7 +7605,7 @@ async function smartMoneyScan(minDays,scanAll){
     }else{
       histFail++;
     }
-    await new Promise(r=>setTimeout(r,180));
+    if(!window._offlineMode) await new Promise(r=>setTimeout(r,180));
   }
 
   // Step 4: final filter.
@@ -9451,20 +9456,62 @@ async function simpleLoad(fresh){
   if(st)st.textContent = (window.allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
 }
 function simpleRun(what){
+  try{ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur(); }catch(_){}
   const st=document.getElementById('simpleStatus');
-  const need = (window.allData&&allData.length>0);
+  const need = (typeof allData!=='undefined' && Array.isArray(allData) && allData.length>0);
   // portfolio & watchlist don't strictly need market data loaded
   if(!need && (what==='top20'||what==='smart'||what==='surge')){
-    if(st)st.textContent='Load the market first (button above), then tap again.';
+    if(st)st.textContent='Load your shares first (button above), then tap again.';
     _refreshSimpleLoad();
     return;
   }
-  if(st)st.textContent='';
-  if(what==='top20') return topTenScan();
-  if(what==='smart') return smartMoneyScan(2);
-  if(what==='surge') return volumeSurgeReport();
-  if(what==='portfolio') return showPortfolio();
-  if(what==='watchlist'){ if(typeof toggleWatchView==='function')return toggleWatchView(); if(typeof viewActiveWatch==='function')return viewActiveWatch(); }
+  if(st)st.textContent='Working…';
+  // Portfolio and watchlist already open their own windows.
+  if(what==='portfolio'){ if(st)st.textContent=''; return showPortfolio(); }
+  if(what==='watchlist'){ if(st)st.textContent=''; if(typeof toggleWatchView==='function')return toggleWatchView(); if(typeof viewActiveWatch==='function')return viewActiveWatch(); return; }
+  // For the scans: run the scan (which fills `filtered`), then show the results
+  // in their OWN popup window — because in Simple mode the main table is hidden,
+  // so filtering it alone would look like "nothing happened".
+  const runners={
+    top20:{fn:()=>topTenScan(), label:'🏆 Top picks today', ownWindow:true},
+    smart:{fn:()=>smartMoneyScan(2), label:'🎯 Who\u2019s being quietly bought?', ownWindow:false},
+    surge:{fn:()=>volumeSurgeReport(), label:'🔥 What\u2019s moving on big volume?', ownWindow:false}
+  };
+  const r=runners[what]; if(!r)return;
+  Promise.resolve(r.fn()).then(()=>{
+    if(st)st.textContent='';
+    // Scans that open their OWN panel (Top 20, Volume Surge) already show a window.
+    // Smart Money only fills the (hidden) table, so we surface its results as a
+    // popup ourselves.
+    if(!r.ownWindow){ _simpleResultsPopup(r.label, Array.isArray(filtered)?filtered.slice():[]); }
+  }).catch((e)=>{ if(st)st.textContent='Something went wrong — try again.'; });
+}
+function _simpleResultsPopup(label, rows){
+  window._modalLabel=label;
+  if(!rows||!rows.length){
+    showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares matched right now.<br><br>Try <b>⚡ Get today\u2019s fresh prices</b> for the latest data, or another report.</div>', label);
+    return;
+  }
+  const top=rows.slice(0,40);
+  const body=top.map((s,i)=>{
+    const cur=s.currency||'';
+    const chg=(s.chgPct>=0?'+':'')+(s.chgPct||0).toFixed(1)+'%';
+    const chgC=s.chgPct>0?'var(--green)':s.chgPct<0?'var(--red)':'var(--muted)';
+    const vol=(s.volPct!=null&&isFinite(s.volPct))?`vol ${s.volPct>=0?'+':''}${s.volPct}%`:'';
+    const sc=(s.watchScore!=null)?`${s.watchScore}/10`:'';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);">
+      <div style="min-width:0;">
+        <a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:var(--gold);font-weight:700;font-size:13px;text-decoration:underline;text-decoration-style:dotted;">${i+1}. ${s.ticker} 🖨</a>
+        <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(s.name||'').slice(0,28)}</div>
+      </div>
+      <div style="text-align:right;flex:none;font-family:var(--mono);font-size:11px;">
+        <div style="color:var(--text);">${fmtP(s.price,cur)} <span style="color:${chgC};">${chg}</span></div>
+        <div style="color:var(--dim);font-size:10px;">${[sc,vol].filter(Boolean).join(' · ')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const head=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${top.length} share${top.length>1?'s':''} · tap a code (🖨) to open its report. A data summary, not advice.</div>`;
+  showModal(head+body, label);
 }
 
 function initSidebarLayout(){
@@ -9848,6 +9895,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 

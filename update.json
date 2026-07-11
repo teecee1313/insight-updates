@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-177",
+  "version": "2026.07.04-178",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Softened the saved-data message so it reads as a friendly tip, not an error: it now gently reminds you to open the app from its web link or home-screen icon (not a downloaded file copy) so your saved data, watchlist and portfolio persist."
+  "notes": "Simple-view reports now open in their own pop-up window so you can clearly see the result — Top picks, Who's being quietly bought, and What's moving on big volume each show a tappable list (tap a share to open its report). Also fixed the scans hanging on the network when using saved/offline data — they now compute everything from your saved data instantly, no connection needed."
 }
