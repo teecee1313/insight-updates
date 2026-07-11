@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-170",
+  "version": "2026.07.04-172",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training updated for the new Simple/Advanced view: added a '2 · Simple vs Advanced view' lesson, reworked 'Getting started' to open with the Simple cards, and refreshed the Help guide so the plain-English names (Top picks, Who's being quietly bought, What's moving on big volume) are explained. Now 12 lessons."
+  "notes": "Running a new scan or report now resets the view to a clean slate first — the previous scan's filters, search box and status messages are cleared automatically, so each report starts fresh instead of stacking on the last one."
 }
