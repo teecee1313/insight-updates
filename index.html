@@ -70,9 +70,11 @@ body.simple-mode .setup-col3{display:none!important;}
 /* advanced mode hides the simple panel + mode hint stays */
 body:not(.simple-mode) #simplePanel{display:none;}
 .simple-load{margin-bottom:12px;}
-.simple-load-btn{width:100%;padding:14px;border-radius:12px;border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,210,0,.18),rgba(255,210,0,.08));color:var(--gold);font:800 15px var(--sans);cursor:pointer;}
+.simple-load-btn{width:100%;padding:14px;border-radius:12px;border:1px solid var(--gold);background:var(--bg2);color:var(--gold);font:800 15px var(--sans);cursor:pointer;transition:transform .1s,box-shadow .15s;}
+.simple-load-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
 .simple-load-btn:active{transform:scale(.99);}
-.simple-load-btn.done{border-color:var(--green);background:rgba(63,185,80,.12);color:var(--green);}
+.simple-load-btn:active{transform:scale(.99);}
+.simple-load-btn.done{border-color:var(--green);background:var(--bg2);color:var(--green);}
 .simple-load-hint{font-size:10.5px;color:var(--muted);text-align:center;margin-top:5px;}
 .simple-fresh-btn{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 12px var(--sans);cursor:pointer;}
 .simple-fresh-btn:hover{border-color:var(--gold);color:var(--gold);}
@@ -1278,7 +1280,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-178-open';
+const APP_VERSION='2026.07.04-179-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1731,6 +1733,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -9895,6 +9898,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
