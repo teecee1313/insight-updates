@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-168",
+  "version": "2026.07.04-170",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Portfolio now displays properly on phones: instead of a wide table with cut-off columns, each holding shows as a clean card — share code and profit/loss on top, the numbers in a tidy grid, and full-width Target / Stop / Note / Adjust / Sell buttons. Nothing is hidden. Desktop keeps the table."
+  "notes": "Training updated for the new Simple/Advanced view: added a '2 · Simple vs Advanced view' lesson, reworked 'Getting started' to open with the Simple cards, and refreshed the Help guide so the plain-English names (Top picks, Who's being quietly bought, What's moving on big volume) are explained. Now 12 lessons."
 }
