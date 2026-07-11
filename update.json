@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-179",
+  "version": "2026.07.04-180",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Small visual tidy: the 'Load your saved shares' button now has the same clean flat look as the report cards below it, instead of appearing permanently pressed."
+  "notes": "Fixed: tapping a share in a report list now opens its report properly. On phones the report now opens neatly inside the app (a new browser tab was being silently blocked before). Also made the Top picks card match the flat style of the others."
 }
