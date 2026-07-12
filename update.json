@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-194",
+  "version": "2026.07.04-195",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Export now reliable on Android. Instead of depending on the share sheet (which Android often reports as available but doesn't actually show), tapping Export on a phone now always opens a panel with three options: Share, Copy data, and Download. Copy → paste into an email/note, then 'Or paste copied data' to import on the other device — works on every Android browser."
+  "notes": "Fixed the export panel opening behind the Setup & data menu — it now appears on top so you can tap Copy / Download / Share. On Android the most reliable path is 📋 Copy data, then paste into an email or note to yourself; open it on the other device and use 'Or paste copied data' to import."
 }
