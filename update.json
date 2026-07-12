@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-191",
+  "version": "2026.07.04-192",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New: 'What's changed since last time'. Simple view now shows a card at the top highlighting the shares that started moving — accumulating, surging on volume, or climbing in score — since your last visit, with your watchlist shares starred. It uses your own growing saved history, works offline, and brings the news to you instead of making you hunt for it."
+  "notes": "Fixed exporting data on phones. The plain download often failed silently on mobile; now Export saved data (and Backup account) open your phone's share sheet, so you can send the file straight to email, Drive, Files or WhatsApp — then open it on the other device and Import."
 }
