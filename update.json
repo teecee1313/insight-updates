@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-192",
+  "version": "2026.07.04-193",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed exporting data on phones. The plain download often failed silently on mobile; now Export saved data (and Backup account) open your phone's share sheet, so you can send the file straight to email, Drive, Files or WhatsApp — then open it on the other device and Import."
+  "notes": "Export now works on every phone. If the share sheet doesn't appear (some mobile browsers don't support it), a panel now pops up with a Copy button and a Download link. You can Copy the data on one device and use 'Or paste copied data' to Import on the other — no share sheet needed."
 }
