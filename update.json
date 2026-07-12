@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-199",
+  "version": "2026.07.04-200",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New Bullish and Bearish counts in the stats bar. Bullish = shares accumulating, under buying pressure, or on an up-run; Bearish = heavy selling, distribution, or sinking near their lows. Tap either to filter the list to just those shares. It's a plain data summary of price/volume patterns, not advice."
+  "notes": "New first-run setup wizard for new users: a friendly 3-step welcome → paste your key → pick your market → go, with a 'just show me a demo first' option so nobody's blocked at the start. It only appears once, then never again. First step towards a smoother, cleaner flow."
 }
