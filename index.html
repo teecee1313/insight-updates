@@ -442,6 +442,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
 #bgInd{position:fixed;right:14px;bottom:14px;z-index:9000;display:none;align-items:center;gap:8px;
   background:var(--bg2);border:1px solid var(--gold);border-radius:20px;padding:7px 13px;
   box-shadow:0 4px 18px rgba(0,0,0,.45);max-width:320px;}
+/* On mobile, move the loading indicator to the TOP so it never covers modal action buttons */
+@media (max-width:640px){
+  #bgInd{top:60px;bottom:auto;left:50%;right:auto;transform:translateX(-50%);border-radius:20px;white-space:nowrap;}
+}
 #bgInd .bgspin{width:12px;height:12px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;
   animation:bgspin .8s linear infinite;flex:none;}
 @keyframes bgspin{to{transform:rotate(360deg);}}
@@ -1314,7 +1318,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-208-open';
+const APP_VERSION='2026.07.13-209-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3791,7 +3795,8 @@ function printShareReport(ticker){
       const pc=i>0?ser[i-1].c:null;
       const chg=pc&&pc>0?((x.c-pc)/pc*100):null;
       const cc=chg==null?'#666':chg>0?'#0a7a0a':chg<0?'#c00':'#666';
-      return `<tr><td>${x.d}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
+      const _fmtD=d=>{try{const p=(d||'').slice(0,10).split('-');if(p.length===3){const mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return parseInt(p[2],10)+' '+(mon[parseInt(p[1],10)-1]||p[1]);}return d;}catch(e){return d;}};
+      return `<tr><td>${_fmtD(x.d)}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
     }).join('');
     histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
