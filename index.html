@@ -720,7 +720,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <button onclick="exportOfflineData()" style="width:100%;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">⬆ Export saved data to file</button>
           <button onclick="document.getElementById('importOfflineInput').click()" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid #3fb950;background:rgba(63,185,80,.10);color:#3fb950;font:700 11px var(--sans);cursor:pointer;">⬇ Import saved data from file</button>
           <input type="file" id="importOfflineInput" accept=".json,application/json" style="display:none;" onchange="importOfflineData(this)">
-          <div style="font-size:9px;color:var(--dim);margin-top:5px;text-align:center;line-height:1.4;">Export on the device that has the data, move the file across (share, email or cloud), then Import here.</div>
+          <div style="font-size:9px;color:var(--dim);margin-top:5px;text-align:center;line-height:1.4;">Export on the device that has the data, move the file across (share, email or cloud), then Import here. <a href="#" onclick="importOfflinePaste();return false;" style="color:#3fb950;">Or paste copied data</a></div>
 
           <div style="height:8px;background:var(--bg3);border-radius:4px;margin:8px 0 4px;overflow:hidden;border:1px solid var(--border2);"><div id="bulkBar" style="height:100%;width:0;background:linear-gradient(90deg,#58a6ff,#7cc0ff);transition:width .3s;"></div></div>
           <div id="bulkLbl" style="font-size:9px;color:var(--dim);min-height:12px;">Ready. Fetches history for the shares you selected and stores it on this computer.</div>
@@ -1291,7 +1291,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-192-open';
+const APP_VERSION='2026.07.04-193-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1744,6 +1744,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -8342,14 +8343,33 @@ async function exportOfflineData(){
         return;
       }catch(err){ if(err && err.name==='AbortError') return; /* user cancelled */ }
     }
-    // Fallback: normal download (works on desktop; some mobile browsers too).
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download=fname; a.rel='noopener';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),4000);
-    // If nothing obvious happened, tell the user where to look / offer a copy.
-    setTimeout(()=>{ /* best-effort hint on mobile */ }, 100);
+    // Fallback 1: normal download (works on desktop; some mobile browsers too).
+    let downloadWorked=false;
+    try{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=fname; a.rel='noopener';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),8000);
+      downloadWorked=true;
+    }catch(e){}
+    // Fallback 2 (mobile-proof): also open the file in a new tab and offer a
+    // copy button, so if the silent download didn't save you can still get the
+    // data out (long-press → Save, or Copy → paste into a note/email).
+    const narrow=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches);
+    if(narrow && typeof showModal==='function'){
+      const safe=json.replace(/</g,'&lt;');
+      window._offlineExportText=json;
+      showModal(
+        `<div style="font-size:13px;color:var(--text);line-height:1.5;">
+          <p style="margin:0 0 8px;"><b>Your saved data is ready.</b></p>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:12px;">If a share sheet or download didn't appear, use a button below. On the other device, use <b>Import saved data from file</b> (or paste if you copied).</p>
+          <button onclick="(async()=>{try{await navigator.clipboard.writeText(window._offlineExportText);alert('Copied. Paste it into an email or note to send to your other device.');}catch(e){alert('Copy not available — try the download button.');}})()" style="width:100%;padding:11px;margin-bottom:8px;border-radius:8px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">📋 Copy data to clipboard</button>
+          <a href="data:application/json;charset=utf-8,${encodeURIComponent(json)}" download="${fname}" style="display:block;text-align:center;width:100%;padding:11px;border-radius:8px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 13px var(--sans);text-decoration:none;box-sizing:border-box;">⬇ Download ${fname}</a>
+          <div style="font-size:10px;color:var(--dim);margin-top:8px;">${items.length} shares · ${Object.keys(byEx).join(', ')}</div>
+        </div>`,
+        '⬆ Export saved data');
+    }
   }catch(e){ alert('Export failed: '+e.message); }
 }
 async function importOfflineData(input){
@@ -8358,24 +8378,33 @@ async function importOfflineData(input){
   if(!file)return;
   try{
     const text=await file.text();
-    const data=JSON.parse(text);
-    if(!data || data.format!=='insight-offline' || !Array.isArray(data.items)){
-      alert('That doesn\u2019t look like an Insight Trading saved-data file.'); return;
-    }
-    if(!_cacheOn){ alert('Saved-data storage is off on this device, so it can\u2019t be imported.'); return; }
-    const db=await cacheOpen(); if(!db){ alert('Could not open saved data on this device.'); return; }
-    const exList=Object.keys(data.exchanges||{}).join(', ')||'shares';
-    if(!confirm(`Import ${data.count} saved shares (${exList}) onto this device?\n\nExisting saved data for the same shares will be updated.`)) return;
-    await new Promise((res,rej)=>{
-      const tx=db.transaction(HIST_STORE,'readwrite');
-      const store=tx.objectStore(HIST_STORE);
-      data.items.forEach(it=>{ try{ store.put(it.v, it.k); }catch(e){} });
-      tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-    });
-    try{ _refreshOfflineBtn(); }catch(_){}
-    try{ if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad(); }catch(_){}
-    alert(`Imported ${data.count} shares (${exList}).\n\nTap 📂 Load your saved shares to use them.`);
+    await _importOfflinePayload(JSON.parse(text));
   }catch(e){ alert('Import failed: '+e.message); }
+}
+async function importOfflinePaste(){
+  const text=prompt('Paste the copied saved-data text here:');
+  if(!text)return;
+  try{
+    await _importOfflinePayload(JSON.parse(text.trim()));
+  }catch(e){ alert('That paste wasn\u2019t valid saved-data. '+e.message); }
+}
+async function _importOfflinePayload(data){
+  if(!data || data.format!=='insight-offline' || !Array.isArray(data.items)){
+    alert('That doesn\u2019t look like Insight Trading saved data.'); return;
+  }
+  if(!_cacheOn){ alert('Saved-data storage is off on this device, so it can\u2019t be imported.'); return; }
+  const db=await cacheOpen(); if(!db){ alert('Could not open saved data on this device.'); return; }
+  const exList=Object.keys(data.exchanges||{}).join(', ')||'shares';
+  if(!confirm(`Import ${data.count} saved shares (${exList}) onto this device?\n\nExisting saved data for the same shares will be updated.`)) return;
+  await new Promise((res,rej)=>{
+    const tx=db.transaction(HIST_STORE,'readwrite');
+    const store=tx.objectStore(HIST_STORE);
+    data.items.forEach(it=>{ try{ store.put(it.v, it.k); }catch(e){} });
+    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+  });
+  try{ _refreshOfflineBtn(); }catch(_){}
+  try{ if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad(); }catch(_){}
+  alert(`Imported ${data.count} shares (${exList}).\n\nTap 📂 Load your saved shares to use them.`);
 }
 // ── OFFLINE FALLBACK: rebuild the share list from the on-disk history store ──
 // When the network is unavailable, we can't fetch the live symbol list — but the
@@ -10224,6 +10253,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
