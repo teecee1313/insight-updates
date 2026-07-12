@@ -1149,6 +1149,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="setup-col">
     <!-- STEP 2 · INSTANT REPORTS -->
     <div class="step-hdr"><span class="step-num">2</span> <span data-i18n="instantReports">Instant Reports</span> <span class="step-sub">drag ⠿ to reorder</span></div>
+    <div id="whatsNewCardAdv" style="display:none;"></div>
     <div id="scanDragZone" class="drag-zone">
     <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume ≥50% above their average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeReport()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Ranks every share by how much today's volume beats its own average, labelled Warm → Hot → Red-hot → Extreme. Filter by heat level. A data summary, not advice."><span>🔥 Volume Surge Report</span> <span class="scan-tag">hot/warm/cold by volume · estimate</span></button></div>
@@ -1309,7 +1310,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-203-open';
+const APP_VERSION='2026.07.04-204-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1762,6 +1763,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -9823,6 +9825,7 @@ function setAppMode(mode){
   try{localStorage.setItem(APP_MODE_KEY,mode);}catch(_){}
   // reflect load state on the simple button whenever we enter simple mode
   if(simple)_refreshSimpleLoad();
+  else { try{ if(Array.isArray(allData)&&allData.length) renderWhatsNew(); }catch(_){} }
   // keep the Advanced 📂 saved-data button current too
   try{ _refreshOfflineBtn(); }catch(_){}
 }
@@ -9889,12 +9892,11 @@ function computeWhatsNew(){
   return {items:items.slice(0,8), firstRun:!(prevWrap&&prevWrap.data)};
 }
 function renderWhatsNew(){
-  const card=document.getElementById('whatsNewCard');
-  if(!card)return;
-  if(!Array.isArray(allData)||!allData.length){ card.style.display='none'; return; }
+  const cards=[document.getElementById('whatsNewCard'),document.getElementById('whatsNewCardAdv')].filter(Boolean);
+  if(!cards.length)return;
+  if(!Array.isArray(allData)||!allData.length){ cards.forEach(c=>c.style.display='none'); return; }
   const {items,firstRun}=computeWhatsNew();
-  if(firstRun){ card.style.display='none'; return; } // nothing to compare yet
-  if(!items.length){ card.style.display='none'; return; }
+  if(firstRun||!items.length){ cards.forEach(c=>c.style.display='none'); return; }
   const rows=items.map(it=>{
     const star=it.onWatch?'⭐ ':'';
     const col=it.onWatch?'var(--gold)':'var(--text)';
@@ -9903,12 +9905,12 @@ function renderWhatsNew(){
       <span style="font-size:11px;color:var(--muted);text-align:right;">${it.why}</span>
     </div>`;
   }).join('');
-  card.style.display='block';
-  card.innerHTML=`<div style="border:1px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--bg2);">
+  const html=`<div style="border:1px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--bg2);">
     <div style="font-weight:800;font-size:15px;color:var(--gold);margin-bottom:2px;">🔔 What's changed since last time</div>
     <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">Shares that started moving since your last visit. ⭐ = on your watchlist. A data summary, not advice — tap to open a report.</div>
     ${rows}
   </div>`;
+  cards.forEach(c=>{ c.style.display='block'; c.innerHTML=html; });
 }
 function initAppMode(){
   let mode='simple';
@@ -9922,7 +9924,7 @@ async function _refreshSimpleLoad(){
   const fresh=document.getElementById('simpleFreshBtn');
   const saved2=document.getElementById('simpleSavedBtn');
   const hint=document.getElementById('simpleLoadHint');
-  try{ if(Array.isArray(allData)&&allData.length&&document.body.classList.contains('simple-mode')) renderWhatsNew(); }catch(_){}
+  try{ if(Array.isArray(allData)&&allData.length) renderWhatsNew(); }catch(_){}
   if(!btn)return;
   const loaded = Array.isArray(window.allData) && allData.length>0;
   let saved=0; try{ saved=await histCount(); }catch(_){}
@@ -10447,6 +10449,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 

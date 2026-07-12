@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-203",
+  "version": "2026.07.04-204",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed the stat filters (Gainers, Losers, Vol, Accum, Up 2+, Bullish, Bearish). Tapping one now narrows the report or scan you're currently viewing, instead of resetting and dumping you back to the full list. Tap again to remove that filter and get your view back. Toggles combine, and running a new scan starts fresh."
+  "notes": "The 'What's changed since last time' card now appears in Advanced view too, not just Simple — so whichever mode you use, you'll see which shares started moving since your last visit right at the top of your reports."
 }
