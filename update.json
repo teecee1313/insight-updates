@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-196",
+  "version": "2026.07.04-197",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Export now handles large data properly. A big download (like 7,500+ shares) was too large to copy/paste or use the old download link — it would hang and do nothing. Export now saves it as a real file to your device (Downloads), which handles any size. Small exports still offer Copy/paste. Move the saved file to the other device and use Import saved data from file."
+  "notes": "Training and help updated to cover the newest features: sharing your saved data between devices (export/copy/import), and the smart download that only fetches new days after your first full download and keeps your history current automatically."
 }
