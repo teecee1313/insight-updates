@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-186",
+  "version": "2026.07.04-191",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training & help refreshed to match all the latest changes: instant offline loading and the fresh-prices button, choosing between multiple saved markets, reports and print/PDF opening inside the app on phones, and watchlists following the loaded exchange. Now 12 lessons, 62 steps."
+  "notes": "New: 'What's changed since last time'. Simple view now shows a card at the top highlighting the shares that started moving — accumulating, surging on volume, or climbing in score — since your last visit, with your watchlist shares starred. It uses your own growing saved history, works offline, and brings the news to you instead of making you hunt for it."
 }
