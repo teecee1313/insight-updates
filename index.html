@@ -1314,7 +1314,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-207-open';
+const APP_VERSION='2026.07.04-208-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1767,6 +1767,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -3876,6 +3877,7 @@ Please structure your answer as: (1) one-paragraph summary, (2) bullish reading,
   <h1>${s.ticker} <span class="ex">· ${s.exchange}</span></h1>
   <div class="name">${s.name||''}</div>
   <button onclick="window.print()" style="margin-bottom:8px;padding:8px 16px;font-size:13px;cursor:pointer;">🖨 Print / Save as PDF</button>
+  <button onclick="toggleResearch('${s.ticker}');closeModal();" style="margin-bottom:8px;margin-left:6px;padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid ${(typeof inResearch==='function'&&inResearch(s.ticker))?'#3fb950':'#58a6ff'};border-radius:6px;background:${(typeof inResearch==='function'&&inResearch(s.ticker))?'rgba(63,185,80,.15)':'rgba(88,166,255,.12)'};color:${(typeof inResearch==='function'&&inResearch(s.ticker))?'#3fb950':'#58a6ff'};font-weight:700;">${(typeof inResearch==='function'&&inResearch(s.ticker))?'✓ On research list':'🔬 Research further'}</button>
   <h2>Key figures</h2>
   <table>${statsHtml}</table>
   <h2>Plain-English summary</h2>
@@ -10553,6 +10555,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
