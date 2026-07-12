@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-193",
+  "version": "2026.07.04-194",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Export now works on every phone. If the share sheet doesn't appear (some mobile browsers don't support it), a panel now pops up with a Copy button and a Download link. You can Copy the data on one device and use 'Or paste copied data' to Import on the other — no share sheet needed."
+  "notes": "Export now reliable on Android. Instead of depending on the share sheet (which Android often reports as available but doesn't actually show), tapping Export on a phone now always opens a panel with three options: Share, Copy data, and Download. Copy → paste into an email/note, then 'Or paste copied data' to import on the other device — works on every Android browser."
 }

@@ -1291,7 +1291,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-193-open';
+const APP_VERSION='2026.07.04-194-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1744,6 +1744,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -8333,44 +8334,65 @@ async function exportOfflineData(){
     const fname=`insight-offline-${Object.keys(byEx).join('-')||'data'}-${new Date().toISOString().slice(0,10)}.json`;
     const json=JSON.stringify(payload);
     const blob=new Blob([json],{type:'application/json'});
-    // On phones the plain download link often fails silently. Prefer the native
-    // SHARE sheet (send to email / Drive / WhatsApp / Files) when available, and
-    // fall back to a normal download on desktop.
-    const file=(typeof File!=='undefined')?new File([blob],fname,{type:'application/json'}):null;
-    if(navigator.canShare && file && navigator.canShare({files:[file]})){
-      try{
-        await navigator.share({files:[file], title:'Insight Trading saved data', text:'My downloaded market data'});
-        return;
-      }catch(err){ if(err && err.name==='AbortError') return; /* user cancelled */ }
-    }
-    // Fallback 1: normal download (works on desktop; some mobile browsers too).
-    let downloadWorked=false;
-    try{
+    const narrow=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches);
+
+    // DESKTOP: a normal download just works — do it and we're done.
+    if(!narrow){
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
       a.href=url; a.download=fname; a.rel='noopener';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(()=>URL.revokeObjectURL(url),8000);
-      downloadWorked=true;
-    }catch(e){}
-    // Fallback 2 (mobile-proof): also open the file in a new tab and offer a
-    // copy button, so if the silent download didn't save you can still get the
-    // data out (long-press → Save, or Copy → paste into a note/email).
-    const narrow=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches);
-    if(narrow && typeof showModal==='function'){
-      const safe=json.replace(/</g,'&lt;');
-      window._offlineExportText=json;
+      return;
+    }
+
+    // MOBILE: always show a panel with reliable options. Android often reports
+    // that file-sharing is supported but the sheet doesn't actually appear, so we
+    // never rely on it alone — Copy and Download are always here as guaranteed
+    // ways to get the data out.
+    window._offlineExportText=json;
+    window._offlineExportName=fname;
+    const canShareFiles = !!(navigator.canShare && (typeof File!=='undefined') && navigator.canShare({files:[new File([blob],fname,{type:'application/json'})]}));
+    const shareBtn = canShareFiles
+      ? `<button onclick="_shareOfflineExport()" style="width:100%;padding:11px;margin-bottom:8px;border-radius:8px;border:1px solid #3fb950;background:rgba(63,185,80,.12);color:#3fb950;font:700 13px var(--sans);cursor:pointer;">📤 Share (email · Drive · Files · WhatsApp)</button>`
+      : '';
+    if(typeof showModal==='function'){
       showModal(
         `<div style="font-size:13px;color:var(--text);line-height:1.5;">
-          <p style="margin:0 0 8px;"><b>Your saved data is ready.</b></p>
-          <p style="margin:0 0 10px;color:var(--muted);font-size:12px;">If a share sheet or download didn't appear, use a button below. On the other device, use <b>Import saved data from file</b> (or paste if you copied).</p>
-          <button onclick="(async()=>{try{await navigator.clipboard.writeText(window._offlineExportText);alert('Copied. Paste it into an email or note to send to your other device.');}catch(e){alert('Copy not available — try the download button.');}})()" style="width:100%;padding:11px;margin-bottom:8px;border-radius:8px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">📋 Copy data to clipboard</button>
-          <a href="data:application/json;charset=utf-8,${encodeURIComponent(json)}" download="${fname}" style="display:block;text-align:center;width:100%;padding:11px;border-radius:8px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 13px var(--sans);text-decoration:none;box-sizing:border-box;">⬇ Download ${fname}</a>
-          <div style="font-size:10px;color:var(--dim);margin-top:8px;">${items.length} shares · ${Object.keys(byEx).join(', ')}</div>
+          <p style="margin:0 0 8px;"><b>Your saved data is ready.</b> ${items.length} shares · ${Object.keys(byEx).join(', ')}</p>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:12px;">Use any option below, then on the other device use <b>Import saved data</b> (or paste, if you copied).</p>
+          ${shareBtn}
+          <button onclick="_copyOfflineExport()" style="width:100%;padding:11px;margin-bottom:8px;border-radius:8px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">📋 Copy data (paste into a note or email)</button>
+          <a href="data:application/json;charset=utf-8,${encodeURIComponent(json)}" download="${fname}" style="display:block;text-align:center;width:100%;padding:11px;border-radius:8px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 13px var(--sans);text-decoration:none;box-sizing:border-box;">⬇ Download file (long-press → Save if needed)</a>
         </div>`,
         '⬆ Export saved data');
+    } else {
+      // no modal available — last resort
+      try{ await _copyOfflineExport(); }catch(_){}
     }
   }catch(e){ alert('Export failed: '+e.message); }
+}
+// Copy the export text; falls back to a selectable prompt if clipboard is blocked.
+async function _copyOfflineExport(){
+  const t=window._offlineExportText||'';
+  try{
+    await navigator.clipboard.writeText(t);
+    alert('Copied. Paste it into an email or note, send it to your other device, then use “Or paste copied data” to import.');
+  }catch(e){
+    // clipboard blocked (common if not HTTPS or no user gesture) — show it to copy manually
+    window.prompt('Copy this text (select all, copy), then paste it on your other device:', t);
+  }
+}
+// Fire the native share sheet on demand (from a fresh user tap — most reliable).
+async function _shareOfflineExport(){
+  try{
+    const blob=new Blob([window._offlineExportText||''],{type:'application/json'});
+    const file=new File([blob], window._offlineExportName||'insight-offline.json', {type:'application/json'});
+    await navigator.share({files:[file], title:'Insight Trading saved data'});
+  }catch(err){
+    if(err && err.name==='AbortError') return;
+    alert('Sharing didn\u2019t work on this browser — use Copy or Download instead.');
+  }
 }
 async function importOfflineData(input){
   const file=input && input.files && input.files[0];
@@ -10253,6 +10275,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
