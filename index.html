@@ -600,6 +600,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
           </div>
         </div>
 
+        <!-- ── Advanced settings (collapsed by default) ─────────────── -->
+        <details id="advSettingsWrap" style="margin:4px 0 10px;">
+          <summary style="cursor:pointer;list-style:none;padding:9px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);display:flex;align-items:center;justify-content:space-between;">
+            <span>⚙ Advanced settings</span><span style="font-weight:400;font-size:9px;color:var(--dim);">news key · volume window · startup · presets ▸</span>
+          </summary>
+          <div style="padding-top:10px;">
+
         <!-- Optional: live news API key (test) -->
         <div class="field" style="margin-bottom:10px;">
           <label>📰 News API key <span style="float:right;font-weight:400;font-size:9px;color:var(--dim);">optional · free tier</span></label>
@@ -702,6 +709,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div id="lpMsg" style="font-size:9px;color:var(--dim);margin-top:5px;min-height:11px;"></div>
         </div>
 
+          </div>
+        </details>
+
         <div class="step-sub2">⬇ Download for offline use</div>
         <div style="margin:2px 0 8px;padding:10px;border:1px solid var(--border2);border-radius:8px;background:rgba(88,166,255,.04);">
           <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px;">1 · Options</div>
@@ -796,6 +806,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="arow">
       <button id="applyBtn" onclick="doApply()" data-i18n="applyFilters" disabled>✓ Apply Filters</button>
     </div>
+    <div style="font-size:9px;color:var(--dim);line-height:1.4;margin:2px 0 5px;">Save a filter setup you like as <b style="color:var(--gold)">⭐ My Report</b>, then one tap returns to it any time.</div>
     <div class="arow" style="grid-template-columns:1.4fr 1fr;">
       <button id="myReportBtn" onclick="applyMyReport()" oncontextmenu="event.preventDefault();clearMyReport()" title="Click: apply your saved preset · Right-click: delete it" style="padding:7px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.1);color:var(--gold);font:600 11px var(--sans);cursor:pointer;"><span data-i18n="myReport">⭐ My Report</span></button>
       <button onclick="saveMyReport()" title="Save current filters as My Report" style="padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;">💾 Save</button>
@@ -1115,9 +1126,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div id="loadPhase" style="font-size:9px;color:var(--dim);margin-top:3px;display:none;"></div>
       <button id="prepStopBtn" onclick="stopPrepare()" style="display:none;margin-top:5px;width:100%;padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff6b81;font:700 10px var(--sans);cursor:pointer;">■ Stop loading</button>
     </div>
-    <button id="streakBtn" onclick="calcStreaks()" title="Re-fetches fresh price history from the API and recomputes streaks/signals for the shares currently listed" style="width:100%;margin-bottom:8px;padding:8px;border-radius:7px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 11px var(--sans);cursor:pointer;">🔄 Redownload API data</button>
-    <button id="resetBtn" onclick="doReset()" title="Clear all filters back to defaults" style="width:100%;margin-bottom:8px;padding:8px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;">↺ Clear all filters</button>
+    <button id="routineBtnMain" onclick="runDailyRoutine()" title="Run all your saved reports in one click" style="display:none;width:100%;margin-bottom:8px;padding:10px;border-radius:7px;border:1px solid var(--gold);background:linear-gradient(135deg,rgba(255,210,0,.22),rgba(255,210,0,.08));color:var(--gold);font:800 12px var(--sans);cursor:pointer;">▶ Run daily routine <span id="routineCountMain" style="font-weight:400;opacity:.8;"></span></button>
 
+    <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px;margin:2px 0 4px;">DATA</div>
+    <button id="streakBtn" onclick="calcStreaks()" title="Re-fetches fresh price history from the API and recomputes streaks/signals for the shares currently listed" style="width:100%;margin-bottom:6px;padding:8px;border-radius:7px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 11px var(--sans);cursor:pointer;">🔄 Refresh / redownload data</button>
+    <button id="resetBtn" onclick="doReset()" title="Clear all filters back to defaults" style="width:100%;margin-bottom:10px;padding:8px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;">↺ Clear all filters</button>
+
+    <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px;margin:2px 0 4px;">SETTINGS</div>
     <button class="menu-btn" onclick="openOverlay('setup')"><span>⚙️ Setup &amp; data</span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="openOverlay('refine')"><span>🎚 Refine filters <span style="font-weight:400;color:var(--dim);font-size:10px;">optional</span></span><span class="mb-chev">▶</span></button>
     <div class="key-err" id="keyErr">
@@ -1294,7 +1309,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-200-open';
+const APP_VERSION='2026.07.04-202-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1747,6 +1762,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -3152,6 +3169,11 @@ function refreshRoutineBtn(){
   }
   const cnt=document.getElementById('routineCount');
   if(cnt)cnt.textContent=list.length?`(${list.length})`:'';
+  // Main-screen shortcut: only show once the user actually has a routine to run.
+  const mainBtn=document.getElementById('routineBtnMain');
+  if(mainBtn)mainBtn.style.display=list.length?'block':'none';
+  const mainCnt=document.getElementById('routineCountMain');
+  if(mainCnt)mainCnt.textContent=list.length?`(${list.length})`:'';
 }
 
 function manageReports(){
@@ -10381,6 +10403,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 

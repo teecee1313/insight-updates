@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-200",
+  "version": "2026.07.04-202",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New first-run setup wizard for new users: a friendly 3-step welcome → paste your key → pick your market → go, with a 'just show me a demo first' option so nobody's blocked at the start. It only appears once, then never again. First step towards a smoother, cleaner flow."
+  "notes": "Clearer Advanced layout. Buttons are now grouped under DATA (refresh, clear filters) and SETTINGS (setup, refine) so it's obvious which is which. Your saved 'Run daily routine' now appears right on the main screen once you have one. Clearer labels on the data-refresh button and the My Report save area."
 }
