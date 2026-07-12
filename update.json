@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-195",
+  "version": "2026.07.04-196",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed the export panel opening behind the Setup & data menu — it now appears on top so you can tap Copy / Download / Share. On Android the most reliable path is 📋 Copy data, then paste into an email or note to yourself; open it on the other device and use 'Or paste copied data' to import."
+  "notes": "Export now handles large data properly. A big download (like 7,500+ shares) was too large to copy/paste or use the old download link — it would hang and do nothing. Export now saves it as a real file to your device (Downloads), which handles any size. Small exports still offer Copy/paste. Move the saved file to the other device and use Import saved data from file."
 }
