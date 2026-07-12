@@ -1294,7 +1294,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-199-open';
+const APP_VERSION='2026.07.04-200-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1747,6 +1747,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -2609,45 +2610,89 @@ function changeApiKey(){
 function _maybeFirstRunKeyPrompt(){
   try{
     if(window._keyPromptShown)return;
+    const done=!!(localStorage.getItem('asxScreener.welcomeDone.v1')||'').trim();
     const has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();
-    if(has)return;
+    if(done||has)return; // already set up or already dismissed the wizard
     // don't stack over the app gate; wait until the app is visible
     const gate=document.getElementById('appGate');
     if(gate && getComputedStyle(gate).display!=='none'){ setTimeout(_maybeFirstRunKeyPrompt,1200); return; }
     window._keyPromptShown=true;
-    _showKeyPrompt();
+    _showWizard(1);
   }catch(e){}
 }
-function _showKeyPrompt(){
-  if(document.getElementById('keyPromptOv'))return;
-  const ov=document.createElement('div');
-  ov.id='keyPromptOv';
-  ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(3,10,22,.72);display:flex;align-items:center;justify-content:center;padding:20px;';
-  ov.innerHTML=`<div style="background:#0d1b33;border:1px solid var(--gold,#FFD200);border-radius:14px;max-width:340px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);">
-    <div style="font:700 15px system-ui,sans-serif;color:#eef3fb;margin-bottom:6px;">🔑 Enter your data API key</div>
-    <div style="font-size:11px;color:#9fb2cc;line-height:1.5;margin-bottom:12px;">One-time setup. Paste your EODData (eodhd.com) API key to load live market data. It's saved on this device and you won't be asked again.</div>
-    <input id="keyPromptInput" type="text" placeholder="paste API key here…" style="width:100%;box-sizing:border-box;background:#05152e;border:1px solid #24406e;border-radius:8px;color:#eef3fb;padding:11px;font-size:13px;margin-bottom:10px;">
-    <div style="display:flex;gap:8px;">
-      <button onclick="_keyPromptSave()" style="flex:1;background:var(--gold,#FFD200);color:#0d1b33;border:none;border-radius:8px;padding:11px;font:700 13px system-ui;cursor:pointer;">Save &amp; start</button>
-      <button onclick="_keyPromptSkip()" style="background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:8px;padding:11px 14px;font:600 12px system-ui;cursor:pointer;">Later</button>
-    </div>
-    <div style="font-size:9px;color:#5f7599;margin-top:10px;text-align:center;">No key yet? Get one free at <a href="https://eodhd.com" target="_blank" style="color:#58a6ff;">eodhd.com</a> · or tap Later and use Training/Demo mode.</div>
-  </div>`;
-  document.body.appendChild(ov);
-  setTimeout(()=>{const i=document.getElementById('keyPromptInput');if(i)i.focus();},100);
+function _showKeyPrompt(){ _showWizard(1); }
+// ── First-run wizard: Welcome → Key → Market → go. Shows only until completed. ──
+function _wizExch(){
+  const sel=document.getElementById('exchSel');
+  if(!sel)return '<option value="ASX">ASX — Australian Securities Exchange</option>';
+  return sel.innerHTML; // reuse the app's full exchange list
 }
-function _keyPromptSave(){
+function _showWizard(step){
+  let ov=document.getElementById('keyPromptOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='keyPromptOv'; document.body.appendChild(ov); }
+  ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(3,10,22,.82);display:flex;align-items:center;justify-content:center;padding:20px;';
+  const card=(inner)=>`<div style="background:#0d1b33;border:1px solid var(--gold,#FFD200);border-radius:16px;max-width:360px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.5);">${inner}</div>`;
+  const dots=(n)=>`<div style="display:flex;gap:6px;justify-content:center;margin-top:16px;">${[1,2,3].map(i=>`<div style="width:7px;height:7px;border-radius:50%;background:${i===n?'var(--gold,#FFD200)':'#24406e'};"></div>`).join('')}</div>`;
+  if(step===1){
+    ov.innerHTML=card(`
+      <div style="font-size:34px;text-align:center;margin-bottom:6px;">📊</div>
+      <div style="font:800 18px system-ui;color:#eef3fb;text-align:center;margin-bottom:8px;">Welcome to Insight Trading</div>
+      <div style="font-size:12.5px;color:#9fb2cc;line-height:1.6;margin-bottom:16px;text-align:center;">A calm, plain-English share screener. It reads the day's prices and volumes and highlights shares worth a closer look — <b>a research tool, never buy/sell advice.</b></div>
+      <button onclick="_wizGo(2)" style="width:100%;background:var(--gold,#FFD200);color:#0d1b33;border:none;border-radius:9px;padding:13px;font:800 14px system-ui;cursor:pointer;margin-bottom:8px;">Get started →</button>
+      <button onclick="_wizDemo()" style="width:100%;background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:9px;padding:11px;font:600 12px system-ui;cursor:pointer;">Just show me a demo first</button>
+      ${dots(1)}`);
+  } else if(step===2){
+    const savedKey=(localStorage.getItem('asxScreener.apiKey')||'').trim();
+    ov.innerHTML=card(`
+      <div style="font:800 16px system-ui;color:#eef3fb;margin-bottom:4px;">🔑 Step 1 — Your data key</div>
+      <div style="font-size:12px;color:#9fb2cc;line-height:1.55;margin-bottom:12px;">The app needs a free key from EODData to load live market data. It's saved on this device and you won't be asked again.</div>
+      <input id="keyPromptInput" type="text" value="${savedKey.replace(/"/g,'&quot;')}" placeholder="paste your EODData key here…" style="width:100%;box-sizing:border-box;background:#05152e;border:1px solid #24406e;border-radius:9px;color:#eef3fb;padding:12px;font-size:13px;margin-bottom:8px;">
+      <div style="font-size:10px;color:#5f7599;margin-bottom:14px;text-align:center;">No key yet? Get one free at <a href="https://eodhd.com" target="_blank" style="color:#58a6ff;">eodhd.com</a> (takes a minute)</div>
+      <button onclick="_wizSaveKey()" style="width:100%;background:var(--gold,#FFD200);color:#0d1b33;border:none;border-radius:9px;padding:13px;font:800 14px system-ui;cursor:pointer;margin-bottom:8px;">Save key → next</button>
+      <div style="display:flex;gap:8px;">
+        <button onclick="_wizGo(1)" style="flex:1;background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:9px;padding:10px;font:600 12px system-ui;cursor:pointer;">← Back</button>
+        <button onclick="_wizDemo()" style="flex:1;background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:9px;padding:10px;font:600 12px system-ui;cursor:pointer;">Skip · use demo</button>
+      </div>
+      ${dots(2)}`);
+    setTimeout(()=>{const i=document.getElementById('keyPromptInput');if(i&&!savedKey)i.focus();},100);
+  } else if(step===3){
+    ov.innerHTML=card(`
+      <div style="font:800 16px system-ui;color:#eef3fb;margin-bottom:4px;">🌐 Step 2 — Pick your market</div>
+      <div style="font-size:12px;color:#9fb2cc;line-height:1.55;margin-bottom:12px;">Choose the exchange you want to look at. You can change or add more later.</div>
+      <select id="wizExchSel" style="width:100%;box-sizing:border-box;background:#05152e;border:1px solid #24406e;border-radius:9px;color:#eef3fb;padding:12px;font-size:13px;margin-bottom:14px;">${_wizExch()}</select>
+      <button onclick="_wizFinish()" style="width:100%;background:var(--gold,#FFD200);color:#0d1b33;border:none;border-radius:9px;padding:13px;font:800 14px system-ui;cursor:pointer;margin-bottom:8px;">Load my market ⚡</button>
+      <button onclick="_wizGo(2)" style="width:100%;background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:9px;padding:10px;font:600 12px system-ui;cursor:pointer;">← Back</button>
+      ${dots(3)}`);
+    // preselect current exchange
+    setTimeout(()=>{const w=document.getElementById('wizExchSel'),s=document.getElementById('exchSel');if(w&&s)w.value=s.value;},50);
+  }
+}
+function _wizGo(step){ _showWizard(step); }
+function _wizSaveKey(){
   const i=document.getElementById('keyPromptInput'); if(!i)return;
   const v=(i.value||'').trim();
-  if(!v){ i.style.borderColor='#E21937'; i.placeholder='Please paste your key, or tap Later'; return; }
+  if(!v){ i.style.borderColor='#E21937'; i.placeholder='Please paste your key, or tap Skip'; return; }
   try{localStorage.setItem('asxScreener.apiKey',v);}catch(e){}
   const f=document.getElementById('apiKey'); if(f)f.value=v;
-  _refreshKeyUI();
-  const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove();
-  // kick off a data load now that we have a key
-  try{ if(typeof loadData==='function' && !allData.length) loadData(); }catch(e){}
+  try{_refreshKeyUI&&_refreshKeyUI();}catch(e){}
+  _showWizard(3);
 }
-function _keyPromptSkip(){ const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove(); }
+function _wizDemo(){
+  _wizDone();
+  try{ if(typeof loadDemoData==='function')loadDemoData(); }catch(e){}
+}
+function _wizFinish(){
+  const w=document.getElementById('wizExchSel'), s=document.getElementById('exchSel');
+  if(w&&s){ s.value=w.value; try{onExchChange&&onExchChange();}catch(e){} }
+  _wizDone();
+  try{ if(typeof loadData==='function')loadData(true); }catch(e){}
+}
+function _wizDone(){
+  try{localStorage.setItem('asxScreener.welcomeDone.v1','1');}catch(e){}
+  const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove();
+}
+function _keyPromptSave(){ _wizSaveKey(); }
+function _keyPromptSkip(){ _wizDemo(); }
 
 function sw(t){document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('on'));document.getElementById('tab-'+t).classList.add('on');document.getElementById('panel-'+t).classList.add('on');}
 function mp(){if(!allData.length)return;document.getElementById('applyBtn').disabled=false;document.getElementById('pending').style.display='block';}
@@ -10336,6 +10381,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
