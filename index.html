@@ -1171,6 +1171,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div>
+    <div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div>
     <div class="notice" id="notice">—</div>
   </div>
 
@@ -1291,7 +1294,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-197-open';
+const APP_VERSION='2026.07.04-199-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1744,6 +1747,8 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
+
 
 
 
@@ -3188,6 +3193,8 @@ function applyF(){
   filtered=allData.filter(s=>{
     // (watchlist view is rendered separately via renderWatch, bypassing filters)
     if(srch&&!(s.ticker+' '+s.name).toLowerCase().includes(srch))return false;
+    if(window._statBullBear==='bullish'&&!_isBullish(s))return false;
+    if(window._statBullBear==='bearish'&&!_isBearish(s))return false;
     if(F.dir==='up'&&s.chgPct<=0)return false;
     if(F.dir==='down'&&s.chgPct>=0)return false;
     if(F.dir==='flat'&&Math.abs(s.chgPct)>0.1)return false;
@@ -5997,7 +6004,12 @@ function printPDFRows(rows,title){
 // exclusive (a share can't be both).
 let _statOn={gainers:false,losers:false,vol:false,dir:false,up2:false};
 function statFilter(which){
-  if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); }
+  if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
+  else if(which==='bullish'||which==='bearish'){
+    window._statBullBear = (window._statBullBear===which)?null:which;
+    _statOn.bullish = window._statBullBear==='bullish';
+    _statOn.bearish = window._statBullBear==='bearish';
+  }
   else{
     _statOn[which]=!_statOn[which];              // toggle this one
     if(which==='gainers'&&_statOn.gainers)_statOn.losers=false;  // mutually exclusive
@@ -6017,6 +6029,25 @@ function statFilter(which){
   });
   applyF();
 }
+// Bullish / bearish classification from price+volume patterns only (a data
+// summary, never advice). Bullish = accumulating, buying pressure, or an up-run.
+// Bearish = heavy selling on volume, distribution, or a down-run.
+function _isBullish(s){
+  if(!s)return false;
+  const accum=(s.accum10!=null && s.accum10>=5);
+  const buying=!!s.dirBuy;
+  const upRun=(s.streakCalced && s.daysUp>=2);
+  const upVol=(s.chgPct>0 && s.volPct>=100); // up hard on heavy volume
+  return accum||buying||upRun||upVol;
+}
+function _isBearish(s){
+  if(!s)return false;
+  const downVol=(s.chgPct<0 && s.volPct>=100);           // falling on heavy volume = selling
+  const distribution=(s.blockDir==='down');               // inferred distribution
+  const downRun=(s.streakCalced && typeof s.daysUp==='number' && s.daysUp<=-2); // down-streak if tracked
+  const nearLow=(s.chgPct<0 && s.rangePos!=null && s.rangePos<=10); // sinking near its floor
+  return downVol||distribution||downRun||nearLow;
+}
 function statsBar(){
   const d=watchViewOn?Object.values(curWL()):filtered;
   document.getElementById('sTot').textContent=d.length.toLocaleString();
@@ -6025,6 +6056,8 @@ function statsBar(){
   document.getElementById('sV').textContent=d.filter(s=>s.volPct>=200).length;
   document.getElementById('sD').textContent=d.filter(s=>s.dirBuy).length;
   document.getElementById('sC').textContent=d.filter(s=>s.streakCalced&&s.daysUp>=2).length;
+  const bull=document.getElementById('sBull'); if(bull)bull.textContent=d.filter(_isBullish).length;
+  const bear=document.getElementById('sBear'); if(bear)bear.textContent=d.filter(_isBearish).length;
 }
 
 // Currency map
@@ -10303,6 +10336,10 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
+
+
 
 
 

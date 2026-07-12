@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-197",
+  "version": "2026.07.04-199",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training and help updated to cover the newest features: sharing your saved data between devices (export/copy/import), and the smart download that only fetches new days after your first full download and keeps your history current automatically."
+  "notes": "New Bullish and Bearish counts in the stats bar. Bullish = shares accumulating, under buying pressure, or on an up-run; Bearish = heavy selling, distribution, or sinking near their lows. Tap either to filter the list to just those shares. It's a plain data summary of price/volume patterns, not advice."
 }
