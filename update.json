@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-208",
+  "version": "2026.07.04-206",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The 🔬 Research further button now sits right at the top of every share report, next to Print — so it's visible straight away instead of being buried below the summary. Tap it to save a share to your research list (and again to remove it)."
+  "notes": "Fix: report dates now always show in Australian format (day/month/year) on every device — including phones set to another region, which previously showed the share report date in US month/day order."
 }
