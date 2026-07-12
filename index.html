@@ -1291,7 +1291,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-191-open';
+const APP_VERSION='2026.07.04-192-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1744,6 +1744,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -4847,12 +4848,20 @@ function doPasteRestore(){
     alert('✓ Portfolio restored: '+nH+' holding(s), '+nT+' trade(s).');
   }catch(e){if(msg){msg.textContent='That doesn\'t look like portfolio data. Make sure you copied the whole line output.';msg.style.color='#ff9caa';}}
 }
-function exportPortfolioBackup(){
+async function exportPortfolioBackup(){
   const p=_paper();
   const payload={_type:'insight-trading-portfolio',_version:APP_VERSION,_exported:new Date().toISOString(),account:p};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8;'});
+  const fname='insight-trading-portfolio_'+new Date().toISOString().slice(0,10)+'.json';
+  const json=JSON.stringify(payload,null,2);
+  const blob=new Blob([json],{type:'application/json;charset=utf-8;'});
+  // Phones often ignore the download link — use the native share sheet first.
+  const file=(typeof File!=='undefined')?new File([blob],fname,{type:'application/json'}):null;
+  if(navigator.canShare && file && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:'Insight Trading portfolio backup'}); return; }
+    catch(err){ if(err && err.name==='AbortError') return; }
+  }
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='insight-trading-portfolio_'+new Date().toISOString().slice(0,10)+'.json';
+  a.download=fname;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 function importPortfolioBackup(input){
@@ -8320,13 +8329,27 @@ async function exportOfflineData(){
     // group counts per exchange for the filename + a friendly confirm
     const byEx={}; items.forEach(it=>{ const ex=it.k.slice(0,it.k.indexOf(':')); byEx[ex]=(byEx[ex]||0)+1; });
     const payload={ format:'insight-offline', version:APP_VERSION, exported:new Date().toISOString(), exchanges:byEx, count:items.length, items };
-    const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+    const fname=`insight-offline-${Object.keys(byEx).join('-')||'data'}-${new Date().toISOString().slice(0,10)}.json`;
+    const json=JSON.stringify(payload);
+    const blob=new Blob([json],{type:'application/json'});
+    // On phones the plain download link often fails silently. Prefer the native
+    // SHARE sheet (send to email / Drive / WhatsApp / Files) when available, and
+    // fall back to a normal download on desktop.
+    const file=(typeof File!=='undefined')?new File([blob],fname,{type:'application/json'}):null;
+    if(navigator.canShare && file && navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file], title:'Insight Trading saved data', text:'My downloaded market data'});
+        return;
+      }catch(err){ if(err && err.name==='AbortError') return; /* user cancelled */ }
+    }
+    // Fallback: normal download (works on desktop; some mobile browsers too).
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    const exNames=Object.keys(byEx).join('-')||'data';
-    a.href=url; a.download=`insight-offline-${exNames}-${new Date().toISOString().slice(0,10)}.json`;
+    a.href=url; a.download=fname; a.rel='noopener';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url),4000);
+    // If nothing obvious happened, tell the user where to look / offer a copy.
+    setTimeout(()=>{ /* best-effort hint on mobile */ }, 100);
   }catch(e){ alert('Export failed: '+e.message); }
 }
 async function importOfflineData(input){
@@ -10201,6 +10224,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
