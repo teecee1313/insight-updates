@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-207",
+  "version": "2026.07.04-208",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "You can now reach your 🔬 Research Further list from Simple view too — a new card sits alongside My portfolio and My watchlist. Flagging a share from any report already worked in both views; now the list itself is one tap away whichever mode you're in."
+  "notes": "The 🔬 Research further button now sits right at the top of every share report, next to Print — so it's visible straight away instead of being buried below the summary. Tap it to save a share to your research list (and again to remove it)."
 }
