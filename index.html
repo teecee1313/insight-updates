@@ -1291,7 +1291,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-195-open';
+const APP_VERSION='2026.07.04-196-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1744,6 +1744,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -8353,25 +8354,50 @@ async function exportOfflineData(){
     // ways to get the data out.
     window._offlineExportText=json;
     window._offlineExportName=fname;
-    const canShareFiles = !!(navigator.canShare && (typeof File!=='undefined') && navigator.canShare({files:[new File([blob],fname,{type:'application/json'})]}));
-    const shareBtn = canShareFiles
-      ? `<button onclick="_shareOfflineExport()" style="width:100%;padding:11px;margin-bottom:8px;border-radius:8px;border:1px solid #3fb950;background:rgba(63,185,80,.12);color:#3fb950;font:700 13px var(--sans);cursor:pointer;">📤 Share (email · Drive · Files · WhatsApp)</button>`
+    window._offlineExportBlob=blob;
+    const sizeMB=(json.length/1048576);
+    const sizeLabel = sizeMB>=1 ? sizeMB.toFixed(1)+' MB' : Math.max(1,Math.round(json.length/1024))+' KB';
+    const big = json.length>800000; // ~0.8MB — above this, copy/paste & data-URLs are unreliable
+    const hasShare = !!(navigator.share && navigator.canShare);
+    // Copy is only reliable for small exports; for big ones we steer to the file.
+    const copyBtn = big
+      ? ''
+      : `<button onclick="_copyOfflineExport()" style="width:100%;padding:13px;margin-bottom:8px;border-radius:8px;border:1px solid var(--gold);background:rgba(255,210,0,.16);color:var(--gold);font:800 14px var(--sans);cursor:pointer;">📋 Copy data  (easiest for small exports)</button>`;
+    const shareLink = hasShare
+      ? `<div style="text-align:center;margin-top:10px;"><a href="#" onclick="_shareOfflineExport();return false;" style="color:var(--muted);font-size:12px;text-decoration:underline;">or try Share sheet (email · Drive · WhatsApp)</a></div>`
       : '';
+    const bigNote = big
+      ? `<p style="margin:0 0 12px;color:var(--muted);font-size:12px;">This export is <b>${sizeLabel}</b> — too big to copy/paste, so use <b>Save file</b> below. It saves to your Downloads; move it to the other device (cable, Drive, or email as an attachment) and use <b>Import saved data from file</b>.</p>`
+      : `<p style="margin:0 0 12px;color:var(--muted);font-size:12px;">Easiest: tap <b>Copy</b>, paste it into a note or email to yourself, open on the other device and use <b>“Or paste copied data.”</b> Or use <b>Save file</b>.</p>`;
     if(typeof showModal==='function'){
       showModal(
         `<div style="font-size:13px;color:var(--text);line-height:1.5;">
-          <p style="margin:0 0 8px;"><b>Your saved data is ready.</b> ${items.length} shares · ${Object.keys(byEx).join(', ')}</p>
-          <p style="margin:0 0 10px;color:var(--muted);font-size:12px;">Use any option below, then on the other device use <b>Import saved data</b> (or paste, if you copied).</p>
-          ${shareBtn}
-          <button onclick="_copyOfflineExport()" style="width:100%;padding:11px;margin-bottom:8px;border-radius:8px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">📋 Copy data (paste into a note or email)</button>
-          <a href="data:application/json;charset=utf-8,${encodeURIComponent(json)}" download="${fname}" style="display:block;text-align:center;width:100%;padding:11px;border-radius:8px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 13px var(--sans);text-decoration:none;box-sizing:border-box;">⬇ Download file (long-press → Save if needed)</a>
+          <p style="margin:0 0 6px;"><b>Your saved data is ready.</b> ${items.length} shares · ${Object.keys(byEx).join(', ')} · ${sizeLabel}</p>
+          ${bigNote}
+          ${copyBtn}
+          <button onclick="_downloadOfflineExport()" style="width:100%;padding:13px;margin-bottom:4px;border-radius:8px;border:1px solid var(--blue);background:rgba(88,166,255,.16);color:var(--blue);font:800 14px var(--sans);cursor:pointer;">⬇ Save file to this device</button>
+          ${shareLink}
         </div>`,
         '⬆ Export saved data');
     } else {
-      // no modal available — last resort
-      try{ await _copyOfflineExport(); }catch(_){}
+      try{ _downloadOfflineExport(); }catch(_){}
     }
   }catch(e){ alert('Export failed: '+e.message); }
+}
+// Download the export as a real file via a blob URL — handles large files that
+// data: URLs and copy/paste can't. Triggered from a fresh button tap.
+function _downloadOfflineExport(){
+  try{
+    const blob=window._offlineExportBlob||new Blob([window._offlineExportText||''],{type:'application/json'});
+    const fname=window._offlineExportName||'insight-offline.json';
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=fname; a.rel='noopener';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 15000);
+    // On Android the file lands in Downloads; confirm so the user knows to look.
+    setTimeout(()=>{ alert('Saving “'+fname+'”. Check your Downloads (or the notification bar). Move it to the other device, then use Import saved data from file.'); }, 300);
+  }catch(e){ alert('Save failed: '+e.message); }
 }
 // Copy the export text; falls back to a selectable prompt if clipboard is blocked.
 async function _copyOfflineExport(){
@@ -10276,6 +10302,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
