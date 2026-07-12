@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.04-202",
+  "version": "2026.07.04-203",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Clearer Advanced layout. Buttons are now grouped under DATA (refresh, clear filters) and SETTINGS (setup, refine) so it's obvious which is which. Your saved 'Run daily routine' now appears right on the main screen once you have one. Clearer labels on the data-refresh button and the My Report save area."
+  "notes": "Fixed the stat filters (Gainers, Losers, Vol, Accum, Up 2+, Bullish, Bearish). Tapping one now narrows the report or scan you're currently viewing, instead of resetting and dumping you back to the full list. Tap again to remove that filter and get your view back. Toggles combine, and running a new scan starts fresh."
 }

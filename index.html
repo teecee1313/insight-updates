@@ -1309,7 +1309,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-202-open';
+const APP_VERSION='2026.07.04-203-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1762,6 +1762,7 @@ function initLang(){
 
 let allData=[], filtered=[], currentExch='ASX';
 window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+
 
 
 
@@ -3196,6 +3197,7 @@ function manageReports(){
 function runOneReport(i){
   const list=loadReports();const r=list[i];if(!r)return;
   applyPreset(r);closeModal();lastScanLabel=r.name;
+  _resetStatsForNewView();
   const st=document.getElementById('smartStatus');
   if(st)st.innerHTML=`⭐ ${r.name} · <strong style="color:var(--gold)">${filtered.length}</strong> matches`;
   render();statsBar();
@@ -3251,7 +3253,19 @@ function refreshMyReportBtn(){
 }
 
 // Filter engine
+// Called when a NEW view is shown (scan/report/preset) so the stat toggles
+// start clean and re-capture this new result as their base.
+function _resetStatsForNewView(){
+  try{ Object.keys(_statOn).forEach(k=>_statOn[k]=false); }catch(e){}
+  window._statBullBear=null;
+  window._statBaseValid=false;
+  document.querySelectorAll('.statclick').forEach(el=>el.classList.remove('active'));
+}
 function applyF(){
+  // A full filter rebuild means the "current view" is changing — let the stat
+  // toggles recapture a fresh base from this new result rather than narrowing
+  // a stale one.
+  window._statBaseValid=false;
   const srch=(document.getElementById('searchBox').value||'').toLowerCase().trim();
   const maxP=F.pMax>=500?Infinity:F.pMax;
   const maxV=F.vMax>=50?Infinity:F.vMax*1e6;
@@ -3260,8 +3274,6 @@ function applyF(){
   filtered=allData.filter(s=>{
     // (watchlist view is rendered separately via renderWatch, bypassing filters)
     if(srch&&!(s.ticker+' '+s.name).toLowerCase().includes(srch))return false;
-    if(window._statBullBear==='bullish'&&!_isBullish(s))return false;
-    if(window._statBullBear==='bearish'&&!_isBearish(s))return false;
     if(F.dir==='up'&&s.chgPct<=0)return false;
     if(F.dir==='down'&&s.chgPct>=0)return false;
     if(F.dir==='flat'&&Math.abs(s.chgPct)>0.1)return false;
@@ -6073,6 +6085,7 @@ let _statOn={gainers:false,losers:false,vol:false,dir:false,up2:false};
 function statFilter(which){
   if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
   else if(which==='bullish'||which==='bearish'){
+    // toggle the bull/bear lens (mutually exclusive), independent of the field filters
     window._statBullBear = (window._statBullBear===which)?null:which;
     _statOn.bullish = window._statBullBear==='bullish';
     _statOn.bearish = window._statBullBear==='bearish';
@@ -6082,19 +6095,44 @@ function statFilter(which){
     if(which==='gainers'&&_statOn.gainers)_statOn.losers=false;  // mutually exclusive
     if(which==='losers'&&_statOn.losers)_statOn.gainers=false;
   }
-  // apply the combined state to the filter fields
-  const setChk=(id,v)=>{const e=document.getElementById(id);if(e)e.checked=v;};
-  F.dir=_statOn.gainers?'up':_statOn.losers?'down':'all';
-  F.volLo=_statOn.vol?200:0;      // matches the "Vol ≥200%" stat: volPct ≥ 200
-  F.daysMin=_statOn.up2?2:0;
-  setChk('cDir',_statOn.dir);
-  // reflect active state on the boxes
+  // reflect active state on the stat boxes
   document.querySelectorAll('.statclick').forEach(el=>{
     const oc=el.getAttribute('onclick')||'';
     const m=oc.match(/statFilter\('([a-z0-9]+)'\)/);
     el.classList.toggle('active', !!(m&&_statOn[m[1]]));
   });
-  applyF();
+  _applyStatFilters();
+}
+// Narrow the CURRENT view (a scan result, report, or watchlist) by the active
+// stat toggles — instead of resetting to the whole market. Re-runs from the
+// base set the current view was built from, so toggles combine and untoggle
+// cleanly without throwing away the report/scan you're looking at.
+function _applyStatFilters(){
+  const anyOn = _statOn.gainers||_statOn.losers||_statOn.vol||_statOn.dir||_statOn.up2||window._statBullBear;
+  // Base = the set the current view is showing, captured before stats narrowed it.
+  if(!window._statBase || !window._statBaseValid){
+    window._statBase = (Array.isArray(filtered)?filtered.slice():[]);
+    window._statBaseValid = true;
+  }
+  const base = window._statBase;
+  if(!anyOn){
+    // nothing selected → restore the full current view
+    filtered = base.slice();
+    window._statBaseValid = false; // next stat click recaptures a fresh base
+  } else {
+    filtered = base.filter(s=>{
+      if(_statOn.gainers && !(s.chgPct>0))return false;
+      if(_statOn.losers && !(s.chgPct<0))return false;
+      if(_statOn.vol && !(s.volPct>=200))return false;
+      if(_statOn.dir && !s.dirBuy)return false;
+      if(_statOn.up2 && !(s.streakCalced&&s.daysUp>=2))return false;
+      if(window._statBullBear==='bullish' && !_isBullish(s))return false;
+      if(window._statBullBear==='bearish' && !_isBearish(s))return false;
+      return true;
+    });
+  }
+  try{ render&&render(); }catch(e){}
+  try{ statsBar&&statsBar(); }catch(e){}
 }
 // Bullish / bearish classification from price+volume patterns only (a data
 // summary, never advice). Bullish = accumulating, buying pressure, or an up-run.
@@ -6667,6 +6705,7 @@ function loadPlan(key){
   // Apply now
   cp();applyF();dots();mkBadges();
   lastScanLabel=p.label;
+  _resetStatsForNewView();
   // Quiet-only: strip likely-news movers (proxy) once results exist
   if(p.quiet&&filtered.length)filterNoNewsPlan();
   const quietBtn=`<br><button onclick="filterNoNewsPlan()" style="margin-top:5px;padding:5px 8px;border-radius:5px;border:1px solid var(--purple);background:rgba(188,140,255,.12);color:var(--purple);font:600 10px var(--sans);cursor:pointer;">🔇 Keep only quiet movers (no news 5d)</button>`;
@@ -6918,6 +6957,7 @@ async function speedingTicketScan(){
 
   filtered=scored;
   lastScanLabel='Sharp Movers';
+  _resetStatsForNewView();
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   document.getElementById('sortSel').value='chgPct';sortKey='chgPct';sortDir=-1;
   render();statsBar();dots();mkBadges();
@@ -7167,6 +7207,7 @@ async function topTenScan(){
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=top;
   lastScanLabel='Top 20 to Watch';
+  _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();if(typeof dots==='function')dots();if(typeof mkBadges==='function')mkBadges();
   document.getElementById('statsBar').style.display='flex';
@@ -7686,6 +7727,7 @@ async function allSignalsScan(){
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   filtered=scored;
   lastScanLabel='All Signals';
+  _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();
   document.getElementById('statsBar').style.display='flex';
@@ -7735,6 +7777,7 @@ async function unusualScan(){
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   filtered=scored;
   lastScanLabel='Unusual Activity';
+  _resetStatsForNewView();
   document.getElementById('sortSel').value='volPct';sortKey='volPct';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();
   document.getElementById('statsBar').style.display='flex';
@@ -7868,6 +7911,7 @@ async function smartMoneyScan(minDays,scanAll){
     ).sort((a,b)=>(b.daysUpVol||0)-(a.daysUpVol||0) || b.volPct-a.volPct);
   }
   lastScanLabel=scanAll?`Volume Scan (all shares)`:`Smart Money ${minDays}+ day`;
+  _resetStatsForNewView();
 
   document.getElementById('sortSel').value='volPct';sortKey='volPct';sortDir=-1;
   render();statsBar();dots();mkBadges();
@@ -10403,6 +10447,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
