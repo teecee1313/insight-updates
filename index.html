@@ -1310,7 +1310,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-204-open';
+const APP_VERSION='2026.07.04-205-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1835,6 +1835,7 @@ window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._h
 
 
 
+
 let lastScanLabel='';
 let sortKey='volPct', sortDir=-1;
 // Dual-slider scale stops (index 0–8). Index 8 = open-ended top (Any/∞).
@@ -1872,6 +1873,101 @@ function saveWatchlists(){
 }
 function curWL(){return watchlists[activeWatch]||(watchlists[activeWatch]={});}
 function inWatch(ticker){return !!curWL()[ticker];}
+
+// ── Research list ─────────────────────────────────────────────────────────
+// A DIFFERENT thing from the watchlist: a workflow holding-pen for shares you
+// want to look into later. Each entry keeps a snapshot, a "why" note, and the
+// date flagged. You work through it: research → promote to watchlist, or dismiss.
+const RESEARCH_KEY='asxScreener.research.v1';
+let researchList={}; // { TICKER: {ticker,exchange,name,note,ts,snap} }
+function loadResearch(){
+  try{const raw=localStorage.getItem(RESEARCH_KEY);researchList=raw?JSON.parse(raw)||{}:{};}
+  catch(e){researchList={};}
+}
+function saveResearch(){
+  try{localStorage.setItem(RESEARCH_KEY,JSON.stringify(researchList));}catch(e){}
+}
+function inResearch(ticker){return !!researchList[ticker];}
+function researchCount(){return Object.keys(researchList).length;}
+function addResearch(ticker, note){
+  const s=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.find(x=>x.ticker===ticker):null;
+  researchList[ticker]={
+    ticker, exchange:(s&&s.exchange)||currentExch||'ASX', name:(s&&s.name)||'',
+    note:note||'', ts:Date.now(),
+    snap:s?{price:s.price,chgPct:s.chgPct,volPct:s.volPct,accum10:s.accum10,watchScore:s.watchScore}:null
+  };
+  saveResearch();
+  try{_refreshResearchBtns();}catch(_){}
+}
+function removeResearch(ticker){ delete researchList[ticker]; saveResearch(); try{_refreshResearchBtns();}catch(_){}}
+function toggleResearch(ticker){
+  if(inResearch(ticker)){ removeResearch(ticker); }
+  else{
+    // prompt for an optional reason so the list stays meaningful
+    let why='';
+    try{ why=window.prompt('Flag '+ticker+' to research further.\n\nOptional — why did it catch your eye? (e.g. "volume spike", "near 52wk low")','')||''; }catch(e){}
+    if(why===null) return; // cancelled
+    addResearch(ticker, why);
+  }
+}
+// promote a research item straight into the active watchlist, then clear it
+function promoteResearch(ticker){
+  try{
+    const s=(Array.isArray(allData))?allData.find(x=>x.ticker===ticker):null;
+    if(s && typeof curWL==='function'){ curWL()[ticker]=s; if(typeof saveWatchlists==='function')saveWatchlists(); }
+  }catch(e){}
+  removeResearch(ticker);
+  try{ if(typeof renderResearch==='function')renderResearch(); if(typeof refreshWatchCount==='function')refreshWatchCount(); }catch(_){}
+}
+function _refreshResearchBtns(){
+  const c=researchCount();
+  document.querySelectorAll('[data-research-count]').forEach(el=>{ el.textContent=c?`(${c})`:''; });
+}
+// The research list view — a worklist you clear, not a collection you keep.
+function renderResearch(){
+  loadResearch();
+  const items=Object.values(researchList).sort((a,b)=>b.ts-a.ts);
+  const fmtAgo=(ts)=>{
+    const days=Math.floor((Date.now()-ts)/86400000);
+    if(days<=0)return 'today'; if(days===1)return 'yesterday'; return days+' days ago';
+  };
+  let body;
+  if(!items.length){
+    body=`<div style="text-align:center;padding:30px 10px;color:var(--muted);font-size:13px;">
+      <div style="font-size:34px;margin-bottom:8px;">🔬</div>
+      <b style="color:var(--text);">Nothing to research yet</b><br>
+      <span style="font-size:12px;">While looking through reports and scans, tap <b>🔬 Research further</b> on any share to park it here — a to-do list of shares to look into, separate from your watchlist.</span>
+    </div>`;
+  } else {
+    body=items.map(it=>{
+      const stale=(Date.now()-it.ts)>7*86400000;
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:9px;background:var(--bg3);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+          <a href="#" onclick="closeModal();printShareReport('${it.ticker}');return false;" style="font-weight:800;font-size:15px;color:var(--gold);text-decoration:none;">${it.ticker}</a>
+          <span style="font-size:10px;color:${stale?'var(--red)':'var(--dim)'};">flagged ${fmtAgo(it.ts)}</span>
+        </div>
+        ${it.name?`<div style="font-size:10px;color:var(--muted);margin-top:1px;">${it.name}</div>`:''}
+        ${it.note?`<div style="font-size:12px;color:var(--text);margin-top:6px;padding:6px 8px;background:var(--navy);border-radius:6px;border-left:2px solid var(--gold);">“${it.note.replace(/</g,'&lt;')}”</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:6px;font-style:italic;">no note — <a href="#" onclick="_editResearchNote('${it.ticker}');return false;" style="color:var(--blue);">add why</a></div>`}
+        <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
+          <button onclick="closeModal();printShareReport('${it.ticker}')" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 11px var(--sans);cursor:pointer;">📄 Open report</button>
+          <button onclick="promoteResearch('${it.ticker}');renderResearch()" title="Move to your watchlist and clear from here" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">★ To watchlist</button>
+          <button onclick="removeResearch('${it.ticker}');renderResearch()" title="Done researching — remove from the list" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;">✓ Done</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const html=`<div style="font-size:13px;">
+    <div style="color:var(--muted);font-size:11px;margin-bottom:10px;line-height:1.5;">Shares you've parked to look into later. Work through them: open the report, then <b>★ send to your watchlist</b> if it's worth tracking, or <b>✓ Done</b> to clear it. This is a to-do list, not a collection — <span style="color:var(--dim)">a research aid, not advice.</span></div>
+    ${body}
+  </div>`;
+  if(typeof showModal==='function'){ window._modalLabel='🔬 Research further'; showModal(html); }
+}
+function _editResearchNote(ticker){
+  const it=researchList[ticker]; if(!it)return;
+  let why=''; try{ why=window.prompt('Why is '+ticker+' worth researching?', it.note||'')||''; }catch(e){}
+  if(why===null)return;
+  it.note=why; saveResearch(); renderResearch();
+}
 // Refresh EVERY watchlist entry from the freshly loaded data, so watchlists
 // stay current daily (price, change, volume, streaks, accumulation, score).
 // Entries whose exchange isn't loaded right now keep their last snapshot.
@@ -7637,6 +7733,8 @@ function deepDive(ticker){
   const inWL=(typeof inWatch==='function')&&inWatch(ticker);
   html+=sub('Your activity');
   html+=row('On a watchlist?',inWL?'<span style="color:var(--gold)">★ Yes</span>':'No');
+  const inRes=(typeof inResearch==='function')&&inResearch(ticker);
+  html+=`<div style="margin:8px 0;"><button onclick="toggleResearch('${ticker}');closeModal();" style="width:100%;padding:10px;border-radius:8px;border:1px solid ${inRes?'var(--green)':'var(--blue)'};background:${inRes?'rgba(63,185,80,.12)':'rgba(88,166,255,.1)'};color:${inRes?'var(--green)':'var(--blue)'};font:700 12px var(--sans);cursor:pointer;">${inRes?'✓ On your research list — tap to remove':'🔬 Research further — save to look into later'}</button></div>`;
   try{const hs=(_paper().holdings||[]).filter(h=>h.ticker===ticker);if(hs.length){const tot=hs.reduce((a,h)=>a+(h.qty||0),0);const inv=hs.reduce((a,h)=>a+(h.invested||0),0);const avg=tot?inv/tot:0;html+=row('Paper position',`${tot} @ ${fmtP(avg,s.currency)}`);}else{html+=row('Paper position','None');}}catch(e){html+=row('Paper position','None');}
 
   // ── Section 5: external sources (the deep data we don't hold) ──
@@ -10145,7 +10243,7 @@ function initCollapsibleGroups(){
 // app reads the recovered values instead of starting blank.
 (async function(){
   try{ await _restoreCriticalIfMissing(); }catch(e){}
-  initLicence();loadWatchlists();updateWatchBtn();initKeyLock();refreshMyReportBtn();refreshRoutineBtn();initCollapsibleGroups();initSidebarLayout();applyAssetMode();refreshPortfolioBtn();applyAdvFilters();saveVersionSnapshot();applyPrivateMode();initAppMode();
+  initLicence();loadWatchlists();loadResearch();_refreshResearchBtns();updateWatchBtn();initKeyLock();refreshMyReportBtn();refreshRoutineBtn();initCollapsibleGroups();initSidebarLayout();applyAssetMode();refreshPortfolioBtn();applyAdvFilters();saveVersionSnapshot();applyPrivateMode();initAppMode();
   try{ _refreshOfflineBtn(); }catch(e){}
   try{ _backupCritical(); }catch(e){} // ensure a fresh backup exists after load
 })();
@@ -10449,6 +10547,8 @@ function makeDraggable(zoneId, storeKey){
 })();
 syncP();syncV();
 </script>
+
+
 
 
 
