@@ -418,13 +418,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
   .stats{flex-wrap:wrap;}
   /* Table: keep the essentials, hide the dense columns.
      Cols: 1 chk · 2 star · 3 ticker · 4 price · 5 change · 6 volSurge · 7 volume · 8 priceStreak · 9 volStreak · 10 accum · 11 score · 12 news · 13 signals */
-  table th:nth-child(1), table td:nth-child(1),   /* checkbox */
-  table th:nth-child(6), table td:nth-child(6),   /* vol surge */
-  table th:nth-child(7), table td:nth-child(7),   /* volume detail */
-  table th:nth-child(8), table td:nth-child(8),   /* price streak */
-  table th:nth-child(9), table td:nth-child(9),   /* vol streak */
-  table th:nth-child(10), table td:nth-child(10), /* accumulation */
-  table th:nth-child(13), table td:nth-child(13){ /* signals */
+  table:not(.hist) th:nth-child(1), table:not(.hist) td:nth-child(1),   /* checkbox */
+  table:not(.hist) th:nth-child(6), table:not(.hist) td:nth-child(6),   /* vol surge */
+  table:not(.hist) th:nth-child(7), table:not(.hist) td:nth-child(7),   /* volume detail */
+  table:not(.hist) th:nth-child(8), table:not(.hist) td:nth-child(8),   /* price streak */
+  table:not(.hist) th:nth-child(9), table:not(.hist) td:nth-child(9),   /* vol streak */
+  table:not(.hist) th:nth-child(10), table:not(.hist) td:nth-child(10), /* accumulation */
+  table:not(.hist) th:nth-child(13), table:not(.hist) td:nth-child(13){ /* signals */
     display:none;
   }
   table th,table td{padding:9px 6px;font-size:13px;}
