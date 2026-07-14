@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-219",
+  "version": "2026.07.14-220",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v219 — Fixed the stats bar cutting across the Learn/Help panels. Plus v218: all lessons, help guide and tooltips updated for the new features (Market Today & Recovery Watch, interactive What's Changed card, full paper-trading upgrade), and the What's Changed action buttons in a tidy 2×2 grid."
+  "notes": "v220 — Big chart upgrade: 🕯 candlestick view, works with touch on phones, your paper trades drawn on the chart (▲ buys ▼ sells 🎯 target 🛑 stop), gold dots on accumulation days, average-volume line, 1Y timeframe, 'vs mkt' index overlay, log scale, and a smarter 4-week range band. Plus v219's panel fix and updated lessons."
 }
