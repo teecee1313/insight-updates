@@ -1208,6 +1208,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="drag-row" draggable="true" data-dragid="scan-sharp"><span class="drag-h">⠿</span><button onclick="speedingTicketScan()" class="scan-alt" title="Ranks shares by how abnormal today's move is for each share (vs its own typical range), split by whether there's a likely-news reason. Estimate — not advice."><span>🚨 Sharp Mover Detector</span> <span class="scan-tag">abnormal for that share · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-unusual"><span class="drag-h">⠿</span><button id="unusualBtn" onclick="unusualScan()" class="scan-alt" style="border-color:var(--orange);color:var(--orange);background:rgba(255,165,0,.1);" title="Scores every share against unusual END-OF-DAY price/volume patterns and ranks them. Estimate only — not manipulation detection, not advice."><span>🔍 Unusual Activity Scan</span> <span class="scan-tag">scores 5 patterns · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-allsig"><span class="drag-h">⠿</span><button id="allSigBtn" onclick="allSignalsScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.08);" title="Runs EVERYTHING in one pass — sharp-mover abnormality, the five unusual-activity patterns, volume surge, price & volume streaks, accumulation and the /10 score — and ranks shares by how many signals they trigger at once. Estimate — not advice."><span>🧩 All Signals Scan</span> <span class="scan-tag">sharp + unusual + streaks + accum · estimate</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-pulse"><span class="drag-h">⠿</span><button onclick="simpleMarketPulse()" class="scan-alt" style="border-color:var(--amber);color:var(--amber);background:rgba(255,176,46,.10);" title="A one-screen market breadth snapshot — how many shares are up vs down today, the biggest movers and where the volume is. A data summary, not advice."><span>📊 Market Today</span> <span class="scan-tag">breadth snapshot · up vs down</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-recovery"><span class="drag-h">⠿</span><button onclick="recoveryScanAdv()" class="scan-alt" style="border-color:var(--amber);color:var(--amber);background:rgba(255,176,46,.08);" title="Finds fallen shares that are stabilising on elevated volume — potential reversal candidates. Fills the results table. A data summary, not advice."><span>↩️ Recovery Watch</span> <span class="scan-tag">fallen · stabilising on volume</span></button></div>
     </div>
 
     <button class="menu-btn" onclick="openOverlay('morescans')"><span>🔎 More scans &amp; presets</span><span class="mb-chev">▶</span></button>
@@ -1361,7 +1363,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-215-open';
+const APP_VERSION='2026.07.14-217-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10232,9 +10234,24 @@ function renderWhatsNew(){
     const star=it.onWatch?'⭐ ':'';
     const col=it.onWatch?'var(--gold)':'var(--text)';
     const why=String(it.why||'').replace(/\(([^)]*)\)/g,m=>m.replace(/ /g,'\u00a0'));
-    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 2px;border-top:1px solid var(--border);">
-      <a href="#" onclick="printShareReport('${it.ticker}');return false;" style="color:${col};font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;flex-shrink:0;">${star}${it.ticker}</a>
-      <span style="font-size:11px;color:var(--muted);text-align:right;line-height:1.35;">${why}</span>
+    const s=(allData||[]).find(x=>x.ticker===it.ticker);
+    const info=(s&&s.price>0)?`${fmtP(s.price,s.currency)} · <span style="color:${s.chgPct>=0?'var(--green)':'var(--red)'}">${s.chgPct>=0?'+':''}${(s.chgPct||0).toFixed(2)}% today</span>${(s.volCalced&&isFinite(s.volPct))?` · vol ${s.volPct>=0?'+':''}${Math.round(s.volPct)}% vs normal`:''}`:'';
+    const inR=(typeof inResearch==='function')&&inResearch(it.ticker);
+    const b=(fn,label,color)=>`<button onclick="event.stopPropagation();${fn}" style="flex:1;min-width:0;padding:7px 3px;border-radius:6px;border:1px solid ${color};background:color-mix(in srgb,${color} 10%,transparent);color:${color};font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">${label}</button>`;
+    return `<div style="border-top:1px solid var(--border);">
+      <div onclick="_wnToggle(this)" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 2px;cursor:pointer;">
+        <a href="#" onclick="event.stopPropagation();printShareReport('${it.ticker}');return false;" style="color:${col};font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;flex-shrink:0;">${star}${it.ticker}</a>
+        <span style="font-size:11px;color:var(--muted);text-align:right;line-height:1.35;">${why} <span style="color:var(--dim);font-size:9px;">▾</span></span>
+      </div>
+      <div style="display:none;padding:2px 2px 9px;">
+        ${info?`<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:6px;">${info}</div>`:''}
+        <div style="display:flex;gap:5px;">
+          ${b(`printShareReport('${it.ticker}')`,'🖨 Report','var(--blue)')}
+          ${b(`_wnWatch('${it.ticker}')`,it.onWatch?'★ Un-watch':'⭐ Watchlist','var(--gold)')}
+          ${b(`paperBuy('${it.ticker}')`,'💼 Buy','var(--green)')}
+          ${b(`_wnResearch('${it.ticker}')`,inR?'✓ Researching':'🔬 Research','#bc8cff')}
+        </div>
+      </div>
     </div>`;
   };
   const WN_SHOW=5;
@@ -10242,10 +10259,32 @@ function renderWhatsNew(){
     +(items.length>WN_SHOW?`<div style="display:none;">${items.slice(WN_SHOW).map(_wnRow).join('')}</div><a href="#" onclick="(function(a){const m=a.previousElementSibling;const open=m.style.display==='none';m.style.display=open?'':'none';a.textContent=open?'▲ Show fewer':'▼ Show all ${items.length}';})(this);return false;" style="display:block;text-align:center;font-size:11px;color:var(--blue);padding:8px 0 2px;text-decoration:none;border-top:1px solid var(--border);margin-top:4px;">▼ Show all ${items.length}</a>`:'');
   const html=`<div style="border:2px solid rgba(255,210,0,.75);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:var(--bg2);box-shadow:0 0 14px rgba(255,210,0,.08);">
     <div style="font-weight:800;font-size:15px;color:var(--gold);margin-bottom:2px;">🔔 What's changed since last time</div>
-    <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">Shares that started moving since your last visit. ⭐ = on your watchlist. A data summary, not advice — tap to open a report.</div>
+    <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">Shares that started moving since your last visit. ⭐ = on your watchlist. Tap a row for quick actions · tap the code to open its report. A data summary, not advice.</div>
     ${rows}
   </div>`;
   cards.forEach(c=>{ c.style.display='block'; c.innerHTML=html; });
+}
+// ── What's-changed row actions (v216) ────────────────────────────────────────
+// Tap a row to reveal quick actions; tap the ticker itself to jump straight to
+// its report. Only one action bar stays open per card.
+function _wnToggle(rowEl){
+  const act=rowEl.nextElementSibling;
+  if(!act)return;
+  const open=act.style.display==='none';
+  try{
+    const card=rowEl.closest('#whatsNewCard,#whatsNewCardAdv');
+    if(card)card.querySelectorAll('.wn-open').forEach(x=>{if(x!==act){x.style.display='none';x.classList.remove('wn-open');}});
+  }catch(_){}
+  act.style.display=open?'block':'none';
+  act.classList.toggle('wn-open',open);
+}
+function _wnWatch(t){
+  try{toggleStar(t);}catch(_){}
+  try{renderWhatsNew();}catch(_){}
+}
+function _wnResearch(t){
+  try{toggleResearch(t);}catch(_){}
+  try{renderWhatsNew();}catch(_){}
 }
 function initAppMode(){
   let mode='simple';
@@ -10539,6 +10578,16 @@ async function recoveryScan(){
   filtered=rows.slice(0,40);
   lastScanLabel='Recovery watch';
   _resetStatsForNewView();
+}
+// Advanced-mode wrapper (v217): run the recovery scan and show the results in
+// the main table (Simple mode shows them in a popup instead via simpleRun).
+async function recoveryScanAdv(){
+  const st=document.getElementById('smartStatus');
+  if(!Array.isArray(allData)||!allData.length){ if(st)st.textContent='Load data first, then run Recovery Watch.'; return; }
+  if(st)st.textContent='Scanning for recovery candidates…';
+  try{ await recoveryScan(); }catch(e){}
+  try{ render();statsBar();dots();mkBadges(); }catch(e){}
+  if(st)st.innerHTML=(Array.isArray(filtered)&&filtered.length)?`✓ <strong style="color:var(--amber)">${filtered.length}</strong> potential recovery shares — see the table`:'No recovery candidates right now.';
 }
 
 function simpleRun(what){
