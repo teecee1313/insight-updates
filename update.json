@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-233",
+  "version": "2026.07.14-234",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v233 — No more '?' rows: signal preparation now covers ALL shares by default, and whenever your downloaded data covers the market it always prepares everything (disk reads are free) regardless of the depth setting. Low-volume shares get their streaks, accumulation and scores like everything else. Includes v232's range-window fix."
+  "notes": "v234 — Loads from YOUR SAVED DATA first: after a live price load, volume averages, streaks and signals now come straight from the data on your device (instant, no internet) instead of rebuilding the market's history day-by-day online. The day-by-day build now only runs when you have nothing saved, says so honestly, and has a ■ stop link (progress is kept). Paper trading: new ➕ add cash link for topping up your practice balance properly, and the balance warning no longer false-alarms when you've recorded dividends or paid brokerage fees. Setup & data panel rewritten so it's clear what loads from the internet vs from this device, with a line showing how many shares you have saved and when."
 }

@@ -641,12 +641,15 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </optgroup>
       </select>
     </div>
+    <div class="step-sub2" style="margin-top:10px;">🌐 FROM THE INTERNET — today's live prices <span style="text-transform:none;font-weight:500;">(needs your API key)</span></div>
     <button id="loadBtn" onclick="loadData(true)">
       <div class="sp" id="sp"></div>
-      <span id="loadLbl" data-i18n="loadData">⚡ Load / refresh now</span>
+      <span id="loadLbl" data-i18n="loadData">⚡ Get today's prices (internet)</span>
     </button>
+    <div class="step-sub2" style="margin-top:12px;">💾 FROM THIS DEVICE — your saved data <span style="text-transform:none;font-weight:500;">(instant · works offline)</span></div>
+    <div id="savedDataStat" style="font-size:9.5px;color:var(--muted);margin:0 0 6px;font-family:var(--mono);"></div>
     <button id="offlineLoadBtn" onclick="loadOfflineNow()" style="display:none;width:100%;padding:8px;border-radius:6px;border:1px solid #58a6ff;background:rgba(88,166,255,.12);color:#58a6ff;font:700 12px var(--sans);cursor:pointer;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;" title="Load the data you already downloaded, instantly — no network, no waiting on proxies. Prices are from your last download.">📂 Load from saved data (instant)</button>
-    <div class="adv-note" style="margin-top:6px;">The app loads and prepares everything automatically. Use this only to force a manual refresh. <strong>📂 Load from saved data</strong> appears when you have an offline download — it's instant and skips the network.</div>
+    <div class="adv-note" style="margin-top:6px;"><strong style="color:var(--muted)">The difference:</strong> 🌐 internet = today's fresh prices, needs your key and a network · 💾 this device = your last download, loads instantly with no internet. The app picks automatically on startup; these buttons are for doing it by hand.</div>
 
         <!-- API key -->
         <div class="adv-note">Your data connection. Enter it once — it's remembered.</div>
@@ -777,7 +780,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           </div>
         </details>
 
-        <div class="step-sub2">⬇ Download for offline use</div>
+        <div class="step-sub2" style="margin-top:12px;">⬇ BUILD / UPDATE this device's saved data <span style="text-transform:none;font-weight:500;">(uses the internet once — then loads are instant forever)</span></div>
         <div style="margin:2px 0 8px;padding:10px;border:1px solid var(--border2);border-radius:8px;background:rgba(88,166,255,.04);">
           <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px;">1 · Options</div>
           <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:8px;">
@@ -791,7 +794,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <button id="bulkStopBtn" onclick="stopBulkDownload()" style="display:none;width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff6b81;font:700 11px var(--sans);cursor:pointer;">■ Stop download</button>
           <div style="font-size:9px;color:var(--dim);margin-top:5px;text-align:center;"><a href="#" onclick="openMultiDownload();return false;" style="color:#58a6ff;">⬇ Download multiple exchanges…</a></div>
 
-          <div style="font-size:10px;color:var(--muted);font-weight:700;margin:10px 0 5px;">Share saved data with another device</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:700;margin:12px 0 5px;">📦 BACKUP / MOVE — a file you keep <span style="font-weight:500;color:var(--dim)">(copy your saved data to another computer or phone)</span></div>
           <button onclick="exportOfflineData()" style="width:100%;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">⬆ Export saved data to file</button>
           <button onclick="document.getElementById('importOfflineInput').click()" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid #3fb950;background:rgba(63,185,80,.10);color:#3fb950;font:700 11px var(--sans);cursor:pointer;">⬇ Import saved data from file</button>
           <input type="file" id="importOfflineInput" accept=".json,application/json" style="display:none;" onchange="importOfflineData(this)">
@@ -1398,7 +1401,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-233-open';
+const APP_VERSION='2026.07.14-234-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5353,10 +5356,12 @@ function paperRepairBalance(){
   const reserved=_reservedSum(p);
   const closedPl=(p.history||[]).reduce((a,t)=>a+(t.plAbs||0),0);
   const fees=p.feesPaid||0;
+  const histFees=(p.history||[]).reduce((a,t)=>a+(t.fees||0),0);
+  const divs=(p.dividends||[]).reduce((a,d)=>a+(d.total||0),0);
   // Money currently tied up in the market (open holdings + reserved orders),
-  // and the realised (banked) result so far, net of fees.
+  // and the realised (banked) result so far — net of fees, plus dividends.
   const committed=+(spent+reserved).toFixed(2);
-  const banked=+(closedPl-fees).toFixed(2);
+  const banked=+(closedPl-fees+histFees+divs).toFixed(2);
   // ── Option 1 (recommended): SET MY STARTING BALANCE ──
   // You tell the app the bankroll you actually began with. That becomes the
   // account's starting capital AND stays as your trading pot: cash = starting
@@ -5416,13 +5421,37 @@ function paperRepairBalance(){
 }
 // True when the stored cash disagrees with what the ledger implies — the
 // signature of trades made before the $10k balance existed (or any old bug).
+// ➕ v234: add (or withdraw) practice cash the RIGHT way — the starting balance
+// moves by the same amount, so your return % stays honest and the ledger stays
+// consistent (no more scary warning after topping up).
+function paperAddCash(){
+  const p=_paper();
+  const raw=prompt('➕ Add practice cash\n\nHow much do you want to add to your account? (e.g. 5000)\nYour starting balance rises by the same amount, so your return % stays honest.\n\nTip: enter a negative number to withdraw cash.','5000');
+  if(raw===null)return;
+  const amt=parseFloat(String(raw).replace(/[,$\s]/g,''));
+  if(!isFinite(amt)||amt===0){alert('Enter an amount, e.g. 5000.');return;}
+  if(amt<0&&(p.cash||0)+amt<0){alert('You can\u2019t withdraw more than your cash balance ('+(p.cash||0).toFixed(2)+').');return;}
+  p.cash=+((p.cash||0)+amt).toFixed(2);
+  p.startCap=+((_startCap(p))+amt).toFixed(2);
+  if(p.startCap<1)p.startCap=1;
+  p.deposits=p.deposits||[];
+  p.deposits.push({date:_todayLocal(),amount:+amt.toFixed(2)});
+  _paperSave(p);
+  alert((amt>0?'✓ Added $':'✓ Withdrew $')+Math.abs(amt).toLocaleString(undefined,{minimumFractionDigits:2})+(amt>0?' to':' from')+' your practice account.\nCash: $'+p.cash.toLocaleString(undefined,{minimumFractionDigits:2})+' · starting balance now $'+p.startCap.toLocaleString(undefined,{minimumFractionDigits:2})+'.');
+  showPortfolio();
+}
 function paperBalanceInconsistent(){
   const p=_paper();
   if(!(p.holdings||[]).length&&!(p.history||[]).length&&!(p.orders||[]).length)return false;
   const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
   const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);
   const closedPl=(p.history||[]).reduce((a,t)=>a+(t.plAbs||0),0);
-  const expect=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)).toFixed(2);
+  // v234: closed trades since the fees update carry their fees INSIDE plAbs, and
+  // those same fees also sit in feesPaid — add them back so they aren't counted
+  // twice. Dividends are real cash in, so they count too.
+  const histFees=(p.history||[]).reduce((a,t)=>a+(t.fees||0),0);
+  const divs=(p.dividends||[]).reduce((a,d)=>a+(d.total||0),0);
+  const expect=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs).toFixed(2);
   return Math.abs((p.cash||0)-expect)>1; // > $1 out = flag it
 }
 
@@ -5509,7 +5538,7 @@ function showPortfolio(exSel){
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper Trading Portfolio <span style="font-size:8px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
-    ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your return % is not trustworthy right now.</strong> The cash balance doesn't match your trade ledger. Set the bankroll you actually started with and the % &amp; cash will be measured against it (holdings &amp; history untouched): <button onclick="paperRepairBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button></div>`:''}
+    ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your return % is not trustworthy right now.</strong> The cash balance doesn't match your trade ledger. If you were adding money, use <strong>➕ add cash</strong> (bottom of this panel) next time — it keeps the % honest. To fix now, set the bankroll you've put in altogether and everything is measured against it (holdings &amp; history untouched): <button onclick="paperRepairBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button></div>`:''}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
     ${(hold.length||hist.length)?(function(){
       const divs=((p.dividends)||[]).filter(d=>ex==='ALL'||d.exchange===ex).reduce((a,d)=>a+(d.total||0),0);
@@ -5656,7 +5685,7 @@ function showPortfolio(exSel){
       <div style="font-size:8px;color:var(--dim);margin-top:4px;text-align:center;line-height:1.5;">Portfolio missing or empty? This recovers it from the backup kept automatically on this device. Backups are per-device — they don't move between phones. For the most durable saving, install the app to your home screen.</div>
     </div>
     <button onclick="showPasteRestore()" title="Move a portfolio from another version by pasting its data" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📋 Paste portfolio from old version</button>
-    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}{_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a></div>
+    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}{_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a></div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Charged on every fill and included in each closed trade’s recorded P/L.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">📉 Slippage per side: <input type="number" min="0" max="10" step="any" value="${slippagePct()||''}" placeholder="0" onchange="setSlippage(this.value)" style="width:44px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;">% — simulates the bid–ask spread: market buys fill that much higher, market sells &amp; stop-outs that much lower. Small ASX shares often cost 1–3% to cross. 0 = off.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;"><label style="cursor:pointer;"><input type="checkbox" ${realFillsOn()?'checked':''} onchange="setRealFills(this.checked)" style="vertical-align:middle;"> ⏭ <strong style="color:var(--muted)">Realistic fills</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Sells still fill at the last close.</label></div>
@@ -8656,7 +8685,7 @@ async function refreshLiveFromApi(){
   await loadData();
 }
 function stopPrepare(){
-  window._prepAbort=true;
+  window._prepAbort=true;window._histBuildAbort=true;
   const b=document.getElementById('prepStopBtn');
   if(b){b.disabled=true;b.style.opacity='0.5';b.textContent='■ Stopping…';setTimeout(()=>{b.disabled=false;b.style.opacity='1';b.textContent='■ Stop loading';},1500);}
   const ls=document.getElementById('loadStatus');
@@ -8677,6 +8706,7 @@ async function prepareAllSignals(auto){
     } else { window._preferOffline=false; }
   }catch(e){ window._preferOffline=false; }
   if(window._prepRunning)return;
+  if(auto===true && window._prepFreshUntil && Date.now()<window._prepFreshUntil){window._prepFreshUntil=0;return;} // v234: just prepared from saved data — skip the duplicate auto-run
   const ls=document.getElementById('loadStatus');
   const depthSetting=prepDepthRaw();
   const isAll=(depthSetting==='all');
@@ -9582,6 +9612,18 @@ async function updateOfflineStatus(){
   try{ _refreshOfflineBtn(); }catch(e){}
   try{ refreshBulkReady(); }catch(e){}
   const n=await histCount();
+  // v234: compact "what's on this device" line at the top of Setup & data
+  try{
+    const sd=document.getElementById('savedDataStat');
+    if(sd){
+      if(n){
+        let when=''; try{when=localStorage.getItem('asxScreener.histStoreDate.v1')||'';}catch(e){}
+        sd.innerHTML='✓ <span style="color:var(--green)">'+n.toLocaleString()+' shares saved on this device</span>'+(when?' · last updated '+when:'');
+      } else {
+        sd.innerHTML='<span style="color:var(--orange)">Nothing saved yet</span> — press ⬇ Download below once, and every later load is instant.';
+      }
+    }
+  }catch(e){}
   const el=document.getElementById('offlineStat');
   if(!el)return;
   if(!n){el.innerHTML='';return;}
@@ -9703,6 +9745,7 @@ async function bulkMonthAverageByDates(apiKey,say){
   // are downloaded until the budget is spent. First load fills the whole year
   // (a long one-time wait); after that the year is cached and only new days fetch.
   while(usedDays<MAX_DAYS && attempted<MAX_DAYS*2){
+    if(window._histBuildAbort){window._histBuildAbort=false;say('⏹ Stopped. The '+usedDays+' day(s) already fetched are saved — next time continues from there.');break;}
     d=new Date(d.getTime()-86400000);
     const dow=d.getDay();
     if(dow===0||dow===6)continue; // skip Sat/Sun
@@ -9716,7 +9759,7 @@ async function bulkMonthAverageByDates(apiKey,say){
     }else if(fetched<FETCH_BUDGET){
       // still within this session's download budget → fetch & cache it
       const pct=Math.round((usedDays/MAX_DAYS)*100);
-      say(`Building history (first load can take a few minutes)… <strong style="color:var(--gold)">${pct}%</strong> <span style="font-size:9px">(day ${usedDays+1} of ~${MAX_DAYS} · ${fromCache} cached)</span>`);
+      say(`Building history day-by-day from the internet (first build can take a while)… <strong style="color:var(--gold)">${pct}%</strong> <span style="font-size:9px">(day ${usedDays+1} of ~${MAX_DAYS} · ${fromCache} cached)</span> <a href="#" onclick="window._histBuildAbort=true;return false;" style="color:#ff6b81;font-weight:700;text-decoration:none;">■ stop</a>`);
       if(typeof scanProgSet==='function')scanProgSet(pct);
       rows=await fetchQuoteListByDate(currentExch,apiKey,ds);
       if(rows&&rows.length){fetched++;await new Promise(r=>setTimeout(r,140));}
@@ -9933,6 +9976,22 @@ async function bulkVolume(){
     }
     say('📊 Recomputed volume & streaks for '+done+' demo shares (offline).');
     return;
+  }
+  // ── v234: USE YOUR SAVED DATA FIRST ────────────────────────────────
+  // If the per-share data from "⬇ Download all" covers this market, compute
+  // volume averages, streaks and signals straight from disk instead of the
+  // internet. The old path could kick off a day-by-day rebuild of the whole
+  // exchange (~252 whole-market downloads — many minutes of waiting) even
+  // though everything needed was already saved on this device.
+  if(!window._forceNetBulk && !window._forceLiveRefresh){
+    let savedN=0; try{savedN=await histCount();}catch(e){}
+    if(savedN>=Math.min(allData.length,300)){
+      say('💾 Using the data saved on this device for volume & history — no internet needed…');
+      try{ await prepareAllSignals(true); }catch(e){}
+      window._prepFreshUntil=Date.now()+8000;
+      say('✓ Volume, streaks & signals computed from your saved data ('+savedN.toLocaleString()+' shares on this device — no internet used).');
+      return;
+    }
   }
   if(!apiKey){say('Enter your API key first.');return;}
   if(!allData.length){say('Load an exchange first.');return;}
