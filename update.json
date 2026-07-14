@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-215",
+  "version": "2026.07.14-217",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v215 — Fixed: on laptops the What's Changed card was pushing the report buttons out of view — the Simple panel now scrolls and What's Changed shows 5 rows with a 'Show all' link. Also includes the paper trading overhaul: Sydney-time trades, brokerage in P/L, dividends, stale-price warnings, risk at buy time, realistic fills & slippage options, richer stats, and 'since you sold'."
+  "notes": "v217 — 📊 Market Today and ↩️ Recovery Watch are now in Advanced mode's scan buttons too (Recovery fills the main table). Plus v216's interactive What's Changed rows: tap any share for report / watchlist / practice buy / research actions with live price info."
 }
