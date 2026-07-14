@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-230",
+  "version": "2026.07.14-231",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v230 — History loading sped up: each share's history was being re-sorted about seven times per prepare (and the cost grew as your saved history deepened) — it's now sorted once and reused, roughly 8× faster on the number-crunching. Also stopped rewriting ~3,000 histories to disk on every prepare — now at most once per day. Your data and signals are unchanged, just faster."
+  "notes": "v231 — URGENT fix for v230: the speed-up cached a second copy of every share's history for the whole session (~95MB extra), which pushed laptops into memory thrash and made history loading extremely slow. The cache is gone; the speed-up stays (histories are sorted once per share and reused). Update immediately if you installed v230 — your data is untouched."
 }
