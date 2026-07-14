@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-237",
+  "version": "2026.07.14-238",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v237 — Big speed fix for slow loads: a full market list contains hundreds of delisted/suspended symbols that fail every data route, and each one was re-tried through every proxy timeout on EVERY load — those stalls were most of the waiting. Now a symbol that fails every route is skipped for the rest of the day (retried fresh tomorrow; any successful fetch or a forced re-download clears it instantly). The loading line also shows a live time-remaining estimate and reminds you the app stays usable while it finishes — progress is saved as it goes. Includes v236's live/offline mode fixes."
+  "notes": "v238 — All shares, reliably. (1) The share-list download is far tougher: all relays are tried at once instead of one-by-one, the quote list is a new fallback list source, and the last-resort AI relay can no longer deliver a silently CUT-SHORT list (that truncation is how the app got stuck at ~590 shares). If the live list is unreachable it says so plainly, shows your saved data, and keeps retrying in the background. (2) When your active load preset (gainers / min-volume) narrows a forced-live run, the message now includes a one-tap '▶ Prepare ALL now' link. (3) A forced-live refresh that fails on a slow proxy now falls back to the copy saved on this device instead of leaving '?'. Includes v237's dead-symbol skip and time-remaining estimate."
 }
