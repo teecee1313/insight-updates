@@ -1382,7 +1382,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-224-open';
+const APP_VERSION='2026.07.14-225-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1834,7 +1834,7 @@ function initLang(){
 }
 
 let allData=[], filtered=[], currentExch='ASX';
-window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,open:r.open,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
 
 
 
@@ -7816,7 +7816,9 @@ function _chartSvg(ticker, tf){
   const opens=rows.map(r=>isFinite(r.o)?r.o:null);
   const his=rows.map(r=>isFinite(r.hi)&&r.hi>0?r.hi:r.c), los=rows.map(r=>isFinite(r.lo)&&r.lo>0?r.lo:r.c);
   const ohlcOK=opens.filter(o=>o!=null&&o>0).length >= rows.length*0.5;
-  const candle=(window._chartStyle==='candle')&&ohlcOK;
+  const candleWanted=(window._chartStyle==='candle');
+  const candle=candleWanted&&ohlcOK;
+  const candleNote=(candleWanted&&!ohlcOK)?`<div style="margin-top:6px;font-size:9px;color:var(--orange);border:1px solid rgba(255,165,0,.4);background:rgba(255,165,0,.07);border-radius:6px;padding:5px 8px;">🕯 Candles need each day's open/high/low — this share's stored history only has closing prices. Tap 🔄 Refresh / redownload data once and candles will switch on.</div>`:'';
   const sLo=candle?Math.min(...los):Math.min(...closes);
   const sHi=candle?Math.max(...his):Math.max(...closes);
   const padV=(sHi-sLo)*0.08||sHi*0.05;
@@ -7974,7 +7976,7 @@ function _chartSvg(ticker, tf){
       <line id="chCrossL" x1="0" y1="${padT}" x2="0" y2="${(padT+plotH)}" stroke="rgba(255,210,0,.5)" stroke-width="1" stroke-dasharray="3 3"/>
       <circle id="chCrossD" r="3.2" fill="none" stroke="var(--gold)" stroke-width="1.6"/>
     </g>
-  </svg>${legend}`;
+  </svg>${candleNote}${legend}`;
 }
 // Crosshair: shared by mouse AND touch — snaps to the nearest day, floats a tooltip.
 function _chartHover(svg, clientX){
