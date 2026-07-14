@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-225",
+  "version": "2026.07.14-226",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v225 — Candlestick fix: stored histories were missing the daily open price in some data paths, so the 🕯 Candles button silently did nothing. Opens are now kept, and if a share's saved history still lacks them the chart says so and tells you a data refresh will switch candles on. Plus v224's compact scan grid."
+  "notes": "v226 — All reports now open INSIDE the app on every device — Top 20, share reports, Volume Surge, portfolio and watchlist prints no longer spawn separate browser windows. The report opens large in the main window, and 🖨 Print / Save as PDF prints just the report sheet, not the screen behind it."
 }
