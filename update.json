@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-218",
+  "version": "2026.07.14-219",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v218 — All lessons, help guide and tooltips updated to cover the new features: Market Today & Recovery Watch, the interactive What's Changed card, and the full paper-trading upgrade (risk before you buy, fees & slippage, realistic fills, dividends, honest stats). Also includes v217's Advanced-mode scan buttons."
+  "notes": "v219 — Fixed the stats bar cutting across the Learn/Help panels. Plus v218: all lessons, help guide and tooltips updated for the new features (Market Today & Recovery Watch, interactive What's Changed card, full paper-trading upgrade), and the What's Changed action buttons in a tidy 2×2 grid."
 }
