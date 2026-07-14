@@ -292,7 +292,8 @@ input[type=range].dual::-webkit-slider-runnable-track{background:none;height:24p
 input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .duallbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:3px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.stats{position:relative;z-index:2100;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
+.stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
+body.stat-over-modal .stats{z-index:2100;}
 .stat{display:flex;flex-direction:column;gap:1px;}
 .statclick{cursor:pointer;padding:3px 8px;border-radius:7px;border:1px solid transparent;transition:all .12s;}
 .statclick:hover{background:var(--bg3);border-color:var(--border2);}
@@ -1363,7 +1364,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-218-open';
+const APP_VERSION='2026.07.14-219-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5800,6 +5801,7 @@ function closeModal(){
   window._detailTicker=null;
   window._simpleModalBase=null;window._simpleModalLabel=null;
   window._modalType=null;window._statBaseValid=false;
+  try{document.body.classList.remove('stat-over-modal');}catch(_){}
 }
 // ⛶ Maximise / restore the current panel (one click to go near-fullscreen).
 function toggleModalMax(){
@@ -10627,6 +10629,7 @@ function _simpleResultsPopup(label, rows){
   window._simpleModalLabel=label;
   window._simpleModalBase=rows?rows.slice():[];
   window._modalType='simpleScan';
+  try{document.body.classList.add('stat-over-modal');}catch(_){}
   if(!rows||!rows.length){
     showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares matched right now.<br><br>Try <b>⚡ Get today\u2019s fresh prices</b> for the latest data, or another report.</div>', label);
     return;
