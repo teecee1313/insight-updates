@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-235",
+  "version": "2026.07.14-237",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v235 — THE 'only ~590 shares' fix: signal preparation no longer lets the active load preset (gainers / min-volume) narrow it when you have saved data — every loaded share is prepared, shares missing from your saved data are fetched live once and SAVED, so your device's store grows to the whole market automatically. Offline loads and the Setup panel now tell you how much of the market your saved data covers, ⬇ Download all warns before re-saving an offline subset, and the 'Gainers only' download box says plainly that it saves only that day's risers. Includes v234: volume/history served from your saved data after live loads (no more day-by-day internet rebuild, with a ■ stop link if one does run), paper-trading ➕ add cash link, balance warning fixed for dividends/fees, and the clearer internet-vs-device Setup panel."
+  "notes": "v237 — Big speed fix for slow loads: a full market list contains hundreds of delisted/suspended symbols that fail every data route, and each one was re-tried through every proxy timeout on EVERY load — those stalls were most of the waiting. Now a symbol that fails every route is skipped for the rest of the day (retried fresh tomorrow; any successful fetch or a forced re-download clears it instantly). The loading line also shows a live time-remaining estimate and reminds you the app stays usable while it finishes — progress is saved as it goes. Includes v236's live/offline mode fixes."
 }
