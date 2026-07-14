@@ -187,6 +187,14 @@ details[open] .adv-sum .chev{transform:rotate(90deg);}
 .adv-note{font-size:9px;color:var(--dim);margin:0 0 8px;line-height:1.5;}
 .scan-primary{width:100%;padding:8px;border-radius:6px;border:1px solid var(--gold);background:linear-gradient(135deg,rgba(210,153,34,.28),rgba(210,153,34,.1));color:var(--gold);font:700 12px var(--sans);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;transition:all .15s;}
 .drag-zone{display:flex;flex-direction:column;gap:0;}
+/* ── v223: Instant Reports as a compact 2-column card grid ── */
+#scanDragZone{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+#scanDragZone .drag-row{display:block;position:relative;margin-top:0;}
+#scanDragZone .drag-row>button{width:100%;height:100%;min-height:80px;margin:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 8px 9px;text-align:center;box-sizing:border-box;}
+#scanDragZone .drag-row>button>span:first-child{font-size:12.5px;line-height:1.25;font-weight:700;}
+#scanDragZone .scan-tag{font-size:8px;line-height:1.3;opacity:.85;}
+#scanDragZone .drag-h{position:absolute;top:1px;right:3px;width:auto;font-size:10px;opacity:.45;z-index:2;padding:2px 4px;}
+#scanDragZone .drag-h:hover{opacity:1;background:none;}
 .chart-tf.on{background:var(--gold)!important;color:var(--bg)!important;border-color:var(--gold)!important;}
 .day-chip{cursor:pointer;user-select:none;}
 .day-chip span{display:inline-block;padding:3px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 9px var(--sans);transition:all .12s;}
@@ -429,6 +437,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
   body.training-on .left{padding-bottom:84px;}
   #helpToggle{padding:8px 13px;font-size:11px;bottom:12px;right:12px;}
   #trainCoverage{bottom:12px;left:12px;font-size:9px;padding:4px 9px;}
+  /* scan cards: comfy touch targets on phones */
+  #scanDragZone .drag-row>button{min-height:88px;padding:12px 8px 10px;}
+  #scanDragZone .drag-row>button>span:first-child{font-size:13.5px;}
+  #scanDragZone .scan-tag{font-size:9px;}
   .left .load-zone{display:block;padding:10px;}
   /* Sections 1, 2, 3 each become full-width, stacked */
   .setup-row{display:block;}
@@ -1368,7 +1380,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-222-open';
+const APP_VERSION='2026.07.14-223-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer

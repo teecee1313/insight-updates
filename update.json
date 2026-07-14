@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-222",
+  "version": "2026.07.14-223",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v222 — New Lesson 16: Reading the price chart — candles vs line, the overlays, vs-market and log scale, and reviewing your own trades on the chart. Help guide and hover tooltips updated to match across every build. Includes v220's chart upgrade and v221's phone layout fixes."
+  "notes": "v223 — Instant Reports redesigned: the scan buttons are now a compact two-column card grid, so all of them fit on one phone screen instead of a long scrolling list. Drag-to-reorder still works (the ⠿ corner). Plus v222's new chart lesson and the v220 chart upgrade."
 }
