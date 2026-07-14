@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-223",
+  "version": "2026.07.14-224",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v223 — Instant Reports redesigned: the scan buttons are now a compact two-column card grid, so all of them fit on one phone screen instead of a long scrolling list. Drag-to-reorder still works (the ⠿ corner). Plus v222's new chart lesson and the v220 chart upgrade."
+  "notes": "v224 — Instant Reports grid tightened: all scan cards now fit on one screen with room to spare (smaller cards, one-line titles), and the Advanced control column scrolls properly on laptops instead of clipping. Includes the v220 chart upgrade and Lesson 16."
 }
