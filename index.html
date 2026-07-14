@@ -1398,7 +1398,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-231-open';
+const APP_VERSION='2026.07.14-233-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2130,16 +2130,43 @@ function setRangeWindow(n){
   try{localStorage.setItem(RANGEWIN_STORE,rangeWindow);}catch(e){}
   let done=0;
   (allData||[]).forEach(s=>{
-    // recompute only for shares with history; computeTechnicals reads rangeWindow
+    // recompute instantly for shares whose history is already in memory
     if(s._history && Array.isArray(s._history) && s._history.length){ computeTechnicals(s,s._history); done++; }
-    else if(s.techCalced){ /* no retained history to recompute from */ }
   });
   const sel=document.getElementById('rangeWinSel');if(sel)sel.value=String(rangeWindow);
   const lbl=document.getElementById('rangeColLbl');
   if(lbl){lbl.textContent='Range';}
   if(typeof applyF==='function')applyF();
   const ls=document.getElementById('loadStatus');
-  if(ls)ls.innerHTML=`<span style="color:var(--green)">Trading range now over ${RANGEWIN_LABELS[rangeWindow]||rangeWindow+' sessions'}${done?` (${done} shares recomputed)`:' — will apply as shares are analysed'}.</span>`;
+  const winLbl=RANGEWIN_LABELS[rangeWindow]||rangeWindow+' sessions';
+  const restN=(allData||[]).filter(s=>!(s._history&&s._history.length)).length;
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">Trading range now over ${winLbl} — ${done.toLocaleString()} shares updated${restN?`, applying to ${restN.toLocaleString()} more from your saved data…`:'.'}</span>`;
+  // v232: backfill the REST from the offline store (zero network) so the new
+  // window applies to EVERY share with saved history — not just the ones the
+  // prepare loop had reached. Small batches keep the app responsive.
+  (async()=>{
+    if(!Array.isArray(allData)||typeof histGet!=='function')return;
+    const myRun=(window._rangeRun=(window._rangeRun||0)+1);
+    const rest=(allData||[]).filter(s=>!(s._history&&s._history.length));
+    if(!rest.length)return;
+    let fromDisk=0,noData=0;
+    for(let i=0;i<rest.length;i+=100){
+      if(window._rangeRun!==myRun)return;   // superseded by a newer range change
+      const slice=rest.slice(i,i+100);
+      await Promise.all(slice.map(async s=>{
+        try{
+          const rec=await histGet(s.exchange,s.ticker);
+          if(rec&&Array.isArray(rec.rows)&&rec.rows.length>=5){ computeTechnicals(s,rec.rows); fromDisk++; }
+          else noData++;
+        }catch(e){noData++;}
+      }));
+      if(ls&&i%500===0&&i>0)ls.innerHTML=`<span style="color:var(--green)">Applying the ${winLbl} range to your saved data… ${Math.min(i+100,rest.length).toLocaleString()}/${rest.length.toLocaleString()}</span>`;
+      await new Promise(r=>setTimeout(r,0));
+    }
+    if(window._rangeRun!==myRun)return;
+    if(typeof applyF==='function')applyF();
+    if(ls)ls.innerHTML=`<span style="color:var(--green)">Trading range over ${winLbl} — ${(done+fromDisk).toLocaleString()} shares recomputed (${done.toLocaleString()} in memory + ${fromDisk.toLocaleString()} from saved data)${noData?` · ${noData.toLocaleString()} have no saved history yet — ⬇ Download all covers them`:''}.</span>`;
+  })();
 }
 const selected=new Set();  // tickers tick-boxed for a one-off report
 
@@ -8654,6 +8681,9 @@ async function prepareAllSignals(auto){
   const depthSetting=prepDepthRaw();
   const isAll=(depthSetting==='all');
   let depth=isAll?allData.length:(parseInt(depthSetting)||60);
+  // v233: when the offline store covers the market, ALWAYS prepare every share —
+  // disk reads are free, so nothing is left showing "?" beyond a depth cut-off.
+  if(window._preferOffline) depth=allData.length;
   // ── API BUDGET ─────────────────────────────────────────────────────────
   // With a 100,000/day limit, fetching the full ASX (~4,300 = 1 call each) is a
   // small fraction of the budget, so we no longer cap live prepares. We still
@@ -11014,7 +11044,7 @@ function setAutoTech(on){try{localStorage.setItem(AUTOTECH_STORE,on?'1':'0');}ca
 const PREPALL_STORE='asxScreener.prepAll.v1';
 const PREPDEPTH_STORE='asxScreener.prepDepth.v1';
 function prepAllOn(){try{return localStorage.getItem(PREPALL_STORE)!=='0';}catch(e){return true;}} // default ON (fills streak/accum/score columns at startup)
-function prepDepthRaw(){try{return localStorage.getItem(PREPDEPTH_STORE)||'2000';}catch(e){return '2000';}}
+function prepDepthRaw(){try{return localStorage.getItem(PREPDEPTH_STORE)||'all';}catch(e){return 'all';}}
 function prepDepth(){const r=prepDepthRaw();return r==='all'?999999:(parseInt(r)||2000);}
 function setPrepAll(on){try{localStorage.setItem(PREPALL_STORE,on?'1':'0');}catch(e){}
   const ls=document.getElementById('loadStatus');

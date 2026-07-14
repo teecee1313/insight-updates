@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-231",
+  "version": "2026.07.14-233",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v231 — URGENT fix for v230: the speed-up cached a second copy of every share's history for the whole session (~95MB extra), which pushed laptops into memory thrash and made history loading extremely slow. The cache is gone; the speed-up stays (histories are sorted once per share and reused). Update immediately if you installed v230 — your data is untouched."
+  "notes": "v233 — No more '?' rows: signal preparation now covers ALL shares by default, and whenever your downloaded data covers the market it always prepares everything (disk reads are free) regardless of the depth setting. Low-volume shares get their streaks, accumulation and scores like everything else. Includes v232's range-window fix."
 }
