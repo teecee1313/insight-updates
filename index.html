@@ -25,7 +25,7 @@
   --gold:#FFD200;--gold2:#e0b900;--glow:rgba(255,210,0,.18);
   --green:#3fb950;--green2:#238636;--gbg:rgba(63,185,80,.1);
   --red:#E21937;--rbg:rgba(226,25,55,.12);
-  --blue:#4a93ff;--purple:#bc8cff;--orange:#ffa657;
+  --blue:#4a93ff;--purple:#bc8cff;--orange:#ffa657;--amber:#ffb02e;
   --mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -96,6 +96,34 @@ body:not(.simple-mode) #simplePanel{display:none;}
 .simple-card.sc-blue .sc-title{color:var(--blue);}
 .simple-card.sc-amber{border-color:rgba(255,176,46,.5);}
 .simple-card.sc-amber .sc-title{color:var(--amber);}
+/* ── v212 UX improvements ── */
+/* 2. Cards dim when no data loaded */
+body.simple-no-data .simple-card:not(.sc-always-on){opacity:.45;pointer-events:none;filter:grayscale(.4);}
+body.simple-no-data .simple-card:not(.sc-always-on) .sc-emoji{filter:grayscale(1);}
+/* 3. Section dividers in simple grid */
+.simple-section-label{grid-column:1/-1;font:700 9px var(--sans);color:var(--dim);letter-spacing:.8px;text-transform:uppercase;padding:4px 2px 2px;margin-top:2px;}
+/* 4. Modal X button */
+#modalCloseX{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .13s;}
+#modalCloseX:hover{background:var(--red);color:#fff;border-color:var(--red);}
+/* 5. More tools button — solid, more clickable */
+.simple-more{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px solid var(--border2);background:rgba(74,147,255,.08);color:var(--blue);font:600 12px var(--sans);cursor:pointer;transition:all .13s;}
+.simple-more:hover{color:var(--gold);border-color:var(--gold);background:rgba(255,210,0,.08);}
+/* 6. Last-updated timestamp */
+#simpleDataDate{font-size:10px;color:var(--dim);text-align:center;padding:3px 0 2px;font-family:var(--mono);}
+/* 7. Stats bar tappable cue */
+.stats .stat-val[onclick]{cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(143,166,201,.3);transition:text-decoration-color .15s;}
+.stats .stat-val[onclick]:hover{text-decoration-color:var(--gold);}
+/* 8. Market closed banner */
+#simpleClosedBanner{display:none;grid-column:1/-1;background:rgba(226,25,55,.1);border:1px solid rgba(226,25,55,.35);border-radius:8px;padding:8px 12px;font-size:11px;color:#ff8090;text-align:center;line-height:1.4;}
+/* 9. Card count badge */
+.sc-count{display:inline-block;margin-left:5px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;background:rgba(255,255,255,.09);color:var(--muted);vertical-align:middle;}
+/* 10. Quick search */
+#simpleSearch{display:none;margin:4px 0 6px;width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:13px var(--sans);outline:none;transition:border .15s;}
+#simpleSearch:focus{border-color:var(--gold);}
+#simpleSearch::placeholder{color:var(--dim);}
+#simpleSearch.visible{display:block;}
+/* 12. What's-new card gold border prominence */
+#whatsNewCard{border:1px solid rgba(255,210,0,.6)!important;border-radius:10px;overflow:hidden;}
 .simple-status{font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center;margin:10px 0;min-height:14px;}
 .simple-more{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px dashed var(--border2);background:transparent;color:var(--muted);font:600 12px var(--sans);cursor:pointer;}
 .simple-more:hover{color:var(--gold);border-color:var(--gold);}
@@ -1085,20 +1113,23 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div id="simpleLoadHint" class="simple-load-hint">Loads the market so the buttons below can work.</div>
     </div>
     <div id="whatsNewCard" style="display:none;"></div>
+    <input id="simpleSearch" placeholder="🔍 Search shares by code or name…" oninput="_simpleSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="simple-grid">
+      <div id="simpleClosedBanner">🔴 ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
+      <div class="simple-section-label">TODAY'S MARKET</div>
       <button class="simple-card sc-gold" onclick="simpleRun('top20')">
         <span class="sc-emoji">🏆</span>
-        <span class="sc-title">Top picks today</span>
+        <span class="sc-title">Top picks today<span class="sc-count" id="cnt-top20"></span></span>
         <span class="sc-sub">The 20 highest-scoring shares · <i>Top 20 to Watch</i></span>
       </button>
       <button class="simple-card sc-green" onclick="simpleRun('smart')">
         <span class="sc-emoji">🎯</span>
-        <span class="sc-title">Who's being quietly bought?</span>
+        <span class="sc-title">Who's being quietly bought?<span class="sc-count" id="cnt-smart"></span></span>
         <span class="sc-sub">Steady buying on volume · <i>Smart Money</i></span>
       </button>
       <button class="simple-card sc-red" onclick="simpleRun('surge')">
         <span class="sc-emoji">🔥</span>
-        <span class="sc-title">What's moving on big volume?</span>
+        <span class="sc-title">What's moving on big volume?<span class="sc-count" id="cnt-surge"></span></span>
         <span class="sc-sub">Unusual trading activity today · <i>Volume Surge</i></span>
       </button>
       <button class="simple-card sc-amber" onclick="simpleMarketPulse()">
@@ -1108,24 +1139,27 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </button>
       <button class="simple-card sc-amber" onclick="simpleRun('recovery')">
         <span class="sc-emoji">↩️</span>
-        <span class="sc-title">Recovery watch</span>
+        <span class="sc-title">Recovery watch<span class="sc-count" id="cnt-recovery"></span></span>
         <span class="sc-sub">Fallen shares stabilising on volume · potential reversals</span>
       </button>
-      <button class="simple-card sc-blue" onclick="simpleRun('portfolio')">
+      <div class="simple-section-label">MY LISTS</div>
+      <button class="simple-card sc-blue sc-always-on" onclick="simpleRun('portfolio')">
         <span class="sc-emoji">💼</span>
         <span class="sc-title">My portfolio</span>
         <span class="sc-sub">Your practice trades &amp; performance</span>
       </button>
-      <button class="simple-card sc-plain" onclick="simpleRun('watchlist')">
+      <button class="simple-card sc-plain sc-always-on" onclick="simpleRun('watchlist')">
         <span class="sc-emoji">⭐</span>
         <span class="sc-title">My watchlist</span>
         <span class="sc-sub">Shares you've starred to follow</span>
-      <button class="simple-card sc-green" onclick="renderResearch()">
+      </button>
+      <button class="simple-card sc-green sc-always-on" onclick="renderResearch()">
         <span class="sc-emoji">🔬</span>
         <span class="sc-title">Research further <span data-research-count style="font-size:12px;color:var(--green);"></span></span>
         <span class="sc-sub">Shares you've parked to look into later</span>
       </button>
     </div>
+    <div id="simpleDataDate"></div>
     <div id="simpleStatus" class="simple-status"></div>
     <button class="simple-more" onclick="setAppMode('advanced')">⚙ More tools &amp; settings →</button>
   </div>
@@ -1326,7 +1360,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-211-open';
+const APP_VERSION='2026.07.14-213-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4089,6 +4123,63 @@ const PAPER_START_CASH=10000;
 //    are tallied in p.feesPaid; per-trade P/L stays gross of fees (the running
 //    fee total is shown as its own card so nothing is hidden). ──
 const BROKERAGE_STORE='asxScreener.brokerage.v1';
+const SLIPPAGE_STORE='asxScreener.slippage.v1';
+const REALFILL_STORE='asxScreener.realFills.v1';
+const ORDER_EXPIRY_DAYS=30;
+function slippagePct(){try{const v=parseFloat(localStorage.getItem(SLIPPAGE_STORE));return (isFinite(v)&&v>0)?Math.min(v,10):0;}catch(e){return 0;}}
+function setSlippage(v){const n=parseFloat(v);try{localStorage.setItem(SLIPPAGE_STORE,(isFinite(n)&&n>0)?Math.min(n,10):0);}catch(e){}showPortfolio();}
+function realFillsOn(){try{return localStorage.getItem(REALFILL_STORE)==='1';}catch(e){return false;}}
+function setRealFills(on){try{localStorage.setItem(REALFILL_STORE,on?'1':'0');}catch(e){}showPortfolio();}
+function _slipBuy(px){const s=slippagePct();return s>0?+(px*(1+s/100)).toFixed(px<1?4:3):px;}
+function _slipSell(px){const s=slippagePct();return s>0?+(px*(1-s/100)).toFixed(px<1?4:3):px;}
+function _todayLocal(){
+  try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney'}).format(new Date());}
+  catch(e){return new Date().toISOString().slice(0,10);}
+}
+function _orderExpiry(from){
+  try{const d=new Date((from||_todayLocal())+'T12:00:00');d.setDate(d.getDate()+ORDER_EXPIRY_DAYS);return d.toISOString().slice(0,10);}catch(e){return null;}
+}
+function _staleDays(d){
+  if(!d)return 0;
+  try{return tradingDaysHeld(String(d).slice(0,10),_todayLocal());}catch(e){return 0;}
+}
+function _acctValue(p){
+  let hv=0;(p.holdings||[]).forEach(h=>{hv+=h.qty*(h.lastPrice||h.buyPrice);});
+  return (p.cash||0)+_reservedSum(p)+hv;
+}
+function _paperRiskPrev(){
+  const el=document.getElementById('paperRiskPrev'); if(!el)return;
+  const amt=parseFloat((document.getElementById('paperAmt')||{}).value)||0;
+  const stop=parseFloat((document.getElementById('paperStop')||{}).value)||0;
+  const buyPx=parseFloat((document.getElementById('paperBuyPx')||{}).value)||0;
+  const lim=parseFloat((document.getElementById('paperLimit')||{}).value)||0;
+  const px=(window._buyType==='limit'&&lim>0)?lim:buyPx;
+  const p=_paper(); const acct=_acctValue(p);
+  if(!(amt>0)||!(px>0)){el.innerHTML='';return;}
+  const qty=Math.floor(amt/px);
+  const posPct=acct>0?(amt/acct)*100:0;
+  let html=`This buy = <strong style="color:${posPct>25?'var(--orange)':'var(--text)'}">${posPct.toFixed(1)}%</strong> of your ${acct.toLocaleString(undefined,{maximumFractionDigits:0})} account${posPct>25?' \u2014 a big slice of one basket':''}`;
+  if(stop>0&&qty>0&&stop<px){
+    const risk=(px-stop)*qty;
+    const rp=acct>0?(risk/acct)*100:0;
+    html+=`<br>\ud83d\udee1 If the stop hits: <strong style="color:${rp>2?'var(--orange)':'var(--green)'}">\u2212${risk.toFixed(2)} (${rp.toFixed(1)}% of account)</strong>${rp>2?' \u2014 many traders keep this under 1\u20132%':''}`;
+  }
+  el.innerHTML=html;
+}
+function paperAddDividend(id){
+  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const per=parseFloat((document.getElementById('divPerShare')||{}).value)||0;
+  if(!(per>0)){alert('Enter the dividend amount per share (e.g. 0.055).');return;}
+  const totQty=lots.reduce((a,l)=>a+l.qty,0);
+  const tk=lots[0].ticker,cur=lots[0].currency;
+  const total=+(totQty*per).toFixed(2);
+  if(!confirm('Record a dividend for '+tk+'?\n\n'+totQty.toLocaleString()+' shares \u00d7 '+per+' = '+fmtP(total,cur)+' added to your cash.'))return;
+  p.cash=+((p.cash||0)+total).toFixed(2);
+  p.dividends=p.dividends||[];
+  p.dividends.unshift({ticker:tk,exchange:lots[0].exchange,currency:cur,date:_todayLocal(),perShare:per,qty:totQty,total});
+  _paperSave(p);
+  closeModal();showPortfolio();
+}
 function brokerageFee(){try{const v=parseFloat(localStorage.getItem(BROKERAGE_STORE));return (isFinite(v)&&v>0)?v:0;}catch(e){return 0;}}
 function setBrokerage(v){
   const n=parseFloat(v);
@@ -4129,14 +4220,14 @@ function updatePaperPrices(){
   const p=_paper();let changed=false;
   (p.holdings||[]).forEach(h=>{
     const s=allData.find(x=>x.ticker===h.ticker&&x.exchange===h.exchange);
-    if(s&&s.price>0){h.lastPrice=s.price;h.lastDate=new Date().toISOString().slice(0,10);changed=true;}
+    if(s&&s.price>0){h.lastPrice=s.price;h.lastDate=(s._q&&s._q.d)||_todayLocal();changed=true;}
   });
   // 🎯 Auto-sell targets are checked by checkAutoSellTargets() (async), which
   // uses each day's intraday HIGH — sells if the price reached the target at
   // ANY time during a day, like a real limit order. See below.
   // Daily value snapshot (only when holding something) — overall and per exchange.
   if((p.holdings||[]).length){
-    const today=new Date().toISOString().slice(0,10);
+    const today=_todayLocal();
     const cutoff=new Date(Date.now()-365*86400000).toISOString().slice(0,10);
     let inv=0,val=0;const byEx={};
     p.holdings.forEach(h=>{
@@ -4191,7 +4282,7 @@ function undoSale(sellDate,ticker,buyDate){
       qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,
       lastPrice:t.buyPrice,lastDate:t.buyDate,
       target:t.target||0,stop:0,note:t.note||null,
-      tgtChecked:new Date().toISOString().slice(0,10) // don't re-scan history that caused the bad sell
+      tgtChecked:_todayLocal() // don't re-scan history that caused the bad sell
     });
   }
   // remove the history entry
@@ -4213,7 +4304,7 @@ async function checkAutoSellTargets(){
   // morning/opening data is often glitchy, and a surprise next-day sale on a
   // share you just bought is almost never what the user intended. Require at
   // least one calendar day to have passed since the buy before targets/stops arm.
-  const _todayStr=new Date().toISOString().slice(0,10);
+  const _todayStr=_todayLocal();
   const _armed=(h)=>{
     if(!h.buyDate)return true;
     // buyDate is YYYY-MM-DD (or ISO). Arm only once today is strictly after it.
@@ -4272,16 +4363,19 @@ async function checkAutoSellTargets(){
       // Same sanity guard — a corrupt last price shouldn't trigger a sell.
       const _bp2=(h.buyPrice>0?h.buyPrice:0);
       const _lpSane=isFinite(h.lastPrice)&&h.lastPrice>0&&(_bp2<=0||(h.lastPrice>=_bp2*0.15&&h.lastPrice<=_bp2*6));
-      if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:new Date().toISOString().slice(0,10),fill:h.lastPrice,why:'target'};
-      if(!hit && _lpSane && h.stop>0 && h.lastPrice<=h.stop)hit={date:new Date().toISOString().slice(0,10),fill:h.lastPrice,why:'stop'};
+      if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:_todayLocal(),fill:h.lastPrice,why:'target'};
+      if(!hit && _lpSane && h.stop>0 && h.lastPrice<=h.stop)hit={date:_todayLocal(),fill:h.lastPrice,why:'stop'};
       if(hit){
+        if(hit.why==='stop')hit.fill=_slipSell(hit.fill);
         const proceeds=+(h.qty*hit.fill).toFixed(2);
-        const plAbs=+(proceeds-h.invested).toFixed(2);
+        const _sf=brokerageFee();
+        const fees=+(((h.buyFee||0)+_sf)).toFixed(2);
+        const plAbs=+(proceeds-h.invested-fees).toFixed(2);
         const plPct=+(h.invested>0?(plAbs/h.invested)*100:0).toFixed(2);
         p.history=p.history||[];
         p.history.unshift({ticker:h.ticker,exchange:h.exchange,name:h.name,currency:h.currency,
           buyDate:h.buyDate,buyPrice:h.buyPrice,qty:h.qty,invested:h.invested,
-          sellDate:hit.date,sellPrice:hit.fill,proceeds,plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null});
+          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null});
         p.cash=+((p.cash||0)+proceeds).toFixed(2);
         _chargeFee(p);
         const i=p.holdings.findIndex(x=>x.id===h.id);
@@ -4409,10 +4503,12 @@ function paperBuy(ticker){
   window._modalLabel='🛒 Practice buy';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper buy — ${s.ticker}</div>
-    <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">${s.name||''} · last close ${fmtP(s.price,s.currency)} · 💵 cash available: <strong style="color:var(--green)">${_paper().cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
+    <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">${s.name||''} · last close ${fmtP(s.price,s.currency)}${(s._q&&s._q.d)?` <span style="color:var(--dim)">(${s._q.d})</span>`:''} · 💵 cash available: <strong style="color:var(--green)">${_paper().cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
+    ${(function(){const qd=(s._q&&s._q.d)||s.lastDate;const n=_staleDays(qd);return n>1?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:6px;padding:5px 8px;margin:0 0 10px;font-size:9px;color:var(--orange);">⚠ This price is ${n} trading days old (${qd}). Tap ⚡ fresh prices first so your practice buy uses today’s price.</div>`:'';})()}
     <label style="display:block;font-size:10px;color:var(--muted);margin-bottom:4px;">Amount to invest (${s.currency})</label>
     <input type="number" id="paperAmt" min="0" step="any" placeholder="e.g. 1000" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;box-sizing:border-box;">
     <div id="paperBuyPrev" style="font-size:10px;color:var(--muted);margin-top:6px;min-height:13px;"></div>
+    <div id="paperRiskPrev" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:13px;line-height:1.6;"></div>
 
     <div style="display:flex;gap:6px;margin:12px 0 4px;">
       <button type="button" id="btnMkt" onclick="_setBuyType('market')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.18);color:var(--green);font:700 11px var(--sans);cursor:pointer;">Buy at market</button>
@@ -4439,12 +4535,12 @@ function paperBuy(ticker){
     <label style="display:block;font-size:10px;color:var(--muted);margin:10px 0 4px;">🛑 Stop-loss — auto-sells if the price falls this far (optional)</label>
     <div style="display:flex;gap:6px;align-items:center;">
       <div style="position:relative;flex:0 0 92px;">
-        <input type="number" id="paperStopPct" min="0" step="any" placeholder="10" oninput="_paperPctSync('stop')" style="width:100%;padding:9px 22px 9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--red);color:var(--text);font-size:13px;box-sizing:border-box;">
+        <input type="number" id="paperStopPct" min="0" step="any" placeholder="10" oninput="_paperPctSync('stop');_paperRiskPrev()" style="width:100%;padding:9px 22px 9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--red);color:var(--text);font-size:13px;box-sizing:border-box;">
         <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#ff9caa;font-size:12px;font-weight:700;">%</span>
       </div>
       <span style="color:var(--dim);font-size:11px;">→</span>
       <div style="position:relative;flex:1;">
-        <input type="number" id="paperStop" min="0" step="any" placeholder="price e.g. ${(s.price*0.9).toFixed(s.price<1?3:2)}" oninput="_paperPctSync('stopPrice')" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;box-sizing:border-box;">
+        <input type="number" id="paperStop" min="0" step="any" placeholder="price e.g. ${(s.price*0.9).toFixed(s.price<1?3:2)}" oninput="_paperPctSync('stopPrice');_paperRiskPrev()" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;box-sizing:border-box;">
         <span id="paperStopHint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#ff9caa;font-size:9px;"></span>
       </div>
     </div>
@@ -4455,16 +4551,17 @@ function paperBuy(ticker){
     <input type="text" id="paperNote" maxlength="140" placeholder="e.g. 5-day volume streak + broke above range" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;box-sizing:border-box;">
 
     <button id="buyGoBtn" onclick="paperBuyConfirm('${s.ticker}')" style="width:100%;margin-top:12px;padding:10px;border-radius:7px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 13px var(--sans);cursor:pointer;">Buy at market (paper)</button>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Market fills at the last end-of-day close. Limit/target/stop fill using each day's intraday high & low — practice only, not real trading or advice.</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">${realFillsOn()?'Realistic fills ON — market buys queue and fill at the NEXT trading day\u2019s open.':'Market fills at the last end-of-day close.'}${slippagePct()>0?' Slippage '+slippagePct()+'% per side applies to market fills.':''} Limit/target/stop fill using each day's intraday high & low — practice only, not real trading or advice.</div>
   `);
   window._buyType='market';
   setTimeout(()=>{const a=document.getElementById('paperAmt');if(a){a.focus();a.oninput=()=>{
     const amt=parseFloat(a.value)||0;
     const lim=parseFloat((document.getElementById('paperLimit')||{}).value)||0;
-    const px=(window._buyType==='limit'&&lim>0)?lim:s.price;
+    const px=(window._buyType==='limit'&&lim>0)?lim:(realFillsOn()?s.price:_slipBuy(s.price));
     const qty=Math.floor(amt/px);
     const pv=document.getElementById('paperBuyPrev');
     if(pv)pv.textContent=qty>0?`≈ ${qty.toLocaleString()} shares @ ${fmtP(px,s.currency)} = ${fmtP(qty*px,s.currency)}`:(amt>0?'Amount is below the price of one share.':'');
+    try{_paperRiskPrev();}catch(_){}
   };}},80);
 }
 function _setBuyType(t){
@@ -4474,6 +4571,7 @@ function _setBuyType(t){
   const off='flex:1;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;';
   if(t==='market'){mkt.style.cssText=on;lmt.style.cssText=off;row.style.display='none';if(go)go.textContent='Buy at market (paper)';}
   else{lmt.style.cssText=on;mkt.style.cssText=off;row.style.display='';if(go)go.textContent='Place limit buy order (paper)';}
+  try{_paperRiskPrev();}catch(_){}
 }
 function paperBuyConfirm(ticker){
   const s=allData.find(x=>x.ticker===ticker);
@@ -4483,14 +4581,14 @@ function paperBuyConfirm(ticker){
   const stop=parseFloat((document.getElementById('paperStop')||{}).value)||0;
   const isLimit=(window._buyType==='limit');
   const lim=parseFloat((document.getElementById('paperLimit')||{}).value)||0;
-  const px=(isLimit&&lim>0)?lim:s.price;
+  const px=(isLimit&&lim>0)?lim:(realFillsOn()?s.price:_slipBuy(s.price));
   const qty=Math.floor(amt/px);
   if(qty<1){alert('Enter an amount of at least one share ('+fmtP(px,s.currency)+').');return;}
   if(tgt>0&&tgt<=px){alert('Take-profit target should be above your buy price.');return;}
   if(stop>0&&stop>=px){alert('Stop-loss should be below your buy price.');return;}
   const p=_paper();
   const cost=+(qty*px).toFixed(2);
-  const today=new Date().toISOString().slice(0,10);
+  const today=_todayLocal();
   const note=((document.getElementById('paperNote')||{}).value||'').trim().slice(0,140);
   const fee=brokerageFee();
 
@@ -4501,7 +4599,19 @@ function paperBuyConfirm(ticker){
     _chargeFee(p);
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0});
+      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0});
+    _paperSave(p);closeModal();showPortfolio();
+    return;
+  }
+  // Realistic fills mode: queue the market buy — it fills at the NEXT day's open.
+  if(realFillsOn()){
+    if(cost+fee>p.cash+0.005){alert(`Not enough paper cash. Cost ${fmtP(cost,s.currency)}${fee>0?' + $'+fee.toFixed(2)+' brokerage':''} · available ${p.cash.toFixed(2)}.`);return;}
+    p.cash=+(p.cash-cost).toFixed(2);
+    _chargeFee(p);
+    p.orders=p.orders||[];
+    p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
+      market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
+      target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0});
     _paperSave(p);closeModal();showPortfolio();
     return;
   }
@@ -4510,8 +4620,8 @@ function paperBuyConfirm(ticker){
   p.cash=+(p.cash-cost).toFixed(2);
   _chargeFee(p);
   p.holdings.push({id:'t'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-    buyDate:today,buyPrice:px,qty,invested:+(qty*px).toFixed(2),
-    lastPrice:s.price,lastDate:today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null});
+    buyDate:today,buyPrice:px,qty,invested:+(qty*px).toFixed(2),buyFee:fee||0,
+    lastPrice:s.price,lastDate:(s._q&&s._q.d)||today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null});
   _paperSave(p);
   closeModal();
   showPortfolio();
@@ -4526,9 +4636,17 @@ async function checkLimitOrders(){
   if(!orders.length)return [];
   window._ordChecking=true;
   const filled=[];
+  const todayL=_todayLocal();
   try{
     const key=((document.getElementById('apiKey')||{}).value||'').trim();
     for(const o of orders.slice()){
+      if(o.expiry&&todayL>o.expiry){
+        p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
+        if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
+        p.orders=p.orders.filter(x=>x.id!==o.id);
+        filled.push(`${o.ticker} order expired after ${ORDER_EXPIRY_DAYS} days — ${fmtP(o.reserved,o.currency)} returned to cash`);
+        continue;
+      }
       let hit=null;
       if(key){
         try{
@@ -4537,7 +4655,8 @@ async function checkLimitOrders(){
           if(rows&&rows.length){
             const days=rows.filter(d=>d.d>since||d.d===since).sort((a,b)=>a.d<b.d?-1:1);
             for(const day of days){
-              if(day.d<o.placedDate)continue;
+              if(day.d<=o.placedDate)continue;
+              if(o.market){ if(isFinite(day.o)&&day.o>0){hit={date:day.d,fill:day.o};break;} continue; }
               if(isFinite(day.o)&&day.o<=o.limit){hit={date:day.d,fill:day.o};break;} // gapped below → open
               if(isFinite(day.lo)&&day.lo<=o.limit){hit={date:day.d,fill:o.limit};break;} // dipped to limit
             }
@@ -4546,15 +4665,25 @@ async function checkLimitOrders(){
         }catch(e){}
       }
       // Fallback: last close at/below limit fills.
-      if(!hit){const s=allData.find(x=>x.ticker===o.ticker);if(s&&s.price<=o.limit)hit={date:new Date().toISOString().slice(0,10),fill:Math.min(o.limit,s.price)};}
+      if(!hit){const s=allData.find(x=>x.ticker===o.ticker);
+        if(s&&o.market&&s.price>0){const qd=(s._q&&s._q.d)||todayL;if(qd>o.placedDate)hit={date:qd,fill:s.price};}
+        else if(s&&!o.market&&s.price<=o.limit)hit={date:todayL,fill:Math.min(o.limit,s.price)};}
       if(hit){
-        const cost=+(o.qty*hit.fill).toFixed(2);
+        const qtyF=o.market?Math.floor((o.amount||o.reserved)/hit.fill):o.qty;
+        if(qtyF<1){
+          p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
+          if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
+          p.orders=p.orders.filter(x=>x.id!==o.id);
+          filled.push(`${o.ticker} order cancelled — can\u2019t afford one share at the fill price; cash returned`);
+          continue;
+        }
+        const cost=+(qtyF*hit.fill).toFixed(2);
         const refund=+(o.reserved-cost).toFixed(2);            // reserved at limit; fill ≤ limit → refund difference
         if(refund>0)p.cash=+((p.cash||0)+refund).toFixed(2);
         p.holdings.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),ticker:o.ticker,exchange:o.exchange,name:o.name,currency:o.currency,
-          buyDate:hit.date,buyPrice:hit.fill,qty:o.qty,invested:cost,lastPrice:hit.fill,lastDate:hit.date,target:o.target,stop:o.stop,note:o.note||null});
+          buyDate:hit.date,buyPrice:hit.fill,qty:qtyF,invested:cost,buyFee:o.fee||0,lastPrice:hit.fill,lastDate:hit.date,target:o.target,stop:o.stop,note:o.note||null});
         p.orders=p.orders.filter(x=>x.id!==o.id);
-        filled.push(`${o.ticker} bought ${o.qty} @ ${fmtP(hit.fill,o.currency)} on ${hit.date}`);
+        filled.push(`${o.ticker} bought ${qtyF} @ ${fmtP(hit.fill,o.currency)} on ${hit.date}${o.market?' (at the day\u2019s open)':''}`);
       }
     }
     _paperSave(p);
@@ -4565,7 +4694,7 @@ async function checkLimitOrders(){
 // Cancel a pending limit order and refund the reserved cash.
 function paperCancelOrder(id){
   const p=_paper();const o=(p.orders||[]).find(x=>x.id===id);if(!o)return;
-  if(!confirm(`Cancel limit buy order: ${o.qty} ${o.ticker} @ ${fmtP(o.limit,o.currency)}?\nThe reserved ${fmtP(o.reserved,o.currency)}${o.fee>0?' (and the $'+o.fee.toFixed(2)+' brokerage)':''} returns to cash.`))return;
+  if(!confirm(`Cancel ${o.market?'market':'limit'} buy order: ${o.market?fmtP(o.amount||o.reserved,o.currency)+' of '+o.ticker+' at next open':o.qty+' '+o.ticker+' @ '+fmtP(o.limit,o.currency)}?\nThe reserved ${fmtP(o.reserved,o.currency)}${o.fee>0?' (and the $'+o.fee.toFixed(2)+' brokerage)':''} returns to cash.`))return;
   p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
   if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
   p.orders=p.orders.filter(x=>x.id!==id);
@@ -4684,6 +4813,16 @@ function paperAdjust(id){
       <button onclick="paperApplyRatio('${id}')" style="width:100%;margin-top:8px;padding:9px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 12px var(--sans);cursor:pointer;">Apply consolidation / split</button>
     </div>
 
+    <div style="border:1px solid var(--green);border-radius:8px;padding:10px 11px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:3px;">💰 Record a dividend</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.5;">When ${tk} pays a dividend, enter the per-share amount — the cash (${totQty.toLocaleString()} shares × amount) is added to your balance and logged. Share prices drop on the ex-dividend date, so without recording dividends your returns read lower than reality.</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="divPerShare" min="0" step="any" placeholder="e.g. 0.055 per share" style="flex:1;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;box-sizing:border-box;">
+        <button onclick="paperAddDividend('${id}')" style="flex:0 0 auto;padding:8px 14px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 11px var(--sans);cursor:pointer;">Add</button>
+      </div>
+      <div id="divPrev" style="font-size:9px;color:var(--muted);margin-top:5px;min-height:11px;"></div>
+    </div>
+
     <div style="border:1px solid var(--red);border-radius:8px;padding:10px 11px;">
       <div style="font-size:11px;font-weight:700;color:#ff9caa;margin-bottom:3px;">🗑 Delete this holding</div>
       <div style="font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Removes ${tk} from your portfolio completely, as if the buy never happened. The cash you spent (${fmtP(totInv,cur)}) is returned to your balance. This does <strong>not</strong> record a sale or any profit/loss — use it to undo a mistaken buy or clear a broken holding. Can't be undone.</div>
@@ -4691,7 +4830,7 @@ function paperAdjust(id){
     </div>
     <div style="font-size:9px;color:var(--orange);margin-top:10px;">Paper trading only — practice, not advice.</div>
   `);
-  setTimeout(()=>_adjPrev(id),80);
+  setTimeout(()=>{_adjPrev(id);const dv=document.getElementById('divPerShare');if(dv)dv.oninput=()=>{const n=parseFloat(dv.value)||0;const el=document.getElementById('divPrev');if(el)el.textContent=n>0?(totQty.toLocaleString()+' \u00d7 '+n+' = '+fmtP(totQty*n,cur)+' added to cash'):'';};},80);
 }
 // Live preview of what the ratio will do.
 function _adjPrev(id){
@@ -4735,7 +4874,7 @@ function paperApplyRatio(id){
     // Rescale the stored last price so the "Now" column and P/L line up with the
     // post-consolidation share count until fresh data loads.
     if(l.lastPrice)l.lastPrice=+(l.lastPrice/factor).toFixed(l.lastPrice/factor<1?6:4);
-    l.consolidatedAt=new Date().toISOString().slice(0,10);
+    l.consolidatedAt=_todayLocal();
     l.note=((l.note?l.note+' · ':'')+`${oldN}→${newN} ${kind} applied`).slice(0,140);
   }
   _paperSave(p);
@@ -4760,24 +4899,28 @@ function paperSellMarket(id){
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const tk=lots[0].ticker, cur=lots[0].currency, exch=lots[0].exchange, nm=lots[0].name;
-  const px=lots[0].lastPrice||lots[0].buyPrice;
+  const px=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
   const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
+  const sellFee=brokerageFee();
+  const buyFees=lots.reduce((a,l)=>a+(l.buyFee||0),0);
   const proceeds=+(totQty*px).toFixed(2);
-  const plAbs=+(proceeds-totInv).toFixed(2);
+  const plAbs=+(proceeds-totInv-buyFees-sellFee).toFixed(2);
   const avg=totQty>0?totInv/totQty:0;
+  const _stale=_staleDays(lots[0].lastDate);
   const lotNote=lots.length>1?`\n(combining ${lots.length} lots · average buy ${fmtP(avg,cur)})`:'';
-  if(!confirm(`Sell all ${totQty} ${tk} at ${fmtP(px,cur)}?${lotNote}\nProceeds ${fmtP(proceeds,cur)} · P/L ${plAbs>=0?'+':''}${plAbs}`))return;
+  if(!confirm(`Sell all ${totQty} ${tk} at ${fmtP(px,cur)}?${lotNote}${_stale>1?`\n\u26a0 Price is ${_stale} trading days old (${lots[0].lastDate}) \u2014 refresh data first for accuracy.`:''}\nProceeds ${fmtP(proceeds,cur)} · P/L ${plAbs>=0?'+':''}${plAbs}${(sellFee+buyFees)>0?' (net of '+(sellFee+buyFees).toFixed(2)+' brokerage)':''}`))return;
   const plPct=+(totInv>0?(plAbs/totInv)*100:0).toFixed(2);
   p.history=p.history||[];
   // One history entry per underlying lot, so each purchase's date & note is kept.
-  const today=new Date().toISOString().slice(0,10);
+  const today=_todayLocal();
   for(const l of lots){
     const lProc=+(l.qty*px).toFixed(2), lInv=(l.invested!=null?l.invested:l.qty*l.buyPrice);
-    const lPl=+(lProc-lInv).toFixed(2);
+    const lFees=+(((l.buyFee||0)+(proceeds>0?sellFee*(lProc/proceeds):0))).toFixed(2);
+    const lPl=+(lProc-lInv-lFees).toFixed(2);
     p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
       buyDate:l.buyDate,buyPrice:l.buyPrice,qty:l.qty,invested:+lInv.toFixed(2),
-      sellDate:today,sellPrice:px,proceeds:lProc,plAbs:lPl,plPct:+(lInv>0?(lPl/lInv)*100:0).toFixed(2),
+      sellDate:today,sellPrice:px,proceeds:lProc,fees:lFees,plAbs:lPl,plPct:+(lInv>0?(lPl/lInv)*100:0).toFixed(2),
       trigger:'market',note:l.note||null});
   }
   p.cash=+((p.cash||0)+proceeds).toFixed(2);
@@ -4796,7 +4939,7 @@ function paperSell(id){
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const tk=lots[0].ticker, cur=lots[0].currency;
-  const px=lots[0].lastPrice||lots[0].buyPrice;
+  const px=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
   const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
   const avg=totQty>0?totInv/totQty:0;
@@ -4812,7 +4955,7 @@ function paperSell(id){
     </div>
     <div id="sellPrev" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:13px;"></div>
     <button onclick="paperSellConfirm('${id}')" style="width:100%;margin-top:10px;padding:10px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 13px var(--sans);cursor:pointer;">Sell (paper)</button>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Simulated at the last end-of-day close — practice only, not advice.${lots.length>1?' Sells from your oldest lot first.':''}</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Simulated at the last end-of-day close${slippagePct()>0?' with '+slippagePct()+'% slippage':''}.${_staleDays(lots[0].lastDate)>1?' ⚠ Price is '+_staleDays(lots[0].lastDate)+' trading days old — refresh data first.':''} Practice only, not advice.${lots.length>1?' Sells from your oldest lot first.':''}</div>
   `);
   setTimeout(()=>{
     const q=document.getElementById('sellQty');
@@ -4832,8 +4975,10 @@ function paperSellConfirm(id){
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
   let qty=Math.min(totQty,Math.max(0,parseInt((document.getElementById('sellQty')||{}).value)||0));
   if(qty<1){alert('Enter at least 1 share to sell.');return;}
-  const px=lots[0].lastPrice||lots[0].buyPrice;
-  const today=new Date().toISOString().slice(0,10);
+  const px=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
+  const sellFee=brokerageFee();
+  const grossProceeds=qty*px;
+  const today=_todayLocal();
   p.history=p.history||[];
   let remaining=qty, totalProceeds=0;
   // Draw the requested shares from the oldest lot first, then the next, etc.
@@ -4843,15 +4988,18 @@ function paperSellConfirm(id){
     if(take<=0)continue;
     const soldCost=+(take*l.buyPrice).toFixed(2);
     const proceeds=+(take*px).toFixed(2);
-    const plAbs=+(proceeds-soldCost).toFixed(2);
+    const buyFeePart=+((l.buyFee||0)*(take/l.qty)).toFixed(2);
+    const sellFeePart=+(grossProceeds>0?sellFee*(proceeds/grossProceeds):0).toFixed(2);
+    const lFees=+(buyFeePart+sellFeePart).toFixed(2);
+    const plAbs=+(proceeds-soldCost-lFees).toFixed(2);
     const plPct=+(soldCost>0?(plAbs/soldCost)*100:0).toFixed(2);
     p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
       buyDate:l.buyDate,buyPrice:l.buyPrice,qty:take,invested:soldCost,
-      sellDate:today,sellPrice:px,proceeds,plAbs,plPct,
+      sellDate:today,sellPrice:px,proceeds,fees:lFees,plAbs,plPct,
       partial:take<l.qty||lots.length>1,trigger:'market',note:l.note||null});
     totalProceeds+=proceeds;
     if(take>=l.qty){ l._sellAll=true; }
-    else { l.qty-=take; l.invested=+(l.qty*l.buyPrice).toFixed(2); }
+    else { l.qty-=take; l.invested=+(l.qty*l.buyPrice).toFixed(2); l.buyFee=+(Math.max(0,(l.buyFee||0)-buyFeePart)).toFixed(2); }
     remaining-=take;
   }
   p.cash=+((p.cash||0)+(+totalProceeds.toFixed(2))).toFixed(2);
@@ -4863,7 +5011,7 @@ function paperSellConfirm(id){
 }
 // Share the portfolio & trade history as plain text (clipboard or email).
 function _portfolioText(){
-  const {ex,hold:holdRaw,hist}=_paperFiltered();
+  const {p,ex,hold:holdRaw,hist}=_paperFiltered();
   const hold=_mergeHoldings(holdRaw);
   const when=new Date().toLocaleString('en-AU');
   let t=`Insight Trading — Paper Trading · ${ex==='ALL'?'all exchanges':ex} (${when})\n`;
@@ -4880,6 +5028,12 @@ function _portfolioText(){
   hist.forEach(x=>{t+=`• ${x.ticker}: ${x.qty.toLocaleString()} · ${x.buyDate}→${x.sellDate} · ${x.buyPrice}→${x.sellPrice} · P/L ${x.plAbs>=0?'+':''}${x.plAbs} (${x.plPct>=0?'+':''}${x.plPct}%)${x.auto?' 🎯auto':''}${x.partial?' (partial)':''}\n`;});
   const closedPl=hist.reduce((a,x)=>a+(x.plAbs||0),0);
   if(hist.length)t+=`Closed P/L (12 mo): ${closedPl>=0?'+':''}${closedPl.toFixed(2)}\n`;
+  const dvs=((p.dividends)||[]).filter(d=>ex==='ALL'||d.exchange===ex);
+  if(dvs.length){
+    t+='\u2500'.repeat(40)+'\nDIVIDENDS RECEIVED ('+dvs.length+')\n';
+    dvs.forEach(d=>{t+=`\u2022 ${d.ticker}: ${d.qty.toLocaleString()} \u00d7 ${d.perShare} = ${d.total.toFixed(2)} (${d.date})\n`;});
+    t+=`Dividends total: ${dvs.reduce((a,d)=>a+(d.total||0),0).toFixed(2)}\n`;
+  }
   return t;
 }
 function sharePortfolio(){
@@ -5209,7 +5363,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,new Date().toISOString().slice(0,10))+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
@@ -5253,6 +5407,10 @@ function showPortfolio(exSel){
   const totPl=totVal-totInv, totC=totPl>0.005?'var(--green)':totPl<-0.005?'var(--red)':'var(--muted)';
   const histRows=hist.map(t=>{
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
+    const _nowS=(allData||[]).find(x=>x.ticker===t.ticker&&x.exchange===t.exchange);
+    const _nowPx=(_nowS&&_nowS.price>0)?_nowS.price:null;
+    const _sd=(_nowPx&&t.sellPrice>0)?((_nowPx-t.sellPrice)/t.sellPrice)*100:null;
+    const sinceHtml=(_sd!=null&&isFinite(_sd))?`<br><span style="font-size:8px;color:${_sd>1?'var(--gold)':_sd<-1?'var(--green)':'var(--dim)'}">now ${fmtP(_nowPx,t.currency)} · ${_sd>=0?'+':''}${_sd.toFixed(1)}% since you sold${_sd>10?' — it kept climbing':_sd<-10?' — good exit':''}</span>`:'';
     return `<tr>
       <td style="padding:4px 6px;"><strong><a href="#" onclick="printShareReport('${t.ticker}');return false;" title="Open the printable report for ${t.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${t.ticker} 🖨</a></strong> <span style="font-size:8px;color:var(--dim)">${t.exchange}</span>${(function(){
         const ex=t.trigger==='stop'?'<span style="font-size:8px;color:#ff9caa">🛑 stop-loss</span>':t.trigger==='target'?'<span style="font-size:8px;color:var(--gold)">🎯 target</span>':t.auto?'<span style="font-size:8px;color:var(--gold)">🎯 auto</span>':'<span style="font-size:8px;color:var(--muted)">sold at market</span>';
@@ -5260,8 +5418,8 @@ function showPortfolio(exSel){
       })()}${t.partial?' <span style="font-size:8px;color:var(--dim)">(partial)</span>':''}${t.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(t.note).replace(/"/g,'&quot;')}">📝 ${String(t.note).slice(0,40)}${t.note.length>40?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Put these shares back into your holdings and reverse the cash. Use this if a stop/target fired on bad price data, or to undo a sale." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:600 9px var(--sans);cursor:pointer;">↩ undo</button></td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Put these shares back into your holdings and reverse the cash. Use this if a stop/target fired on bad price data, or to undo a sale." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:600 9px var(--sans);cursor:pointer;">↩ undo</button></td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
@@ -5273,10 +5431,13 @@ function showPortfolio(exSel){
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your return % is not trustworthy right now.</strong> The cash balance doesn't match your trade ledger. Set the bankroll you actually started with and the % &amp; cash will be measured against it (holdings &amp; history untouched): <button onclick="paperRepairBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button></div>`:''}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
     ${(hold.length||hist.length)?(function(){
-      const totalPl=totPl+closedPl;
+      const divs=((p.dividends)||[]).filter(d=>ex==='ALL'||d.exchange===ex).reduce((a,d)=>a+(d.total||0),0);
+      const totalPl=totPl+closedPl+divs;
       const card=(lbl,v,c)=>`<div style="flex:1;min-width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;"><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">${lbl}</div><div style="font-family:var(--mono);font-size:14px;font-weight:800;color:${c||'var(--text)'};margin-top:2px;">${v}</div></div>`;
       const pc=x=>x>0.005?'var(--green)':x<-0.005?'var(--red)':'var(--muted)';
       const cash=p.cash||0, resv=_reservedSum(p), acct=cash+resv+totVal;
+      const _curs=[...new Set(hold.map(h=>h.currency).filter(Boolean))];
+      const mixed=(ex==='ALL'&&_curs.length>1);
       const SC=_startCap(p);
       const fees=p.feesPaid||0;
       // ── All-time trading stats from the permanent ledger (exchange-scoped) ──
@@ -5290,6 +5451,14 @@ function showPortfolio(exSel){
         const best=allT.reduce((a,t)=>t.plAbs>(a?a.plAbs:-1e15)?t:a,null);
         const worst=allT.reduce((a,t)=>t.plAbs<(a?a.plAbs:1e15)?t:a,null);
         const longest=allT.reduce((a,t)=>{const d=tradingDaysHeld(t.buyDate,t.sellDate);return d>a?d:a;},0);
+        const grossW=wins.reduce((a,t)=>a+t.plAbs,0), grossL=Math.abs(losses.reduce((a,t)=>a+t.plAbs,0));
+        const pf=grossL>0?(grossW/grossL):(grossW>0?Infinity:0);
+        const expct=allT.reduce((a,t)=>a+t.plAbs,0)/allT.length;
+        const avgWinPct=wins.length?wins.reduce((a,t)=>a+(t.plPct||0),0)/wins.length:0;
+        const avgLossPct=losses.length?losses.reduce((a,t)=>a+(t.plPct||0),0)/losses.length:0;
+        const _dOf=t=>tradingDaysHeld(t.buyDate,t.sellDate);
+        const avgHoldW=wins.length?wins.reduce((a,t)=>a+_dOf(t),0)/wins.length:0;
+        const avgHoldL=losses.length?losses.reduce((a,t)=>a+_dOf(t),0)/losses.length:0;
         const st=(l,v,c)=>`<span style="white-space:nowrap;">${l} <strong style="color:${c||'var(--text)'}">${v}</strong></span>`;
         statsHtml=`<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:9px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:12px;">
           ${st('Trades',allT.length)}
@@ -5299,9 +5468,15 @@ function showPortfolio(exSel){
           ${best?st('Best',best.ticker+' +'+best.plAbs.toFixed(2),'var(--green)'):''}
           ${worst?st('Worst',worst.ticker+' '+worst.plAbs.toFixed(2),worst.plAbs<0?'var(--red)':'var(--muted)'):''}
           ${st('Longest hold',longest+' days')}
+          ${st('Profit factor',pf===Infinity?'∞':pf.toFixed(2),pf>=1.5?'var(--green)':pf>=1?'var(--muted)':'var(--red)')}
+          ${st('Expectancy/trade',(expct>=0?'+':'')+expct.toFixed(2),expct>=0?'var(--green)':'var(--red)')}
+          ${st('Avg win %','+'+avgWinPct.toFixed(1)+'%','var(--green)')}
+          ${st('Avg loss %',avgLossPct.toFixed(1)+'%','var(--red)')}
+          ${st('Hold: wins',avgHoldW.toFixed(0)+'d')}
+          ${st('Hold: losses',avgHoldL.toFixed(0)+'d')}
         </div>`;
       }
-      return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${statsHtml?'8px':'12px'};">
+      return `${mixed?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:9px;color:var(--orange);">⚠ You hold shares in different currencies (${_curs.join(' + ')}) — the combined totals below add them as-is. Use the exchange tabs for exact single-currency figures.</div>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${statsHtml?'8px':'12px'};">
         ${ex==='ALL'?card('Account total',acct.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' <span style="font-size:9px">('+((acct-SC)/SC*100>=0?'+':'')+((acct-SC)/SC*100).toFixed(1)+'%)</span>',pc(acct-SC)):''}
         ${(ex==='ALL'&&SC!==PAPER_START_CASH)?card('Start capital',SC.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
         ${ex==='ALL'?card('💵 Cash',cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
@@ -5310,6 +5485,7 @@ function showPortfolio(exSel){
         ${card('Invested',totInv.toFixed(2))}
         ${card('Unrealised P/L',(totPl>=0?'+':'')+totPl.toFixed(2)+' ('+(totInv>0?((totPl/totInv)*100>=0?'+':'')+((totPl/totInv)*100).toFixed(1):'0')+'%)',pc(totPl))}
         ${card('Realised P/L 12mo',(closedPl>=0?'+':'')+closedPl.toFixed(2),pc(closedPl))}
+        ${divs>0.005?card('💰 Dividends','+'+divs.toFixed(2),'var(--green)'):''}
         ${card('Total P/L',(totalPl>=0?'+':'')+totalPl.toFixed(2),pc(totalPl))}
         ${(ex==='ALL'&&fees>0)?card('Fees paid',fees.toFixed(2),'var(--orange)'):''}
       </div>${statsHtml}`;
@@ -5331,10 +5507,10 @@ function showPortfolio(exSel){
       const ords=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex);
       if(!ords.length)return '';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
-        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span><br><a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
+        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
       </div>`).join('');
-      return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending limit orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Fill when the day's low reaches your limit. Reserved cash is held until fill or cancel.</div>`;
+      return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
     ${vh.length>=2?(function(){
       const vals=vh.map(x=>x.eq!=null?x.eq:x.val);
@@ -5365,7 +5541,7 @@ function showPortfolio(exSel){
       const bmEnd=bmPts?bmPts[bmPts.length-1]:null;
       const bmPct=(bmEnd!=null&&vals[0]>0)?((bmEnd-vals[0])/vals[0])*100:null;
       const cc=chg>0.005?'var(--green)':chg<-0.005?'var(--red)':'var(--muted)';
-      return `<div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Portfolio value · day by day (${vh.length} days)${bmName?` <span style="font-weight:400;font-size:8px;color:var(--blue)">· ┄┄ ${bmName} benchmark${bmPct!=null?` ${bmPct>=0?'+':''}${bmPct.toFixed(2)}%`:''} over the same days</span>`:' <span style="font-weight:400;font-size:8px;color:var(--dim)">· load an index ETF (VAS / A200) to see a benchmark line</span>'}</div>
+      return `<div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Portfolio value · day by day (${vh.length} days)${bmName?` <span style="font-weight:400;font-size:8px;color:var(--blue)">· You ${chgPct>=0?'+':''}${chgPct.toFixed(2)}% vs ┄┄ ${bmName} ${bmPct!=null?`${bmPct>=0?'+':''}${bmPct.toFixed(2)}%`:''} over the same days${bmPct!=null?(chgPct>=bmPct?' — you\u2019re ahead 🏆':' — the index is ahead'):''}</span>`:' <span style="font-weight:400;font-size:8px;color:var(--dim)">· load an index ETF (VAS / A200) to see a benchmark line</span>'}</div>
       <div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
         <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;">${bmLine}<polyline points="${pts}" fill="none" stroke="${chg>=0?'#3fb950':'#f85149'}" stroke-width="1.6"/></svg>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px;">
@@ -5399,8 +5575,10 @@ function showPortfolio(exSel){
       <div style="font-size:8px;color:var(--dim);margin-top:4px;text-align:center;line-height:1.5;">Portfolio missing or empty? This recovers it from the backup kept automatically on this device. Backups are per-device — they don't move between phones. For the most durable saving, install the app to your home screen.</div>
     </div>
     <button onclick="showPasteRestore()" title="Move a portfolio from another version by pasting its data" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📋 Paste portfolio from old version</button>
-    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}{_startCap(p).toLocaleString()}</strong> · totals mix currencies across exchanges — use the tabs for clean figures · fills ignore spread and slippage. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a></div>
-    <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Deducted from cash on every fill (P/L figures stay before fees; the running fee total shows as its own card).</div>
+    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}{_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a></div>
+    <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Charged on every fill and included in each closed trade’s recorded P/L.</div>
+    <div style="font-size:8px;color:var(--dim);margin-top:4px;">📉 Slippage per side: <input type="number" min="0" max="10" step="any" value="${slippagePct()||''}" placeholder="0" onchange="setSlippage(this.value)" style="width:44px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;">% — simulates the bid–ask spread: market buys fill that much higher, market sells &amp; stop-outs that much lower. Small ASX shares often cost 1–3% to cross. 0 = off.</div>
+    <div style="font-size:8px;color:var(--dim);margin-top:4px;"><label style="cursor:pointer;"><input type="checkbox" ${realFillsOn()?'checked':''} onchange="setRealFills(this.checked)" style="vertical-align:middle;"> ⏭ <strong style="color:var(--muted)">Realistic fills</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Sells still fill at the last close.</label></div>
   `);
 }
 
@@ -5570,6 +5748,25 @@ function showModal(html,label){
     // backdrop "click" and slammed the modal shut mid-drag.
     m.onmousedown=e=>{m._pressedOnBackdrop=(e.target===m);};
     m.onclick=e=>{if(e.target===m&&m._pressedOnBackdrop)closeModal();m._pressedOnBackdrop=false;};
+    // ── v212: swipe-down to close ──────────────────────────────────────────
+    let _swipeStartY=0,_swipeStartX=0;
+    m.addEventListener('touchstart',e=>{
+      const box=document.getElementById('modalBox');
+      // Only track swipe if touch starts on the label/header area (top 60px of modal)
+      if(box){
+        const bRect=box.getBoundingClientRect();
+        const ty=e.touches[0].clientY;
+        if(ty < bRect.top+60){ _swipeStartY=ty; _swipeStartX=e.touches[0].clientX; }
+        else { _swipeStartY=0; }
+      }
+    },{passive:true});
+    m.addEventListener('touchend',e=>{
+      if(!_swipeStartY) return;
+      const dy=e.changedTouches[0].clientY-_swipeStartY;
+      const dx=Math.abs(e.changedTouches[0].clientX-_swipeStartX);
+      if(dy>70&&dx<50){ closeModal(); } // swipe down 70px+ and mostly vertical
+      _swipeStartY=0;
+    },{passive:true});
     document.body.appendChild(m);
   }
   // Restore the user's preferred panel size (drag the bottom-right corner to resize).
@@ -5578,7 +5775,8 @@ function showModal(html,label){
   let sz=_isBig?{w:Math.round(window.innerWidth*0.9),h:Math.round(window.innerHeight*0.9)}:{w:460,h:0};
   try{const key=_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
   const hStyle=sz.h>0?`height:${Math.min(sz.h,window.innerHeight*0.95)}px;`:'';
-  m.innerHTML=`<div id="modalBox" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
+  m.innerHTML=`<div id="modalBox" style="position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
+    <button id="modalCloseX" onclick="closeModal()" title="Close">✕</button>
     ${_lbl?`<div style="flex:none;display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;background:linear-gradient(90deg,var(--navy,#0d1b33),rgba(13,27,51,.6));border:1px solid var(--gold,#FFD200);border-radius:8px;"><span style="font:800 13px var(--sans);color:var(--gold,#FFD200);letter-spacing:.2px;">${_lbl}</span></div>`:''}
     <div class="modal-scroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:14px;margin-right:-6px;">${html}</div>
     <div style="text-align:right;margin-top:12px;flex:none;display:flex;align-items:center;justify-content:space-between;">
@@ -10087,6 +10285,75 @@ async function _refreshSimpleLoad(){
       ? '<span style="color:var(--muted)">Tip: for saved data, your watchlist and portfolio to stick, open the app from its web link \u2014 or add it to your home screen and use that icon. (Opened-from-a-file copies can\u2019t keep data.)</span>'
       : 'Loads the market so the buttons below can work.';
   }
+  // ── v212: card dimming ────────────────────────────────────────────────────
+  const bodyLoaded = Array.isArray(allData) && allData.length > 0;
+  document.body.classList.toggle('simple-no-data', !bodyLoaded);
+  // ── v212: last-updated timestamp ──────────────────────────────────────────
+  const dateEl = document.getElementById('simpleDataDate');
+  if(dateEl){
+    if(bodyLoaded){
+      let ts = '';
+      try{
+        const d = allData.find(s=>s.date||s.priceDate||s.lastDate);
+        const raw = d && (d.date||d.priceDate||d.lastDate);
+        if(raw){ const dt=new Date(raw); if(!isNaN(dt)) ts=' · data '+dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'}); }
+      }catch(_){}
+      dateEl.textContent = 'Market loaded — '+allData.length+' shares'+ts;
+    } else {
+      dateEl.textContent = '';
+    }
+  }
+  // ── v212: card count badges ───────────────────────────────────────────────
+  if(bodyLoaded) _updateCardCounts();
+  // ── v212: market closed banner ────────────────────────────────────────────
+  _updateClosedBanner();
+  // ── v212: quick search visibility ─────────────────────────────────────────
+  const srch = document.getElementById('simpleSearch');
+  if(srch) srch.classList.toggle('visible', bodyLoaded);
+}
+// ── v212: Card count badges ───────────────────────────────────────────────────
+function _updateCardCounts(){
+  if(!Array.isArray(allData)||!allData.length) return;
+  try{
+    const top20cnt = allData.filter(s=>s.score>=70).length;
+    const t=document.getElementById('cnt-top20');
+    if(t) t.textContent = top20cnt>0 ? top20cnt : '';
+  }catch(_){}
+  try{
+    const smartcnt = allData.filter(s=>s.accum==='A'||s.accum==='B').length;
+    const t=document.getElementById('cnt-smart');
+    if(t) t.textContent = smartcnt>0 ? smartcnt : '';
+  }catch(_){}
+  try{
+    const surgecnt = allData.filter(s=>s.volRatio>=2).length;
+    const t=document.getElementById('cnt-surge');
+    if(t) t.textContent = surgecnt>0 ? surgecnt : '';
+  }catch(_){}
+  try{
+    const reccnt = allData.filter(s=>s.chg52wkPct<=-20 && s.chgPct>=0 && (s.volRatio||0)>=1.2).length;
+    const t=document.getElementById('cnt-recovery');
+    if(t) t.textContent = reccnt>0 ? reccnt : '';
+  }catch(_){}
+}
+// ── v212: Market closed banner ───────────────────────────────────────────────
+function _updateClosedBanner(){
+  const b = document.getElementById('simpleClosedBanner');
+  if(!b) return;
+  try{
+    const now = new Date();
+    const utcH = now.getUTCHours();
+    const utcM = now.getUTCMinutes();
+    const month = now.getUTCMonth();
+    const isDST = month >= 9 || month <= 3;
+    const offset = isDST ? 11 : 10;
+    const localH = (utcH + offset) % 24;
+    const localM = utcM;
+    const dow = (now.getUTCDay() + (utcH + offset >= 24 ? 1 : 0)) % 7;
+    const isWeekday = dow >= 1 && dow <= 5;
+    const localMins = localH * 60 + localM;
+    const isOpen = isWeekday && localMins >= 600 && localMins < 960;
+    b.style.display = isOpen ? 'none' : 'block';
+  }catch(_){ b.style.display='none'; }
 }
 function _simpleExchangePicker(exs){
   const rows=exs.map(function(e){return '<button onclick="_loadOfflineExchange(\''+e.exch+'\')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;margin-bottom:8px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font:700 15px var(--sans);cursor:pointer;"><span>\ud83c\udf10 '+e.exch+'</span><span style="font-size:11px;color:var(--muted);font-family:var(--mono);">'+e.count.toLocaleString()+' shares</span></button>';}).join('');
@@ -10101,6 +10368,25 @@ async function _loadOfflineExchange(exch){
   try{ await loadOfflineNow(); }catch(e){}
   _refreshSimpleLoad();
   if(st)st.textContent = (allData&&allData.length) ? (allData.length+' '+exch+' shares ready. Tap a report below.') : ('Could not read saved '+exch+' data.');
+}
+// ── v212: Quick search in simple mode ─────────────────────────────────────
+function _simpleSearch(query){
+  const q=(query||'').trim().toLowerCase();
+  const cards=document.querySelectorAll('#simplePanel .simple-card:not(.sc-always-on)');
+  // When no data, searching is a no-op (cards are already dimmed/disabled)
+  if(!Array.isArray(allData)||!allData.length) return;
+  if(!q){
+    // Clear any previous search filtering; show all cards
+    cards.forEach(c=>c.style.display='');
+    return;
+  }
+  // Show only cards whose title/sub contain the query
+  cards.forEach(c=>{
+    const text=(c.textContent||'').toLowerCase();
+    c.style.display = text.includes(q) ? '' : 'none';
+  });
+  // Also if we want to search actual share data — only do so if in a scan
+  // (future: could open search results inline)
 }
 async function simpleLoad(fresh){
   const st=document.getElementById('simpleStatus');
