@@ -1398,7 +1398,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-230-open';
+const APP_VERSION='2026.07.14-231-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6847,9 +6847,10 @@ function computeVolAvg(history,limitDays){
 //  Honest by design: these are estimates from closing prices, not advice, and
 //  not order-flow or fundamental data. Each is a well-known indicator.
 // ═══════════════════════════════════════════════════════════════════════════
-const _scMemo=new WeakMap(); // v230: one sort per history array, not seven
 function _sortedCloses(history){
-  try{ const hit=_scMemo.get(history); if(hit)return hit; }catch(e){}
+  // v231: no caching here — a session-long cache retained a second copy of every
+  // share's history and pushed low-RAM machines into memory thrash. The prepare
+  // loop now sorts once per share explicitly and passes the rows around instead.
   const gd=q=>String(qField(q,['dateStamp','date','Date'])||'');
   const gc=q=>parseFloat(qField(q,['close','Close','c']));
   const gh=q=>parseFloat(qField(q,['high','High','h']));
@@ -6858,9 +6859,7 @@ function _sortedCloses(history){
   const go=q=>parseFloat(qField(q,['open','Open','o']));
   // Plain string compare — ISO dates sort correctly and it's ~20× faster than localeCompare.
   const rows=history.slice().filter(q=>isFinite(gc(q))).sort((a,b)=>{const da=gd(a),db=gd(b);return da<db?-1:da>db?1:0;}); // oldest→newest
-  const out=rows.map(q=>({d:gd(q).slice(0,10),o:go(q),c:gc(q),hi:gh(q),lo:gl(q),v:gv(q)}));
-  try{ _scMemo.set(history,out); }catch(e){}
-  return out;
+  return rows.map(q=>({d:gd(q).slice(0,10),o:go(q),c:gc(q),hi:gh(q),lo:gl(q),v:gv(q)}));
 }
 function _sma(arr,n){if(arr.length<n)return null;let s=0;for(let i=arr.length-n;i<arr.length;i++)s+=arr[i];return s/n;}
 function _rsi(closes,period){
@@ -6872,8 +6871,8 @@ function _rsi(closes,period){
   const rs=ag/al;return Math.round(100-(100/(1+rs)));
 }
 // Compute every technical signal for a share from its history rows.
-function computeTechnicals(s,history){
-  const rows=_sortedCloses(history);
+function computeTechnicals(s,history,preRows){
+  const rows=preRows||_sortedCloses(history);
   if(rows.length<5)return;
   // Retain the history so range-window changes can recompute instantly without
   // re-fetching. Kept compact (last ~70 rows is plenty for a 3-month range).
@@ -8750,12 +8749,13 @@ async function prepareAllSignals(auto){
             s.newsFlag=newsProxy(hist);
             // Set s.series (oldest→newest {d,c,v}) — accumulation, patterns and
             // news proxy all read this. Without it accum10 returned 0 for all.
-            try{ s.series=_sortedCloses(hist).map(r=>({d:r.d,c:r.c,v:r.v})); }catch(e){}
+            const srows=_sortedCloses(hist);
+            try{ s.series=srows.map(r=>({d:r.d,c:r.c,v:r.v})); }catch(e){}
             const avg3=computeVolAvg(hist,effVolWindow());
             if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
             // volume streak — consecutive most-recent days with volume above its average
             try{
-              const rows=_sortedCloses(hist);
+              const rows=srows;
               const older=rows.slice(0,-5);
               let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
               const avgV=vn>0?vs/vn:(s.avgVol||0);
@@ -8763,7 +8763,7 @@ async function prepareAllSignals(auto){
               if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
               s.volDays=vrun; s.volStreakCalced=true;
             }catch(e){}
-            computeTechnicals(s,hist);
+            computeTechnicals(s,hist,srows);
             if(typeof accumDays==='function')s.accum10=accumDays(s,10);
             if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
           }catch(e){}
@@ -8790,10 +8790,11 @@ async function prepareAllSignals(auto){
           const s=slice[j];
           if(Array.isArray(hist)&&hist.length>=2){try{
             s.daysUp=countStreak(hist);s.streakCalced=true;s.newsFlag=newsProxy(hist);
-            try{s.series=_sortedCloses(hist).map(r=>({d:r.d,c:r.c,v:r.v}));}catch(e){}
+            const srows=_sortedCloses(hist);
+            try{s.series=srows.map(r=>({d:r.d,c:r.c,v:r.v}));}catch(e){}
             const avg3=computeVolAvg(hist,effVolWindow());
             if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
-            computeTechnicals(s,hist);
+            computeTechnicals(s,hist,srows);
             if(typeof accumDays==='function')s.accum10=accumDays(s,10);
             if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
           }catch(e){}}
