@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-209",
+  "version": "2026.07.14-211",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Two new Simple mode scans added — 📊 Market Today shows a live breadth snapshot (how many shares are up vs down, advance-decline ratio, biggest movers) and ↩️ Recovery Watch finds shares that have been falling but are now showing elevated volume and a stabilising price, potential reversal candidates. Stat bar filters now work correctly inside all scan result modals."
+  "notes": "Fixed the 'Building history...' progress banner covering buttons at the bottom of share reports on mobile — it now appears in the top-right corner instead."
 }

@@ -441,7 +441,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
   .hbadge{display:none;} /* free up header room on very small phones */
 }
 /* Floating background-activity indicator (bottom-right) */
-#bgInd{position:fixed;right:14px;bottom:14px;z-index:9000;display:none;align-items:center;gap:8px;
+#bgInd{position:fixed;right:14px;top:68px;z-index:9000;display:none;align-items:center;gap:8px;
   background:var(--bg2);border:1px solid var(--gold);border-radius:20px;padding:7px 13px;
   box-shadow:0 4px 18px rgba(0,0,0,.45);max-width:320px;}
 #bgInd .bgspin{width:12px;height:12px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;
@@ -1326,7 +1326,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-209-open';
+const APP_VERSION='2026.07.14-211-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10058,7 +10058,7 @@ async function _refreshSimpleLoad(){
   const hint=document.getElementById('simpleLoadHint');
   try{ if(Array.isArray(allData)&&allData.length) renderWhatsNew(); }catch(_){}
   if(!btn)return;
-  const loaded = Array.isArray(window.allData) && allData.length>0;
+  const loaded = Array.isArray(allData) && allData.length>0;
   let saved=0; try{ saved=await histCount(); }catch(_){}
   const showSaved=(el)=>{ if(el)el.style.display = saved>0?'block':'none'; };
   const showFresh=(el)=>{ if(el)el.style.display = 'block'; };
@@ -10100,7 +10100,7 @@ async function _loadOfflineExchange(exch){
   if(st)st.textContent='Loading your saved '+exch+' data\u2026';
   try{ await loadOfflineNow(); }catch(e){}
   _refreshSimpleLoad();
-  if(st)st.textContent = (window.allData&&allData.length) ? (allData.length+' '+exch+' shares ready. Tap a report below.') : ('Could not read saved '+exch+' data.');
+  if(st)st.textContent = (allData&&allData.length) ? (allData.length+' '+exch+' shares ready. Tap a report below.') : ('Could not read saved '+exch+' data.');
 }
 async function simpleLoad(fresh){
   const st=document.getElementById('simpleStatus');
@@ -10121,7 +10121,7 @@ async function simpleLoad(fresh){
     if(st)st.textContent='Loading your saved data…';
     try{ await loadOfflineNow(); }catch(e){}
     _refreshSimpleLoad();
-    if(st)st.textContent = (window.allData&&allData.length)
+    if(st)st.textContent = (allData&&allData.length)
       ? (allData.length+' shares ready (from saved data). Tap ⚡ fresh prices for today\u2019s.')
       : 'Could not read saved data — try ⚡ fresh prices.';
     return;
@@ -10138,14 +10138,14 @@ async function simpleLoad(fresh){
     else if(typeof startLoad==='function'){ await startLoad(); }
   }catch(e){}
   _refreshSimpleLoad();
-  if(st)st.textContent = (window.allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
+  if(st)st.textContent = (allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
 }
 
 // ── Simple mode: Market breadth overview ────────────────────────────────────
 // Taps allData directly (no extra network call needed — just counting & sorting).
 function simpleMarketPulse(){
   const st=document.getElementById('simpleStatus');
-  if(!window.allData||!allData.length){
+  if(!allData||!allData.length){
     if(st)st.textContent='Load your shares first, then tap Market today.';
     if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad();
     return;
