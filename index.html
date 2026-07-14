@@ -62,7 +62,9 @@ body.resizing{cursor:col-resize;user-select:none;}
 .mode-seg-btn.on{background:var(--gold);color:#1a1200;box-shadow:0 2px 8px rgba(255,210,0,.25);}
 .mode-hint{font-size:10.5px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.4;}
 #simplePanel{display:none;}
-body.simple-mode #simplePanel{display:block;}
+body.simple-mode #simplePanel{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:3px;}
+#simplePanel::-webkit-scrollbar{width:8px;}
+#simplePanel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
 /* in simple mode, hide the detailed setup columns + the filters aside content */
 body.simple-mode .load-zone,
 body.simple-mode #scanDragZone,
@@ -421,7 +423,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
   .left,.left.hidden{width:100% !important;display:flex !important;border-right:none;border-bottom:2px solid var(--border);max-height:none;overflow:visible !important;}
   /* Simple mode on phones: let the whole panel scroll so the last cards
      (My portfolio / My watchlist) are always reachable, not cut off. */
-  body.simple-mode #simplePanel{padding-bottom:40px;}
+  body.simple-mode #simplePanel{padding-bottom:40px;flex:none;min-height:auto;overflow:visible;}
   .left .load-zone{display:block;padding:10px;}
   /* Sections 1, 2, 3 each become full-width, stacked */
   .setup-row{display:block;}
@@ -1359,7 +1361,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-214-open';
+const APP_VERSION='2026.07.14-215-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10226,7 +10228,7 @@ function renderWhatsNew(){
   if(!Array.isArray(allData)||!allData.length){ cards.forEach(c=>c.style.display='none'); return; }
   const {items,firstRun}=computeWhatsNew();
   if(firstRun||!items.length){ cards.forEach(c=>c.style.display='none'); return; }
-  const rows=items.map(it=>{
+  const _wnRow=it=>{
     const star=it.onWatch?'⭐ ':'';
     const col=it.onWatch?'var(--gold)':'var(--text)';
     const why=String(it.why||'').replace(/\(([^)]*)\)/g,m=>m.replace(/ /g,'\u00a0'));
@@ -10234,7 +10236,10 @@ function renderWhatsNew(){
       <a href="#" onclick="printShareReport('${it.ticker}');return false;" style="color:${col};font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;flex-shrink:0;">${star}${it.ticker}</a>
       <span style="font-size:11px;color:var(--muted);text-align:right;line-height:1.35;">${why}</span>
     </div>`;
-  }).join('');
+  };
+  const WN_SHOW=5;
+  const rows=items.slice(0,WN_SHOW).map(_wnRow).join('')
+    +(items.length>WN_SHOW?`<div style="display:none;">${items.slice(WN_SHOW).map(_wnRow).join('')}</div><a href="#" onclick="(function(a){const m=a.previousElementSibling;const open=m.style.display==='none';m.style.display=open?'':'none';a.textContent=open?'▲ Show fewer':'▼ Show all ${items.length}';})(this);return false;" style="display:block;text-align:center;font-size:11px;color:var(--blue);padding:8px 0 2px;text-decoration:none;border-top:1px solid var(--border);margin-top:4px;">▼ Show all ${items.length}</a>`:'');
   const html=`<div style="border:2px solid rgba(255,210,0,.75);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:var(--bg2);box-shadow:0 0 14px rgba(255,210,0,.08);">
     <div style="font-weight:800;font-size:15px;color:var(--gold);margin-bottom:2px;">🔔 What's changed since last time</div>
     <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">Shares that started moving since your last visit. ⭐ = on your watchlist. A data summary, not advice — tap to open a report.</div>
