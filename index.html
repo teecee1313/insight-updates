@@ -785,7 +785,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px;">1 · Options</div>
           <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:8px;">
             <input type="checkbox" id="dlGainersOnly" style="cursor:pointer;margin:0;">
-            <label for="dlGainersOnly" style="cursor:pointer;">📈 Gainers only <span style="color:var(--dim);font-size:9px">(optional — shares up today)</span></label>
+            <label for="dlGainersOnly" style="cursor:pointer;">📈 Gainers only <span style="color:var(--dim);font-size:9px">(saves ONLY shares up today — leave OFF to save the whole market)</span></label>
           </div>
 
           <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px;">2 · Download</div>
@@ -1401,7 +1401,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-234-open';
+const APP_VERSION='2026.07.14-235-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8700,7 +8700,7 @@ async function prepareAllSignals(auto){
   try{haveOffline=(await histCount())>0;}catch(e){}
   if(!apiKey && !haveOffline)return;
   try{
-    const _offN=haveOffline?await histCount():0;
+    const _offN=haveOffline?await histCount():0; window._savedN=_offN;
     if(!window._forceLiveRefresh && (window._offlineMode || _offN>=Math.min(allData.length,300))){
       window._preferOffline=true;
     } else { window._preferOffline=false; }
@@ -8727,7 +8727,7 @@ async function prepareAllSignals(auto){
   // Guard: a full run is a big API commitment — confirm it (skip confirm only if
   // the user explicitly clicked the button, not on silent auto-startup).
   const est=Math.min(depth,allData.length);
-  if(est>250 && !auto){
+  if(est>250 && !auto && !window._preferOffline){ // v235: disk runs are free — no scary API confirm
     const mins=Math.ceil(est/6*0.9/60);
     const msg=`Prepare ALL signals for ${est} shares?\n\n• About ${est} API calls (${Math.round(est/DAILY_API_LIMIT*100)}% of your ${DAILY_API_LIMIT.toLocaleString()}/day limit)\n• Roughly ${mins} minute(s) to finish\n\nProceed?`;
     if(!confirm(msg)){if(ls)ls.innerHTML='Full preparation cancelled. Pick a smaller depth for a quick start.';return;}
@@ -8750,9 +8750,14 @@ async function prepareAllSignals(auto){
     // gainers / min-volume still come from the active live-load preset
     let _recipe = window._activeLoadRecipe || null;
     if(!_recipe){ try{ _recipe=getLoadPresets()[_activeLoadPreset]||null; }catch(e){} }
-    let _pool=allData.filter(_typeOk);
-    if(_recipe && _recipe.gainers){ const gg=_pool.filter(s=>s.chgPct>0); if(gg.length)_pool=gg; }
-    if(_recipe && _recipe.minVol>0){ const mv=_pool.filter(s=>(s.volume||0)>=_recipe.minVol); if(mv.length)_pool=mv; }
+    // v235: when serving from THIS DEVICE's saved data, prepare EVERYTHING —
+    // the preset's types/gainers/min-volume narrowing exists to save API calls,
+    // and disk reads cost nothing. (This was why only ~590 shares kept getting
+    // signals no matter what the depth setting said.) Shares missing from the
+    // store are fetched live once and saved, so the store grows to the full market.
+    let _pool=window._preferOffline?allData.slice():allData.filter(_typeOk);
+    if(!window._preferOffline && _recipe && _recipe.gainers){ const gg=_pool.filter(s=>s.chgPct>0); if(gg.length)_pool=gg; }
+    if(!window._preferOffline && _recipe && _recipe.minVol>0){ const mv=_pool.filter(s=>(s.volume||0)>=_recipe.minVol); if(mv.length)_pool=mv; }
     if(!_pool.length)_pool=allData.slice(); // safety: never prepare nothing
     // Rank by volume so the most active shares (most likely to matter) are done first.
     let ranked=_pool.slice().sort((a,b)=>(b.volume||0)-(a.volume||0)).slice(0,depth);
@@ -8831,7 +8836,7 @@ async function prepareAllSignals(auto){
         done++;
       });
       _maybeSlowNetworkHint&&_maybeSlowNetworkHint();
-      const _servingDisk=!!window._preferOffline || (window._healCount>i*0.8);
+      const _servingDisk=(!!window._preferOffline && (window._savedN||0)>=ranked.length) || (window._healCount>i*0.8);
       if(i+BATCH<ranked.length && !_servingDisk)await new Promise(r=>setTimeout(r,350));
     }
     // ── Retry pass: shares whose history failed (slow/blocked proxy) are retried
@@ -8870,10 +8875,16 @@ async function prepareAllSignals(auto){
     const _phase=document.getElementById('loadPhase'); if(_phase)_phase.style.display='none';
     setTimeout(()=>{ if(_pw)_pw.style.display='none'; },1500);
     if(!window._prepAbort && ls){
-      if(_stillMissing>0){
-        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${(ranked.length-_stillMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_stillMissing.toLocaleString()} still need data</span> — the data proxy was slow for those. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data.`;
+      // v235: count missing WITHIN the prepared pool (proxy failures), and say
+      // plainly when the active load preset narrowed a LIVE run — previously the
+      // "N shares" figure silently reflected the narrowed pool and looked broken.
+      const _inPool=new Set(ranked.map(s=>s.ticker));
+      const _poolMissing=allData.filter(s=>_inPool.has(s.ticker)&&!s.streakCalced&&(s.price>0)).length;
+      const _presetNote=(ranked.length<allData.length)?` <span style="font-size:9px;color:var(--gold)">Your active load preset (types / gainers / min-volume) narrowed this LIVE run to ${ranked.length.toLocaleString()} of ${allData.length.toLocaleString()} loaded shares — pick the "All shares" preset for everything. Loads from saved data always prepare everything.</span>`:'';
+      if(_poolMissing>0){
+        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${Math.max(0,ranked.length-_poolMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_poolMissing.toLocaleString()} still need data</span> — the data proxy was slow for those. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data.${_presetNote}`;
       } else {
-        ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>`;
+        ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>${_presetNote}`;
       }
     }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
@@ -9278,6 +9289,12 @@ async function loadOfflineNow(){
     // reports actually have scores to work with.
     try{ prepareAllSignals(true); }catch(e){}
     if(statusEl)statusEl.innerHTML=`<span style="color:var(--green)">📂 Loaded ${offlineRows.length.toLocaleString()} ${exch} shares from your saved data (offline — no network used). Prices are from your last download; press ⚡ Load for today's fresh prices.</span>`;
+    try{
+      const _full=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0;
+      if(_full>0 && offlineRows.length<_full*0.9 && statusEl){
+        statusEl.innerHTML+=` <span style="color:var(--gold)">Heads-up: your saved data holds ${offlineRows.length.toLocaleString()} of the ~${_full.toLocaleString()} shares on ${exch}. Press the ⚡ live load once — the app fetches &amp; saves the missing ones automatically.</span>`;
+      }
+    }catch(e){}
     if(btn)btn.disabled=false;
     if(progWrap)setTimeout(()=>progWrap.style.display='none',800);
   }catch(e){
@@ -9468,6 +9485,12 @@ async function downloadEverything(){
   // The download saves EVERYTHING loaded (types are a live-load setting only).
   // The one optional narrowing here is the "gainers only" checkbox below.
   let targets=allData.slice();
+  // v235: if the current list came FROM saved data, downloading it again can't
+  // add anything new — the whole market needs a live list first.
+  if(window._offlineMode){
+    const goLive=confirm('You are viewing your SAVED shares ('+allData.length.toLocaleString()+') — downloading now just re-saves those same shares.\n\nTo save the WHOLE market: press the ⚡ live load first (full market list), then ⬇ Download all.\n\nOK = continue anyway (re-save these '+allData.length.toLocaleString()+')\nCancel = stop so you can do the live load first');
+    if(!goLive){ _say('Do the ⚡ live load first, then press ⬇ Download all — that saves the whole market.'); return; }
+  }
   // Optional: only download shares that are UP today (gainers).
   const gainersOnly=(document.getElementById('dlGainersOnly')||{}).checked;
   if(gainersOnly){
@@ -9618,7 +9641,8 @@ async function updateOfflineStatus(){
     if(sd){
       if(n){
         let when=''; try{when=localStorage.getItem('asxScreener.histStoreDate.v1')||'';}catch(e){}
-        sd.innerHTML='✓ <span style="color:var(--green)">'+n.toLocaleString()+' shares saved on this device</span>'+(when?' · last updated '+when:'');
+        let _cov=''; try{const _f=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+((document.getElementById('exchSel')||{}).value||'ASX')))||0; if(_f>0&&n<_f*0.9)_cov=' · <span style="color:var(--gold)">covers '+n.toLocaleString()+' of ~'+_f.toLocaleString()+' — one ⚡ live load fetches &amp; saves the rest</span>';}catch(e){}
+        sd.innerHTML='✓ <span style="color:var(--green)">'+n.toLocaleString()+' shares saved on this device</span>'+(when?' · last updated '+when:'')+_cov;
       } else {
         sd.innerHTML='<span style="color:var(--orange)">Nothing saved yet</span> — press ⬇ Download below once, and every later load is instant.';
       }
@@ -9986,10 +10010,10 @@ async function bulkVolume(){
   if(!window._forceNetBulk && !window._forceLiveRefresh){
     let savedN=0; try{savedN=await histCount();}catch(e){}
     if(savedN>=Math.min(allData.length,300)){
-      say('💾 Using the data saved on this device for volume & history — no internet needed…');
+      say((allData.length-savedN)>allData.length*0.1?('💾 Using your saved data ('+savedN.toLocaleString()+' shares) and fetching the missing '+(allData.length-savedN).toLocaleString()+' live — they get saved for next time…'):'💾 Using the data saved on this device for volume & history — no internet needed…');
       try{ await prepareAllSignals(true); }catch(e){}
       window._prepFreshUntil=Date.now()+8000;
-      say('✓ Volume, streaks & signals computed from your saved data ('+savedN.toLocaleString()+' shares on this device — no internet used).');
+      say('✓ Volume, streaks & signals ready — from the data saved on this device'+((allData.length>savedN)?', plus live fetches for the rest (now saved too)':' — no internet used')+'.');
       return;
     }
   }
@@ -10337,6 +10361,7 @@ Output the complete array. Start with [`;
   }catch(e){}
   progFill.style.width='100%';
   allData=results;
+  try{localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(results.length));}catch(e){} // v235: lets offline loads say how much of the market the saved data covers
 
   if(results.length===0){
     document.getElementById('emptyTitle').textContent='No data returned';
