@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-221",
+  "version": "2026.07.14-222",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v221 — Layout fixes on phones: floating training chips no longer cover the last buttons (extra space added and the counter chip can't block taps), new scan buttons now join the END of your custom order instead of jumping to the top, and the coverage counter shows a sensible number. Plus v220's big chart upgrade: candlesticks, touch support, your trades on the chart, accumulation dots, vs-market overlay and more."
+  "notes": "v222 — New Lesson 16: Reading the price chart — candles vs line, the overlays, vs-market and log scale, and reviewing your own trades on the chart. Help guide and hover tooltips updated to match across every build. Includes v220's chart upgrade and v221's phone layout fixes."
 }
