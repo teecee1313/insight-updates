@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-237-open';
+const APP_VERSION='2026.07.14-238-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6708,10 +6708,12 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   // Without this check, saved data was served forever and reports like Top 20
   // ranked on stale history.
   let staleFallback=null;
-  if(!forceNet){
+  {
     try{
       const stored=await histGet(exch,ticker);
       if(stored&&Array.isArray(stored.rows)&&stored.rows.length){
+        staleFallback=stored.rows; // v238: ALWAYS keep the stored copy as the network-failure fallback — a failed forced-live refresh now degrades to stale data instead of a "?"
+        if(!forceNet){
         const _today=new Date().toISOString().slice(0,10);
         if(stored.saved===_today){ _histCache.set(ckey,stored.rows); return stored.rows; }
         // PREFER-OFFLINE: when the app is in offline mode (or the user explicitly
@@ -6720,7 +6722,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
         // "prepare 2,000 shares" run from crawling on slow-proxy days when you
         // already have the data downloaded. Fresh prices still come via ⚡ Load /
         // Redownload when you want them.
-        staleFallback=stored.rows; // old data — heal below (zero network) or fetch live; stored copy stays the backup
+        // (stale fallback captured above — v238)
         // ── SAME-DAY HEAL (the "slow morning load" fix): if we know the
         //    exchange's current data-date (learned from the first live fetch
         //    of this session, or from the bulk feed itself) and the stored
@@ -6766,6 +6768,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
           let _age=999; try{const _srt=_sortedCloses(stored.rows);const _ld=_srt.length?_srt[_srt.length-1].d:null;if(_ld)_age=Math.round((Date.now()-new Date(_ld).getTime())/86400000);}catch(e){}
           if(_age<=6 || !apiKey){ _histCache.set(ckey,stored.rows); return stored.rows; }
         }
+        } // v238: end !forceNet — a forced-live run skips disk serving but keeps the fallback
       }
     }catch(e){}
   }
@@ -8917,7 +8920,7 @@ async function prepareAllSignals(auto){
       // "N shares" figure silently reflected the narrowed pool and looked broken.
       const _inPool=new Set(ranked.map(s=>s.ticker));
       const _poolMissing=allData.filter(s=>_inPool.has(s.ticker)&&!s.streakCalced&&(s.price>0)).length;
-      const _presetNote=(ranked.length<allData.length)?` <span style="font-size:9px;color:var(--gold)">Your active load preset (types / gainers / min-volume) narrowed this LIVE run to ${ranked.length.toLocaleString()} of ${allData.length.toLocaleString()} loaded shares — pick the "All shares" preset for everything. Loads from saved data always prepare everything.</span>`:'';
+      const _presetNote=(ranked.length<allData.length)?` <span style="font-size:9px;color:var(--gold)">Your active load preset (types / gainers / min-volume) narrowed this LIVE run to ${ranked.length.toLocaleString()} of ${allData.length.toLocaleString()} loaded shares — pick the "All shares" preset for everything. Loads from saved data always prepare everything. <a href="#" onclick="window._forceLiveRefresh=false;prepareAllSignals(true);return false;" style="color:#58a6ff;font-weight:700;">▶ Prepare ALL ${allData.length.toLocaleString()} now</a></span>`:'';
       if(_poolMissing>0){
         ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${Math.max(0,ranked.length-_poolMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_poolMissing.toLocaleString()} still need data</span> — the data proxy was slow for those. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data. <span style="font-size:9px;color:var(--dim)">Symbols that fail every route today (often delisted or suspended) are skipped until tomorrow so they can't slow you down.</span>${_presetNote}`;
       } else {
@@ -10286,27 +10289,41 @@ async function loadData(userClick){
     return;
   }
 
-  // ---- Attempt 2: public CORS proxies (relay the FULL untruncated list) ----
+  // ---- Attempt 2 (v238): public CORS relays RACED IN PARALLEL. The symbol
+  // list is a heavy payload; racing every relay at once means one healthy relay
+  // is enough, instead of waiting out serial 20-second timeouts. ----
+  const _relays=[
+    u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+    u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+  async function _raceList(url,label){
+    statusEl.textContent=`Fetching ${label} via ${_relays.length} relays at once…`;
+    const tryOne=async(fn)=>{
+      const r=await _fetchTO(fn(url),{headers:{'Accept':'application/json'}},20000);
+      if(!r.ok)throw new Error('http '+r.status);
+      const txt=await r.text();
+      if(!(txt&&txt.trim().length>10&&(txt.trim()[0]==='['||txt.trim()[0]==='{')))throw new Error('bad body');
+      const parsed=parseLoose(txt);
+      const arr=Array.isArray(parsed)?parsed:((parsed&&(parsed.symbols||parsed.quotes||parsed.data||parsed.Quotes||parsed.result||parsed.results))||[]);
+      if(!arr.length)throw new Error('empty');
+      return arr;
+    };
+    try{ return await Promise.any(_relays.map(fn=>tryOne(fn))); }catch(e){ return null; }
+  }
   if(!rows){
-    const proxies=[
-      u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-      u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u=>`https://thingproxy.freeboard.io/fetch/${u}`,
-    ];
-    for(let i=0;i<proxies.length&&!rows;i++){
-      statusEl.textContent=`Fetching via proxy ${i+1}/${proxies.length}…`;
-      progFill.style.width=`${35+i*15}%`;
-      try{
-        const r=await _fetchTO(proxies[i](symbolListUrl),{headers:{'Accept':'application/json'}},20000);
-        if(r.ok){
-          const txt=await r.text();
-          // Ignore proxy error pages / empty bodies — DON'T treat as 401.
-          if(txt&&txt.trim().length>10&&(txt.trim()[0]==='['||txt.trim()[0]==='{')){
-            try{rows=parseLoose(txt);via='proxy';}catch(_){}
-          }
-        }
-      }catch(e){/* try next proxy */}
-    }
+    progFill.style.width='38%';
+    const got=await _raceList(symbolListUrl,'the share list');
+    if(got){rows=got;via='proxy';}
+  }
+  // ---- Attempt 2.5 (v238): the QUOTE list as a fallback share list — smaller
+  // payload, same endpoint family the day-history builder already relays fine.
+  // Quote rows carry code + OHLCV; names/types fill in as data arrives. ----
+  if(!rows){
+    progFill.style.width='52%';
+    const got=await _raceList(quoteListUrl,'the quote list');
+    if(got){rows=got;via='quote-list';}
   }
 
   // ---- Attempt 3: Claude web_search proxy (last resort; may truncate big lists) ----
@@ -10328,6 +10345,18 @@ Output the complete array. Start with [`;
       const env=await resp.json();
       const raw=(env.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
       rows=parseLoose(raw);via='ai-proxy';
+      // v238: the AI relay's output is token-capped and CUTS big lists short —
+      // and a truncated list still parses "successfully". (This is what kept
+      // the app at ~590 shares: every day the list arrived cut at roughly the
+      // same token boundary.) If the count is far below the market size we
+      // know, reject it so the fallback / background retry takes over.
+      {
+        const _arr=Array.isArray(rows)?rows:((rows&&(rows.symbols||rows.quotes||rows.data))||[]);
+        let _known={ASX:1500,NYSE:2000,NASDAQ:3000,LSE:1800,TSX:1200}[exch]||0;
+        try{_known=Math.max(_known,parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0);}catch(e){}
+        try{_known=Math.max(_known,await histCount());}catch(e){}
+        if(_known>0 && _arr.length<_known*0.85){ rows=null; throw new Error('the AI relay returned only '+_arr.length+' shares of the ~'+_known.toLocaleString()+' on '+exch+' — truncated list rejected'); }
+      }
     }catch(err){
       // ── OFFLINE FALLBACK ──────────────────────────────────────────────
       // Every network path failed (likely offline). If we have downloaded
@@ -10352,7 +10381,9 @@ Output the complete array. Start with [`;
           if(typeof prepAllOn==='function' && prepAllOn()) setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},500);
           setTimeout(()=>progWrap.style.display='none',800);
           const ls=document.getElementById('loadStatus');
-          if(ls)ls.innerHTML=`<span style="color:var(--green)">📂 Offline mode — loaded ${offlineRows.length.toLocaleString()} ${exch} shares from your saved data.</span>`;
+          if(ls)ls.innerHTML=`<span style="color:var(--orange)">⚠ The live share list couldn't be fetched right now — showing your saved data (${offlineRows.length.toLocaleString()} ${exch} shares). Retrying the live list in the background…</span>`;
+          window._listRetryN=(window._listRetryN||0)+1;
+          if(window._listRetryN<=4){ setTimeout(()=>{ try{ if(window._offlineMode) loadData(); }catch(e){} }, 45000*window._listRetryN); } // v238: auto-retry the live list
           return;
         }
       }catch(e){}
@@ -10375,7 +10406,7 @@ Output the complete array. Start with [`;
     return;
   }
 
-  if(!Array.isArray(rows))rows=(rows&&rows.symbols)?rows.symbols:[];
+  if(!Array.isArray(rows))rows=(rows&&(rows.symbols||rows.quotes||rows.data||rows.Quotes||rows.result||rows.results))||[];
 
   let results=rows.map(r=>mapRecord(r,exch,currency,today)).filter(Boolean);
   // Record the exchange's data-date from the bulk quotes (majority vote of the
@@ -10402,7 +10433,8 @@ Output the complete array. Start with [`;
   }catch(e){}
   progFill.style.width='100%';
   allData=results;
-  try{localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(results.length));}catch(e){} // v235: lets offline loads say how much of the market the saved data covers
+  try{ if(via!=='ai-proxy'){ const _prev=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0; localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(Math.max(_prev,results.length))); } }catch(e){} // v238: full-confidence routes only, never shrink (AI-relay truncation had poisoned this)
+  window._listRetryN=0;
   window._offlineMode=false; // v236: a successful LIVE load leaves offline mode — history & scans fetch normally again
 
   if(results.length===0){
@@ -10413,7 +10445,7 @@ Output the complete array. Start with [`;
     return;
   }
 
-  document.getElementById('notice').innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'live (AI proxy)':'live'}`;
+  document.getElementById('notice').innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'<span style="color:var(--orange)">live · AI relay</span>':(via==='quote-list'?'live · quote list':'live')}`;
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   document.getElementById('exchBadge').textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
