@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-226",
+  "version": "2026.07.14-228",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v226 — All reports now open INSIDE the app on every device — Top 20, share reports, Volume Surge, portfolio and watchlist prints no longer spawn separate browser windows. The report opens large in the main window, and 🖨 Print / Save as PDF prints just the report sheet, not the screen behind it."
+  "notes": "v228 — You always know which report you're in: a gold banner above the results shows the scan while it runs (with a spinner) and stays after it finishes — report name, share count and run time — with a ✕ Clear button to get the full list back. Plus v227's one-window consistency for all reports."
 }

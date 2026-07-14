@@ -304,6 +304,12 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
 body.stat-over-modal .stats{z-index:2100;}
+/* ── v228: which-report banner above the results table ── */
+#activeScanBanner{display:none;align-items:center;gap:10px;padding:7px 16px;background:linear-gradient(90deg,rgba(255,210,0,.15),rgba(255,210,0,.03));border-bottom:1px solid var(--gold);font:700 12.5px var(--sans);color:var(--gold);flex-shrink:0;flex-wrap:wrap;}
+#activeScanBanner .asb-spin{width:12px;height:12px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+#activeScanBanner .asb-meta{font:500 10px var(--mono);color:var(--muted);}
+#activeScanBanner .asb-clear{margin-left:auto;padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;}
+#activeScanBanner .asb-clear:hover{color:var(--gold);border-color:var(--gold);}
 /* ── v226: when a report sheet is open in the modal, 🖨 prints ONLY the sheet ── */
 @media print{
   body.sheet-printing>*:not(#appModal){display:none!important;}
@@ -1274,6 +1280,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="notice" id="notice">—</div>
   </div>
 
+  <div id="activeScanBanner"></div>
   <div class="toolbar" id="toolbar" style="display:none">
     <input type="text" id="searchBox" placeholder="🔍  Search ticker or name…" oninput="ls()">
     <span id="rcount"></span>
@@ -1391,7 +1398,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-226-open';
+const APP_VERSION='2026.07.14-228-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3437,6 +3444,37 @@ function refreshMyReportBtn(){
 // Filter engine
 // Called when a NEW view is shown (scan/report/preset) so the stat toggles
 // start clean and re-capture this new result as their base.
+// ── v228: persistent "which report am I in" banner over the results table ──
+function _scanStart(label){
+  window._activeScan={label:label,running:true};
+  window._scanGuard=true;             // scans reset filters internally — don't let that clear the banner
+  _renderScanBanner();
+  // Watchdog: if a scan bails out early (no data / no key), don't stay locked.
+  clearTimeout(window._scanWatch);
+  window._scanWatch=setTimeout(function(){ if(window._activeScan&&window._activeScan.running){window._scanGuard=false;} },60000);
+}
+function _scanDone(){
+  const a=window._activeScan; if(!a){window._scanGuard=false;return;}
+  a.running=false;
+  a.count=(typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered.length:null;
+  try{a.when=new Date().toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'});}catch(e){a.when='';}
+  window._scanGuard=false;
+  _renderScanBanner();
+}
+function _scanClear(){
+  if(window._scanGuard)return;
+  window._activeScan=null;
+  _renderScanBanner();
+}
+function _renderScanBanner(){
+  const b=document.getElementById('activeScanBanner'); if(!b)return;
+  const a=window._activeScan;
+  if(!a){ b.style.display='none'; b.innerHTML=''; return; }
+  b.style.display='flex';
+  b.innerHTML=a.running
+    ? '<span class="asb-spin"></span><span>Running '+a.label+'…</span><span class="asb-meta">results will fill the table below</span><button class="asb-clear" onclick="window._scanGuard=false;window._activeScan=null;_renderScanBanner();">✕</button>'
+    : '<span>'+a.label+'</span><span class="asb-meta">'+(a.count!=null?a.count+' shares':'')+(a.when?' · run '+a.when:'')+' — this table is the report\u2019s result</span><button class="asb-clear" onclick="window._activeScan=null;_renderScanBanner();if(typeof doReset===\'function\')doReset();">✕ Clear · show all shares</button>';
+}
 function _resetStatsForNewView(){
   try{ Object.keys(_statOn).forEach(k=>_statOn[k]=false); }catch(e){}
   window._statBullBear=null;
@@ -3448,6 +3486,7 @@ function applyF(){
   // toggles recapture a fresh base from this new result rather than narrowing
   // a stale one.
   window._statBaseValid=false;
+  try{_scanClear();}catch(_){}
   const srch=(document.getElementById('searchBox').value||'').toLowerCase().trim();
   const maxP=F.pMax>=500?Infinity:F.pMax;
   const maxV=F.vMax>=50?Infinity:F.vMax*1e6;
@@ -3808,18 +3847,22 @@ function _reportNotesBox(){
   </div>`;
 }
 function _openPrintable(html, label){
-  // v226: ALL reports open inside the app (one window) on every screen size.
-  // The report's own 🖨 button prints just the sheet via the sheet-printing CSS.
-  const toSheet=()=>{
-    const styleM = html.match(/<style>([\s\S]*?)<\/style>/i);
-    const styleTxt = styleM?styleM[1]:'';
-    const bodyInner = html.replace(/^[\s\S]*?<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'');
-    const sheet = '<div class="rpt-sheet"><style>.rpt-sheet{background:#fff;color:#111;border-radius:8px;padding:16px;} .rpt-sheet *{max-width:100%;} '+styleTxt.replace(/body\{[^}]*\}/i,'')+'</style>'+bodyInner+'</div>';
+  // v227: every report opens inside the app in an ISOLATED frame — its styles
+  // can't touch the app, and its 🖨 button prints exactly the document alone.
+  if(typeof showModal==='function'){
+    // Bridge: app actions inside the report (research/report/chart links) run in the app.
+    const BRIDGE='<script>(function(){var f=["printShareReport","toggleResearch","deepDive","showChart","showShareDetail","showTechnicals","paperBuy","toggleStar"];f.forEach(function(n){window[n]=function(){try{return parent[n].apply(parent,arguments);}catch(e){}};});})();<\/script>';
+    let doc=html;
+    if(/<head[^>]*>/i.test(doc)) doc=doc.replace(/<head[^>]*>/i,function(m){return m+BRIDGE;});
+    else doc=BRIDGE+doc;
     window._modalLabel=label||'Report';
-    if(typeof showModal==='function'){ window._modalBig=true; showModal(sheet, label||'Report'); return true; }
-    return false;
-  };
-  if(toSheet())return;
+    window._modalBig=true;
+    const fid='rptFrame_'+Math.floor(performance.now());
+    showModal('<iframe id="'+fid+'" style="width:100%;height:100%;min-height:62vh;border:none;background:#fff;border-radius:8px;display:block;"></iframe>', label||'Report');
+    const f=document.getElementById(fid);
+    if(f){ f.srcdoc=doc; }
+    return;
+  }
   const w=window.open('','_blank');
   if(!w){ alert('Pop-up blocked. Please allow pop-ups to print.'); return; }
   w.document.write(html); w.document.close();
@@ -3975,21 +4018,8 @@ Please structure your answer as: (1) one-paragraph summary, (2) bullish reading,
   <div class="note"><strong>This is a data summary, not financial advice or a buy/sell signal.</strong> All figures are end-of-day and may be delayed. The Watch Score and every signal flag are <strong>estimates inferred from price and volume action</strong> — they are not confirmed director, insider, institutional or announcement filings. Always verify against the official sources above and do your own research before trading.</div>
   <div class="foot">Generated by <strong>Insight Trading</strong> · ${when}<br>© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293</div>
   </body></html>`;
-  if(typeof showModal==='function'){
-    // v226: render on a white sheet inside the app — one window on every device.
-    const styleM = html.match(/<style>([\s\S]*?)<\/style>/i);
-    const styleTxt = styleM?styleM[1]:'';
-    const bodyInner = html.replace(/^[\s\S]*?<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'');
-    const sheet = `<div class="rpt-sheet"><style>.rpt-sheet{background:#fff;color:#111;border-radius:8px;padding:16px;} .rpt-sheet *{max-width:100%;} ${styleTxt.replace(/body\{[^}]*\}/i,'')}</style>${bodyInner}</div>`;
-    window._modalLabel='📄 '+ticker;
-    window._modalType='shareReport';
-    window._modalBig=true;
-    showModal(sheet, '📄 '+ticker);
-    return;
-  }
-  const w=window.open('','_blank');
-  if(!w){alert('Pop-up blocked. Please allow pop-ups for this page to open the report.');return;}
-  w.document.write(html);w.document.close();
+  _openPrintable(html, '📄 '+ticker);
+  window._modalType='shareReport';
 }
 function showShareDetail(ticker,days){
   const n=days||7;
@@ -5817,7 +5847,7 @@ function showModal(html,label){
   if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
 }
 function closeModal(){
-  const m=document.getElementById('appModal');if(m)m.style.display='none';
+  const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
   window._detailTicker=null;
   window._simpleModalBase=null;window._simpleModalLabel=null;
   window._modalType=null;window._statBaseValid=false;
@@ -7278,6 +7308,7 @@ function typicalDailyMove(series){
 }
 
 async function speedingTicketScan(){
+  _scanStart('🚨 Sharp Mover Detector');
   exitWatchView();
   _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
@@ -7324,7 +7355,7 @@ async function speedingTicketScan(){
   _resetStatsForNewView();
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   document.getElementById('sortSel').value='chgPct';sortKey='chgPct';sortDir=-1;
-  render();statsBar();dots();mkBadges();
+  render();statsBar();dots();mkBadges();_scanDone();
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   scanProgSet(100);scanProgHide();
@@ -7686,19 +7717,7 @@ function printTop10(){
   <table><thead><tr><th>#</th><th>Ticker</th><th>Name</th><th>Score</th><th>Strength</th><th>Signals contributing</th><th>Verify</th></tr></thead><tbody>${rowsHtml}</tbody></table>
   <p style="color:#888;font-size:10px;margin-top:16px;">Generated by Insight Trading. End-of-day data; scores are estimates from price/volume, not confirmed data. Verify before trading.</p>
   <p style="color:#888;font-size:9px;">© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293</p></body></html>`;
-  if(typeof showModal==='function'){
-    const styleM = html.match(/<style>([\s\S]*?)<\/style>/i);
-    const styleTxt = styleM?styleM[1]:'';
-    const bodyInner = html.replace(/^[\s\S]*?<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'');
-    const sheet = `<div class="rpt-sheet"><style>.rpt-sheet{background:#fff;color:#111;border-radius:8px;padding:16px;} .rpt-sheet *{max-width:100%;} ${styleTxt.replace(/body\{[^}]*\}/i,'')}</style>${bodyInner}</div>`;
-    window._modalLabel='🏆 Top 20 report';
-    window._modalBig=true;
-    showModal(sheet, '🏆 Top 20 report');
-    return;
-  }
-  const w=window.open('','_blank');
-  if(!w){alert('Pop-up blocked. Allow pop-ups to print.');return;}
-  w.document.write(html);w.document.close();
+  _openPrintable(html, '🏆 Top 20 report');
 }
 
 // ── All Signals combined scan ────────────────────────────────────────────────
@@ -7708,6 +7727,7 @@ function printTop10(){
 // Technical signals scan — ranks shares by a blend of the classic indicators.
 // Requires history (runs the 3-month refresh first if not yet computed).
 async function technicalScan(){
+  _scanStart('📐 Technical Signals Scan');
   exitWatchView&&exitWatchView();
   if(!allData.length){alert('Load an exchange (or CSV) first.');return;}
   const needHist=!allData.some(s=>s.techCalced);
@@ -8178,6 +8198,7 @@ function showTechnicals(ticker){
   `);
 }
 async function allSignalsScan(){
+  _scanStart('🧩 All Signals Scan');
   exitWatchView();
   _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
@@ -8251,6 +8272,7 @@ async function allSignalsScan(){
 }
 
 async function unusualScan(){
+  _scanStart('🔍 Unusual Activity Scan');
   exitWatchView();
   _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
@@ -8298,6 +8320,7 @@ async function unusualScan(){
 }
 
 async function smartMoneyScan(minDays,scanAll){
+  _scanStart(scanAll?'🔎 High-Volume Scan':'🎯 Smart Money Scan'+(minDays>2?' ('+minDays+'+ days)':''));
   exitWatchView();
   _resetBeforeScan();
   minDays=minDays||2;
@@ -8416,7 +8439,7 @@ async function smartMoneyScan(minDays,scanAll){
   _resetStatsForNewView();
 
   document.getElementById('sortSel').value='volPct';sortKey='volPct';sortDir=-1;
-  render();statsBar();dots();mkBadges();
+  render();statsBar();dots();mkBadges();_scanDone();
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
 
@@ -10703,6 +10726,7 @@ function simpleMarketPulse(){
     +'<div style="font-size:9px;color:var(--dim);margin-top:14px;">End-of-day data. A market summary, not advice.</div>';
   window._modalLabel='📊 Market today';
   window._modalType='marketPulse';
+  window._modalBig=true;
   showModal(html,'📊 Market today');
 }
 // ── Simple mode: Recovery / reversal watch scan ──────────────────────────────
@@ -10749,11 +10773,12 @@ async function recoveryScan(){
 // Advanced-mode wrapper (v217): run the recovery scan and show the results in
 // the main table (Simple mode shows them in a popup instead via simpleRun).
 async function recoveryScanAdv(){
+  _scanStart('↩️ Recovery Watch');
   const st=document.getElementById('smartStatus');
   if(!Array.isArray(allData)||!allData.length){ if(st)st.textContent='Load data first, then run Recovery Watch.'; return; }
   if(st)st.textContent='Scanning for recovery candidates…';
   try{ await recoveryScan(); }catch(e){}
-  try{ render();statsBar();dots();mkBadges(); }catch(e){}
+  try{ render();statsBar();dots();mkBadges();_scanDone(); }catch(e){}
   if(st)st.innerHTML=(Array.isArray(filtered)&&filtered.length)?`✓ <strong style="color:var(--amber)">${filtered.length}</strong> potential recovery shares — see the table`:'No recovery candidates right now.';
 }
 
@@ -10794,6 +10819,7 @@ function _simpleResultsPopup(label, rows){
   window._simpleModalLabel=label;
   window._simpleModalBase=rows?rows.slice():[];
   window._modalType='simpleScan';
+  window._modalBig=true;
   try{document.body.classList.add('stat-over-modal');}catch(_){}
   if(!rows||!rows.length){
     showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares matched right now.<br><br>Try <b>⚡ Get today\u2019s fresh prices</b> for the latest data, or another report.</div>', label);
