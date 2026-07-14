@@ -1398,7 +1398,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-229-open';
+const APP_VERSION='2026.07.14-230-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6667,8 +6667,9 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
             const sorted=_sortedCloses(stored.rows);
             const lastD=sorted.length?sorted[sorted.length-1].d:null;
             if(lastD===dd){
-              // Already complete — the store was just stamped on an earlier day.
-              histPut(exch,ticker,stored.rows);
+              // Already complete — re-stamp the saved date only once per day
+              // (was rewriting ~3,000 histories to disk on EVERY prepare run).
+              if(stored.saved!==_today) histPut(exch,ticker,stored.rows);
               _histCache.set(ckey,stored.rows);
               window._healCount=(window._healCount||0)+1;
               return stored.rows;
@@ -6782,7 +6783,7 @@ function countStreakBoth(history){
   const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
   const getClose=q=>parseFloat(qField(q,['close','Close','c']));
   const getVol=q=>parseFloat(qField(q,['volume','Volume','v']));
-  const h=history.slice().sort((a,b)=>getDate(b).localeCompare(getDate(a))); // newest first
+  const h=history.slice().sort((a,b)=>{const da=getDate(a),db=getDate(b);return da<db?1:da>db?-1:0;}); // newest first
   let streak=0;
   for(let i=0;i<h.length-1;i++){
     const close=getClose(h[i]), prevClose=getClose(h[i+1]);
@@ -6805,7 +6806,7 @@ function countStreak(history){
   if(!Array.isArray(history)||history.length<2)return 0;
   const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
   const getClose=q=>parseFloat(qField(q,['close','Close','c']));
-  const h=history.slice().sort((a,b)=>getDate(b).localeCompare(getDate(a))); // newest first
+  const h=history.slice().sort((a,b)=>{const da=getDate(a),db=getDate(b);return da<db?1:da>db?-1:0;}); // newest first
   let streak=0;
   for(let i=0;i<h.length-1;i++){
     const close=getClose(h[i]), prevClose=getClose(h[i+1]);
@@ -6826,7 +6827,7 @@ function computeVolAvg(history,limitDays){
   if(!Array.isArray(history)||history.length<2)return 0;
   const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
   const getVol=q=>parseFloat(qField(q,['volume','Volume','v']));
-  let h=history.slice().sort((a,b)=>getDate(b).localeCompare(getDate(a)));
+  let h=history.slice().sort((a,b)=>{const da=getDate(a),db=getDate(b);return da<db?1:da>db?-1:0;});
   const past=h.slice(1); // drop today
   let rows=past;
   if(limitDays){
@@ -6846,15 +6847,20 @@ function computeVolAvg(history,limitDays){
 //  Honest by design: these are estimates from closing prices, not advice, and
 //  not order-flow or fundamental data. Each is a well-known indicator.
 // ═══════════════════════════════════════════════════════════════════════════
+const _scMemo=new WeakMap(); // v230: one sort per history array, not seven
 function _sortedCloses(history){
+  try{ const hit=_scMemo.get(history); if(hit)return hit; }catch(e){}
   const gd=q=>String(qField(q,['dateStamp','date','Date'])||'');
   const gc=q=>parseFloat(qField(q,['close','Close','c']));
   const gh=q=>parseFloat(qField(q,['high','High','h']));
   const gl=q=>parseFloat(qField(q,['low','Low','l']));
   const gv=q=>parseFloat(qField(q,['volume','Volume','v']));
   const go=q=>parseFloat(qField(q,['open','Open','o']));
-  const rows=history.slice().filter(q=>isFinite(gc(q))).sort((a,b)=>gd(a).localeCompare(gd(b))); // oldest→newest
-  return rows.map(q=>({d:gd(q).slice(0,10),o:go(q),c:gc(q),hi:gh(q),lo:gl(q),v:gv(q)}));
+  // Plain string compare — ISO dates sort correctly and it's ~20× faster than localeCompare.
+  const rows=history.slice().filter(q=>isFinite(gc(q))).sort((a,b)=>{const da=gd(a),db=gd(b);return da<db?-1:da>db?1:0;}); // oldest→newest
+  const out=rows.map(q=>({d:gd(q).slice(0,10),o:go(q),c:gc(q),hi:gh(q),lo:gl(q),v:gv(q)}));
+  try{ _scMemo.set(history,out); }catch(e){}
+  return out;
 }
 function _sma(arr,n){if(arr.length<n)return null;let s=0;for(let i=arr.length-n;i<arr.length;i++)s+=arr[i];return s/n;}
 function _rsi(closes,period){
@@ -6990,7 +6996,7 @@ function newsProxy(history){
   const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
   const getClose=q=>parseFloat(qField(q,['close','Close','c']));
   const getVol=q=>parseFloat(qField(q,['volume','Volume','v']));
-  const h=history.slice().sort((a,b)=>getDate(b).localeCompare(getDate(a))); // newest first
+  const h=history.slice().sort((a,b)=>{const da=getDate(a),db=getDate(b);return da<db?1:da>db?-1:0;}); // newest first
   const last5=h.slice(0,6); // today + up to 5 prior days
   if(last5.length<2)return 'unknown';
   // baseline volume = average of the days beyond the recent window
