@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-228",
+  "version": "2026.07.14-229",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v228 — You always know which report you're in: a gold banner above the results shows the scan while it runs (with a spinner) and stays after it finishes — report name, share count and run time — with a ✕ Clear button to get the full list back. Plus v227's one-window consistency for all reports."
+  "notes": "v229 — Signals check: the technical-signal engine (MA20/50/200, RSI, OBV, 52-week levels, range band, gaps, ATR) verified working. Fixed: the Unusual Activity, All Signals and Technical Signals scans left the new report banner stuck on 'Running…' — all six table scans now finish their banner correctly."
 }
