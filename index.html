@@ -1398,7 +1398,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-228-open';
+const APP_VERSION='2026.07.14-229-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7751,7 +7751,7 @@ async function technicalScan(){
   });
   filtered=have.slice().sort((a,b)=>(b.techScore||0)-(a.techScore||0));
   sortKey='techScore';sortDir=-1;
-  render();
+  render();_scanDone();
   const gc=have.filter(s=>s.cross==='golden').length, nh=have.filter(s=>s.nearHigh).length, ob=have.filter(s=>s.rsiState==='oversold').length;
   const st=document.getElementById('loadStatus');
   if(st)st.innerHTML=`📐 <strong style="color:#58a6ff">Technical signals</strong> on ${have.length} shares · ${gc} golden cross · ${nh} near 52-wk high · ${ob} oversold (RSI≤30). <span style="color:var(--dim)">Estimates from closing prices — not advice.</span>`;
@@ -8252,7 +8252,7 @@ async function allSignalsScan(){
   lastScanLabel='All Signals';
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
-  render();statsBar();dots&&dots();mkBadges&&mkBadges();
+  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone();
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   scanProgSet&&scanProgSet(100);scanProgHide&&scanProgHide();
@@ -8303,7 +8303,7 @@ async function unusualScan(){
   lastScanLabel='Unusual Activity';
   _resetStatsForNewView();
   document.getElementById('sortSel').value='volPct';sortKey='volPct';sortDir=-1;
-  render();statsBar();dots&&dots();mkBadges&&mkBadges();
+  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone();
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   scanProgSet&&scanProgSet(100);scanProgHide&&scanProgHide();
