@@ -94,6 +94,8 @@ body:not(.simple-mode) #simplePanel{display:none;}
 .simple-card.sc-red .sc-title{color:#ff9142;}
 .simple-card.sc-blue{border-color:rgba(88,166,255,.5);}
 .simple-card.sc-blue .sc-title{color:var(--blue);}
+.simple-card.sc-amber{border-color:rgba(255,176,46,.5);}
+.simple-card.sc-amber .sc-title{color:var(--amber);}
 .simple-status{font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center;margin:10px 0;min-height:14px;}
 .simple-more{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px dashed var(--border2);background:transparent;color:var(--muted);font:600 12px var(--sans);cursor:pointer;}
 .simple-more:hover{color:var(--gold);border-color:var(--gold);}
@@ -261,7 +263,7 @@ input[type=range].dual::-webkit-slider-runnable-track{background:none;height:24p
 input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .duallbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:3px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.stats{background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
+.stats{position:relative;z-index:2100;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
 .stat{display:flex;flex-direction:column;gap:1px;}
 .statclick{cursor:pointer;padding:3px 8px;border-radius:7px;border:1px solid transparent;transition:all .12s;}
 .statclick:hover{background:var(--bg3);border-color:var(--border2);}
@@ -1099,6 +1101,16 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <span class="sc-title">What's moving on big volume?</span>
         <span class="sc-sub">Unusual trading activity today · <i>Volume Surge</i></span>
       </button>
+      <button class="simple-card sc-amber" onclick="simpleMarketPulse()">
+        <span class="sc-emoji">📊</span>
+        <span class="sc-title">Market today</span>
+        <span class="sc-sub">Breadth snapshot · how the market is trading right now</span>
+      </button>
+      <button class="simple-card sc-amber" onclick="simpleRun('recovery')">
+        <span class="sc-emoji">↩️</span>
+        <span class="sc-title">Recovery watch</span>
+        <span class="sc-sub">Fallen shares stabilising on volume · potential reversals</span>
+      </button>
       <button class="simple-card sc-blue" onclick="simpleRun('portfolio')">
         <span class="sc-emoji">💼</span>
         <span class="sc-title">My portfolio</span>
@@ -1314,7 +1326,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.04-208-open';
+const APP_VERSION='2026.07.14-209-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3906,6 +3918,7 @@ Please structure your answer as: (1) one-paragraph summary, (2) bullish reading,
     const bodyInner = html.replace(/^[\s\S]*?<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'');
     const sheet = `<div class="rpt-sheet"><style>.rpt-sheet{background:#fff;color:#111;border-radius:8px;padding:16px;max-height:72vh;overflow:auto;} .rpt-sheet *{max-width:100%;} ${styleTxt.replace(/body\{[^}]*\}/i,'')}</style>${bodyInner}</div>`;
     window._modalLabel='📄 '+ticker;
+    window._modalType='shareReport';
     showModal(sheet, '📄 '+ticker);
     return;
   }
@@ -5581,7 +5594,12 @@ function showModal(html,label){
   const box=document.getElementById('modalBox');
   if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
 }
-function closeModal(){const m=document.getElementById('appModal');if(m)m.style.display='none';window._detailTicker=null;}
+function closeModal(){
+  const m=document.getElementById('appModal');if(m)m.style.display='none';
+  window._detailTicker=null;
+  window._simpleModalBase=null;window._simpleModalLabel=null;
+  window._modalType=null;window._statBaseValid=false;
+}
 // ⛶ Maximise / restore the current panel (one click to go near-fullscreen).
 function toggleModalMax(){
   const box=document.getElementById('modalBox');
@@ -6236,6 +6254,14 @@ function _applyStatFilters(){
       if(window._statBullBear==='bearish' && !_isBearish(s))return false;
       return true;
     });
+  }
+  // If a simple-scan result modal is currently visible, re-render it with the
+  // filtered rows so the stat toggles filter the report, not the background table.
+  const _sm=document.getElementById('appModal');
+  if(window._modalType==='simpleScan'&&_sm&&_sm.style.display!=='none'){
+    _simpleModalRender(window._simpleModalLabel||'',filtered);
+    try{statsBar&&statsBar();}catch(e){}
+    return;
   }
   try{ render&&render(); }catch(e){}
   try{ statsBar&&statsBar(); }catch(e){}
@@ -10115,6 +10141,115 @@ async function simpleLoad(fresh){
   if(st)st.textContent = (window.allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
 }
 
+// ── Simple mode: Market breadth overview ────────────────────────────────────
+// Taps allData directly (no extra network call needed — just counting & sorting).
+function simpleMarketPulse(){
+  const st=document.getElementById('simpleStatus');
+  if(!window.allData||!allData.length){
+    if(st)st.textContent='Load your shares first, then tap Market today.';
+    if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad();
+    return;
+  }
+  const all=allData.filter(s=>s.price>0);
+  const up=all.filter(s=>s.chgPct>0.1);
+  const dn=all.filter(s=>s.chgPct<-0.1);
+  const fl=all.filter(s=>Math.abs(s.chgPct)<=0.1);
+  const pctUp=all.length?Math.round(up.length/all.length*100):0;
+  const pctDn=all.length?Math.round(dn.length/all.length*100):0;
+  const adr=dn.length?(up.length/dn.length).toFixed(1)+':1':'—';
+  const volArr=all.filter(s=>s.volCalced&&isFinite(s.volPct));
+  const avgVol=volArr.length?Math.round(volArr.reduce((a,s)=>a+s.volPct,0)/volArr.length):null;
+  // Mood line
+  let mood,moodC;
+  if(pctUp>=60){mood='📈 Broadly rising — more buyers than sellers today';moodC='var(--green)';}
+  else if(pctUp<=40){mood='📉 Broadly falling — selling pressure across the board';moodC='var(--red)';}
+  else if(pctUp>=55){mood='🟢 Slightly positive — mild buying edge';moodC='var(--green)';}
+  else if(pctDn>=55){mood='🔴 Slightly negative — mild selling edge';moodC='var(--red)';}
+  else{mood='↔️ Mixed — buyers and sellers roughly balanced';moodC='var(--muted)';}
+  // Top movers
+  const gainers=[...up].sort((a,b)=>b.chgPct-a.chgPct).slice(0,5);
+  const losers=[...dn].sort((a,b)=>a.chgPct-b.chgPct).slice(0,5);
+  const active=[...volArr].sort((a,b)=>(b.volPct||0)-(a.volPct||0)).slice(0,3);
+  // Row builder (string concat, no nested template)
+  const row=(s,col)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">'
+    +'<a href="#" onclick="printShareReport(\''+s.ticker+'\');return false;" style="color:var(--gold);font-weight:700;font-size:12px;">'+s.ticker+' 🖨</a>'
+    +'<span style="font-family:var(--mono);font-size:11px;color:'+col+';">'+(s.chgPct>0?'+':'')+(s.chgPct||0).toFixed(1)+'%'
+    +(s.volCalced&&isFinite(s.volPct)?' · vol '+(s.volPct>0?'+':'')+s.volPct+'%':'')+'</span></div>';
+  const secH=(txt,col)=>'<div style="font-size:11px;font-weight:700;color:'+col+';margin:10px 0 4px;">'+txt+'</div>';
+  // Breadth bar
+  const bar='<div style="height:10px;border-radius:6px;overflow:hidden;display:flex;margin:6px 0 4px;">'
+    +'<div style="width:'+pctUp+'%;background:var(--green);"></div>'
+    +'<div style="width:'+(100-pctUp-pctDn)+'%;background:var(--bg3);"></div>'
+    +'<div style="width:'+pctDn+'%;background:var(--red);"></div></div>';
+  // Volume tile (avoid nested template)
+  const volTile=avgVol!==null
+    ?'<div style="flex:1;padding:8px;background:var(--bg3);border-radius:8px;text-align:center;">'
+      +'<div style="font:700 15px var(--sans);color:'+(avgVol>20?'var(--green)':avgVol<-20?'var(--red)':'var(--text)')+';">'+(avgVol>0?'+':'')+avgVol+'%</div>'
+      +'<div style="color:var(--muted);font-size:10px;">Avg vol vs normal</div></div>'
+    :'';
+  const html=''
+    +'<div style="font-size:13px;font-weight:700;color:'+moodC+';margin-bottom:10px;line-height:1.3;">'+mood+'</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;">Market breadth — '+all.length.toLocaleString()+' shares</div>'
+    +bar
+    +'<div style="display:flex;gap:10px;font-size:11px;margin-bottom:10px;">'
+    +'<span style="color:var(--green);">▲ '+up.length+' up ('+pctUp+'%)</span>'
+    +'<span style="color:var(--muted);">— '+fl.length+' flat</span>'
+    +'<span style="color:var(--red);">▼ '+dn.length+' down ('+pctDn+'%)</span></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;">'
+    +'<div style="flex:1;padding:8px;background:var(--bg3);border-radius:8px;text-align:center;">'
+    +'<div style="font:700 15px var(--sans);color:var(--text);">'+adr+'</div>'
+    +'<div style="color:var(--muted);font-size:10px;">Advance‑Decline</div></div>'
+    +volTile+'</div>'
+    +(gainers.length?secH('🏆 Biggest gainers today','var(--green)')+gainers.map(s=>row(s,'var(--green)')).join(''):'')
+    +(losers.length?secH('📉 Biggest falls today','var(--red)')+losers.map(s=>row(s,'var(--red)')).join(''):'')
+    +(active.length?secH('🔥 Most active on volume','var(--gold)')+active.map(s=>row(s,'var(--gold)')).join(''):'')
+    +'<div style="font-size:9px;color:var(--dim);margin-top:14px;">End-of-day data. A market summary, not advice.</div>';
+  window._modalLabel='📊 Market today';
+  window._modalType='marketPulse';
+  showModal(html,'📊 Market today');
+}
+// ── Simple mode: Recovery / reversal watch scan ──────────────────────────────
+// Finds shares that have been FALLING (daysUp <= -2) but NOW show elevated
+// volume and a stabilising or turning price — 'market finding a floor'.
+async function recoveryScan(){
+  exitWatchView&&exitWatchView();
+  _resetBeforeScan();
+  const st=document.getElementById('smartStatus');
+  if(!allData||!allData.length){if(st)st.textContent='Load your shares first.';return;}
+  _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
+  if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
+    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    else{if(st)st.textContent='Loading volume & streaks…';if(typeof bulkVolume==='function')await bulkVolume();}
+  }
+  // Primary: been falling 2+ consecutive days, volume elevated, price stabilising
+  let rows=allData.filter(s=>{
+    if(!(s.price>0))return false;
+    if(!s.volCalced||!isFinite(s.volPct))return false;
+    const falling=(s.streakCalced&&s.daysUp<=-2);
+    const volumeUp=(s.volPct>=50);
+    const stabilising=(s.chgPct>=-2);  // not accelerating downward
+    return falling&&volumeUp&&stabilising;
+  });
+  // Fallback: very high volume + small price move = possible basing after a fall
+  if(rows.length<5){
+    rows=allData.filter(s=>{
+      if(!(s.price>0))return false;
+      if(!s.volCalced||!isFinite(s.volPct))return false;
+      return s.volPct>=100&&s.chgPct>=-1&&s.chgPct<=3;
+    });
+  }
+  // Sort: shares turning positive today first, then by volume lift
+  rows.sort((a,b)=>{
+    const aUp=(a.chgPct>0)?1:0,bUp=(b.chgPct>0)?1:0;
+    if(bUp!==aUp)return bUp-aUp;
+    return (b.volPct||0)-(a.volPct||0);
+  });
+  filtered=rows.slice(0,40);
+  lastScanLabel='Recovery watch';
+  _resetStatsForNewView();
+}
+
 function simpleRun(what){
   try{ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur(); }catch(_){}
   const st=document.getElementById('simpleStatus');
@@ -10135,7 +10270,8 @@ function simpleRun(what){
   const runners={
     top20:{fn:()=>topTenScan(), label:'🏆 Top picks today', ownWindow:true},
     smart:{fn:()=>smartMoneyScan(2), label:'🎯 Who\u2019s being quietly bought?', ownWindow:false},
-    surge:{fn:()=>volumeSurgeReport(), label:'🔥 What\u2019s moving on big volume?', ownWindow:false}
+    surge:{fn:()=>volumeSurgeReport(), label:'🔥 What\u2019s moving on big volume?', ownWindow:true},
+    recovery:{fn:()=>recoveryScan(), label:'↩️ Recovery watch', ownWindow:false}
   };
   const r=runners[what]; if(!r)return;
   Promise.resolve(r.fn()).then(()=>{
@@ -10148,8 +10284,22 @@ function simpleRun(what){
 }
 function _simpleResultsPopup(label, rows){
   window._modalLabel=label;
+  window._simpleModalLabel=label;
+  window._simpleModalBase=rows?rows.slice():[];
+  window._modalType='simpleScan';
   if(!rows||!rows.length){
     showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares matched right now.<br><br>Try <b>⚡ Get today\u2019s fresh prices</b> for the latest data, or another report.</div>', label);
+    return;
+  }
+  _simpleModalRender(label, rows);
+}
+// Re-render the simple-scan modal with a (possibly stat-filtered) subset of rows.
+// Called by _simpleResultsPopup on first open and by _applyStatFilters on each
+// stat toggle while the scan modal is visible.
+function _simpleModalRender(label, rows){
+  const lbl=label||window._simpleModalLabel||'';
+  if(!rows||!rows.length){
+    showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares match those filters.<br><br>Tap <b>Showing</b> in the stats bar to clear the filters.</div>', lbl);
     return;
   }
   const top=rows.slice(0,40);
@@ -10171,9 +10321,8 @@ function _simpleResultsPopup(label, rows){
     </div>`;
   }).join('');
   const head=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${top.length} share${top.length>1?'s':''} · tap a code (🖨) to open its report. A data summary, not advice.</div>`;
-  showModal(head+body, label);
+  showModal(head+body, lbl);
 }
-
 function initSidebarLayout(){
   const left=document.querySelector('.left');
   try{
