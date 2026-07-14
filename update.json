@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-213",
+  "version": "2026.07.14-214",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v213 — Paper trading overhaul: trades now stamped in Sydney time (fixes stops firing early), brokerage included in every P/L figure, 💰 record dividends, stale-price warnings before you trade, risk shown at buy time (% of account), optional realistic fills (buy at next day's open), optional slippage, limit orders expire after 30 days, richer stats (profit factor, expectancy), and 'since you sold' on closed trades."
+  "notes": "v214 — Paper trading overhaul: trades stamped in Sydney time (fixes stops firing early), brokerage included in every P/L figure, 💰 record dividends, stale-price warnings, risk shown at buy time, optional realistic fills & slippage, orders expire after 30 days, richer stats, 'since you sold' on closed trades. Plus: fixed the What's Changed card layout on phones."
 }

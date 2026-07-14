@@ -122,8 +122,7 @@ body.simple-no-data .simple-card:not(.sc-always-on) .sc-emoji{filter:grayscale(1
 #simpleSearch:focus{border-color:var(--gold);}
 #simpleSearch::placeholder{color:var(--dim);}
 #simpleSearch.visible{display:block;}
-/* 12. What's-new card gold border prominence */
-#whatsNewCard{border:1px solid rgba(255,210,0,.6)!important;border-radius:10px;overflow:hidden;}
+/* 12. What's-new card prominence — styled on the inner card itself (no wrapper border) */
 .simple-status{font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center;margin:10px 0;min-height:14px;}
 .simple-more{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px dashed var(--border2);background:transparent;color:var(--muted);font:600 12px var(--sans);cursor:pointer;}
 .simple-more:hover{color:var(--gold);border-color:var(--gold);}
@@ -1360,7 +1359,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-213-open';
+const APP_VERSION='2026.07.14-214-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10230,12 +10229,13 @@ function renderWhatsNew(){
   const rows=items.map(it=>{
     const star=it.onWatch?'⭐ ':'';
     const col=it.onWatch?'var(--gold)':'var(--text)';
-    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-top:1px solid var(--border);">
-      <a href="#" onclick="printShareReport('${it.ticker}');return false;" style="color:${col};font-weight:700;font-size:13px;text-decoration:none;">${star}${it.ticker}</a>
-      <span style="font-size:11px;color:var(--muted);text-align:right;">${it.why}</span>
+    const why=String(it.why||'').replace(/\(([^)]*)\)/g,m=>m.replace(/ /g,'\u00a0'));
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 2px;border-top:1px solid var(--border);">
+      <a href="#" onclick="printShareReport('${it.ticker}');return false;" style="color:${col};font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;flex-shrink:0;">${star}${it.ticker}</a>
+      <span style="font-size:11px;color:var(--muted);text-align:right;line-height:1.35;">${why}</span>
     </div>`;
   }).join('');
-  const html=`<div style="border:1px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--bg2);">
+  const html=`<div style="border:2px solid rgba(255,210,0,.75);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:var(--bg2);box-shadow:0 0 14px rgba(255,210,0,.08);">
     <div style="font-weight:800;font-size:15px;color:var(--gold);margin-bottom:2px;">🔔 What's changed since last time</div>
     <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">Shares that started moving since your last visit. ⭐ = on your watchlist. A data summary, not advice — tap to open a report.</div>
     ${rows}
