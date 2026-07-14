@@ -425,6 +425,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
   /* Simple mode on phones: let the whole panel scroll so the last cards
      (My portfolio / My watchlist) are always reachable, not cut off. */
   body.simple-mode #simplePanel{padding-bottom:40px;flex:none;min-height:auto;overflow:visible;}
+  /* room under the list so floating training chips never cover the last buttons */
+  body.training-on .left{padding-bottom:84px;}
+  #helpToggle{padding:8px 13px;font-size:11px;bottom:12px;right:12px;}
+  #trainCoverage{bottom:12px;left:12px;font-size:9px;padding:4px 9px;}
   .left .load-zone{display:block;padding:10px;}
   /* Sections 1, 2, 3 each become full-width, stacked */
   .setup-row{display:block;}
@@ -1364,7 +1368,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-220-open';
+const APP_VERSION='2026.07.14-221-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11150,6 +11154,8 @@ function makeDraggable(zoneId, storeKey){
       const rows=[...zone.querySelectorAll('[data-dragid]')];
       const byId={}; rows.forEach(r=>byId[r.getAttribute('data-dragid')]=r);
       saved.forEach(id=>{ if(byId[id]) zone.appendChild(byId[id]); });
+      // Buttons ADDED since the order was saved go to the END, not the top.
+      rows.forEach(r=>{ const id=r.getAttribute('data-dragid'); if(saved.indexOf(id)===-1) zone.appendChild(r); });
     }
   }catch(e){}
   function persist(){
@@ -11476,7 +11482,7 @@ body.training-on #lessonToggle{display:block;}
 #helpPanel .hp-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#8fa6c9;font-size:18px;cursor:pointer;}
 #helpToggle{position:fixed;right:16px;bottom:16px;z-index:395;background:#9333ea;color:#fff;border:none;border-radius:30px;padding:11px 18px;font:700 13px 'Space Grotesk';cursor:pointer;box-shadow:0 6px 20px rgba(147,51,234,.5);display:none;}
 body.training-on #helpToggle{display:block;}
-#trainCoverage{position:fixed;left:16px;bottom:16px;z-index:395;background:#0d1b33;border:1px solid #9333ea;color:#c88bff;border-radius:20px;padding:6px 12px;font:600 10px 'JetBrains Mono',monospace;display:none;}
+#trainCoverage{position:fixed;left:16px;bottom:16px;z-index:395;pointer-events:none;opacity:.9;background:#0d1b33;border:1px solid #9333ea;color:#c88bff;border-radius:20px;padding:6px 12px;font:600 10px 'JetBrains Mono',monospace;display:none;}
 body.training-on #trainCoverage{display:block;}
 </style>
 
@@ -11741,17 +11747,17 @@ function _attachOne(el,info){
   el.addEventListener('mouseleave',_hideTT);
 }
 function attachTraining(){
-  let n=0;
-  Object.keys(TRAIN_HELP).forEach(id=>{ const el=document.getElementById(id); if(el){_attachOne(el,TRAIN_HELP[id]);n++;} });
+  const seen=new Set();
+  Object.keys(TRAIN_HELP).forEach(id=>{ const el=document.getElementById(id); if(el){_attachOne(el,TRAIN_HELP[id]);seen.add('id:'+id);} });
   document.querySelectorAll('th').forEach(th=>{
     const txt=th.textContent.replace(/[^A-Za-z0-9 /]/g,'').trim();
-    for(const key in COLUMN_HELP){ if(txt===key){ _attachOne(th,COLUMN_HELP[key]); n++; break; } }
+    for(const key in COLUMN_HELP){ if(txt===key){ _attachOne(th,COLUMN_HELP[key]); seen.add('col:'+key); break; } }
   });
   document.querySelectorAll('[onclick]').forEach(el=>{
     const oc=el.getAttribute('onclick')||'';
-    for(const key in ONCLICK_HELP){ if(oc.indexOf(key)>-1){ _attachOne(el,ONCLICK_HELP[key]); n++; break; } }
+    for(const key in ONCLICK_HELP){ if(oc.indexOf(key)>-1){ _attachOne(el,ONCLICK_HELP[key]); seen.add('fn:'+key); break; } }
   });
-  const cov=document.getElementById('trainCoverage'); if(cov)cov.textContent='🎓 '+n+' items explained';
+  const cov=document.getElementById('trainCoverage'); if(cov)cov.textContent='🎓 '+seen.size+' controls explained';
 }
 const HELP_SECTIONS=[
  {h:"1 · Setup",p:"Choose an exchange and press <b>Load Exchange Data</b>. <b>Clear all filters</b> resets your view."},

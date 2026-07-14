@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-220",
+  "version": "2026.07.14-221",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v220 — Big chart upgrade: 🕯 candlestick view, works with touch on phones, your paper trades drawn on the chart (▲ buys ▼ sells 🎯 target 🛑 stop), gold dots on accumulation days, average-volume line, 1Y timeframe, 'vs mkt' index overlay, log scale, and a smarter 4-week range band. Plus v219's panel fix and updated lessons."
+  "notes": "v221 — Layout fixes on phones: floating training chips no longer cover the last buttons (extra space added and the counter chip can't block taps), new scan buttons now join the END of your custom order instead of jumping to the top, and the coverage counter shows a sensible number. Plus v220's big chart upgrade: candlesticks, touch support, your trades on the chart, accumulation dots, vs-market overlay and more."
 }
