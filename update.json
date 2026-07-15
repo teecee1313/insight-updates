@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-240",
+  "version": "2026.07.15-241",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v240 — Visual facelift across the whole app. A refined navy-and-gold look: deeper layered backgrounds, a champagne gold accent used with restraint, and red kept for genuine losses/alerts only. The Instant Report buttons drop their rainbow borders for clean uniform cards with a slim colour marker. Crisp new line icons replace emoji across the cards, report buttons, tabs and section headers. Clearer text contrast everywhere, one consistent button style with a solid-gold main action, subtle shadows and hover lift, tidy thin scrollbars, and visible keyboard-focus outlines. Same app, same data — it just looks like it costs money now. Includes v239's always-load-signals fix."
+  "notes": "v241 — Simple mode now matches the new look everywhere. The Load buttons, the More tools button and the results pop-ups use the same crisp line icons as the rest of the app — including a small printer icon next to each share code that opens its report. Tidier section labels, a proper magnifier icon in the search box, and the 'market closed' notice shows a subtle pulsing dot instead of the red-circle emoji. Same app, same data — this finishes the v240 facelift in the spots Simple mode was still missing it."
 }

@@ -1152,9 +1152,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div id="simpleLoadHint" class="simple-load-hint">Loads the market so the buttons below can work.</div>
     </div>
     <div id="whatsNewCard" style="display:none;"></div>
-    <input id="simpleSearch" placeholder="🔍 Search shares by code or name…" oninput="_simpleSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+    <input id="simpleSearch" placeholder="Search shares by code or name…" oninput="_simpleSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="simple-grid">
-      <div id="simpleClosedBanner">🔴 ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
+      <div id="simpleClosedBanner"><span class="sm-dot"></span>ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
       <div class="simple-section-label">TODAY'S MARKET</div>
       <button class="simple-card sc-gold" onclick="simpleRun('top20')">
         <span class="sc-emoji">🏆</span>
@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-240-open';
+const APP_VERSION='2026.07.15-241-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5888,7 +5888,7 @@ function showModal(html,label){
   const hStyle=sz.h>0?`height:${Math.min(sz.h,window.innerHeight*0.95)}px;`:'';
   m.innerHTML=`<div id="modalBox" style="position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
     <button id="modalCloseX" onclick="closeModal()" title="Close">✕</button>
-    ${_lbl?`<div style="flex:none;display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;background:linear-gradient(90deg,var(--navy,#0d1b33),rgba(13,27,51,.6));border:1px solid var(--gold,#FFD200);border-radius:8px;"><span style="font:800 13px var(--sans);color:var(--gold,#FFD200);letter-spacing:.2px;">${_lbl}</span></div>`:''}
+    ${_lbl?`<div style="flex:none;display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;background:linear-gradient(90deg,var(--navy,#0d1b33),rgba(13,27,51,.6));border:1px solid var(--gold,#FFD200);border-radius:8px;"><span style="font:800 13px var(--sans);color:var(--gold,#FFD200);letter-spacing:.2px;" id="modalLbl">${_lbl}</span></div>`:''}
     <div class="modal-scroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:14px;margin-right:-6px;">${html}</div>
     <div style="text-align:right;margin-top:12px;flex:none;display:flex;align-items:center;justify-content:space-between;">
       <span class="mb-resizehint" style="font-size:8px;color:var(--dim);">↘ drag corner to resize</span>
@@ -10718,14 +10718,14 @@ async function _refreshSimpleLoad(){
     // even when loaded, keep BOTH options visible so they're always findable
     showSaved(saved2); if(fresh)showFresh(fresh);
     if(hint)hint.textContent=window._offlineMode
-      ? 'Showing your saved data. Tap ⚡ Fresh prices for today\u2019s.'
-      : (saved>0?'Loaded. 📂 Saved data reloads instantly · ⚡ Fresh prices updates it.':'Tap ⚡ Fresh prices any time for the latest.');
+      ? 'Showing your saved data. Tap Fresh prices for today\u2019s.'
+      : (saved>0?'Loaded. Saved data reloads instantly · Fresh prices updates it.':'Tap Fresh prices any time for the latest.');
   }else if(saved>0){
     btn.textContent='📂 Load your saved shares (instant)';
     btn.classList.remove('done');
     if(saved2)saved2.style.display='none'; // primary button already IS the saved-load
     if(fresh)showFresh(fresh);
-    if(hint)hint.textContent='Instant — no internet needed. Or tap ⚡ Fresh prices for today\u2019s.';
+    if(hint)hint.textContent='Instant — no internet needed. Or tap Fresh prices for today\u2019s.';
   }else{
     btn.textContent="⚡ Load today's shares";
     btn.classList.remove('done');
@@ -10866,7 +10866,7 @@ async function simpleLoad(fresh){
   }
   // Otherwise we need a live load, which needs an API key.
   if(!hasKey){
-    if(st)st.innerHTML='To load live prices you need your free data key. Open ⚙ Advanced to add it, or press 📊 Demo to try the app with sample shares.';
+    if(st)st.innerHTML='To load live prices you need your free data key. Open Advanced to add it, or press Demo to try the app with sample shares.';
     _refreshSimpleLoad();
     return;
   }
@@ -10876,7 +10876,7 @@ async function simpleLoad(fresh){
     else if(typeof startLoad==='function'){ await startLoad(); }
   }catch(e){}
   _refreshSimpleLoad();
-  if(st)st.textContent = (allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open ⚙ Advanced to check your data key.';
+  if(st)st.textContent = (allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open Advanced to check your data key.';
 }
 
 // ── Simple mode: Market breadth overview ────────────────────────────────────
@@ -11040,7 +11040,7 @@ function _simpleResultsPopup(label, rows){
   window._modalBig=true;
   try{document.body.classList.add('stat-over-modal');}catch(_){}
   if(!rows||!rows.length){
-    showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares matched right now.<br><br>Try <b>⚡ Get today\u2019s fresh prices</b> for the latest data, or another report.</div>', label);
+    showModal('<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">No shares matched right now.<br><br>Try <b>Get today\u2019s fresh prices</b> for the latest data, or another report.</div>', label);
     return;
   }
   _simpleModalRender(label, rows);
@@ -11063,7 +11063,7 @@ function _simpleModalRender(label, rows){
     const sc=(s.watchScore!=null)?`${s.watchScore}/10`:'';
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);">
       <div style="min-width:0;">
-        <a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:var(--gold);font-weight:700;font-size:13px;text-decoration:underline;text-decoration-style:dotted;">${i+1}. ${s.ticker} 🖨</a>
+        <a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:var(--gold);font-weight:700;font-size:13px;text-decoration:underline;text-decoration-style:dotted;">${i+1}. ${s.ticker} <svg class="ic ic-print" aria-hidden="true"><use href="#i-printer"/></svg></a>
         <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(s.name||'').slice(0,28)}</div>
       </div>
       <div style="text-align:right;flex:none;font-family:var(--mono);font-size:11px;">
@@ -11072,7 +11072,7 @@ function _simpleModalRender(label, rows){
       </div>
     </div>`;
   }).join('');
-  const head=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${top.length} share${top.length>1?'s':''} · tap a code (🖨) to open its report. A data summary, not advice.</div>`;
+  const head=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${top.length} share${top.length>1?'s':''} · tap a code to open its print report. A data summary, not advice.</div>`;
   showModal(head+body, lbl);
 }
 function initSidebarLayout(){
@@ -12166,13 +12166,14 @@ button:active{transform:scale(.985);}
    +'<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h8l-2 8 12-12h-8V2z"/></symbol>'
    +'<symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>'
    +'<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-11M12 6V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>'
+   +'<symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><path d="M6 17H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="13" width="12" height="8" rx="1"/></symbol>'
    +'</svg>';
   try{document.body.insertAdjacentHTML('afterbegin',SPR);}catch(e){}
-  var MAP={'🏆':'trophy','🎯':'target','🔥':'flame','📊':'bars','↩':'undo','💼':'case','⭐':'star','🔬':'flask','🚨':'alert','🔍':'search','🔎':'search','🎇':'spark','🧩':'spark','🎚':'sliders','⚙':'gear','🌐':'globe','💾':'save','⬇':'down','📦':'box','⚡':'bolt','📂':'folder','🙂':'','😀':''};
+  var MAP={'🏆':'trophy','🎯':'target','🔥':'flame','📊':'bars','↩':'undo','💼':'case','⭐':'star','🔬':'flask','🚨':'alert','🔍':'search','🔎':'search','🎇':'spark','🧩':'spark','🎚':'sliders','⚙':'gear','🌐':'globe','💾':'save','⬇':'down','📦':'box','⚡':'bolt','📂':'folder','🖨':'printer','🙂':'','😀':''};
   function ic(n){return n?'<svg class="ic" aria-hidden="true"><use href="#i-'+n+'"/></svg> ':'';}
-  var RE=/^(\s*)(🏆|🎯|🔥|📊|↩️|↩|💼|⭐|🔬|🚨|🔍|🔎|🎇|🧩|🎚|⚙️|⚙|🌐|💾|⬇️|⬇|📦|⚡|📂|🙂|😀)️?\s*/;
+  var RE=/^(\s*)(🏆|🎯|🔥|📊|↩️|↩|💼|⭐|🔬|🚨|🔍|🔎|🎇|🧩|🎚|⚙️|⚙|🌐|💾|⬇️|⬇|📦|⚡|📂|🖨️|🖨|🙂|😀)️?\s*/;
   function iconize(){
-    ['.sc-emoji','#scanDragZone .drag-row>button>span:first-child','.mode-seg-btn','.step-sub2','.menu-btn>span:first-child','.ov-title'].forEach(function(s){
+    ['.sc-emoji','#scanDragZone .drag-row>button>span:first-child','.mode-seg-btn','.step-sub2','.menu-btn>span:first-child','.ov-title','.simple-load-btn','.simple-fresh-btn','.simple-more','#modalLbl','#whatsNewCard button','#whatsNewCardAdv button'].forEach(function(s){
       document.querySelectorAll(s).forEach(function(el){
         try{
           if(el.querySelector&&el.querySelector('svg.ic'))return;
@@ -12188,8 +12189,27 @@ button:active{transform:scale(.985);}
   try{iconize();}catch(e){}
   try{ if(typeof applyLang==='function'){ var _al=applyLang; applyLang=function(){ _al.apply(this,arguments); try{iconize();}catch(e){} }; } }catch(e){}
   try{ if(typeof setAppMode==='function'){ var _sm=setAppMode; setAppMode=function(){ _sm.apply(this,arguments); setTimeout(iconize,60); }; } }catch(e){}
+  try{ if(typeof _refreshSimpleLoad==='function'){ var _rl=_refreshSimpleLoad; _refreshSimpleLoad=function(){ var p=_rl.apply(this,arguments); try{ if(p&&typeof p.then==='function')p.then(function(){ try{iconize();}catch(e){} }); }catch(e){} setTimeout(function(){try{iconize();}catch(e){}},150); return p; }; } }catch(e){}
+  try{ if(typeof showModal==='function'){ var _sw=showModal; showModal=function(){ var r=_sw.apply(this,arguments); try{iconize();}catch(e){} return r; }; } }catch(e){}
+  try{ if(typeof renderWhatsNew==='function'){ var _rw=renderWhatsNew; renderWhatsNew=function(){ var r=_rw.apply(this,arguments); try{iconize();}catch(e){} return r; }; } }catch(e){}
   [800,2500,6000].forEach(function(ms){setTimeout(function(){try{iconize();}catch(e){}},ms);});
 })();
 </script>
+<style id="faceliftCss2">
+/* ═══ v241 — Simple mode facelift completion ═══ */
+.simple-section-label{letter-spacing:.09em!important;font-weight:600!important;color:#7d95bd!important;}
+.simple-fresh-btn{border-radius:9px!important;}
+.simple-more{border-style:solid!important;background:var(--bg2)!important;color:var(--muted)!important;box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.simple-more:hover{color:var(--gold)!important;border-color:var(--gold)!important;background:rgba(246,201,21,.06)!important;transform:translateY(-1px);}
+#simpleSearch{padding-left:32px!important;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d759e' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M21 21l-4.5-4.5'/></svg>")!important;background-repeat:no-repeat!important;background-position:10px 50%!important;background-size:14px!important;}
+.sm-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5566;margin-right:7px;box-shadow:0 0 7px rgba(255,85,102,.55);animation:smDot 2.2s ease-in-out infinite;}
+@keyframes smDot{0%,100%{opacity:1}50%{opacity:.4}}
+.simple-load-btn .ic{width:16px;height:16px;vertical-align:-3px;}
+.simple-fresh-btn .ic{width:13px;height:13px;}
+.simple-more .ic{width:13px;height:13px;}
+#modalLbl .ic{width:14px;height:14px;vertical-align:-2.5px;}
+.ic-print{width:12px!important;height:12px!important;color:var(--dim);vertical-align:-1px!important;}
+#whatsNewCard button .ic,#whatsNewCardAdv button .ic{width:12px;height:12px;vertical-align:-2px;}
+</style>
 </body>
 </html>
