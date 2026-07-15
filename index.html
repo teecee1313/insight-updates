@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-241-open';
+const APP_VERSION='2026.07.15-242-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2176,10 +2176,13 @@ const selected=new Set();  // tickers tick-boxed for a one-off report
 
 // Clock
 (function tick(){
-  const a=new Date(new Date().toLocaleString('en-AU',{timeZone:'Australia/Sydney'}));
-  const p=x=>String(x).padStart(2,'0');
-  document.getElementById('clock').textContent=`AEST ${p(a.getHours())}:${p(a.getMinutes())}:${p(a.getSeconds())}`;
-  const d=a.getDay(),m=a.getHours()*60+a.getMinutes(),o=d>=1&&d<=5&&m>=600&&m<960;
+  // v242: never re-parse a locale string (en-AU DD/MM breaks JS Date from the
+  // 13th of each month -> NaN clock). Read the Sydney wall time as parts.
+  const _pt={};
+  try{new Intl.DateTimeFormat('en-US',{timeZone:'Australia/Sydney',hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date()).forEach(x=>_pt[x.type]=x.value);}catch(e){}
+  const hh=(_pt.hour==='24'?'00':(_pt.hour||'00')),mi=_pt.minute||'00',ss=_pt.second||'00';
+  document.getElementById('clock').textContent=`AEST ${hh}:${mi}:${ss}`;
+  const d=({Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6})[_pt.weekday],m=parseInt(hh,10)*60+parseInt(mi,10),o=d>=1&&d<=5&&m>=600&&m<960;
   document.getElementById('sdot').className='sdot'+(o?'':' closed');
   document.getElementById('stxt').textContent=o?'ASX Open':'Market Hours';
   document.getElementById('stxt').style.color=o?'var(--green)':'var(--muted)';
@@ -12095,7 +12098,8 @@ try{ if(sessionStorage.getItem('asxScreener.trainingUnlocked')==='1'){ window.ad
 <style id="faceliftCss">
 /* ═══ v240 facelift layer ═══ */
 body{background:linear-gradient(180deg,var(--bg) 0%,#0a1730 100%);}
-header{height:54px;background:rgba(12,26,56,.92);}
+header{min-height:54px;height:auto;background:rgba(12,26,56,.92);}
+.sc-count:empty{display:none;}
 .logo{font-size:17px;letter-spacing:-.02em;}
 button{transition:border-color .15s,background .15s,color .15s,transform .12s,box-shadow .15s,filter .15s;}
 button:active{transform:scale(.985);}
