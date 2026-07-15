@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.15-242",
+  "version": "2026.07.15-243",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v242 — Two display fixes. From the 13th of each month the header clock could show 'AEST NaN:NaN:NaN' and the ASX-Open light stopped changing — a date-reading quirk now fixed for good: correct Sydney time all month, on every device. On phones the top bar was getting squeezed, letting the Simple/Advanced tabs sit over the clock and language picker — the header now grows to fit on small screens. Plus a tiny tidy-up: no more empty grey pill next to the Simple card titles until there's a real count to show."
+  "notes": "v243 — Saved data now always wins. On days when the free data relays are slow, shares that failed to download were showing '?' even when their history was already saved on your device — saved data is now always served, so a bad-network day degrades to your saved figures instead of blanks. The 'Load from saved data (instant)' button also looked dead if a background download was still grinding: it now stops that download, loads your saved shares with full signals, shows its progress on the button itself, and closes the settings panel so you see the result. And if you press any load while another is finishing, the app now says so and runs yours automatically right after."
 }
