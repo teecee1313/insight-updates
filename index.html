@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-245-open';
+const APP_VERSION='2026.07.15-246-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8743,6 +8743,21 @@ function stopPrepare(){
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML='<span style="color:var(--gold)">■ Stopping… finishing the current batch.</span>';
 }
+function _setPatternFlags(s,hist){
+  // v246: one shared routine for the Signals-column flags — previously only
+  // live-load helpers computed these, so signals never appeared from saved data.
+  try{
+    const avg90=computeVolAvg(hist,90)||s.avg3mo||s.avgVol||0;
+    if(!(avg90>0))return;
+    if(!s.avg3mo)s.avg3mo=avg90;
+    const ratio=s.volume/avg90;
+    s.unusualEod=ratio>1.5&&Math.abs(s.chgPct)>2;
+    s.blockTrade=ratio>2.0;
+    try{ if(typeof blockDirection==='function')s.blockDir=blockDirection(s); }catch(e){}
+    s.dirBuy=s.chgPct>0&&s.chgPct<8&&s.volume>5000&&ratio>1.8;
+    s.instBuy=s.chgPct>0&&s.volume>30000&&ratio>1.5;
+  }catch(e){}
+}
 async function prepareAllSignals(auto){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
   if(!allData.length)return;
@@ -8879,6 +8894,7 @@ async function prepareAllSignals(auto){
             try{ s.series=srows.map(r=>({d:r.d,c:r.c,v:r.v})); }catch(e){}
             const avg3=computeVolAvg(hist,effVolWindow());
             if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
+            _setPatternFlags(s,hist);
             // volume streak — consecutive most-recent days with volume above its average
             try{
               const rows=srows;
@@ -8920,6 +8936,7 @@ async function prepareAllSignals(auto){
             try{s.series=srows.map(r=>({d:r.d,c:r.c,v:r.v}));}catch(e){}
             const avg3=computeVolAvg(hist,effVolWindow());
             if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
+            _setPatternFlags(s,hist);
             computeTechnicals(s,hist,srows);
             if(typeof accumDays==='function')s.accum10=accumDays(s,10);
             if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
@@ -8943,8 +8960,11 @@ async function prepareAllSignals(auto){
       const _poolMissing=allData.filter(s=>_inPool.has(s.ticker)&&!s.streakCalced&&(s.price>0)).length;
       const _presetNote=(ranked.length<allData.length)?` <span style="font-size:9px;color:var(--gold)">Your active load preset (types / gainers / min-volume) narrowed this LIVE run to ${ranked.length.toLocaleString()} of ${allData.length.toLocaleString()} loaded shares — pick the "All shares" preset for everything. Loads from saved data always prepare everything. <a href="#" onclick="window._forceLiveRefresh=false;prepareAllSignals(true);return false;" style="color:#58a6ff;font-weight:700;">▶ Prepare ALL ${allData.length.toLocaleString()} now</a></span>`:'';
       if(_poolMissing>0){
-        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${Math.max(0,ranked.length-_poolMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_poolMissing.toLocaleString()} still need data</span> — the data proxy was slow for those. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data. <span style="font-size:9px;color:var(--dim)">Symbols that fail every route today (often delisted or suspended) are skipped until tomorrow so they can't slow you down.</span>${_presetNote}`;
+        window._prepAutoRetryN=(window._prepAutoRetryN||0)+1;
+        if(window._prepAutoRetryN<=3){ setTimeout(()=>{ try{ if(!window._prepRunning && Array.isArray(allData) && allData.length){ window._prepFreshUntil=0; prepareAllSignals(true); } }catch(e){} }, 120000); }
+        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${Math.max(0,ranked.length-_poolMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_poolMissing.toLocaleString()} still need data</span> — the data proxy was slow for those; the app will retry them automatically in a couple of minutes. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest now</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data. <span style="font-size:9px;color:var(--dim)">Symbols that fail every route today (often delisted or suspended) are skipped until tomorrow so they can't slow you down.</span>${_presetNote}`;
       } else {
+        window._prepAutoRetryN=0;
         ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>${_presetNote}`;
       }
     }
@@ -11372,23 +11392,20 @@ function setAutoLoad(on){
       // the full store up to date.
       const _storeFresh=(function(){try{return localStorage.getItem('asxScreener.histStoreDate.v1')===new Date().toISOString().slice(0,10);}catch(e){return false;}})();
       if(ls)ls.innerHTML=`<span style="color:var(--green)">📂 Offline data found (${cached.toLocaleString()} shares${_storeFresh?', saved today':''})…</span>`;
-      setPhase('Step 1 of 2 — loading the share list');
-      if(!allData.length) loadData();
-      const waitAndPrep=(tries)=>{
-        if(allData.length){
-          if(_storeFresh){
-            setPhase('Step 2 of 2 — computing signals, range & charts for every share (from today\'s saved data)');
-            const _saved=(typeof prepDepthRaw==='function')?prepDepthRaw():'2000';
-            try{localStorage.setItem(PREPDEPTH_STORE,'all');}catch(e){}
-            try{ prepareAllSignals(true); }catch(e){}
-            try{localStorage.setItem(PREPDEPTH_STORE,_saved);}catch(e){}
-          }else{
-            setPhase('Step 2 of 2 — refreshing top shares live (saved data is from an earlier day)');
-            try{ prepareAllSignals(true); }catch(e){}
-          }
-        } else if(tries>0){ setTimeout(()=>waitAndPrep(tries-1), 500); }
-      };
-      setTimeout(()=>waitAndPrep(30), 1200);
+      // ── v246: DISK-FIRST STARTUP ──────────────────────────────────────
+      // Show the saved market with full signals IMMEDIATELY (seconds, offline),
+      // then fetch today's fresh prices in the background. The old order (live
+      // list first) left the screen empty while a slow network ground away.
+      setPhase('Step 1 of 2 — showing your saved data');
+      try{ await loadOfflineNow(); }catch(e){}
+      if(key && navigator.onLine!==false){
+        setPhase('Step 2 of 2 — fetching today\'s fresh prices in the background');
+        const _ls2=document.getElementById('loadStatus');
+        if(_ls2)_ls2.innerHTML='<span style="color:var(--green)">📂 Showing your saved data.</span> <span style="color:var(--muted)">Fetching today\'s fresh prices in the background…</span>';
+        setTimeout(()=>{ try{ loadData(); }catch(e){} }, 2500);
+      } else {
+        setPhase('');
+      }
       // Scheduled auto-fetch: catch up if the scheduled time already passed today
       // and it hasn't run, then keep checking every minute while the app is open.
       if(autoDownloadOn()){
