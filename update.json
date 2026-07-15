@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.14-239",
+  "version": "2026.07.14-240",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v239 — Signals always load now. If a new load arrived while an older signal-preparation run was still winding down, the new run could be silently skipped and every automatic attempt after it suppressed — so streaks, scores and volume averages never appeared for that session. Fixed: a blocked run retries itself the moment the old one releases, the internal flags can no longer stay stuck, and a 25-second watchdog after every load kicks preparation off if nothing has started for any reason. Includes v238's share-list reliability fixes."
+  "notes": "v240 — Visual facelift across the whole app. A refined navy-and-gold look: deeper layered backgrounds, a champagne gold accent used with restraint, and red kept for genuine losses/alerts only. The Instant Report buttons drop their rainbow borders for clean uniform cards with a slim colour marker. Crisp new line icons replace emoji across the cards, report buttons, tabs and section headers. Clearer text contrast everywhere, one consistent button style with a solid-gold main action, subtle shadows and hover lift, tidy thin scrollbars, and visible keyboard-focus outlines. Same app, same data — it just looks like it costs money now. Includes v239's always-load-signals fix."
 }

@@ -19,10 +19,10 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
   /* Adelaide Crows theme — navy #002B5C, red #E21937, gold #FFD200 */
-  --bg:#05152e;--bg2:#0a2148;--bg3:#0e2a5c;--bg4:#123170;
-  --border:#1a3a6e;--border2:#27518f;
-  --text:#eef3fb;--muted:#8fa6c9;--dim:#3d567f;
-  --gold:#FFD200;--gold2:#e0b900;--glow:rgba(255,210,0,.18);
+  --bg:#070f22;--bg2:#0c1a38;--bg3:#122448;--bg4:#193060;
+  --border:#1c3459;--border2:#2c4a80;
+  --text:#f2f6fc;--muted:#a3b6d6;--dim:#5d759e;
+  --gold:#f6c915;--gold2:#d9ae00;--glow:rgba(246,201,21,.10);
   --green:#3fb950;--green2:#238636;--gbg:rgba(63,185,80,.1);
   --red:#E21937;--rbg:rgba(226,25,55,.12);
   --blue:#4a93ff;--purple:#bc8cff;--orange:#ffa657;--amber:#ffb02e;
@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-239-open';
+const APP_VERSION='2026.07.14-240-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12092,5 +12092,104 @@ try{ if(sessionStorage.getItem('asxScreener.trainingUnlocked')==='1'){ window.ad
 </script>
 <!-- ═══════════ END EMBEDDED TRAINING LAYER ═══════════ -->
 
+<style id="faceliftCss">
+/* ═══ v240 facelift layer ═══ */
+body{background:linear-gradient(180deg,var(--bg) 0%,#0a1730 100%);}
+header{height:54px;background:rgba(12,26,56,.92);}
+.logo{font-size:17px;letter-spacing:-.02em;}
+button{transition:border-color .15s,background .15s,color .15s,transform .12s,box-shadow .15s,filter .15s;}
+button:active{transform:scale(.985);}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+/* primary CTA family */
+.simple-load-btn,#loadBtn{background:linear-gradient(180deg,#f8d23c,#e9b90a)!important;border:none!important;color:#0a1428!important;box-shadow:0 2px 12px rgba(246,201,21,.22),inset 0 1px 0 rgba(255,255,255,.35)!important;}
+.simple-load-btn:hover,#loadBtn:hover{filter:brightness(1.05);transform:translateY(-1px);}
+.simple-load-btn.done{background:linear-gradient(180deg,#41c455,#2ea043)!important;color:#04120a!important;box-shadow:0 2px 12px rgba(63,185,80,.25)!important;}
+/* quiet uniform Instant Report cards + per-category rail */
+#scanDragZone .drag-row>button{background:var(--bg2)!important;border:1px solid var(--border)!important;border-left-width:3px!important;border-radius:10px!important;color:var(--text)!important;box-shadow:0 1px 4px rgba(0,0,0,.22);}
+#scanDragZone .drag-row>button:hover{border-color:var(--border2)!important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.32);}
+#scanDragZone .drag-row>button>span:first-child{color:var(--text)!important;}
+#scanDragZone .scan-tag{color:#7d95bd!important;opacity:1!important;}
+#smartBtn{border-left-color:#3fb950!important;}
+#surgeBtn{border-left-color:#ffa657!important;}
+#top10Btn{border-left-color:var(--gold)!important;}
+[data-dragid="scan-sharp"]>button{border-left-color:#ff7b72!important;}
+#unusualBtn{border-left-color:#bc8cff!important;}
+#allSigBtn{border-left-color:#4a93ff!important;}
+[data-dragid="scan-pulse"]>button{border-left-color:#ffb02e!important;}
+[data-dragid="scan-recovery"]>button{border-left-color:#56d4dd!important;}
+/* Simple cards */
+.simple-card{border-radius:12px;box-shadow:0 1px 5px rgba(0,0,0,.22);}
+.simple-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.34);}
+/* section labels */
+.step-sub2{letter-spacing:.09em!important;font-weight:600!important;color:#7d95bd!important;}
+/* mode tabs */
+.mode-seg-btn{border-radius:9px!important;}
+.mode-seg-btn.on{background:linear-gradient(180deg,#f8d23c,#e9b90a)!important;color:#0a1428!important;border-color:transparent!important;box-shadow:0 1px 8px rgba(246,201,21,.25);text-shadow:none!important;font-weight:800;}
+.mode-seg-btn.on *{color:#0a1428!important;}
+.menu-btn .ic,.ov-title .ic{color:#9db4da;}
+/* main table */
+#tblwrap table tbody tr{transition:background .12s;}
+#tblwrap table tbody tr:hover{background:rgba(74,147,255,.06);}
+/* scrollbars */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#22406e;border-radius:8px;border:2px solid rgba(0,0,0,0);background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background:#2c4a80;}
+::-webkit-scrollbar-track{background:transparent}
+/* icons */
+.ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;display:inline-block;}
+.sc-emoji .ic{width:24px;height:24px;color:#8fb0e8;}
+.simple-card:hover .sc-emoji .ic{color:var(--gold);}
+#scanDragZone .drag-row>button .ic{width:14px;height:14px;color:#9db4da;}
+.mode-seg-btn .ic{width:13px;height:13px;}
+.mode-seg-btn.on .ic{color:#0a1428;}
+.step-sub2 .ic{width:12px;height:12px;color:#7d95bd;}
+</style>
+<script id="faceliftJs">
+(function(){
+  var SPR='<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">'
+   +'<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M6 3h12v6a6 6 0 0 1-12 0V3z"/><path d="M6 5H3v2a4 4 0 0 0 4 4M18 5h3v2a4 4 0 0 1-4 4"/></symbol>'
+   +'<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></symbol>'
+   +'<symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 2c1 4.5 5 5.7 5 10a5 5 0 1 1-10 0c0-2 .8-3.6 2-5 .5 2 1.6 2.9 3 3.2-1-3-.6-6.2 0-8.2z"/></symbol>'
+   +'<symbol id="i-bars" viewBox="0 0 24 24"><path d="M6 20v-6M12 20V10M18 20V4"/></symbol>'
+   +'<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></symbol>'
+   +'<symbol id="i-case" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></symbol>'
+   +'<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></symbol>'
+   +'<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 10a1.5 1.5 0 0 0 1.4 2h12.2a1.5 1.5 0 0 0 1.4-2L14 9V3"/></symbol>'
+   +'<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.6 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>'
+   +'<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></symbol>'
+   +'<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 3v4M17 5h4"/></symbol>'
+   +'<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>'
+   +'<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>'
+   +'<symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>'
+   +'<symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>'
+   +'<symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7l8.7 5 8.7-5M12 22V12"/></symbol>'
+   +'<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h8l-2 8 12-12h-8V2z"/></symbol>'
+   +'<symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>'
+   +'<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-11M12 6V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>'
+   +'</svg>';
+  try{document.body.insertAdjacentHTML('afterbegin',SPR);}catch(e){}
+  var MAP={'🏆':'trophy','🎯':'target','🔥':'flame','📊':'bars','↩':'undo','💼':'case','⭐':'star','🔬':'flask','🚨':'alert','🔍':'search','🔎':'search','🎇':'spark','🧩':'spark','🎚':'sliders','⚙':'gear','🌐':'globe','💾':'save','⬇':'down','📦':'box','⚡':'bolt','📂':'folder','🙂':'','😀':''};
+  function ic(n){return n?'<svg class="ic" aria-hidden="true"><use href="#i-'+n+'"/></svg> ':'';}
+  var RE=/^(\s*)(🏆|🎯|🔥|📊|↩️|↩|💼|⭐|🔬|🚨|🔍|🔎|🎇|🧩|🎚|⚙️|⚙|🌐|💾|⬇️|⬇|📦|⚡|📂|🙂|😀)️?\s*/;
+  function iconize(){
+    ['.sc-emoji','#scanDragZone .drag-row>button>span:first-child','.mode-seg-btn','.step-sub2','.menu-btn>span:first-child','.ov-title'].forEach(function(s){
+      document.querySelectorAll(s).forEach(function(el){
+        try{
+          if(el.querySelector&&el.querySelector('svg.ic'))return;
+          var h=el.innerHTML, m=h.match(RE);
+          if(!m)return;
+          var key=m[2].replace(/️/g,'');
+          if(!(key in MAP))return;
+          el.innerHTML=h.replace(RE, m[1]+ic(MAP[key]));
+        }catch(e){}
+      });
+    });
+  }
+  try{iconize();}catch(e){}
+  try{ if(typeof applyLang==='function'){ var _al=applyLang; applyLang=function(){ _al.apply(this,arguments); try{iconize();}catch(e){} }; } }catch(e){}
+  try{ if(typeof setAppMode==='function'){ var _sm=setAppMode; setAppMode=function(){ _sm.apply(this,arguments); setTimeout(iconize,60); }; } }catch(e){}
+  [800,2500,6000].forEach(function(ms){setTimeout(function(){try{iconize();}catch(e){}},ms);});
+})();
+</script>
 </body>
 </html>
