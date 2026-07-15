@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.15-241",
+  "version": "2026.07.15-242",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v241 — Simple mode now matches the new look everywhere. The Load buttons, the More tools button and the results pop-ups use the same crisp line icons as the rest of the app — including a small printer icon next to each share code that opens its report. Tidier section labels, a proper magnifier icon in the search box, and the 'market closed' notice shows a subtle pulsing dot instead of the red-circle emoji. Same app, same data — this finishes the v240 facelift in the spots Simple mode was still missing it."
+  "notes": "v242 — Two display fixes. From the 13th of each month the header clock could show 'AEST NaN:NaN:NaN' and the ASX-Open light stopped changing — a date-reading quirk now fixed for good: correct Sydney time all month, on every device. On phones the top bar was getting squeezed, letting the Simple/Advanced tabs sit over the clock and language picker — the header now grows to fit on small screens. Plus a tiny tidy-up: no more empty grey pill next to the Simple card titles until there's a real count to show."
 }
