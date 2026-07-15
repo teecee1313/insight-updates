@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-244-open';
+const APP_VERSION='2026.07.15-245-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3809,7 +3809,7 @@ function renderRows(rows){
       else if(dir==='down')sg+='<span class="tag tb" style="background:rgba(248,81,73,.18);border-color:var(--red);color:var(--red)">🔷 Blk ▼</span>';
       else sg+='<span class="tag tb">🔷 Blk</span>';
     }
-    if(!sg)sg='<span style="color:var(--dim)">—</span>';
+    if(!sg)sg='<span style="color:var(--dim);font-size:9px;" title="No unusual patterns flagged for this share right now — that\'s normal for most shares. Flags appear here when a scan detects accumulation, block trades, sharp moves or unusual end-of-day patterns.">— none</span>';
     if(s.speedScore>0){
       const nf=s.newsFlag==='likely'?'📢':'🔍';
       sg=`<span class="tag" style="background:rgba(226,25,55,.15);border:1px solid var(--red);color:#ff9caa;font-weight:700" title="Sharp move: ${s.speedMoveMult}× this share's typical daily move, on ${s.speedVolRatio}× normal volume. ${s.newsFlag==='likely'?'Has a likely-news flag.':'No obvious news reason yet.'} Estimate — verify via link.">🚨 ${s.speedScore} ${nf}</span> `+sg;
@@ -12258,6 +12258,10 @@ body.tbl-tight .exch-tag{display:none;}
 body.tbl-tight .d{width:6px;height:6px;}
 body.tbl-tight .vbg{width:40px;}
 body.tbl-tight .vw{gap:3px;}
+/* stage 2: still too wide → fold the least-critical columns (they return when there's room) */
+body.tbl-tighter #tblwrap th:nth-child(1),body.tbl-tighter #tblwrap td:nth-child(1),
+body.tbl-tighter #tblwrap th:nth-child(6),body.tbl-tighter #tblwrap td:nth-child(6){display:none!important;}
+body.tbl-tighter .tick-name{max-width:80px;}
 </style>
 <script id="fitJs">
 (function(){
@@ -12265,8 +12269,12 @@ body.tbl-tight .vw{gap:3px;}
     try{
       var w=document.getElementById('tblwrap');
       if(!w||w.style.display==='none')return;
-      document.body.classList.remove('tbl-tight');
-      if(w.scrollWidth>w.clientWidth+4)document.body.classList.add('tbl-tight');
+      var b=document.body.classList;
+      b.remove('tbl-tight'); b.remove('tbl-tighter');
+      if(w.scrollWidth>w.clientWidth+4){
+        b.add('tbl-tight');
+        if(w.scrollWidth>w.clientWidth+8)b.add('tbl-tighter');
+      }
     }catch(e){}
   }
   var t; function fitSoon(){clearTimeout(t);t=setTimeout(fit,180);}
