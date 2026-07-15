@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-242-open';
+const APP_VERSION='2026.07.15-243-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6700,8 +6700,10 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       window._deadHist=new Set(_saved&&_saved.date===_dt?_saved.list:[]);
       window._deadHistDate=_dt;
     }
-    if(!forceNet && window._deadHist.has(exch+':'+ticker)) return null;
   }catch(e){}
+  // v243: the day-dead flag no longer blocks saved/disk data — it only skips
+  // the NETWORK attempt further down. Dead-listed symbols with stored rows
+  // were returning null and sitting on "?" although their data was on-device.
   if(_histCache.has(ckey))return _histCache.get(ckey);   // instant on repeat (session)
   // Persistent disk cache (from a bulk download). FRESHNESS RULE:
   //  · saved TODAY  → use it (same-day EOD data can't be fresher; zero API cost)
@@ -6775,6 +6777,15 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       }
     }catch(e){}
   }
+  // v243: a symbol that failed every route TODAY skips the network — but only
+  // after the disk paths above had their chance. Serve its stored rows if any,
+  // so a proxy-outage day degrades to saved data instead of "?".
+  try{
+    if(!forceNet && window._deadHist && window._deadHist.has(exch+':'+ticker)){
+      if(staleFallback){ _histCache.set(ckey,staleFallback); return staleFallback; }
+      return null;
+    }
+  }catch(e){}
   const to=new Date();
   const from=new Date(to.getTime()-lookback*86400000);
   const fmt=d=>d.toISOString().slice(0,10);
@@ -8746,7 +8757,13 @@ async function prepareAllSignals(auto){
       window._preferOffline=true;
     } else { window._preferOffline=false; }
   }catch(e){ window._preferOffline=false; }
-  if(window._prepRunning)return;
+  if(window._prepRunning){
+    // v243: never bail silently — say so, and auto-run when the current run
+    // releases (load buttons pressed during a run used to just "do nothing").
+    window._prepQueued=true;
+    try{const _lsq=document.getElementById('loadStatus');if(_lsq)_lsq.innerHTML='<span style="color:var(--gold)">⏳ Another signal run is finishing — your request will start automatically right after.</span>';}catch(e){}
+    return;
+  }
   if(auto===true && window._prepFreshUntil && Date.now()<window._prepFreshUntil){window._prepFreshUntil=0;return;} // v234: just prepared from saved data — skip the duplicate auto-run
   const ls=document.getElementById('loadStatus');
   const depthSetting=prepDepthRaw();
@@ -8932,7 +8949,8 @@ async function prepareAllSignals(auto){
       }
     }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
-  finally{window._prepRunning=false;const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}}
+  finally{window._prepRunning=false;const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}
+  try{ if(window._prepQueued){ window._prepQueued=false; if(!window._prepAbort)setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400); } }catch(e){}}
 }
 async function calcStreaks(){
   const apiKey=document.getElementById('apiKey').value.trim();
@@ -9306,14 +9324,14 @@ async function loadOfflineNow(){
   const statusEl=document.getElementById('loadStatus');
   const progWrap=document.getElementById('progWrap');
   const progFill=document.getElementById('progFill');
-  if(btn)btn.disabled=true;
+  if(btn){btn.disabled=true;try{if(!window._oflBtnHtml)window._oflBtnHtml=btn.innerHTML;btn.innerHTML='⏳ Loading saved data…';}catch(e){}}
   if(statusEl)statusEl.innerHTML='<span style="color:#58a6ff">📂 Loading your saved data…</span>';
   if(progWrap){progWrap.style.display='block';progFill.style.width='30%';}
   try{
     const offlineRows=await buildListFromOffline(exch);
     if(!offlineRows||!offlineRows.length){
       if(statusEl)statusEl.innerHTML=`<span style="color:var(--orange)">No saved data found for ${exch}. Use "⬇ Download all" first, or check you picked the same exchange you downloaded.</span>`;
-      if(btn)btn.disabled=false;
+      if(btn){btn.disabled=false;try{if(window._oflBtnHtml)btn.innerHTML=window._oflBtnHtml;}catch(e){}}
       if(progWrap)setTimeout(()=>progWrap.style.display='none',600);
       return;
     }
@@ -9331,7 +9349,18 @@ async function loadOfflineNow(){
     // Offline rows carry raw history but no computed ratings yet. ALWAYS prepare
     // signals now (from the saved series — no network needed) so the scans and
     // reports actually have scores to work with.
+    // v243: a live prepare run still grinding (slow-proxy day) made this call
+    // bail silently — the loaded shares then sat on "?" and the button looked
+    // dead. Stop the old run first, then prepare from the saved series.
+    if(window._prepRunning){
+      if(statusEl)statusEl.innerHTML='<span style="color:#58a6ff">📂 Stopping the background download, then loading your saved data…</span>';
+      window._prepAbort=true;
+      let _w=0; while(window._prepRunning && _w++<120){ await new Promise(r=>setTimeout(r,250)); }
+      window._prepAbort=false;
+    }
+    window._forceLiveRefresh=false; window._preferOffline=true;
     try{ prepareAllSignals(true); }catch(e){}
+    try{ closeOverlay(); }catch(e){}
     if(statusEl)statusEl.innerHTML=`<span style="color:var(--green)">📂 Loaded ${offlineRows.length.toLocaleString()} ${exch} shares from your saved data (offline — no network used). Prices are from your last download; press ⚡ Load for today's fresh prices.</span>`;
     try{
       const _full=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0;
@@ -9339,11 +9368,11 @@ async function loadOfflineNow(){
         statusEl.innerHTML+=` <span style="color:var(--gold)">Heads-up: your saved data holds ${offlineRows.length.toLocaleString()} of the ~${_full.toLocaleString()} shares on ${exch}. Press the ⚡ live load once — the app fetches &amp; saves the missing ones automatically.</span>`;
       }
     }catch(e){}
-    if(btn)btn.disabled=false;
+    if(btn){btn.disabled=false;try{if(window._oflBtnHtml)btn.innerHTML=window._oflBtnHtml;}catch(e){}}
     if(progWrap)setTimeout(()=>progWrap.style.display='none',800);
   }catch(e){
     if(statusEl)statusEl.innerHTML=`<span style="color:var(--red)">Couldn't read saved data: ${e.message}</span>`;
-    if(btn)btn.disabled=false;
+    if(btn){btn.disabled=false;try{if(window._oflBtnHtml)btn.innerHTML=window._oflBtnHtml;}catch(e){}}
     if(progWrap)setTimeout(()=>progWrap.style.display='none',600);
   }
 }
@@ -10863,8 +10892,8 @@ async function simpleLoad(fresh){
     try{ await loadOfflineNow(); }catch(e){}
     _refreshSimpleLoad();
     if(st)st.textContent = (allData&&allData.length)
-      ? (allData.length+' shares ready (from saved data). Tap ⚡ fresh prices for today\u2019s.')
-      : 'Could not read saved data — try ⚡ fresh prices.';
+      ? (allData.length+' shares ready (from saved data). Tap fresh prices for today\u2019s.')
+      : 'Could not read saved data — try fresh prices.';
     return;
   }
   // Otherwise we need a live load, which needs an API key.
