@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.14-238-open';
+const APP_VERSION='2026.07.14-239-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8771,6 +8771,7 @@ async function prepareAllSignals(auto){
     if(!confirm(msg)){if(ls)ls.innerHTML='Full preparation cancelled. Pick a smaller depth for a quick start.';return;}
   }
   window._prepRunning=true;
+  window._prepRunSeq=(window._prepRunSeq||0)+1; // v239: proves a run really started
   try{
     // The active Live Load Preset ALWAYS governs what gets downloaded from the
     // API — on startup auto-load too, not just the preset button. Your selected
@@ -10051,12 +10052,25 @@ async function bulkVolume(){
     let savedN=0; try{savedN=await histCount();}catch(e){}
     if(savedN>=Math.min(allData.length,300)){
       say((allData.length-savedN)>allData.length*0.1?('💾 Using your saved data ('+savedN.toLocaleString()+' shares) and fetching the missing '+(allData.length-savedN).toLocaleString()+' live — they get saved for next time…'):'💾 Using the data saved on this device for volume & history — no internet needed…');
-      if(window._prepRunning){ // v236: a run over the OLD share list is in flight — stop it so the fresh list gets prepared
+      if(window._prepRunning){ // a run over the OLD share list is in flight — stop it so the fresh list gets prepared
         window._prepAbort=true;
         let _w=0; while(window._prepRunning && _w++<240){ await new Promise(r=>setTimeout(r,250)); }
+        window._prepAbort=false; // v239: never leave the abort flag armed
       }
+      const _seqBefore=(window._prepRunSeq||0);
       try{ await prepareAllSignals(true); }catch(e){}
-      window._prepFreshUntil=Date.now()+8000;
+      if((window._prepRunSeq||0)>_seqBefore){
+        window._prepFreshUntil=Date.now()+8000; // our run really executed — skip the duplicate auto-run behind us
+      }else{
+        // v239: the run was blocked (an older instance still winding down).
+        // Do NOT suppress anything — retry in the background the moment it's free,
+        // so signals always load instead of silently never running.
+        window._prepFreshUntil=0;
+        setTimeout(async()=>{ try{
+          let _w2=0; while(window._prepRunning && _w2++<600){ await new Promise(r=>setTimeout(r,500)); }
+          if(!window._prepRunning){ window._prepAbort=false; prepareAllSignals(true); }
+        }catch(e){} }, 1500);
+      }
       say('✓ Volume, streaks & signals ready — from the data saved on this device'+((allData.length>savedN)?', plus live fetches for the rest (now saved too)':' — no internet used')+'.');
       return;
     }
@@ -10451,6 +10465,15 @@ Output the complete array. Start with [`;
   document.getElementById('exchBadge').textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
   btn.disabled=false;spEl.style.display='none';lbl.textContent='⚡ Refresh';
   statusEl.textContent=`✓ ${results.length.toLocaleString()} stocks loaded from ${exch}`;
+  setTimeout(()=>{ try{ // v239: watchdog — if nothing prepared and nothing is running 25s after a load, kick preparation (any dropped-ball path lands here)
+    if(allData.length && !window._prepRunning){
+      const _done=allData.filter(s=>s.streakCalced).length;
+      if(_done<Math.min(allData.length,50) && (window._prepKick=(window._prepKick||0)+1)<=3){
+        window._prepFreshUntil=0; window._prepAbort=false;
+        try{ prepareAllSignals(true); }catch(e){}
+      }
+    }
+  }catch(e){} }, 25000);
   setTimeout(()=>progWrap.style.display='none',1200);
   doReset();
   // Refresh paper-portfolio prices with today's closes, then auto-load the
