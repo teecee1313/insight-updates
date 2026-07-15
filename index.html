@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-247-open';
+const APP_VERSION='2026.07.15-248-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3726,7 +3726,7 @@ function render(){
   const sv=(s)=>{ // sort value, incl. derived keys for News & Signals columns
     if(sk==='rangePos')return s.rangePos==null?9999:s.rangePos; // low % = near floor, sorts to top ascending
     if(sk==='newsRank')return s.newsFlag==='likely'?2:s.newsFlag==='quiet'?1:0;
-    if(sk==='sigRank')return (s.allSigN||0)*1000+(s.unusualScore||0)*10+(s.speedScore||0);
+    if(sk==='sigRank')return (s.allSigN||0)*1000+(s.unusualScore||0)*10+(s.speedScore||0)+((s.annDir5d?1:0)+(s.dirBuy?1:0)+(s.instBuy?1:0)+(s.sigBreakout?1:0)+(s.sigDist?1:0)+(s.sigVolRecord?1:0)+(s.sigCross?1:0))*0.9;
     if(sk==='techScore')return s.techScore||0;
     if(sk==='rsi')return s.rsi==null?-1:s.rsi;
     if(sk==='pctFromHigh')return s.pctFromHigh==null?-9999:s.pctFromHigh;
@@ -3795,12 +3795,14 @@ function renderRows(rows){
     // 5-day price-sensitive announcement PROXY (estimate). Real feed is blocked,
     // so this is inferred from price/volume — verify via the link.
     let newsProx;
-    if(s.newsFlag==='likely')      newsProx=`<span class="tag" style="background:rgba(226,25,55,.18);border:1px solid var(--red);color:#ff9caa" title="Estimate from price action — likely had a price-sensitive announcement in the last 5 days. Verify via the link.">📢 Likely news 5d</span>`;
+    if(s.annConfirmed && (s.annNews5d||0)>0) newsProx=`<span class="tag" style="background:rgba(226,25,55,.18);border:1px solid var(--red);color:#ff9caa" title="CONFIRMED — ${s.annNews5d} price-sensitive ASX announcement${s.annNews5d>1?'s':''} in the last 5 days.${s.annHeadline?' Latest: '+s.annHeadline+'.':''} Tap 📄 Verify to read.">📢 News ✓ ${s.annNews5d} · 5d</span>`;
+    else if(s.annConfirmed) newsProx=`<span class="tag" style="background:rgba(63,185,80,.15);border:1px solid var(--green);color:var(--green)" title="CONFIRMED — no price-sensitive ASX announcements in the last 5 days (routine notices may still exist — tap Verify).">🔇 Quiet ✓ 5d</span>`;
+    else if(s.newsFlag==='likely')      newsProx=`<span class="tag" style="background:rgba(226,25,55,.18);border:1px solid var(--red);color:#ff9caa" title="Estimate from price action — likely had a price-sensitive announcement in the last 5 days. Verify via the link.">📢 Likely news 5d</span>`;
     else if(s.newsFlag==='quiet')  newsProx=`<span class="tag" style="background:rgba(63,185,80,.15);border:1px solid var(--green);color:var(--green)" title="Estimate from price action — no obvious announcement footprint in the last 5 days. Verify via the link.">🔇 Likely quiet 5d</span>`;
     else                           newsProx=`<span class="tag" style="color:var(--muted)" title="Run a scan or Refresh streaks to estimate recent announcements.">— not checked</span>`;
     const newsTag=`<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">${newsProx}<a href="${nu}" target="_blank" class="news-link"><span class="tag tm">📄 Verify ↗</span></a></div>`;
     let sg='';
-    if(s.dirBuy)sg+='<span class="tag tdr" title="Estimate from price+volume — NOT confirmed director filings. Tap a share and use the official director-trades link to verify.">🔍 Accum?</span>';if(s.instBuy)sg+='<span class="tag tin" title="Estimate from price+volume — not confirmed institutional filings.">🏦 Inst?</span>';
+    if(s.annDir5d)sg+='<span class="tag" style="background:rgba(63,185,80,.16);border-color:var(--green);color:var(--green);font-weight:700" title="CONFIRMED director-interest filing on the ASX in the last 5 days (Appendix 3Y — may be a buy OR a sell). Tap 📄 Verify to read it.">🧑‍💼 Director ✓</span>';if(s.dirBuy)sg+='<span class="tag tdr" title="Informed-buying FOOTPRINT — an estimate from price+volume only (steady rise on heavy volume). NOT a confirmed filing; a real filing shows as 🧑‍💼 Director ✓ when the ASX feed is reachable. Verify via the official links.">🕵️ Informed?</span>';if(s.instBuy)sg+='<span class="tag tin" title="Estimate from price+volume — not confirmed institutional filings.">🏦 Inst?</span>';if(s.sigBreakout)sg+='<span class="tag" style="background:rgba(246,201,21,.14);border-color:var(--gold);color:var(--gold);font-weight:700" title="Closed at its highest of the stored year on above-average volume. Estimate — not advice.">🚀 Breakout</span>';if(s.sigDist)sg+='<span class="tag" style="background:rgba(226,25,55,.14);border-color:var(--red);color:#ff9caa" title="Falling price on heavy volume — possible steady selling (distribution), the bearish mirror of the buying flags. Estimate — not advice.">📉 Dist?</span>';if(s.sigVolRecord)sg+='<span class="tag" style="background:rgba(188,140,255,.14);border-color:#bc8cff;color:#bc8cff" title="Today is the highest volume in this share’s stored history. Estimate — not advice.">🥇 Vol record</span>';if(s.sigCross)sg+='<span class="tag" style="background:rgba(88,166,255,.14);border-color:var(--blue);color:var(--blue)" title="The 20-day average price crossed above the 50-day today (golden cross) — a widely watched trend marker. Estimate — not advice.">⤴ MA cross</span>';
     if(s.unusualEod)sg+='<span class="tag te">👁 EOD</span>';
     // Block trade with inferred direction: ▲ accumulation (buys), ▼ distribution (sell-off)
     if(s.blockTrade){
@@ -3915,7 +3917,12 @@ function printShareReport(ticker){
   const brand=`<svg viewBox="0 0 1024 1024" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><rect x="150" y="618" width="125" height="174" rx="19" fill="#C9A100"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#C9A100"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#C9A100"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#C9A100"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#C9A100"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#C9A100"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#C9A100"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>`;
   // Signal flags — honest labels.
   const flags=[];
-  if(s.dirBuy)flags.push('🔍 Possible accumulation <span class="est">(price+volume estimate — NOT a confirmed director filing)</span>');
+  if(s.annDir5d)flags.push('🧑‍💼 CONFIRMED director-interest filing on the ASX in the last 5 days (Appendix 3Y — open the announcements link to see whether it was a buy or a sell)');
+  if(s.dirBuy)flags.push('🕵️ Informed-buying footprint <span class="est">(price+volume estimate — NOT a confirmed director filing)</span>');
+  if(s.sigBreakout)flags.push('🚀 Breakout — closed at its highest of the stored year on above-average volume <span class="est">(estimate)</span>');
+  if(s.sigDist)flags.push('📉 Possible distribution — falling on heavy volume <span class="est">(estimate)</span>');
+  if(s.sigVolRecord)flags.push('🥇 Record volume — today is the highest in its stored history <span class="est">(estimate)</span>');
+  if(s.sigCross)flags.push('⤴ Golden cross — the 20-day average moved above the 50-day today <span class="est">(estimate)</span>');
   if(s.instBuy)flags.push('🏦 Possible institutional interest <span class="est">(estimate, not a confirmed filing)</span>');
   if(s.unusualEod)flags.push('👁 Unusual end-of-day move <span class="est">(estimate)</span>');
   if(s.blockTrade){const d=s.blockDir||blockDirection(s);flags.push(`📦 Possible block trade${d==='up'?' ▲ (accumulation)':d==='down'?' ▼ (distribution)':''} <span class="est">(estimate)</span>`);}
@@ -8746,6 +8753,7 @@ function stopPrepare(){
 function _setPatternFlags(s,hist){
   // v246: one shared routine for the Signals-column flags — previously only
   // live-load helpers computed these, so signals never appeared from saved data.
+  // v248: plus the pattern pack — Breakout / Dist? / Vol record / MA cross.
   try{
     const avg90=computeVolAvg(hist,90)||s.avg3mo||s.avgVol||0;
     if(!(avg90>0))return;
@@ -8756,6 +8764,21 @@ function _setPatternFlags(s,hist){
     try{ if(typeof blockDirection==='function')s.blockDir=blockDirection(s); }catch(e){}
     s.dirBuy=s.chgPct>0&&s.chgPct<8&&s.volume>5000&&ratio>1.8;
     s.instBuy=s.chgPct>0&&s.volume>30000&&ratio>1.5;
+    try{
+      const rows=_sortedCloses(hist);
+      const n=rows.length;
+      s.sigDist = s.chgPct<0 && s.chgPct>-25 && s.volume>5000 && ratio>1.8;
+      if(n>=60){
+        const lastC=rows[n-1].c, price=(s.price>0?s.price:lastC);
+        // compare against PRIOR days only — today tying a flat history is not a record
+        let maxC=0,maxV=0; for(let i=0;i<n-1;i++){ if(rows[i].c>maxC)maxC=rows[i].c; if(rows[i].v>maxV)maxV=rows[i].v; }
+        s.sigBreakout = price>0 && maxC>0 && price>maxC*1.0005 && ratio>1.5;
+        s.sigVolRecord = s.volume>10000 && maxV>0 && s.volume>=maxV*1.05;
+        const ma=(len,off)=>{ let t=0,k=0; for(let i=n-1-off;i>=0&&k<len;i--,k++)t+=rows[i].c; return k===len?t/len:0; };
+        const m20a=ma(20,0),m50a=ma(50,0),m20b=ma(20,1),m50b=ma(50,1);
+        s.sigCross = m20a>0&&m50a>0&&m20b>0&&m50b>0 && m20a>m50a && m20b<=m50b;
+      } else { s.sigBreakout=false; s.sigVolRecord=false; s.sigCross=false; }
+    }catch(e){}
   }catch(e){}
 }
 async function prepareAllSignals(auto){
@@ -12339,6 +12362,85 @@ body.tbl-tighter .tick-name{max-width:80px;}
   try{ if(typeof toggleSidebar==='function'){var _ts=toggleSidebar;toggleSidebar=function(){var v=_ts.apply(this,arguments);fitSoon();return v;};} }catch(e){}
   try{ if(typeof setAppMode==='function'){var _sm2=setAppMode;setAppMode=function(){var v=_sm2.apply(this,arguments);fitSoon();return v;};} }catch(e){}
   [900,2600,6500].forEach(function(ms){setTimeout(fitSoon,ms);});
+})();
+</script>
+<script id="annJs">
+/* ═══ v248 — confirmed ASX announcements layer (news ✓ + director ✓) ═══ */
+(function(){
+  var DAY=new Date().toISOString().slice(0,10);
+  var CK='asxScreener.ann.v2';
+  var cache={date:DAY,by:{}};
+  try{ var st=JSON.parse(localStorage.getItem(CK)||'null'); if(st&&st.date===DAY)cache=st; }catch(e){}
+  var attempted={}, fails=0, MAXC=3;
+  function save(){ try{ var ks=Object.keys(cache.by); if(ks.length>400)ks.slice(0,ks.length-400).forEach(function(k){delete cache.by[k];}); localStorage.setItem(CK,JSON.stringify(cache)); }catch(e){} }
+  function apply(s,rec){ s.annConfirmed=true; s.annNews5d=rec.n||0; s.annDir5d=!!rec.d; s.annHeadline=rec.h||''; }
+  function ingest(json){
+    try{
+      var items=(json&&json.data&&json.data.items)||(json&&json.items)||(Array.isArray(json)?json:[])||[];
+      if(!Array.isArray(items))items=[];
+      var cutoff=Date.now()-7*86400000; // ≈ last 5 trading days
+      var n=0,d=false,h='';
+      items.forEach(function(it){
+        var dt=Date.parse(it.date||it.document_date||it.documentDate||'');
+        if(!(dt>cutoff))return;
+        var hl=String(it.headline||it.header||'');
+        if(/director.{0,4}interest|appendix\s*3y|change of director/i.test(hl))d=true;
+        var ps=(it.isPriceSensitive===true)||(it.market_sensitive===true)||(it.marketSensitive===true);
+        if(ps){ n++; if(!h)h=hl.replace(/[<>"`]/g,'').slice(0,140); }
+      });
+      return {n:n,d:d,h:h};
+    }catch(e){ return {n:0,d:false,h:''}; }
+  }
+  function urlFor(code){ return 'https://asx.api.markitdigital.com/asx-research/1.0/companies/'+encodeURIComponent(code)+'/announcements?access_token=83ff96335c2d45a094df02a206a39ff4&itemsPerPage=20'; }
+  async function fetchOne(code){
+    var routes=[function(u){return u;},
+      function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},
+      function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);}];
+    for(var i=0;i<routes.length;i++){
+      try{
+        var ctrl=new AbortController(); var tm=setTimeout(function(){ctrl.abort();},5000);
+        var r=await fetch(routes[i](urlFor(code)),{headers:{'Accept':'application/json'},signal:ctrl.signal});
+        clearTimeout(tm);
+        if(!r||!r.ok)continue;
+        var txt=await r.text();
+        if(!txt||(txt.trim()[0]!=='{'&&txt.trim()[0]!=='['))continue;
+        return JSON.parse(txt);
+      }catch(e){}
+    }
+    return null;
+  }
+  async function sweep(){
+    try{
+      if(typeof allData==='undefined'||!Array.isArray(allData)||!allData.length)return;
+      if(fails>=8)return; // feed unreachable — estimates stand for this session
+      var cand=[], seen={};
+      var take=function(s){ if(!s||s.exchange!=='ASX'||seen[s.ticker])return; seen[s.ticker]=1;
+        if(cache.by[s.ticker]){ apply(s,cache.by[s.ticker]); return; }
+        if(!attempted[s.ticker])cand.push(s); };
+      try{ (Array.isArray(filtered)?filtered.slice(0,40):[]).forEach(take); }catch(e){}
+      try{ Object.values(watchlists||{}).forEach(function(l){ Object.keys(l||{}).forEach(function(tk){ take(allData.find(function(x){return x.ticker===tk;})); }); }); }catch(e){}
+      cand=cand.slice(0,25);
+      if(!cand.length)return;
+      var idx=0, changed=false;
+      async function worker(){
+        while(idx<cand.length && fails<8){
+          var s=cand[idx++]; attempted[s.ticker]=1;
+          var j=await fetchOne(s.ticker);
+          if(j){ var rec=ingest(j); cache.by[s.ticker]=rec; apply(s,rec); changed=true; fails=0; }
+          else fails++;
+          await new Promise(function(r){setTimeout(r,250);});
+        }
+      }
+      var ws=[]; for(var w=0;w<MAXC;w++)ws.push(worker());
+      await Promise.all(ws);
+      if(changed){ save(); try{ if(typeof render==='function')render(); }catch(e){} }
+    }catch(e){}
+  }
+  var t2; function sweepSoon(){ clearTimeout(t2); t2=setTimeout(function(){ sweep(); },1800); }
+  window._annSweepSoon=sweepSoon;
+  try{ if(typeof prepareAllSignals==='function'){ var _p=prepareAllSignals; prepareAllSignals=async function(){ var r=await _p.apply(this,arguments); sweepSoon(); return r; }; } }catch(e){}
+  try{ if(typeof applyF==='function'){ var _a=applyF; applyF=function(){ var r=_a.apply(this,arguments); sweepSoon(); return r; }; } }catch(e){}
+  [4000,12000].forEach(function(ms){ setTimeout(sweepSoon,ms); });
 })();
 </script>
 </body>
