@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-243-open';
+const APP_VERSION='2026.07.15-244-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12244,5 +12244,39 @@ button:active{transform:scale(.985);}
 .ic-print{width:12px!important;height:12px!important;color:var(--dim);vertical-align:-1px!important;}
 #whatsNewCard button .ic,#whatsNewCardAdv button .ic{width:12px;height:12px;vertical-align:-2px;}
 </style>
+<style id="fitCss">
+/* ═══ v244 — auto-fit squeeze for the main table ═══ */
+body.tbl-tight #tblwrap table{font-size:11px;}
+body.tbl-tight #tblwrap th{padding:6px 3px!important;font-size:8px;letter-spacing:.2px;}
+body.tbl-tight #tblwrap td{padding:5px 3px!important;}
+body.tbl-tight .tick-links{gap:4px;}
+body.tbl-tight .tick-links a{font-size:8.5px;}
+body.tbl-tight .tick-name{max-width:100px;}
+body.tbl-tight .tick-code{font-size:12px;}
+body.tbl-tight #tblwrap .tag{font-size:8.5px;padding:1px 4px;gap:1px;}
+body.tbl-tight .exch-tag{display:none;}
+body.tbl-tight .d{width:6px;height:6px;}
+body.tbl-tight .vbg{width:40px;}
+body.tbl-tight .vw{gap:3px;}
+</style>
+<script id="fitJs">
+(function(){
+  function fit(){
+    try{
+      var w=document.getElementById('tblwrap');
+      if(!w||w.style.display==='none')return;
+      document.body.classList.remove('tbl-tight');
+      if(w.scrollWidth>w.clientWidth+4)document.body.classList.add('tbl-tight');
+    }catch(e){}
+  }
+  var t; function fitSoon(){clearTimeout(t);t=setTimeout(fit,180);}
+  window.addEventListener('resize',fitSoon);
+  window.addEventListener('mouseup',fitSoon);
+  try{ if(typeof render==='function'){var _r=render;render=function(){var v=_r.apply(this,arguments);fitSoon();return v;};} }catch(e){}
+  try{ if(typeof toggleSidebar==='function'){var _ts=toggleSidebar;toggleSidebar=function(){var v=_ts.apply(this,arguments);fitSoon();return v;};} }catch(e){}
+  try{ if(typeof setAppMode==='function'){var _sm2=setAppMode;setAppMode=function(){var v=_sm2.apply(this,arguments);fitSoon();return v;};} }catch(e){}
+  [900,2600,6500].forEach(function(ms){setTimeout(fitSoon,ms);});
+})();
+</script>
 </body>
 </html>

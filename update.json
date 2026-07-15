@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.15-243",
+  "version": "2026.07.15-244",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v243 — Saved data now always wins. On days when the free data relays are slow, shares that failed to download were showing '?' even when their history was already saved on your device — saved data is now always served, so a bad-network day degrades to your saved figures instead of blanks. The 'Load from saved data (instant)' button also looked dead if a background download was still grinding: it now stops that download, loads your saved shares with full signals, shows its progress on the button itself, and closes the settings panel so you see the result. And if you press any load while another is finishing, the app now says so and runs yours automatically right after."
+  "notes": "v244 — Fits your screen. When the results table is wider than the window, it now automatically tightens its spacing, link row and column padding so the right-hand columns (News 5d, Signals) come back on screen — and relaxes again on wide monitors. If a screen is still too narrow after tightening, the scrollbar remains so nothing is ever hidden. Tip: the Hide panel button and dragging the sidebar divider free up even more room."
 }
