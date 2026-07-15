@@ -1073,13 +1073,18 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </div>
       <div class="sep"></div>
       <div class="fg">
-        <div class="fglbl">Buying Signals <span class="clr" onclick="clrFg('buy')">clear</span></div>
+        <div class="fglbl">Signal Flags <span class="clr" onclick="clrFg('buy')">clear</span></div>
         <div class="hint">Select signals to filter. Use Match Mode for AND / OR logic.</div>
         <div class="chks">
-          <div class="chk"><input type="checkbox" id="cDir"  onchange="mp()"><label for="cDir">Possible accumulation</label><span class="bdg">ACCUM</span></div>
+          <div class="chk"><input type="checkbox" id="cDir"  onchange="mp()"><label for="cDir">Informed buying (possible accumulation)</label><span class="bdg">INF</span></div>
           <div class="chk"><input type="checkbox" id="cInst" onchange="mp()"><label for="cInst">Institutional Accumulation</label><span class="bdg">INST</span></div>
           <div class="chk"><input type="checkbox" id="cES"   onchange="mp()"><label for="cES">Unusual EOD Activity</label><span class="bdg">EOD</span></div>
           <div class="chk"><input type="checkbox" id="cBS"   onchange="mp()"><label for="cBS">Large Block Trades</label><span class="bdg">BLK</span></div>
+          <div class="chk"><input type="checkbox" id="cBO"   onchange="mp()"><label for="cBO">🚀 Breakout (new stored-year high on volume)</label><span class="bdg">BO</span></div>
+          <div class="chk"><input type="checkbox" id="cDI"   onchange="mp()"><label for="cDI">📉 Distribution (falling on heavy volume)</label><span class="bdg">DIST</span></div>
+          <div class="chk"><input type="checkbox" id="cVR"   onchange="mp()"><label for="cVR">🥇 Volume record (highest in stored history)</label><span class="bdg">REC</span></div>
+          <div class="chk"><input type="checkbox" id="cMX"   onchange="mp()"><label for="cMX">⤴ MA cross (20-day crossed above 50-day today)</label><span class="bdg">MAX</span></div>
+          <div class="chk"><input type="checkbox" id="cDirC" onchange="mp()"><label for="cDirC">🧑‍💼 Director filing ✓ (confirmed, last 5 days)</label><span class="bdg">DIR✓</span></div>
         </div>
       </div>
       <div class="sep"></div>
@@ -1093,7 +1098,12 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="sep"></div>
       <div class="fg">
         <div class="fglbl">Announcements (5-day)</div>
-        <div class="hint">After a scan, the <strong>News 5d</strong> column estimates whether each share likely had a price-sensitive announcement in the last 5 days — <span style="color:#ff9caa">📢 Likely</span> or <span style="color:var(--green)">🔇 Quiet</span> — inferred from price/volume action. This is an <strong>estimate</strong> (the live ASX feed isn't reachable here); tap <strong>📄 Verify ↗</strong> to open the share's real announcements page and confirm.</div>
+        <div class="hint">The <strong>News 5d</strong> column shows <strong>CONFIRMED</strong> ASX announcements (marked ✓, real headline on hover) for shares the official feed has checked, and price/volume <strong>estimates</strong> for the rest — <span style="color:#ff9caa">📢 news</span> or <span style="color:var(--green)">🔇 quiet</span> either way. Filter by the confirmed answer below (it fills in progressively as shares come on screen); tap <strong>📄 Verify ↗</strong> on any row to read the actual filings.</div>
+        <div class="pills" id="gAnn">
+          <div class="pill on" data-v="any"   onclick="sp1(this,'gAnn','annq')">Any</div>
+          <div class="pill"    data-v="news"  onclick="sp1(this,'gAnn','annq')">📢 News ✓ only</div>
+          <div class="pill"    data-v="quiet" onclick="sp1(this,'gAnn','annq')">🔇 Quiet ✓ only</div>
+        </div>
       </div>
     </div>
 
@@ -1402,7 +1412,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-249-open';
+const APP_VERSION='2026.07.15-250-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1936,7 +1946,7 @@ let sortKey='volPct', sortDir=-1;
 // Dual-slider scale stops (index 0–8). Index 8 = open-ended top (Any/∞).
 const RANGE_STOPS=[0,5,10,20,30,40,50,100,Infinity];
 const F={
-  dir:'all',days:'0',daysMin:0,news:'any',cap:'any',sm:'any',
+  dir:'all',days:'0',daysMin:0,news:'any',cap:'any',sm:'any',annq:'any',
   pctLo:0, pctHi:Infinity,   // % change min/max
   volLo:0, volHi:Infinity,   // volume surge min/max
   pMin:0,pMax:500,vMin:0,vMax:50,
@@ -3151,7 +3161,7 @@ function clrFg(k){
   if(k==='volstreak'){resetVolStreakDays();}
   if(k==='score'){resetMinScore();}
   if(k==='vbeh')['cEod','cBlk'].forEach(i=>{document.getElementById(i).checked=false;});
-  if(k==='buy')['cDir','cInst','cES','cBS'].forEach(i=>{document.getElementById(i).checked=false;});
+  if(k==='buy')['cDir','cInst','cES','cBS','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
   if(k==='cap')rst1('gCap','any','cap');
   if(k==='type'){['cOrd','cETF','cLIC','cREIT','cOpt','cPref','cBond','cSpec'].forEach(i=>{document.getElementById(i).checked=true;});document.getElementById('cNA').checked=false;}
   mp();dots();
@@ -3160,7 +3170,7 @@ function clrFg(k){
 function dots(){
   const price=F.dir!=='all'||F.pctLo>0||Number.isFinite(F.pctHi)||F.days!=='0'||F.pMin>0||F.pMax<500;
   const vol=F.volLo>0||Number.isFinite(F.volHi)||F.vMinAbs>0||Number.isFinite(F.vMaxAbs)||F.buyDays>0||F.volStreakDays>0||F.accumMin>0||g('cEod')||g('cBlk');
-  const sig=g('cDir')||g('cInst')||g('cES')||g('cBS')||F.minScore>0;
+  const sig=g('cDir')||g('cInst')||g('cES')||g('cBS')||g('cBO')||g('cDI')||g('cVR')||g('cMX')||g('cDirC')||F.minScore>0;
   const mkt=F.cap!=='any'||!g('cOrd')||!g('cETF')||!g('cLIC')||!g('cREIT')||!g('cOpt')||!g('cPref')||!g('cBond')||!g('cSpec')||g('cNA');
   [['price',price],['vol',vol],['sig',sig],['mkt',mkt]].forEach(([t,a])=>{document.getElementById('tab-'+t).classList.toggle('lit',a);document.getElementById('dot-'+t).style.display=a?'block':'none';});
 }
@@ -3179,7 +3189,7 @@ function mkBadges(){
   if(F.volStreakDays>0)add(`📊 Vol streak ${F.volStreakDays}+d`,'volstreak');
   if(F.minScore>0)add(`⭐ Score ${F.minScore}+/10`,'score');
   if(g('cEod'))add('EOD Spike','vbeh');if(g('cBlk'))add('Block Trade','vbeh');
-  if(g('cDir'))add('Possible accum','buy');if(g('cInst'))add('Institutional','buy');
+  if(g('cDir'))add('Informed buying','buy');if(g('cInst'))add('Institutional','buy');if(g('cBO'))add('Breakout','buy');if(g('cDI'))add('Distribution','buy');if(g('cVR'))add('Vol record','buy');if(g('cMX'))add('MA cross','buy');if(g('cDirC'))add('Director ✓','buy');
   if(g('cES'))add('EOD Signal','buy');if(g('cBS'))add('Block Signal','buy');
   if(F.cap!=='any')add(`Cap: ${F.cap}`,'cap');
   if(!g('cOrd')||!g('cETF')||!g('cLIC')||!g('cREIT')||!g('cOpt')||!g('cPref')||!g('cBond')||!g('cSpec')||g('cNA'))add('Type filter','type');
@@ -3200,7 +3210,7 @@ function doApply(){
 function doReset(){
   rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gSM','any','sm');F.daysMin=0;
   resetPctBand();resetVolBand();resetPriceBand();resetAbsVolBand();resetBuyDays();resetVolStreakDays();resetMinScore();resetAccumMin();
-  ['cEod','cBlk','cDir','cInst','cES','cBS','cNA'].forEach(i=>{document.getElementById(i).checked=false;});
+  ['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
   ['cOrd','cETF','cLIC','cSpec'].forEach(i=>{document.getElementById(i).checked=true;});
   document.getElementById('searchBox').value='';
   const btn=document.getElementById('resetBtn');btn.style.borderColor='var(--green)';btn.style.color='var(--green)';
@@ -3212,7 +3222,7 @@ function _resetBeforeScan(){
   try{
     rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gSM','any','sm');F.daysMin=0;
     resetPctBand();resetVolBand();resetPriceBand();resetAbsVolBand();resetBuyDays();resetVolStreakDays();resetMinScore();resetAccumMin();
-    ['cEod','cBlk','cDir','cInst','cES','cBS','cNA'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
+    ['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
     ['cOrd','cETF','cLIC','cSpec'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=true;});
     const sb=document.getElementById('searchBox');if(sb)sb.value='';
     // clear any lingering status lines from a previous scan
@@ -3225,7 +3235,7 @@ function _resetBeforeScan(){
 // Stored in localStorage so it persists across sessions and is editable
 // (saving again overwrites it). Captures the full F state + the checkboxes.
 const MYREPORT_KEY='asxScreener.myReport.v1';
-const _CHKS=['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cOrd','cETF','cLIC','cREIT','cOpt','cPref','cBond','cSpec'];
+const _CHKS=['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC','cOrd','cETF','cLIC','cREIT','cOpt','cPref','cBond','cSpec'];
 function _serializeInf(v){return v===Infinity?'Infinity':v;}
 function _deserInf(v){return v==='Infinity'?Infinity:v;}
 
@@ -3439,6 +3449,7 @@ function syncPillsToF(){
   if(F.daysMin>0)rst1('gDays','0','days'); else rst1('gDays',F.days,'days');
   if(document.getElementById('gCap'))rst1('gCap',F.cap,'cap');
   if(document.getElementById('gSM'))rst1('gSM',F.sm,'sm');
+  if(document.getElementById('gAnn'))rst1('gAnn',F.annq,'annq');
   // % change band
   document.querySelectorAll('#gPct .pill').forEach(p=>p.classList.remove('on'));
   let pm=document.querySelector(`#gPct .pill[data-lo="${F.pctLo}"]`);
@@ -3524,7 +3535,7 @@ function applyF(){
   const srch=(document.getElementById('searchBox').value||'').toLowerCase().trim();
   const maxP=F.pMax>=500?Infinity:F.pMax;
   const maxV=F.vMax>=50?Infinity:F.vMax*1e6;
-  const anyBuy=g('cDir')||g('cInst')||g('cES')||g('cBS');
+  const anyBuy=g('cDir')||g('cInst')||g('cES')||g('cBS')||g('cBO')||g('cDI')||g('cVR')||g('cMX')||g('cDirC');
   const allMode=F.sm==='all';
   filtered=allData.filter(s=>{
     // (watchlist view is rendered separately via renderWatch, bypassing filters)
@@ -3548,7 +3559,9 @@ function applyF(){
     if(F.volStreakDays>0){ if(!s.volStreakCalced||(s.volDays||0)<F.volStreakDays)return false; }
     if(F.minScore>0){ const ws=(s.watchScore!=null)?s.watchScore:watchScore10(s).score; if(ws<F.minScore)return false; }
     if(g('cEod')&&!s.unusualEod)return false;if(g('cBlk')&&!s.blockTrade)return false;
-    if(anyBuy){if(allMode){if(g('cDir')&&!s.dirBuy)return false;if(g('cInst')&&!s.instBuy)return false;if(g('cES')&&!s.unusualEod)return false;if(g('cBS')&&!s.blockTrade)return false;}else if(!((g('cDir')&&s.dirBuy)||(g('cInst')&&s.instBuy)||(g('cES')&&s.unusualEod)||(g('cBS')&&s.blockTrade)))return false;}
+    if(anyBuy){if(allMode){if(g('cDir')&&!s.dirBuy)return false;if(g('cInst')&&!s.instBuy)return false;if(g('cES')&&!s.unusualEod)return false;if(g('cBS')&&!s.blockTrade)return false;if(g('cBO')&&!s.sigBreakout)return false;if(g('cDI')&&!s.sigDist)return false;if(g('cVR')&&!s.sigVolRecord)return false;if(g('cMX')&&!s.sigCross)return false;if(g('cDirC')&&!s.annDir5d)return false;}else if(!((g('cDir')&&s.dirBuy)||(g('cInst')&&s.instBuy)||(g('cES')&&s.unusualEod)||(g('cBS')&&s.blockTrade)||(g('cBO')&&s.sigBreakout)||(g('cDI')&&s.sigDist)||(g('cVR')&&s.sigVolRecord)||(g('cMX')&&s.sigCross)||(g('cDirC')&&s.annDir5d)))return false;}
+    if(F.annq==='news' && !(s.annConfirmed&&(s.annNews5d||0)>0))return false;
+    if(F.annq==='quiet' && !(s.annConfirmed&&(s.annNews5d||0)===0))return false;
     const typeOk=(g('cOrd')&&s.type==='Ordinary')||(g('cETF')&&s.type==='ETF')||(g('cLIC')&&s.type==='LIC')||(g('cREIT')&&s.type==='REIT')||(g('cOpt')&&s.type==='Option')||(g('cPref')&&s.type==='Preference')||(g('cBond')&&s.type==='Bond')||(g('cSpec')&&s.type==='Speculative')||(g('cNA')&&s.type==='Other');
     if(!typeOk)return false;
     if(F.cap!=='any'){const mc=s.mc||0;if(F.cap==='micro'&&mc>=50e6)return false;if(F.cap==='small'&&(mc<50e6||mc>=2e9))return false;if(F.cap==='mid'&&(mc<2e9||mc>=10e9))return false;if(F.cap==='large'&&mc<10e9)return false;}
