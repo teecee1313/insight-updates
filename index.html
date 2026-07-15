@@ -1402,7 +1402,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-246-open';
+const APP_VERSION='2026.07.15-247-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8895,6 +8895,17 @@ async function prepareAllSignals(auto){
             const avg3=computeVolAvg(hist,effVolWindow());
             if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
             _setPatternFlags(s,hist);
+            // v247: some live-list routes carry no previous close — every change
+            // reads 0.00% and the change-based flags die. Backfill the change
+            // from the saved series, then re-derive the flags with the real move.
+            try{
+              if((s.chgAbs===0||s.chgAbs==null)&&(s.chgPct===0||s.chgPct==null)&&srows.length>=2&&s.price>0){
+                const _dd=((window._exchDataDate||{})[s.exchange])||null;
+                const _lastD=srows[srows.length-1].d;
+                const _prevC=(_dd&&_lastD===_dd&&srows.length>=2)?srows[srows.length-2].c:srows[srows.length-1].c;
+                if(_prevC>0&&_prevC!==s.price){ s.chgAbs=s.price-_prevC; s.chgPct=((s.price-_prevC)/_prevC)*100; _setPatternFlags(s,hist); }
+              }
+            }catch(e){}
             // volume streak — consecutive most-recent days with volume above its average
             try{
               const rows=srows;
@@ -8937,6 +8948,17 @@ async function prepareAllSignals(auto){
             const avg3=computeVolAvg(hist,effVolWindow());
             if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
             _setPatternFlags(s,hist);
+            // v247: some live-list routes carry no previous close — every change
+            // reads 0.00% and the change-based flags die. Backfill the change
+            // from the saved series, then re-derive the flags with the real move.
+            try{
+              if((s.chgAbs===0||s.chgAbs==null)&&(s.chgPct===0||s.chgPct==null)&&srows.length>=2&&s.price>0){
+                const _dd=((window._exchDataDate||{})[s.exchange])||null;
+                const _lastD=srows[srows.length-1].d;
+                const _prevC=(_dd&&_lastD===_dd&&srows.length>=2)?srows[srows.length-2].c:srows[srows.length-1].c;
+                if(_prevC>0&&_prevC!==s.price){ s.chgAbs=s.price-_prevC; s.chgPct=((s.price-_prevC)/_prevC)*100; _setPatternFlags(s,hist); }
+              }
+            }catch(e){}
             computeTechnicals(s,hist,srows);
             if(typeof accumDays==='function')s.accum10=accumDays(s,10);
             if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
@@ -10495,6 +10517,22 @@ Output the complete array. Start with [`;
     if(_sel.length){
       const kept=results.filter(s=>_sel.includes(s.type)||(_sel.includes('Ordinary')&&!s.type));
       if(kept.length)results=kept; // safety: never filter down to nothing
+    }
+  }catch(e){}
+  // ── v247: LIST QUALITY GATE ────────────────────────────────────────────
+  // A truncated fallback route must never replace a fuller loaded view (the
+  // AI-relay path already rejected short lists; now every route does).
+  try{
+    let _kn=Math.max((parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0),(Array.isArray(allData)?allData.length:0));
+    try{ _kn=Math.max(_kn, await histCount()); }catch(e){}
+    if(_kn>0 && results.length<_kn*0.85 && Array.isArray(allData) && allData.length>results.length){
+      const _lsq=document.getElementById('loadStatus');
+      if(_lsq)_lsq.innerHTML='<span style="color:var(--gold)">⚠ The live list came back incomplete ('+results.length.toLocaleString()+' of ~'+_kn.toLocaleString()+' expected) — kept your fuller saved view. Retrying live in the background…</span>';
+      window._listRetryN=(window._listRetryN||0)+1;
+      if(window._listRetryN<=4){ setTimeout(()=>{ try{ loadData(); }catch(e){} }, 45000*window._listRetryN); }
+      btn.disabled=false;spEl.style.display='none';lbl.textContent='⚡ Refresh';
+      progFill.style.width='100%';setTimeout(()=>progWrap.style.display='none',800);
+      return;
     }
   }catch(e){}
   progFill.style.width='100%';
