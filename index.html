@@ -1413,7 +1413,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.15-254-open';
+const APP_VERSION='2026.07.16-255-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3568,6 +3568,12 @@ function applyF(){
     if(F.cap!=='any'){const mc=s.mc||0;if(F.cap==='micro'&&mc>=50e6)return false;if(F.cap==='small'&&(mc<50e6||mc>=2e9))return false;if(F.cap==='mid'&&(mc<2e9||mc>=10e9))return false;if(F.cap==='large'&&mc<10e9)return false;}
     return true;
   });
+  // v255: active quick stat chips stay applied across filter/search rebuilds
+  // and when leaving the watchlist view — they narrow this fresh result too.
+  if(typeof _statAnyOn==='function'&&_statAnyOn()){
+    window._statBase=filtered.slice();window._statBaseValid=true;
+    filtered=filtered.filter(_statPass);
+  }
   render();statsBar();
 }
 
@@ -5737,7 +5743,7 @@ function toggleSelect(ticker){
   if(watchViewOn)renderWatch();else applyF();
 }
 function toggleSelectAll(box){
-  const rows=watchViewOn?Object.values(curWL()):filtered;
+  const rows=watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
   if(box.checked)rows.forEach(s=>selected.add(s.ticker));
   else rows.forEach(s=>selected.delete(s.ticker));
   updateSelBtn();
@@ -5857,20 +5863,29 @@ function renderWatch(){
       return m;
     });
   }catch(e){}
+  // v255: the quick stat chips (Gainers, Vol ≥200%, Accum?, Up 2+ Days,
+  // Bullish/Bearish) narrow the watchlist view too — same rules as the table.
+  const _wlBase=rows.length;
+  const _statNarrow=(typeof _statAnyOn==='function')&&_statAnyOn();
+  if(_statNarrow)rows=rows.filter(_statPass);
   const sk=document.getElementById('sortSel').value;
   rows.sort((a,b)=>{let av=a[sk]||0,bv=b[sk]||0;if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase();}return av<bv?-sortDir:av>bv?sortDir:0;});
   const tbody=document.getElementById('tbody');
   document.getElementById('tblwrap').style.display='block';
   document.getElementById('noResults').style.display='none';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('rcount').textContent=`${rows.length} in ${activeWatch}`+(hiddenOther>0?` · ${hiddenOther} on other exchanges hidden`:'');
+  document.getElementById('rcount').textContent=(_statNarrow?`${rows.length} of ${_wlBase} in ${activeWatch} · quick filters on`:`${rows.length} in ${activeWatch}`)+(hiddenOther>0?` · ${hiddenOther} on other exchanges hidden`:'');
   if(!rows.length){
-    const msg = (hiddenOther>0)
+    const msg = (_statNarrow&&_wlBase>0)
+      ? `No shares in “${activeWatch}” match the active quick filters. Tap <b>Showing</b> in the stats bar to clear them.`
+      : (hiddenOther>0)
       ? `“${activeWatch}” has ${totalInList} share${totalInList>1?'s':''}, but none are on ${loadedExch}. Load a different exchange to see them, or star some ${loadedExch} shares.`
       : `“${activeWatch}” is empty. Click the ☆ star on any share to add it — it stays saved here regardless of filters.`;
     tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">${msg}</td></tr>`;
+    window._watchShown=[];
     statsBar();return;
   }
+  window._watchShown=rows;
   renderRows(rows);
   statsBar();
 }
@@ -5942,8 +5957,9 @@ function showModal(html,label){
 function closeModal(){
   const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
   window._detailTicker=null;
-  window._simpleModalBase=null;window._simpleModalLabel=null;
-  window._modalType=null;window._statBaseValid=false;
+  window._simpleModalBase=null;window._simpleModalLabel=null;window._top20Shown=null;
+  window._modalType=null; // NB: keep _statBaseValid — clearing it here made a chip
+  // un-toggle after closing a report restore only the narrowed set (stuck filter).
   try{document.body.classList.remove('stat-over-modal');}catch(_){}
 }
 // v226: when a white report sheet is open in the modal, print ONLY the sheet.
@@ -5971,7 +5987,7 @@ function toggleModalMax(){
 }
 // 📤 Save the last Top 20 as a CSV spreadsheet.
 function exportTop20CSV(){
-  const pairs=window._lastTop10||[];
+  const pairs=(window._top20Shown&&window._top20Shown.length)?window._top20Shown:(window._lastTop10||[]);
   if(!pairs.length){alert('Run Top 20 first.');return;}
   const esc=x=>{const v=String(x==null?'':x);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
   let csv='Insight Trading — Top 20 to Watch (data summary, not advice)\n'+COPYRIGHT+'\n';
@@ -5994,7 +6010,7 @@ function toggleShareMenu(e){
 document.addEventListener('click',()=>{const m=document.getElementById('shareMenu');if(m)m.style.display='none';});
 
 function shareRows(){
-  return watchViewOn?Object.values(curWL()):filtered;
+  return watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
 }
 function shareTitle(){
   return watchViewOn?`Watchlist: ${activeWatch}`:`${currentExch} Screener`;
@@ -6245,16 +6261,23 @@ async function volumeSurgeReport(){
     rows.push({s,r,volN});
   }
   rows.sort((a,b)=>b.s.volPct-a.s.volPct);
-  window._lastSurge=rows;
+  // v255: if quick stat chips are active, the report respects them too —
+  // generated from the chip-filtered set, with a note in its header.
+  let srows=rows,_statNote='';
+  if(typeof _statAnyOn==='function'&&_statAnyOn()){
+    srows=rows.filter(x=>x&&_statPass(x.s));
+    _statNote=` · quick filters applied (${srows.length} of ${rows.length})`;
+  }
+  window._lastSurge=srows;
   if(btn){btn.disabled=false;btn.style.opacity='1';}
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')setTimeout(scanProgHide,300);
-  if(st)st.textContent=`Volume Surge Report: ${rows.length} shares with volume data.`;
-  if(!rows.length){alert('No shares have volume-vs-average computed yet. Run a scan or load volume data first.');return;}
-  _openSurgeReport(rows);
+  if(st)st.textContent=`Volume Surge Report: ${srows.length} shares with volume data${_statNote?' · quick filters on':''}.`;
+  if(!srows.length){alert(_statNote?'No shares match the active quick filters. Tap Showing in the stats bar to clear them, then try again.':'No shares have volume-vs-average computed yet. Run a scan or load volume data first.');return;}
+  _openSurgeReport(srows,_statNote);
 }
 
-function _openSurgeReport(rows){
+function _openSurgeReport(rows,statNote){
   const when=new Date().toLocaleString('en-AU');
   const order=['extreme','redhot','hot','warm','mild','normal','cold'];
   const counts={}; order.forEach(k=>counts[k]=0);
@@ -6302,7 +6325,7 @@ function _openSurgeReport(rows){
   </style></head><body>
   <div style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#002B5C;">🔥 Insight <span style="color:#C9A100">Trading</span></div>
   <h1>Volume Surge Report</h1>
-  <div class="sub">${rows.length} shares · ${currentExch} · generated ${when} · hottest first</div>
+  <div class="sub">${rows.length} shares · ${currentExch} · generated ${when} · hottest first${statNote||''}</div>
   <div class="note"><b>What this shows:</b> how far today's volume is above each share's own average day. Higher = more unusual activity — often (not always) tied to news. <b>A data summary, not a buy signal or advice.</b> Verify via the 📰 / 🏛 links before acting. Rows marked ⚠Nd have thin history, so treat those %s as rough.<br>A 🔍 in the News column = <b>possible accumulation</b> (a price+volume pattern only — <b>NOT</b> a confirmed director trade). The 🧑‍💼 link opens the official director interests &amp; trades page to check for real filings.</div>
   <div class="scale">Heat = how far above average today's volume is: 🌋 Extreme +1000% · Intense +500% · Hot +300% · Warm +150% · Mild +60%. <b>Colour = price direction:</b> 🟢 green = price UP (buying) · 🔴 red = price DOWN (selling). A big-volume fall is heavy selling, not a bullish signal.</div>
   <div class="filt">
@@ -6488,7 +6511,7 @@ function printPDF(mode){
     allData.forEach(s=>{if(selected.has(s.ticker)&&!have.has(s.ticker))rows.push(s);});
     title=`Selected Shares — ${currentExch}`;
   }else{
-    rows=watchViewOn?Object.values(curWL()):filtered;
+    rows=watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
     if(!rows.length){alert('No results to print.');return;}
     title=watchViewOn?`Watchlist: ${activeWatch}`:`${currentExch} Screener`;
   }
@@ -6585,8 +6608,32 @@ function statFilter(which){
 // stat toggles — instead of resetting to the whole market. Re-runs from the
 // base set the current view was built from, so toggles combine and untoggle
 // cleanly without throwing away the report/scan you're looking at.
+// True when any quick stat toggle is active.
+function _statAnyOn(){
+  return !!(_statOn.gainers||_statOn.losers||_statOn.vol||_statOn.dir||_statOn.up2||window._statBullBear);
+}
+// Does one share pass the active quick stat toggles? ONE shared predicate,
+// used by the main table, the watchlist view, the Top 20 panel, the simple
+// scan popups and the Volume Surge report — so every view filters identically.
+function _statPass(s){
+  if(!s)return false;
+  if(_statOn.gainers && !(s.chgPct>0))return false;
+  if(_statOn.losers && !(s.chgPct<0))return false;
+  if(_statOn.vol && !(s.volPct>=200))return false;
+  if(_statOn.dir && !s.dirBuy)return false;
+  if(_statOn.up2 && !(s.streakCalced&&s.daysUp>=2))return false;
+  if(window._statBullBear==='bullish' && !_isBullish(s))return false;
+  if(window._statBullBear==='bearish' && !_isBearish(s))return false;
+  return true;
+}
 function _applyStatFilters(){
-  const anyOn = _statOn.gainers||_statOn.losers||_statOn.vol||_statOn.dir||_statOn.up2||window._statBullBear;
+  const anyOn = _statAnyOn();
+  // Watchlist view: renderWatch() applies the toggles itself, straight from
+  // the live watchlist rows — don't touch `filtered` (the main table behind).
+  if(typeof watchViewOn!=='undefined' && watchViewOn){
+    try{ renderWatch(); }catch(e){}
+    return;
+  }
   // Base = the set the current view is showing, captured before stats narrowed it.
   if(!window._statBase || !window._statBaseValid){
     window._statBase = (Array.isArray(filtered)?filtered.slice():[]);
@@ -6598,16 +6645,7 @@ function _applyStatFilters(){
     filtered = base.slice();
     window._statBaseValid = false; // next stat click recaptures a fresh base
   } else {
-    filtered = base.filter(s=>{
-      if(_statOn.gainers && !(s.chgPct>0))return false;
-      if(_statOn.losers && !(s.chgPct<0))return false;
-      if(_statOn.vol && !(s.volPct>=200))return false;
-      if(_statOn.dir && !s.dirBuy)return false;
-      if(_statOn.up2 && !(s.streakCalced&&s.daysUp>=2))return false;
-      if(window._statBullBear==='bullish' && !_isBullish(s))return false;
-      if(window._statBullBear==='bearish' && !_isBearish(s))return false;
-      return true;
-    });
+    filtered = base.filter(_statPass);
   }
   // If a simple-scan result modal is currently visible, re-render it with the
   // filtered rows so the stat toggles filter the report, not the background table.
@@ -6616,6 +6654,10 @@ function _applyStatFilters(){
     _simpleModalRender(window._simpleModalLabel||'',filtered);
     try{statsBar&&statsBar();}catch(e){}
     return;
+  }
+  // If the Top 20 panel is open, re-render it too so the toggles narrow the report.
+  if(window._modalType==='top20'&&_sm&&_sm.style.display!=='none'){
+    try{ showTop10Panel(window._lastTop10||[]); }catch(e){}
   }
   try{ render&&render(); }catch(e){}
   try{ statsBar&&statsBar(); }catch(e){}
@@ -6640,7 +6682,7 @@ function _isBearish(s){
   return downVol||distribution||downRun||nearLow;
 }
 function statsBar(){
-  const d=watchViewOn?Object.values(curWL()):filtered;
+  const d=watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
   document.getElementById('sTot').textContent=d.length.toLocaleString();
   document.getElementById('sG').textContent=d.filter(s=>s.chgPct>0).length;
   document.getElementById('sL').textContent=d.filter(s=>s.chgPct<0).length;
@@ -7777,11 +7819,19 @@ function reopenTop20(){
 }
 
 function showTop10Panel(pairs){
-  const rows=pairs.map(({s,r},i)=>{
+  // v255: the quick stat chips narrow this panel live (same rules as the main
+  // table). Original ranks are kept so "3." still means 3rd best overall.
+  const _all=Array.isArray(pairs)?pairs:[];
+  const _anyOn=(typeof _statAnyOn==='function')&&_statAnyOn();
+  const _ranked=_all.map((p,idx)=>({p:p,rank:idx+1}));
+  const _shown=_anyOn?_ranked.filter(x=>x.p&&_statPass(x.p.s)):_ranked;
+  window._top20Shown=_shown.map(x=>x.p); // CSV / print / save act on what's shown
+  const rows=_shown.map(x=>{
+    const s=x.p.s,r=x.p.r,i1=x.rank;
     const b=band10(r.score);
     return `<div style="padding:8px 4px;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <span style="font-weight:700;color:var(--text);font-size:12px;">${i+1}. <a href="#" onclick="printShareReport('${s.ticker}');return false;" title="Open the printable one-page report for ${s.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${s.ticker} 🖨</a></span>
+        <span style="font-weight:700;color:var(--text);font-size:12px;">${i1}. <a href="#" onclick="printShareReport('${s.ticker}');return false;" title="Open the printable one-page report for ${s.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${s.ticker} 🖨</a></span>
         <span style="display:flex;align-items:center;gap:8px;">
           <span style="font-weight:800;font-size:16px;color:${b.c};">${r.score}</span>
           <span style="font-size:9px;color:var(--dim);">/10</span>
@@ -7791,11 +7841,13 @@ function showTop10Panel(pairs){
       <div style="height:5px;border-radius:3px;background:var(--bg3);margin:4px 0 3px;overflow:hidden;"><div style="height:100%;width:${r.score*10}%;background:${b.c};"></div></div>
       <div style="font-size:9px;color:var(--muted);line-height:1.4;">${r.parts.length?r.parts.join(' · '):'No active signals'}</div>
     </div>`;
-  }).join('');
+  }).join('')||`<div style="padding:22px 8px;text-align:center;color:var(--muted);font-size:12px;">None of the Top ${_all.length} match the active quick filters.<br><br>Tap <b>Showing</b> in the stats bar above to clear them.</div>`;
+  const filtNote=_anyOn?`<div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⚡ Quick filters on — showing ${_shown.length} of ${_all.length}. Tap <b>Showing</b> in the stats bar to clear.</div>`:'';
   window._modalLabel='🏆 Top 20 to Watch';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10</div>
     <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links. <span style="color:var(--gold)">Tap any share code (the printer icon) to open its printable report.</span></div>
+    ${filtNote}
     <div style="max-height:44vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:2px 10px;">${rows}</div>
     <div style="display:flex;gap:8px;margin-top:12px;">
       <button onclick="exportTop20CSV()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:600 12px var(--sans);cursor:pointer;">📤 Save CSV</button>
@@ -7803,11 +7855,12 @@ function showTop10Panel(pairs){
       <button onclick="saveTop10ToWatch()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font:600 12px var(--sans);cursor:pointer;">★ Add to watchlist</button>
     </div>
   `);
+  window._modalType='top20';
+  try{document.body.classList.add('stat-over-modal');}catch(_){}
 }
-
 // Save all current Top 20 shares into a watchlist (asks which / new name).
 function saveTop10ToWatch(){
-  const pairs=window._lastTop10||[];
+  const pairs=(window._top20Shown&&window._top20Shown.length)?window._top20Shown:(window._lastTop10||[]);
   if(!pairs.length){alert('Run Top 20 first.');return;}
   const dflt='Top 20 '+new Date().toLocaleDateString('en-AU');
   const name=prompt('Save these 10 shares to which watchlist?\n\nType a name (existing or new):',dflt);
@@ -7824,7 +7877,7 @@ function saveTop10ToWatch(){
 
 // Print / PDF of the current Top 20 with scores + breakdown.
 function printTop10(){
-  const pairs=window._lastTop10||[];
+  const pairs=(window._top20Shown&&window._top20Shown.length)?window._top20Shown:(window._lastTop10||[]);
   if(!pairs.length){alert('Run Top 20 first.');return;}
   const when=new Date().toLocaleString('en-AU');
   const rowsHtml=pairs.map(({s,r},i)=>{
