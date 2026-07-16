@@ -1425,7 +1425,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-258-open';
+const APP_VERSION='2026.07.16-259-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1877,7 +1877,7 @@ function initLang(){
 }
 
 let allData=[], filtered=[], currentExch='ASX';
-window.__setDemoData=function(arr){arr.forEach(function(s){if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,open:r.open,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+window.__setDemoData=function(arr){arr.forEach(function(s){if(typeof _sanShare==='function')_sanShare(s);if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,open:r.open,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
 
 
 
@@ -1977,11 +1977,63 @@ let watchlists={};       // all named lists
 let activeWatch='My Watchlist'; // currently selected list name
 let watchViewOn=false;   // showing the watchlist view (independent of filters)?
 
+// ── v259 security: sanitise text that arrives from OUTSIDE the app ──────────
+// Applied at the data boundary (API rows, imports, stored lists, prompts) so
+// every downstream render — table, panels, print windows — is safe without
+// touching each of the ~170 render sites individually.
+function _sanText(v,max){
+  v=String(v==null?'':v).replace(/[<>"'`\\]/g,'').replace(/\s+/g,' ').trim();
+  if(max&&v.length>max)v=v.slice(0,max);
+  return v;
+}
+function _sanTicker(v){ return String(v==null?'':v).toUpperCase().replace(/[^A-Z0-9._:\-]/g,'').slice(0,16); }
+function _sanShare(s){
+  if(!s||typeof s!=='object')return s;
+  try{
+    if('ticker' in s)s.ticker=_sanTicker(s.ticker);
+    if('name' in s)s.name=_sanText(s.name,120);
+    if('exchange' in s)s.exchange=_sanText(s.exchange,12);
+    if('currency' in s)s.currency=_sanText(s.currency,8);
+    if('type' in s)s.type=_sanText(s.type,20);
+    if('annTitle' in s&&s.annTitle)s.annTitle=_sanText(s.annTitle,160);
+  }catch(e){}
+  return s;
+}
+function _sanPaper(p){
+  try{ (p.holdings||[]).concat(p.history||[]).forEach(h=>{ if(h&&typeof h==='object'){ _sanShare(h); if(h.note!=null)h.note=_sanText(h.note,140)||null; } }); }catch(e){}
+  return p;
+}
+function _sanResearch(){
+  try{
+    const cl={};
+    Object.keys(researchList||{}).forEach(k=>{
+      const it=researchList[k]; if(!it||typeof it!=='object')return;
+      _sanShare(it); if(it.snap&&typeof it.snap==='object')_sanShare(it.snap);
+      if(it.note!=null)it.note=_sanText(it.note,200);
+      const ck=_sanTicker(k); if(ck)cl[ck]=it;
+    });
+    researchList=cl;
+  }catch(e){}
+}
+// Escape for the few places that draw third-party text (live headlines).
+function _escHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Links from third-party feeds may only be web links — never javascript: etc.
+function _safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u.replace(/"/g,'%22'):'#';}
 function loadWatchlists(){
   try{
     const raw=localStorage.getItem(WL_KEY);
     if(raw)watchlists=JSON.parse(raw)||{};
   }catch(e){watchlists={};}
+  // v259: sanitise stored names & snapshots (backups/imports could carry markup)
+  try{
+    const cl={};
+    Object.keys(watchlists).forEach(n=>{
+      const cn=_sanText(n,40)||'My Watchlist';
+      const src=watchlists[n]||{}; const dst=cl[cn]=cl[cn]||{};
+      Object.keys(src).forEach(t=>{ const ct=_sanTicker(t); if(ct){ dst[ct]=_sanShare(src[t]); if(dst[ct]&&typeof dst[ct]==='object')dst[ct].ticker=ct; } });
+    });
+    watchlists=cl;
+  }catch(e){}
   if(!Object.keys(watchlists).length)watchlists={'My Watchlist':{}};
   if(!watchlists[activeWatch])activeWatch=Object.keys(watchlists)[0];
 }
@@ -1999,7 +2051,7 @@ function inWatch(ticker){return !!curWL()[ticker];}
 const RESEARCH_KEY='asxScreener.research.v1';
 let researchList={}; // { TICKER: {ticker,exchange,name,note,ts,snap} }
 function loadResearch(){
-  try{const raw=localStorage.getItem(RESEARCH_KEY);researchList=raw?JSON.parse(raw)||{}:{};}
+  try{const raw=localStorage.getItem(RESEARCH_KEY);researchList=raw?JSON.parse(raw)||{}:{};_sanResearch();}
   catch(e){researchList={};}
 }
 function saveResearch(){
@@ -2084,7 +2136,7 @@ function _editResearchNote(ticker){
   const it=researchList[ticker]; if(!it)return;
   let why=''; try{ why=window.prompt('Why is '+ticker+' worth researching?', it.note||'')||''; }catch(e){}
   if(why===null)return;
-  it.note=why; saveResearch(); renderResearch();
+  it.note=_sanText(why,200); saveResearch(); renderResearch();
 }
 // Refresh EVERY watchlist entry from the freshly loaded data, so watchlists
 // stay current daily (price, change, volume, streaks, accumulation, score).
@@ -3692,7 +3744,7 @@ async function loadDeepDiveNews(ticker,exch,name){
   if(!newsApiKey()){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">💡 Add a free marketaux API key in Setup → to test live inline headlines here. Without it, use the news buttons above.</div>'; return; }
   box.innerHTML='<div style="font-size:10px;color:var(--dim);">📰 Loading live headlines…</div>';
   const res=await fetchLiveNews(ticker,exch,name);
-  if(!res.ok){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">No live feed right now ('+(res.reason||'error')+'). Use the 📰/🏛 buttons above.</div>'; return; }
+  if(!res.ok){ box.innerHTML='<div style="font-size:10px;color:var(--dim);">No live feed right now ('+_escHtml(res.reason||'error')+'). Use the 📰/🏛 buttons above.</div>'; return; }
   if(!res.items.length){
     const annUrl=newsUrlFor(ticker,exch);
     const annLabel=exch==='ASX'?'🏛 Official ASX announcements':'🏛 Official company filings';
@@ -3702,9 +3754,9 @@ async function loadDeepDiveNews(ticker,exch,name){
     return;
   }
   box.innerHTML='<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">📰 Live headlines '+(res.cached?'(cached)':'')+':</div>'+
-    res.items.map(n=>`<a href="${n.url}" target="_blank" style="display:block;padding:6px 8px;margin-bottom:4px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);text-decoration:none;">
-      <div style="font-size:11px;color:var(--text);line-height:1.35;">${n.title}</div>
-      <div style="font-size:9px;color:var(--dim);margin-top:2px;">${n.source} · ${_newsAge(n.published)}</div>
+    res.items.map(n=>`<a href="${_safeUrl(n.url)}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 8px;margin-bottom:4px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);text-decoration:none;">
+      <div style="font-size:11px;color:var(--text);line-height:1.35;">${_escHtml(n.title)}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:2px;">${_escHtml(n.source)} · ${_newsAge(n.published)}</div>
     </a>`).join('');
 }
 function tickerUrlFor(ticker,exch){
@@ -4332,7 +4384,7 @@ function _ensureCash(p){
   }
   return p;
 }
-function _paper(){try{const p=JSON.parse(localStorage.getItem(PAPER_STORE));return _ensureCash(p&&typeof p==='object'?p:{holdings:[],history:[]});}catch(e){return _ensureCash({holdings:[],history:[]});}}
+function _paper(){try{const p=JSON.parse(localStorage.getItem(PAPER_STORE));return _sanPaper(_ensureCash(p&&typeof p==='object'?p:{holdings:[],history:[]}));}catch(e){return _ensureCash({holdings:[],history:[]});}}
 function _paperSave(p){try{localStorage.setItem(PAPER_STORE,JSON.stringify(p));}catch(e){}}
 function _paperPrune(p){
   // Closed trades are a PERMANENT ledger — never deleted, so you can always
@@ -4897,7 +4949,7 @@ function paperSetNote(id){
   const existing=(lots.length===1?lots[0].note:'')||'';
   const v=prompt(`📝 Trade note for ${lots[0].ticker}${many} — why did you buy? (max 140 chars, blank to remove)\n\nThe note follows each lot into the history ledger when sold.`,existing);
   if(v===null)return;
-  const note=v.trim().slice(0,140)||null;
+  const note=_sanText(v,140)||null;
   lots.forEach(l=>{l.note=note;});
   _paperSave(p);
   showPortfolio();
@@ -5829,16 +5881,18 @@ function openWatchManager(){
 function switchWatch(name){activeWatch=name;updateWatchBtn();if(watchViewOn)renderWatch();}
 function viewActiveWatch(){closeModal();watchViewOn=true;updateWatchBtn();renderWatch();}
 function createWatch(){
-  const v=(document.getElementById('wlNew').value||'').trim();
+  const v=_sanText((document.getElementById('wlNew').value||''),40);
   if(!v)return;
   if(!watchlists[v])watchlists[v]={};
   activeWatch=v;saveWatchlists();openWatchManager();updateWatchBtn();
 }
 function renameWatch(){
   const nn=prompt('Rename "'+activeWatch+'" to:',activeWatch);
-  if(!nn||!nn.trim()||nn===activeWatch)return;
-  watchlists[nn.trim()]=watchlists[activeWatch];delete watchlists[activeWatch];
-  activeWatch=nn.trim();saveWatchlists();openWatchManager();updateWatchBtn();
+  if(nn==null)return;
+  const nn2=_sanText(nn,40);
+  if(!nn2||nn2===activeWatch)return;
+  watchlists[nn2]=watchlists[activeWatch];delete watchlists[activeWatch];
+  activeWatch=nn2;saveWatchlists();openWatchManager();updateWatchBtn();
 }
 function deleteWatch(){
   if(Object.keys(watchlists).length<=1){alert('Keep at least one watchlist.');return;}
@@ -9505,7 +9559,7 @@ async function loadOfflineNow(){
   if(statusEl)statusEl.innerHTML='<span style="color:#58a6ff">📂 Loading your saved data…</span>';
   if(progWrap){progWrap.style.display='block';progFill.style.width='30%';}
   try{
-    const offlineRows=await buildListFromOffline(exch);
+    const offlineRows=(await buildListFromOffline(exch)).map(s=>_sanShare(s));
     if(!offlineRows||!offlineRows.length){
       if(statusEl)statusEl.innerHTML=`<span style="color:var(--orange)">No saved data found for ${exch}. Use "⬇ Download all" first, or check you picked the same exchange you downloaded.</span>`;
       if(btn){btn.disabled=false;try{if(window._oflBtnHtml)btn.innerHTML=window._oflBtnHtml;}catch(e){}}
@@ -10360,7 +10414,7 @@ async function bulkVolume(){
 //   open,high,low,close,volume,previous,change)
 // (CSV load/export/template removed — API-only now.)
 function mapRecord(r,exch,currency,today){
-  const ticker=String(r.code||r.symbolCode||r.symbol||r.ticker||'').toUpperCase();
+  const ticker=_sanTicker(r.code||r.symbolCode||r.symbol||r.ticker||'');
   if(!ticker||ticker.startsWith('_'))return null;
   const price=parseFloat(r.close!=null?r.close:(r.last!=null?r.last:0))||0;
   // Note: some exchanges' symbol lists don't include a live price — the price
@@ -10411,9 +10465,9 @@ function mapRecord(r,exch,currency,today){
   }
   return{
     ticker,
-    name:r.name||ticker,
+    name:_sanText(r.name,120)||ticker,
     exchange:exch,
-    currency:r.currency||currency,
+    currency:_sanText(r.currency,8)||currency,
     type,
     price,chgPct,chgAbs,
     volume:vol,avgVol,volPct,volCalced:false,volWindow:'',avg3mo:0,blockDir:'',newsFlag:'',
@@ -10587,7 +10641,7 @@ Output the complete array. Start with [`;
       // offline instead of showing an error.
       try{
         statusEl.textContent='📂 Offline — loading from your downloaded data…';
-        const offlineRows=await buildListFromOffline(exch);
+        const offlineRows=(await buildListFromOffline(exch)).map(s=>_sanShare(s));
         if(offlineRows && offlineRows.length){
           allData=offlineRows;
           window._offlineMode=true;
