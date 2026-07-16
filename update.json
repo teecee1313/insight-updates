@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-255",
+  "version": "2026.07.16-256",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v255 — The quick filters along the top (Gainers, Losers, Vol ≥200%, Accum?, Up 2+ Days, Bullish, Bearish) now narrow whatever you're looking at, not just the main table. Open your watchlist and tap Vol ≥200% — you'll see just those shares, with the count reading '3 of 21 · quick filters on'. They work live in the Top 20 to Watch panel too (original ranks kept, and Save CSV / Print / Add-to-watchlist act on exactly what you're seeing), in the simple-mode report popups, and the Volume Surge Report respects them when it's generated. Tap 'Showing' at any time to clear them everywhere. Also fixed: a quick filter could get stuck after closing a report window — untoggling now always brings the full list back."
+  "notes": "v256 — The data-status badge (ASX · date · shares · live/offline) has moved up into the top header, next to the exchange name — so the quick-filter row now holds nothing but your one-tap filters. The badge appears once data is actually loaded (no placeholder dash beforehand) and tucks itself away on small phone screens to keep the header tidy."
 }
