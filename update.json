@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-266",
+  "version": "2026.07.16-267",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v266 — New Instant Report: 🫧 Quiet Movers. It catches the shares the big-mover reports skip — ones that made only a small net move today (−5% to +5%) but are quietly interesting underneath. Three patterns: quietly building (a recent up-trend — up 3%+ over 5 days, an up-streak, or accumulation — that just paused today); faded into the close (it was up during the day but the intraday high was well above the close, so someone took profit at the end of day and it finished flat — flagged 🌙); and active-but-flat (heavy volume with barely any price move, i.e. absorption). Results are ranked by the accumulation /10 score, and the summary line tells you how many faded from an intraday high. Find it in the Instant Reports list (Advanced view). Estimates from end-of-day data — not advice."
+  "notes": "v267 — Your quick-filter bar now has a name: 📡 Market Radar. A label sits at the left of it — your market at a glance, and tap any tile to filter the whole app to just those shares. Also added a new one-tap chip: Vol 50–100% — shares whose volume is 50% to 100% above their own average (1.5×–2×). That's the EARLY pick-up in interest, sitting below the big Vol ≥200% surge — handy for catching shares just starting to get busy before they show up in the extreme-volume filters. Like every chip it stacks with the others and filters every view."
 }

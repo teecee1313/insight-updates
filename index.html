@@ -303,6 +303,8 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .duallbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:3px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
+.radar-label{display:flex;align-items:center;gap:5px;font:800 11px var(--sans);color:var(--gold);letter-spacing:.3px;white-space:nowrap;cursor:default;}
+.radar-label .rl-sub{font-weight:500;font-size:8px;color:var(--dim);letter-spacing:0;}
 body.stat-over-modal .stats{z-index:2100;}
 body.stat-over-modal #appModal{align-items:flex-start!important;}
 body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-height:calc(96vh - var(--soModalTop,150px))!important;}
@@ -1284,6 +1286,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 <div class="right">
   <div class="stats" id="statsBar" style="display:none">
+    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span></div>
+    <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div>
@@ -1291,6 +1295,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div>
     <div class="sdiv"></div>
@@ -1430,7 +1436,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-266-open';
+const APP_VERSION='2026.07.16-267-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6723,7 +6729,7 @@ function printPDFRows(rows,title){
 // combine them (e.g. Gainers + Vol ≥200% + Up 2+ Days). Click one again to
 // turn just it off; click "Showing" to clear all. Gainers/Losers are mutually
 // exclusive (a share can't be both).
-let _statOn={gainers:false,losers:false,vol:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false};
+let _statOn={gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false};
 function statFilter(which){
   if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
   else if(which==='bullish'||which==='bearish'){
@@ -6769,6 +6775,7 @@ function _statPass(s){
   if(_statOn.gainers && !(s.chgPct>0))return false;
   if(_statOn.losers && !(s.chgPct<0))return false;
   if(_statOn.vol && !(s.volPct>=200))return false;
+  if(_statOn.vol50 && !(s.volCalced&&s.volPct>=50&&s.volPct<=100))return false;
   if(_statOn.dir && !s.dirBuy)return false;
   if(_statOn.up2 && !(s.streakCalced&&s.daysUp>=2))return false;
   if(_statOn.qm && !(s.chgPct>=3&&s.volCalced&&s.volPct>=100&&_noNews5d(s)))return false;
@@ -6845,6 +6852,7 @@ function statsBar(){
   document.getElementById('sD').textContent=d.filter(s=>s.dirBuy).length;
   document.getElementById('sC').textContent=d.filter(s=>s.streakCalced&&s.daysUp>=2).length;
   const _set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n;};
+  _set('sV50',d.filter(s=>s.volCalced&&s.volPct>=50&&s.volPct<=100).length);
   _set('sQM',d.filter(s=>s.chgPct>=3&&s.volCalced&&s.volPct>=100&&_noNews5d(s)).length);
   _set('sVS',d.filter(s=>s.volStreakCalced&&(s.volDays||0)>=2).length);
   _set('sS7',d.filter(s=>s.watchScore!=null&&s.watchScore>=7).length);
