@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-259",
+  "version": "2026.07.16-260",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v259 — Security hardening. A full pass over every place the app takes in text from outside — live news headlines, the market data feed, saved-data imports, backups, watchlist and portfolio entries — now cleans that text at the door, so nothing hidden inside a company name, headline or imported file can ever run code in your browser. Live headlines are additionally escaped and their links restricted to real web addresses only. No visible change in day-to-day use; this is protective plumbing. Verified by firing real attack payloads through all 13 entry points — none executed."
+  "notes": "v260 — Add shares to a watchlist one at a time, straight from a report. The Top 20 to Watch panel and the Simple-mode report popups (Recovery Watch, Who's being quietly bought, Top picks) now show a ☆ star button on every row — tap it to add that single share, tap again to remove, without closing the report. A little 'Tap ☆ to add to: [list ▾]' picker at the top lets you choose which watchlist the stars go into, or spin up a new list on the spot. The bulk '★ Add to watchlist' button on Top 20 stays for when you want all of them. (In Advanced mode, Recovery Watch and Top 20 also fill the main table, where every row already has its star.)"
 }
