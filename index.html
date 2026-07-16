@@ -1263,6 +1263,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="drag-row" draggable="true" data-dragid="scan-allsig"><span class="drag-h">⠿</span><button id="allSigBtn" onclick="allSignalsScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.08);" title="Runs EVERYTHING in one pass — sharp-mover abnormality, the five unusual-activity patterns, volume surge, price & volume streaks, accumulation and the /10 score — and ranks shares by how many signals they trigger at once. Estimate — not advice."><span>🧩 All Signals Scan</span> <span class="scan-tag">sharp + unusual + streaks + accum · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-pulse"><span class="drag-h">⠿</span><button onclick="simpleMarketPulse()" class="scan-alt" style="border-color:var(--amber);color:var(--amber);background:rgba(255,176,46,.10);" title="A one-screen market breadth snapshot — how many shares are up vs down today, the biggest movers and where the volume is. A data summary, not advice."><span>📊 Market Today</span> <span class="scan-tag">breadth snapshot · up vs down</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-recovery"><span class="drag-h">⠿</span><button onclick="recoveryScanAdv()" class="scan-alt" style="border-color:var(--amber);color:var(--amber);background:rgba(255,176,46,.08);" title="Finds fallen shares that are stabilising on elevated volume — potential reversal candidates. Fills the results table. A data summary, not advice."><span>↩️ Recovery Watch</span> <span class="scan-tag">fallen · stabilising on volume</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-quiet"><span class="drag-h">⠿</span><button onclick="quietMoversScan()" class="scan-alt" style="border-color:#7fd4ff;color:#7fd4ff;background:rgba(127,212,255,.08);" title="Finds shares that made only a small net move today (−5% to +5%) but are quietly building underneath — a recent up-trend that paused, heavy volume with a flat price, or a share that was up during the day and faded into the close (someone took profit). Ranked by accumulation. A data summary, not advice."><span>🫧 Quiet Movers</span> <span class="scan-tag">small move · quietly building · faded EOD</span></button></div>
     </div>
 
     <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) five trading days after it fired — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
@@ -1429,7 +1430,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-265-open';
+const APP_VERSION='2026.07.16-266-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11401,6 +11402,69 @@ async function recoveryScanAdv(){
   if(st)st.innerHTML=(Array.isArray(filtered)&&filtered.length)?`✓ <strong style="color:var(--amber)">${filtered.length}</strong> potential recovery shares — see the table`:'No recovery candidates right now.';
 }
 
+async function quietMoversScan(){
+  _scanStart('🫧 Quiet Movers');
+  exitWatchView&&exitWatchView();
+  _resetBeforeScan();
+  const st=document.getElementById('smartStatus');
+  if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Quiet Movers.'; _scanDone&&_scanDone(); return; }
+  _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
+  if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
+    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    else{ if(st)st.textContent='Loading volume & streaks…'; if(typeof bulkVolume==='function')await bulkVolume(); }
+  }
+  const LO=-5,HI=5;                     // "small net move today" band
+  const scored=[]; let fadeCount=0;
+  for(const s of allData){
+    if(!(s.price>0))continue;
+    const chg=s.chgPct||0;
+    if(!(chg>=LO&&chg<=HI))continue;    // must be a small move today
+    // recent trend (5-day gain from the close series)
+    let gain5=0;
+    if(Array.isArray(s.series)&&s.series.length>=6){
+      const c0=s.series[s.series.length-1].c, c5=s.series[s.series.length-6].c;
+      if(c5>0)gain5=((c0-c5)/c5)*100;
+    }
+    const upStreak=!!(s.streakCalced&&s.daysUp>=2);
+    const accum=(s.accum10!=null&&s.accum10>=4);
+    const coiling=(gain5>=3)||upStreak||accum;                 // quietly building
+    // intraday fade: high well above the close while the day finished flat/down
+    let fade=0; const hi=(s._q&&s._q.h)||0, cl=s.price;
+    if(hi>0&&cl>0){ const hp=((hi-cl)/cl)*100; if(hp>=3 && chg<=1.5) fade=hp; }
+    const volUp=!!(s.volCalced&&s.volPct>=80);                 // heavy volume, flat price
+    if(!(coiling||fade>0||volUp))continue;                     // needs SOMETHING underneath
+    if(fade>0)fadeCount++;
+    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
+    s._qmFade=Math.round(fade*10)/10; s._qmGain5=Math.round(gain5*10)/10;
+    const score=Math.min(3,(accum?s.accum10*0.3:0))
+              + Math.min(2,Math.max(0,gain5)/5)
+              + (upStreak?1:0)
+              + Math.min(2,(s.volCalced?Math.max(0,s.volPct):0)/150)
+              + Math.min(2.5,fade/3);
+    scored.push({s,score});
+  }
+  scored.sort((a,b)=>b.score-a.score);
+  F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+  filtered=scored.map(x=>x.s);
+  lastScanLabel='Quiet Movers';
+  _resetStatsForNewView();
+  document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
+  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
+  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('toolbar').style.display='flex';
+  if(typeof scanProgSet==='function')scanProgSet(100);
+  if(typeof scanProgHide==='function')scanProgHide();
+  if(st){
+    if(scored.length){
+      st.innerHTML=`🫧 <strong style="color:var(--amber)">${scored.length}</strong> quiet movers — small net move today (±5%) but quietly building underneath`+
+        (fadeCount?` · <span style="color:var(--gold)">🌙 ${fadeCount} faded from an intraday high (someone took profit into the close)</span>`:'')+
+        `<br><span style="font-size:9px;color:var(--orange)">Ranked by the accumulation /10 score. Small move + up-streak / accumulation / heavy volume / intraday fade. Estimate from end-of-day data — not advice.</span>`;
+    }else{
+      st.innerHTML='No quiet movers right now. <span style="font-size:9px">(needs volume &amp; streak data — try after a full load or another scan.)</span>';
+    }
+  }
+}
 function simpleRun(what){
   try{ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur(); }catch(_){}
   const st=document.getElementById('simpleStatus');
@@ -12523,6 +12587,7 @@ button:active{transform:scale(.985);}
 #unusualBtn{border-left-color:#bc8cff!important;}
 #allSigBtn{border-left-color:#4a93ff!important;}
 [data-dragid="scan-pulse"]>button{border-left-color:#ffb02e!important;}
+[data-dragid="scan-quiet"]>button{border-left-color:#7fd4ff!important;}
 [data-dragid="scan-recovery"]>button{border-left-color:#56d4dd!important;}
 /* Simple cards */
 .simple-card{border-radius:12px;box-shadow:0 1px 5px rgba(0,0,0,.22);}
