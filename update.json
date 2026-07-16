@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.15-254",
+  "version": "2026.07.16-255",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v254 — Every lesson now ends with a Quick Quiz. 44 questions across all 21 lessons, in the same plain-English voice as the course. Tap an answer and the explanation appears either way — it teaches rather than tests, and wrong guesses cost nothing. Answer every question in a lesson and it earns a '✓ passed' badge the app remembers, so you can see at a glance which lessons you've truly finished. Try lesson 1: three questions in, you'll know what a share actually is, where prices come from, and what end-of-day means — and you'll never forget that volume is the lie detector."
+  "notes": "v255 — The quick filters along the top (Gainers, Losers, Vol ≥200%, Accum?, Up 2+ Days, Bullish, Bearish) now narrow whatever you're looking at, not just the main table. Open your watchlist and tap Vol ≥200% — you'll see just those shares, with the count reading '3 of 21 · quick filters on'. They work live in the Top 20 to Watch panel too (original ranks kept, and Save CSV / Print / Add-to-watchlist act on exactly what you're seeing), in the simple-mode report popups, and the Volume Surge Report respects them when it's generated. Tap 'Showing' at any time to clear them everywhere. Also fixed: a quick filter could get stuck after closing a report window — untoggling now always brings the full list back."
 }
