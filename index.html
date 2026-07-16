@@ -304,6 +304,8 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
 body.stat-over-modal .stats{z-index:2100;}
+body.stat-over-modal #appModal{align-items:flex-start!important;}
+body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-height:calc(96vh - var(--soModalTop,150px))!important;}
 /* ── v228: which-report banner above the results table ── */
 #activeScanBanner{display:none;align-items:center;gap:10px;padding:7px 16px;background:linear-gradient(90deg,rgba(255,210,0,.15),rgba(255,210,0,.03));border-bottom:1px solid var(--gold);font:700 12.5px var(--sans);color:var(--gold);flex-shrink:0;flex-wrap:wrap;}
 #activeScanBanner .asb-spin{width:12px;height:12px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
@@ -376,6 +378,8 @@ body.stat-over-modal .stats{z-index:2100;}
      rows, and the action buttons full-width — nothing gets cut off. */
   .pf-tablewrap{display:none!important;}
   .pf-cards{display:block!important;}
+  .shd-sec{display:none!important;} /* v264: hide History table's secondary columns on phones so Date/Close/Change/Volume fit */
+  .shd-table td,.shd-table th{padding:7px 5px!important;font-size:11px!important;}
   /* Portfolio holdings/history tables: on phones don't squash the columns —
      let the table scroll sideways and FREEZE the first column (the share code)
      so you can always see which row is which while scrolling to the actions. */
@@ -1425,7 +1429,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-260-open';
+const APP_VERSION='2026.07.16-264-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4242,15 +4246,15 @@ function showShareDetail(ticker,days){
     const up=r.chg>0.05,dn=r.chg<-0.05;
     return `<tr style="${r.live?'background:rgba(255,210,0,.06);':''}">
       <td style="font-family:var(--mono);font-size:10px;padding:5px 6px;">${r.live?('<strong>Today</strong>'+(r.d&&r.d!=='Today'?' <span style="color:var(--dim);font-size:8px">'+r.d+'</span>':'')):r.d}</td>
-      <td style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.o?fmtP(r.o,s.currency):(s._ohlcLoading?'…':'—')}</td>
+      <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.o?fmtP(r.o,s.currency):(s._ohlcLoading?'…':'—')}</td>
       <td style="text-align:right;font-family:var(--mono);padding:5px 6px;">${fmtP(r.c,s.currency)}</td>
       <td style="text-align:right;font-family:var(--mono);padding:5px 6px;color:${up?'var(--green)':dn?'var(--red)':'var(--muted)'}">${r.chg>0?'+':''}${fmt(r.chg,2)}%</td>
       <td style="text-align:right;font-family:var(--mono);padding:5px 6px;">${fmtV(r.v)}</td>
-      <td style="text-align:right;font-family:var(--mono);padding:5px 6px;color:${r.vp>50?'var(--gold)':'var(--muted)'}">${r.vp==null?'—':(r.vp>=0?'+':'')+r.vp+'%'}</td>
-      <td style="text-align:right;padding:5px 6px;">${r.ps}</td>
-      <td style="text-align:right;padding:5px 6px;">${r.vs}</td>
-      <td style="text-align:right;padding:5px 6px;color:${r.acc>=5?'var(--gold)':r.acc>=3?'var(--green)':'var(--muted)'}">${r.acc}</td>
-      <td style="text-align:right;padding:5px 6px;font-weight:700;color:${r.sc>=7?'var(--green)':r.sc>=4?'var(--gold)':'var(--muted)'}">${r.sc}</td>
+      <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:${r.vp>50?'var(--gold)':'var(--muted)'}">${r.vp==null?'—':(r.vp>=0?'+':'')+r.vp+'%'}</td>
+      <td class="shd-sec" style="text-align:right;padding:5px 6px;">${r.ps}</td>
+      <td class="shd-sec" style="text-align:right;padding:5px 6px;">${r.vs}</td>
+      <td class="shd-sec" style="text-align:right;padding:5px 6px;color:${r.acc>=5?'var(--gold)':r.acc>=3?'var(--green)':'var(--muted)'}">${r.acc}</td>
+      <td class="shd-sec" style="text-align:right;padding:5px 6px;font-weight:700;color:${r.sc>=7?'var(--green)':r.sc>=4?'var(--gold)':'var(--muted)'}">${r.sc}</td>
     </tr>`;
   }).join('');
   const pill=(k)=>`<button onclick="window._detailFrom='';window._detailTo='';showShareDetail('${ticker}',${k})" style="padding:4px 10px;border-radius:5px;border:1px solid ${(!ranged&&k===n)?'var(--gold)':'var(--border)'};background:${(!ranged&&k===n)?'rgba(255,210,0,.15)':'var(--bg3)'};color:${(!ranged&&k===n)?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">${k===66?'3mo':k+'d'}</button>`;
@@ -4266,13 +4270,14 @@ function showShareDetail(ticker,days){
       <button onclick="window._detailFrom=(document.getElementById('detFrom').value||'');window._detailTo=(document.getElementById('detTo').value||'');showShareDetail('${ticker}',${n})" style="padding:4px 10px;border-radius:5px;border:1px solid ${ranged?'var(--gold)':'var(--border)'};background:${ranged?'rgba(255,210,0,.15)':'var(--bg3)'};color:${ranged?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">Search</button>
       ${ranged?`<a href="#" onclick="window._detailFrom='';window._detailTo='';showShareDetail('${ticker}',${n});return false;" style="color:var(--dim);font-size:9px;">clear</a>`:''}
     </div>
-    <div style="overflow:auto;border:1px solid var(--border);border-radius:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:10px;">
+    ${_dataIsStale?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:6px;padding:5px 9px;margin:0 0 8px;font-size:9px;color:var(--orange);line-height:1.45;">⚠ Newest data here is <strong>${_lastD}</strong> — today\u2019s ASX session isn\u2019t loaded, so the top row is that day, not today. Tap <strong>⚡ fresh prices</strong> to update. (A stale day is the usual reason a figure differs from the live ASX site.)</div>`:''}
+    <div class="shd-scroll" style="overflow:auto;border:1px solid var(--border);border-radius:8px;">
+      <table class="shd-table hist" style="width:100%;border-collapse:collapse;font-size:10px;">
         <thead><tr style="position:sticky;top:0;background:var(--bg2);">
-          <th style="text-align:left;padding:6px;">Date</th><th style="text-align:right;padding:6px;">Open</th><th style="text-align:right;padding:6px;">Close</th><th style="text-align:right;padding:6px;">Change</th>
-          <th style="text-align:right;padding:6px;">Volume</th><th style="text-align:right;padding:6px;">Vol vs avg</th>
-          <th style="text-align:right;padding:6px;">📈 Streak</th><th style="text-align:right;padding:6px;">📊 Vol Strk</th>
-          <th style="text-align:right;padding:6px;">🔥 Accum</th><th style="text-align:right;padding:6px;">⭐ /10</th>
+          <th style="text-align:left;padding:6px;">Date</th><th class="shd-sec" style="text-align:right;padding:6px;">Open</th><th style="text-align:right;padding:6px;">Close</th><th style="text-align:right;padding:6px;">Change</th>
+          <th style="text-align:right;padding:6px;">Volume</th><th class="shd-sec" style="text-align:right;padding:6px;">Vol vs avg</th>
+          <th class="shd-sec" style="text-align:right;padding:6px;">📈 Streak</th><th class="shd-sec" style="text-align:right;padding:6px;">📊 Vol Strk</th>
+          <th class="shd-sec" style="text-align:right;padding:6px;">🔥 Accum</th><th class="shd-sec" style="text-align:right;padding:6px;">⭐ /10</th>
         </tr></thead><tbody>${body}</tbody>
       </table>
     </div>
@@ -4307,7 +4312,7 @@ const REALFILL_STORE='asxScreener.realFills.v1';
 const ORDER_EXPIRY_DAYS=30;
 function slippagePct(){try{const v=parseFloat(localStorage.getItem(SLIPPAGE_STORE));return (isFinite(v)&&v>0)?Math.min(v,10):0;}catch(e){return 0;}}
 function setSlippage(v){const n=parseFloat(v);try{localStorage.setItem(SLIPPAGE_STORE,(isFinite(n)&&n>0)?Math.min(n,10):0);}catch(e){}showPortfolio();}
-function realFillsOn(){try{return localStorage.getItem(REALFILL_STORE)==='1';}catch(e){return false;}}
+function realFillsOn(){return true;} /* v261: realistic fills LOCKED on — market buys always fill at next day's open */
 function setRealFills(on){try{localStorage.setItem(REALFILL_STORE,on?'1':'0');}catch(e){}showPortfolio();}
 function _slipBuy(px){const s=slippagePct();return s>0?+(px*(1+s/100)).toFixed(px<1?4:3):px;}
 function _slipSell(px){const s=slippagePct();return s>0?+(px*(1-s/100)).toFixed(px<1?4:3):px;}
@@ -4554,7 +4559,7 @@ async function checkAutoSellTargets(){
         p.history=p.history||[];
         p.history.unshift({ticker:h.ticker,exchange:h.exchange,name:h.name,currency:h.currency,
           buyDate:h.buyDate,buyPrice:h.buyPrice,qty:h.qty,invested:h.invested,
-          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null});
+          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null,tgtLog:h.tgtLog||null,stopLog:h.stopLog||null});
         p.cash=+((p.cash||0)+proceeds).toFixed(2);
         _chargeFee(p);
         const i=p.holdings.findIndex(x=>x.id===h.id);
@@ -4631,6 +4636,8 @@ function _mergeHoldings(hold){
       target:g.targets.size===1?[...g.targets][0]:null,
       stop:g.stops.size===1?[...g.stops][0]:null,
       mixedTargets:g.targets.size>1, mixedStops:g.stops.size>1,
+      tgtLog:g.lots.reduce((a,l)=>((l.tgtLog||[]).length>((a||[]).length)?l.tgtLog:a),[]),
+      stopLog:g.lots.reduce((a,l)=>((l.stopLog||[]).length>((a||[]).length)?l.stopLog:a),[]),
       note:g.notes.length===1?g.notes[0]:(g.notes.length>1?g.notes.length+' notes (see history)':null)
     };
   });
@@ -4676,6 +4683,28 @@ function _paperPctSync(which){
     else{stopPct.value='';if(stopHint)stopHint.textContent='';}
   }
 }
+// ── v261: tamper-EVIDENT exit-plan audit trail for paper trades ─────────────
+// Every target/stop set or change is stamped with the last-loaded MARKET date
+// (data-driven — backdating means faking the data too) plus a wall-clock time.
+function _pfMktDate(exch){try{return (window._exchDataDate||{})[exch]||_todayLocal();}catch(e){return _todayLocal();}}
+function _pfStamp(){try{return new Date().toISOString();}catch(e){return '';}}
+function _logExit(lot,kind,from,to){
+  try{
+    const key=(kind==='stop')?'stopLog':'tgtLog';
+    if(!Array.isArray(lot[key]))lot[key]=[];
+    const prev=lot[key].length?lot[key][lot[key].length-1].to:undefined;
+    if(prev===to)return;                 // no-op if unchanged
+    lot[key].push({d:_pfMktDate(lot.exchange),ts:_pfStamp(),from:(from==null?null:from),to:(to==null?null:to)});
+    if(lot[key].length>60)lot[key]=lot[key].slice(-60);
+  }catch(e){}
+}
+function _exitLogText(row,kind){
+  const key=(kind==='stop')?'stopLog':'tgtLog';
+  const L=(row&&Array.isArray(row[key]))?row[key]:[];
+  if(!L.length)return '';
+  return L.map((e,i)=>{const v=(e.to==null?'removed':e.to);return (i===0?'set ':'→ ')+v+' ('+String(e.d||e.ts||'').slice(0,10)+')';}).join('   ');
+}
+function _exitChangeCount(row,kind){const key=(kind==='stop')?'stopLog':'tgtLog';const L=(row&&Array.isArray(row[key]))?row[key]:[];return L.length>1?(L.length-1):0;}
 function paperBuy(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s||!(s.price>0)){alert('Share not found or no price loaded.');return;}
@@ -4698,7 +4727,7 @@ function paperBuy(ticker){
       <input type="number" id="paperLimit" min="0" step="any" placeholder="e.g. ${(s.price*0.95).toFixed(s.price<1?3:2)}" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;box-sizing:border-box;">
     </div>
 
-    <label style="display:block;font-size:10px;color:var(--muted);margin:12px 0 4px;">🎯 Take-profit — auto-sells if the price rises this far (optional)</label>
+    <label style="display:block;font-size:10px;color:var(--gold);margin:12px 0 4px;">🎯 Sell price (take-profit) — <strong>required</strong>: commit your exit. Auto-sells if the price rises to here.</label>
     <div style="display:flex;gap:6px;align-items:center;">
       <div style="position:relative;flex:0 0 92px;">
         <input type="number" id="paperTgtPct" min="0" step="any" placeholder="15" oninput="_paperPctSync('tgt')" style="width:100%;padding:9px 22px 9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);font-size:13px;box-sizing:border-box;">
@@ -4723,14 +4752,14 @@ function paperBuy(ticker){
         <span id="paperStopHint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#ff9caa;font-size:9px;"></span>
       </div>
     </div>
-    <div style="font-size:9px;color:var(--dim);margin-top:5px;">Type a <b>%</b> and the price fills in automatically (based on the ${fmtP(s.price,s.currency)} buy price) — or type an exact price. Leave both blank for no auto-sell.</div>
+    <div style="font-size:9px;color:var(--dim);margin-top:5px;">A sell price is <b style="color:var(--gold)">required</b> — type a <b>%</b> (fills the price from the ${fmtP(s.price,s.currency)} buy) or an exact price. The stop-loss is optional. You can change the target later — every change is dated and kept on the record.</div>
     <input type="hidden" id="paperBuyPx" value="${s.price}">
 
     <label style="display:block;font-size:10px;color:var(--muted);margin:10px 0 4px;">📝 Why this trade? — a note to your future self (optional, shows in the ledger)</label>
     <input type="text" id="paperNote" maxlength="140" placeholder="e.g. 5-day volume streak + broke above range" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;box-sizing:border-box;">
 
     <button id="buyGoBtn" onclick="paperBuyConfirm('${s.ticker}')" style="width:100%;margin-top:12px;padding:10px;border-radius:7px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 13px var(--sans);cursor:pointer;">Buy at market (paper)</button>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">${realFillsOn()?'Realistic fills ON — market buys queue and fill at the NEXT trading day\u2019s open.':'Market fills at the last end-of-day close.'}${slippagePct()>0?' Slippage '+slippagePct()+'% per side applies to market fills.':''} Limit/target/stop fill using each day's intraday high & low — practice only, not real trading or advice.</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">⏭ Realistic fills (locked) — market buys queue and fill at the NEXT trading day\u2019s open, so you can\u2019t buy at a close you\u2019ve already seen.${slippagePct()>0?' Slippage '+slippagePct()+'% per side applies.':''} Target/stop fill using each day's intraday high & low — practice only, not real trading or advice.</div>
   `);
   window._buyType='market';
   setTimeout(()=>{const a=document.getElementById('paperAmt');if(a){a.focus();a.oninput=()=>{
@@ -4763,6 +4792,7 @@ function paperBuyConfirm(ticker){
   const px=(isLimit&&lim>0)?lim:(realFillsOn()?s.price:_slipBuy(s.price));
   const qty=Math.floor(amt/px);
   if(qty<1){alert('Enter an amount of at least one share ('+fmtP(px,s.currency)+').');return;}
+  if(!(tgt>0)){alert('Set a sell price (take-profit) before buying — every position needs a planned exit. Enter a % or a price in the \ud83c\udfaf field.');return;}
   if(tgt>0&&tgt<=px){alert('Take-profit target should be above your buy price.');return;}
   if(stop>0&&stop>=px){alert('Stop-loss should be below your buy price.');return;}
   const p=_paper();
@@ -4778,7 +4808,8 @@ function paperBuyConfirm(ticker){
     _chargeFee(p);
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0});
+      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
+      tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
     _paperSave(p);closeModal();showPortfolio();
     return;
   }
@@ -4790,7 +4821,8 @@ function paperBuyConfirm(ticker){
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
       market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
-      target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0});
+      target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
+      tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
     _paperSave(p);closeModal();showPortfolio();
     return;
   }
@@ -4800,7 +4832,8 @@ function paperBuyConfirm(ticker){
   _chargeFee(p);
   p.holdings.push({id:'t'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
     buyDate:today,buyPrice:px,qty,invested:+(qty*px).toFixed(2),buyFee:fee||0,
-    lastPrice:s.price,lastDate:(s._q&&s._q.d)||today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null});
+    lastPrice:s.price,lastDate:(s._q&&s._q.d)||today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,
+    tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
   _paperSave(p);
   closeModal();
   showPortfolio();
@@ -4860,7 +4893,8 @@ async function checkLimitOrders(){
         const refund=+(o.reserved-cost).toFixed(2);            // reserved at limit; fill ≤ limit → refund difference
         if(refund>0)p.cash=+((p.cash||0)+refund).toFixed(2);
         p.holdings.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),ticker:o.ticker,exchange:o.exchange,name:o.name,currency:o.currency,
-          buyDate:hit.date,buyPrice:hit.fill,qty:qtyF,invested:cost,buyFee:o.fee||0,lastPrice:hit.fill,lastDate:hit.date,target:o.target,stop:o.stop,note:o.note||null});
+          buyDate:hit.date,buyPrice:hit.fill,qty:qtyF,invested:cost,buyFee:o.fee||0,lastPrice:hit.fill,lastDate:hit.date,target:o.target,stop:o.stop,note:o.note||null,
+          tgtLog:Array.isArray(o.tgtLog)?o.tgtLog:[],stopLog:Array.isArray(o.stopLog)?o.stopLog:[]});
         p.orders=p.orders.filter(x=>x.id!==o.id);
         filled.push(`${o.ticker} bought ${qtyF} @ ${fmtP(hit.fill,o.currency)} on ${hit.date}${o.market?' (at the day\u2019s open)':''}`);
       }
@@ -4897,7 +4931,7 @@ function paperSetTarget(id){
   if(price!==null&&price<=(lots[0].lastPrice||avg)){
     if(!confirm('That target is at or below the current price — it will sell on the next check. Set it anyway?'))return;
   }
-  lots.forEach(l=>{l.target=price;});
+  lots.forEach(l=>{_logExit(l,'tgt',l.target!=null?l.target:null,price);l.target=price;});
   _paperSave(p);
   showPortfolio();
 }
@@ -4936,7 +4970,7 @@ function paperSetStop(id){
   if(price!==null&&price>=(lots[0].lastPrice||avg)){
     if(!confirm('That stop is at or above the current price — it will sell immediately on the next check. Set it anyway?'))return;
   }
-  lots.forEach(l=>{l.stop=price;});
+  lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;});
   _paperSave(p);
   showPortfolio();
 }
@@ -5100,7 +5134,7 @@ function paperSellMarket(id){
     p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
       buyDate:l.buyDate,buyPrice:l.buyPrice,qty:l.qty,invested:+lInv.toFixed(2),
       sellDate:today,sellPrice:px,proceeds:lProc,fees:lFees,plAbs:lPl,plPct:+(lInv>0?(lPl/lInv)*100:0).toFixed(2),
-      trigger:'market',note:l.note||null});
+      trigger:'market',note:l.note||null,tgtLog:l.tgtLog||null,stopLog:l.stopLog||null});
   }
   p.cash=+((p.cash||0)+proceeds).toFixed(2);
   _chargeFee(p);
@@ -5551,6 +5585,23 @@ function paperBalanceInconsistent(){
 }
 
 // Portfolio + 1-year history panel (scoped to All or a single exchange).
+// v263: flip the portfolio between its two pages without a full re-render.
+function _setPfView(v){
+  try{
+    window._pfView=(v==='history')?'history':'holdings';
+    const hv=document.getElementById('pfHoldingsView'), tv=document.getElementById('pfHistoryView');
+    if(hv)hv.style.display=(window._pfView==='holdings')?'block':'none';
+    if(tv)tv.style.display=(window._pfView==='history')?'block':'none';
+    ['holdings','history'].forEach(function(k){
+      const bb=document.getElementById('pfTab_'+k); if(!bb)return;
+      const on=(k===window._pfView);
+      bb.style.borderColor=on?'var(--gold)':'var(--border)';
+      bb.style.background=on?'rgba(255,210,0,.14)':'var(--bg3)';
+      bb.style.color=on?'var(--gold)':'var(--muted)';
+    });
+    try{const sc=document.querySelector('#appModal .modal-scroll');if(sc)sc.scrollTop=0;}catch(e){}
+  }catch(e){}
+}
 function showPortfolio(exSel){
   if(exSel)window._pfExSel=exSel;
   updatePaperPrices();
@@ -5574,7 +5625,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
-      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change auto-sell price target" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss (auto-sells if the price falls to it)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperAdjust('${h.id}')" title="Apply a share consolidation / split, or delete this holding completely (reverse a buy)" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
+      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change take-profit sell price${(h.tgtLog&&h.tgtLog.length)?' — history: '+_exitLogText(h,'tgt'):''}" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯${_exitChangeCount(h,'tgt')?'<sup style="font-size:7px;color:var(--gold);font-weight:800;">'+_exitChangeCount(h,'tgt')+'</sup>':''}</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss${(h.stopLog&&h.stopLog.length)?' — history: '+_exitLogText(h,'stop'):''}" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑${_exitChangeCount(h,'stop')?'<sup style="font-size:7px;color:#ff9caa;font-weight:800;">'+_exitChangeCount(h,'stop')+'</sup>':''}</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
     </tr>`;
   }).join('');
   // Mobile stacked-card version of the same holdings (CSS shows this on phones,
@@ -5603,7 +5654,6 @@ function showPortfolio(exSel){
         ${btn('paperSetTarget',h.id,'Set / change auto-sell price target','🎯 Target',`padding:5px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSetStop',h.id,'Set / change stop-loss','🛑 Stop',`padding:5px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSetNote',h.id,'Add / edit the trade note','📝 Note',`padding:5px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
-        ${btn('paperAdjust',h.id,'Consolidation / split, or delete this holding','⚙ Adjust',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSellMarket',h.id,'Sell the whole holding now at the last close','💵 Sell @ mkt',`padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSell',h.id,'Sell part or all — choose quantity','Part…',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
       </div>
@@ -5628,6 +5678,7 @@ function showPortfolio(exSel){
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
+  const pv=window._pfView||'holdings';       // v263: which portfolio page is showing
   window._modalBig=true;                    // portfolio opens large by default
   window._modalLabel='💼 Portfolio (paper trading)';
   showModal(`
@@ -5635,6 +5686,11 @@ function showPortfolio(exSel){
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your return % is not trustworthy right now.</strong> The cash balance doesn't match your trade ledger. If you were adding money, use <strong>➕ add cash</strong> (bottom of this panel) next time — it keeps the % honest. To fix now, set the bankroll you've put in altogether and everything is measured against it (holdings &amp; history untouched): <button onclick="paperRepairBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button></div>`:''}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings &amp; summary (${hold.length})</button>
+      <button onclick="_setPfView('history')" id="pfTab_history" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='history'?'var(--gold)':'var(--border)'};background:${pv==='history'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='history'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📜 Trade history (${hist.length})</button>
+    </div>
+    <div id="pfHoldingsView" style="display:${pv==='holdings'?'block':'none'};">
     ${(hold.length||hist.length)?(function(){
       const divs=((p.dividends)||[]).filter(d=>ex==='ALL'||d.exchange===ex).reduce((a,d)=>a+(d.total||0),0);
       const totalPl=totPl+closedPl+divs;
@@ -5756,6 +5812,8 @@ function showPortfolio(exSel){
         </div>
       </div>`;
     })():''}
+    </div>
+    <div id="pfHistoryView" style="display:${pv==='history'?'block':'none'};">
     <div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Trade history${ex==='ALL'?'':' · '+ex} · last 12 months shown (${hist.length}) <span style="font-weight:400;font-size:8px;color:var(--dim)">· all trades ever are kept — 📤 CSV exports the full ledger</span></div>
     ${hist.length?`<div class="pf-tablewrap" style="max-height:40vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
       <table class="pf-history" style="width:100%;border-collapse:collapse;font-size:10px;">
@@ -5764,6 +5822,7 @@ function showPortfolio(exSel){
       </table></div>
       <div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:right;">Closed P/L (12 mo): <strong style="color:${closedPl>0.005?'var(--green)':closedPl<-0.005?'var(--red)':'var(--muted)'}">${closedPl>=0?'+':''}${closedPl.toFixed(2)}</strong></div>`
     :'<div style="font-size:10px;color:var(--muted);padding:8px;text-align:center;">No closed trades yet.</div>'}
+    </div>
     <div style="display:flex;gap:8px;margin-top:12px;">
       <button onclick="printPortfolio()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--blue);background:rgba(56,139,253,.14);color:var(--blue);font:600 11px var(--sans);cursor:pointer;">🖨 Print</button>
       <button onclick="exportPortfolioCSV()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📤 CSV</button>
@@ -5783,7 +5842,7 @@ function showPortfolio(exSel){
     <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}{_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a></div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Charged on every fill and included in each closed trade’s recorded P/L.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">📉 Slippage per side: <input type="number" min="0" max="10" step="any" value="${slippagePct()||''}" placeholder="0" onchange="setSlippage(this.value)" style="width:44px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;">% — simulates the bid–ask spread: market buys fill that much higher, market sells &amp; stop-outs that much lower. Small ASX shares often cost 1–3% to cross. 0 = off.</div>
-    <div style="font-size:8px;color:var(--dim);margin-top:4px;"><label style="cursor:pointer;"><input type="checkbox" ${realFillsOn()?'checked':''} onchange="setRealFills(this.checked)" style="vertical-align:middle;"> ⏭ <strong style="color:var(--muted)">Realistic fills</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Sells still fill at the last close.</label></div>
+    <div style="font-size:8px;color:var(--dim);margin-top:4px;">⏭ <strong style="color:var(--muted)">Realistic fills (locked on)</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Always on, so practice results stay honest.</div>
   `);
 }
 
@@ -6019,14 +6078,27 @@ function showModal(html,label){
   // Remember the size whenever the user finishes a resize drag (per size-class).
   const box=document.getElementById('modalBox');
   if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
+  try{_syncStatOverTop();}catch(_){}
 }
+// v262: drop report panels (Top 20 / scans) below the floating stats banner so
+// the banner never covers them. Measures the banner's live bottom edge.
+function _syncStatOverTop(){
+  try{
+    if(!document.body.classList.contains('stat-over-modal')){document.documentElement.style.removeProperty('--soModalTop');return;}
+    const sb=document.getElementById('statsBar');
+    if(!sb||sb.style.display==='none')return;
+    const h=Math.max(0,Math.ceil(sb.getBoundingClientRect().bottom))+8;
+    document.documentElement.style.setProperty('--soModalTop',h+'px');
+  }catch(e){}
+}
+window.addEventListener('resize',function(){try{_syncStatOverTop();}catch(e){}});
 function closeModal(){
   const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
   window._detailTicker=null;
   window._simpleModalBase=null;window._simpleModalLabel=null;window._top20Shown=null;
   window._modalType=null; // NB: keep _statBaseValid — clearing it here made a chip
   // un-toggle after closing a report restore only the narrowed set (stuck filter).
-  try{document.body.classList.remove('stat-over-modal');}catch(_){}
+  try{document.body.classList.remove('stat-over-modal');document.documentElement.style.removeProperty('--soModalTop');}catch(_){}
 }
 // v226: when a white report sheet is open in the modal, print ONLY the sheet.
 window.addEventListener('beforeprint',function(){
@@ -7973,6 +8045,7 @@ function showTop10Panel(pairs){
   }).join('')||`<div style="padding:22px 8px;text-align:center;color:var(--muted);font-size:12px;">None of the Top ${_all.length} match the active quick filters.<br><br>Tap <b>Showing</b> in the stats bar above to clear them.</div>`;
   const filtNote=_anyOn?`<div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⚡ Quick filters on — showing ${_shown.length} of ${_all.length}. Tap <b>Showing</b> in the stats bar to clear.</div>`:'';
   window._modalLabel='🏆 Top 20 to Watch';
+  try{document.body.classList.add('stat-over-modal');}catch(_){}
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10</div>
     <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links. <span style="color:var(--gold)">Tap a share code for its report, or ☆ to add it to a watchlist.</span></div>
