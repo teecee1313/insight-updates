@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-260",
+  "version": "2026.07.16-264",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v260 — Add shares to a watchlist one at a time, straight from a report. The Top 20 to Watch panel and the Simple-mode report popups (Recovery Watch, Who's being quietly bought, Top picks) now show a ☆ star button on every row — tap it to add that single share, tap again to remove, without closing the report. A little 'Tap ☆ to add to: [list ▾]' picker at the top lets you choose which watchlist the stars go into, or spin up a new list on the spot. The bulk '★ Add to watchlist' button on Top 20 stays for when you want all of them. (In Advanced mode, Recovery Watch and Top 20 also fill the main table, where every row already has its star.)"
+  "notes": "v264 — Fixed the share History (📊) table on phones. The day-by-day table has 10 columns, and on a phone they overflowed so the Date column slid out of view — you'd see Open/Close/Change/Volume with no dates and couldn't line it up against the ASX site. Now on phones it shows the four essentials — DATE, Close, Change, Volume — all fitting with no sideways scrolling (the analytic columns stay on desktop). Also added an amber note at the top of the History view when the newest row isn't today's date: it names the actual latest date, explains the top row is that day (not today), and points to ⚡ fresh prices — since a stale day is the usual reason a figure differs from the live ASX site."
 }
