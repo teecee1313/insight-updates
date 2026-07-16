@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-256",
+  "version": "2026.07.16-258",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v256 — The data-status badge (ASX · date · shares · live/offline) has moved up into the top header, next to the exchange name — so the quick-filter row now holds nothing but your one-tap filters. The badge appears once data is actually loaded (no placeholder dash beforehand) and tucks itself away on small phone screens to keep the header tidy."
+  "notes": "v258 — The Signal report card gets its own lesson. New Lesson 22, 'The report card — the app marks its own homework': why an app would grade itself, how the 5-day test works, how to read one line of the card, why the bearish Dist? flag is graded backwards, why Vol record and Block day aren't graded at all, and what a red fortnight actually tells you (be sceptical of chasing spikes right now — not that the flags are broken). Ends with a 3-question Quick Quiz like every other lesson. The training build's hover-help now explains the 📋 Signal report card button too, and the help guide mentions it under Instant Reports. Your existing lesson progress and quiz badges are untouched."
 }
