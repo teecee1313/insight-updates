@@ -1429,7 +1429,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-264-open';
+const APP_VERSION='2026.07.16-265-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3282,6 +3282,8 @@ function doReset(){
   ['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
   ['cOrd','cETF','cLIC','cSpec'].forEach(i=>{document.getElementById(i).checked=true;});
   document.getElementById('searchBox').value='';
+  try{ if(typeof exitWatchView==='function')exitWatchView(); }catch(e){}            // v265: leave the watchlist view too
+  try{ if(typeof _resetStatsForNewView==='function')_resetStatsForNewView(); }catch(e){} // and clear the quick stat chips
   const btn=document.getElementById('resetBtn');btn.style.borderColor='var(--green)';btn.style.color='var(--green)';
   setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},600);
   cp();applyF();dots();mkBadges();
@@ -12195,7 +12197,7 @@ const TRAIN_HELP={
   "routineBtn":{t:"Run daily routine",d:"Runs your saved sequence of scans/steps in order — a one-click 'do my usual morning check' button."},
   "exchSel":{t:"Exchange selector",d:"Pick which market to load — ASX (Australia) plus 20+ global exchanges. The app pulls that exchange's end-of-day price and volume data. Start here."},
   "loadBtn":{t:"Load Exchange Data",d:"Fetches the latest end-of-day snapshot (prices & volumes) for every share on the selected exchange, using your API key. The first thing to press."},
-  "resetBtn":{t:"Clear all filters",d:"Resets any filters you've applied (price, volume, scans) so you see the full list again. Does NOT change data or fetch anything — instant."},
+  "resetBtn":{t:"Clear all filters",d:"Resets everything back to the full list — clears the filter panel (price, volume, scans), the quick stat chips, AND leaves the watchlist view if you're in it. Does NOT change data or fetch anything — instant."},
   "loadStatus":{t:"Status line",d:"Shows what the app is doing — loading, preparing signals, or ready. Watch here for progress like 'Preparing signals 48/250'."},
   "apiKey":{t:"EODData API Key",d:"Your private data key from eoddata.com. Saved and locked so it isn't re-typed. Every data fetch uses this key."},
   "keyEditBtn":{t:"Unlock to edit key",d:"The key is locked by default to protect it. Click to unlock and change it, then it re-locks."},

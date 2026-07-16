@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-264",
+  "version": "2026.07.16-265",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v264 — Fixed the share History (📊) table on phones. The day-by-day table has 10 columns, and on a phone they overflowed so the Date column slid out of view — you'd see Open/Close/Change/Volume with no dates and couldn't line it up against the ASX site. Now on phones it shows the four essentials — DATE, Close, Change, Volume — all fitting with no sideways scrolling (the analytic columns stay on desktop). Also added an amber note at the top of the History view when the newest row isn't today's date: it names the actual latest date, explains the top row is that day (not today), and points to ⚡ fresh prices — since a stale day is the usual reason a figure differs from the live ASX site."
+  "notes": "v265 — 'Clear all filters' now really clears everything. Before, if you were in your watchlist or had quick stat chips active, clearing filters left you stuck in that view. Now the ↺ Clear all filters button also steps out of the watchlist view and switches off the quick chips (Gainers, Vol ≥200%, Accum?, etc.), returning you to the full share list in one tap. It still changes no data and fetches nothing — instant."
 }
