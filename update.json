@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-269",
+  "version": "2026.07.16-271",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v269 — Three professional filters. LIQUIDITY (Type tab): the old ‘market cap’ filter — which the end-of-day feed can't supply reliably — is replaced with real dollar-turnover, i.e. how much money actually changes hands in a share on a normal day (Any / ≥$50k / ≥$250k / ≥$1M per day). Set it once to screen out thinly-traded names across every view. RSI ZONE (Signals tab): filter for Oversold ≤30, Neutral 30–70, or Overbought ≥70. PULLBACK IN UPTREND (new Instant Report, next to Quiet Movers): finds shares in an established uptrend that have paused and pulled back to hug the 20-day line with RSI cooled to 35–55 — the classic ‘buy the dip’ setup, ranked by how tightly they hug the 20-day and how strong the longer trend is. All estimates from end-of-day data, not advice."
+  "notes": "v271 — The ↩ undo button has been removed from the paper-trading trade history. A closed trade is now a permanent record, which keeps your history and stats honest. (Recent additions still here: the Liquidity and RSI-zone filters, and the 🪜 Pullback in Uptrend report — all covered in the 🎓 Lessons.)"
 }
