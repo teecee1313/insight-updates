@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.16-267",
+  "version": "2026.07.16-269",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v267 — Your quick-filter bar now has a name: 📡 Market Radar. A label sits at the left of it — your market at a glance, and tap any tile to filter the whole app to just those shares. Also added a new one-tap chip: Vol 50–100% — shares whose volume is 50% to 100% above their own average (1.5×–2×). That's the EARLY pick-up in interest, sitting below the big Vol ≥200% surge — handy for catching shares just starting to get busy before they show up in the extreme-volume filters. Like every chip it stacks with the others and filters every view."
+  "notes": "v269 — Three professional filters. LIQUIDITY (Type tab): the old ‘market cap’ filter — which the end-of-day feed can't supply reliably — is replaced with real dollar-turnover, i.e. how much money actually changes hands in a share on a normal day (Any / ≥$50k / ≥$250k / ≥$1M per day). Set it once to screen out thinly-traded names across every view. RSI ZONE (Signals tab): filter for Oversold ≤30, Neutral 30–70, or Overbought ≥70. PULLBACK IN UPTREND (new Instant Report, next to Quiet Movers): finds shares in an established uptrend that have paused and pulled back to hug the 20-day line with RSI cooled to 35–55 — the classic ‘buy the dip’ setup, ranked by how tightly they hug the 20-day and how strong the longer trend is. All estimates from end-of-day data, not advice."
 }

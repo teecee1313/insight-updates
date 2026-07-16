@@ -517,11 +517,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
   animation:bgspin .8s linear infinite;flex:none;}
 @keyframes bgspin{to{transform:rotate(360deg);}}
 #bgInd .bgtxt{font:600 10px var(--sans);color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#bgInd{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
+#bgInd .bg-x{margin-left:2px;color:var(--dim);font-size:11px;line-height:1;cursor:pointer;padding:1px 4px;border-radius:4px;flex:none;}
+#bgInd .bg-x:hover{color:#ff9caa;background:rgba(255,255,255,.07);}
 </style>
 </head>
 <body>
 <div id="verStamp" style="position:fixed;top:0;left:0;right:0;z-index:100000;background:#FFD200;color:#0d1b33;font:800 13px system-ui;text-align:center;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.4);">✅ Insight Trading (testing build) <span id="verStampV"></span> · if you see this, you are on the latest file <span style="cursor:pointer;text-decoration:underline;margin-left:10px;" onclick="document.getElementById('verStamp').remove()">dismiss</span></div>
-<div id="bgInd"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span></div>
+<div id="bgInd" title="Drag to move · tap ✕ to hide"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span><span class="bg-x" onclick="event.stopPropagation();bgHide();" title="Hide">✕</span></div>
 
 <!-- Seller Controls removed -->
 <div id="licGate" style="position:fixed;inset:0;z-index:10000;background:#05152e;display:none;align-items:center;justify-content:center;">
@@ -1080,6 +1083,17 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </div>
       <div class="sep"></div>
       <div class="fg">
+        <div class="fglbl">RSI zone (14-day) <span class="clr" onclick="clrFg('rsi')">clear</span></div>
+        <div class="hint">Relative Strength Index measures how hard a share has run recently. <strong>Oversold ≤30</strong> = beaten down, may be due a bounce; <strong>Overbought ≥70</strong> = run hard, may be due a pause; <strong>Neutral</strong> = in between. Based on the last 14 sessions and needs enough price history.</div>
+        <div class="pills" id="gRsi">
+          <div class="pill on" data-v="any"        onclick="sp1(this,'gRsi','rsi')">Any</div>
+          <div class="pill"    data-v="oversold"   onclick="sp1(this,'gRsi','rsi')">Oversold ≤30</div>
+          <div class="pill"    data-v="neutral"    onclick="sp1(this,'gRsi','rsi')">Neutral 30–70</div>
+          <div class="pill"    data-v="overbought" onclick="sp1(this,'gRsi','rsi')">Overbought ≥70</div>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="fg">
         <div class="fglbl">Signal Flags <span class="clr" onclick="clrFg('buy')">clear</span></div>
         <div class="hint">Select signals to filter. Use Match Mode for AND / OR logic.</div>
         <div class="chks">
@@ -1117,13 +1131,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <!-- MARKET -->
     <div class="panel" id="panel-mkt">
       <div class="fg">
-        <div class="fglbl">Market Cap <span class="clr" onclick="clrFg('cap')">clear</span></div>
+        <div class="fglbl">Liquidity — $ traded / day <span class="clr" onclick="clrFg('cap')">clear</span></div>
+        <div class="hint">How much money actually changes hands on a normal day (average daily volume × price). Higher means it’s easier to get in and out near a fair price. This replaces the old “market cap” filter — the end-of-day feed can’t supply real market caps, so dollar-turnover is the honest, data-backed way to screen out thinly-traded names.</div>
         <div class="pills" id="gCap">
-          <div class="pill on" data-v="any"   onclick="sp1(this,'gCap','cap')">Any</div>
-          <div class="pill"    data-v="micro" onclick="sp1(this,'gCap','cap')">Micro &lt;$50M</div>
-          <div class="pill"    data-v="small" onclick="sp1(this,'gCap','cap')">Small $50M–$2B</div>
-          <div class="pill"    data-v="mid"   onclick="sp1(this,'gCap','cap')">Mid $2B–$10B</div>
-          <div class="pill"    data-v="large" onclick="sp1(this,'gCap','cap')">Large $10B+</div>
+          <div class="pill on" data-v="any"  onclick="sp1(this,'gCap','cap')">Any</div>
+          <div class="pill"    data-v="l50"  onclick="sp1(this,'gCap','cap')">≥ $50k / day</div>
+          <div class="pill"    data-v="l250" onclick="sp1(this,'gCap','cap')">≥ $250k / day</div>
+          <div class="pill"    data-v="l1m"  onclick="sp1(this,'gCap','cap')">≥ $1M / day</div>
         </div>
       </div>
       <div class="sep" id="fg-secTypeSep" data-assetgroup></div>
@@ -1266,6 +1280,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="drag-row" draggable="true" data-dragid="scan-pulse"><span class="drag-h">⠿</span><button onclick="simpleMarketPulse()" class="scan-alt" style="border-color:var(--amber);color:var(--amber);background:rgba(255,176,46,.10);" title="A one-screen market breadth snapshot — how many shares are up vs down today, the biggest movers and where the volume is. A data summary, not advice."><span>📊 Market Today</span> <span class="scan-tag">breadth snapshot · up vs down</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-recovery"><span class="drag-h">⠿</span><button onclick="recoveryScanAdv()" class="scan-alt" style="border-color:var(--amber);color:var(--amber);background:rgba(255,176,46,.08);" title="Finds fallen shares that are stabilising on elevated volume — potential reversal candidates. Fills the results table. A data summary, not advice."><span>↩️ Recovery Watch</span> <span class="scan-tag">fallen · stabilising on volume</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-quiet"><span class="drag-h">⠿</span><button onclick="quietMoversScan()" class="scan-alt" style="border-color:#7fd4ff;color:#7fd4ff;background:rgba(127,212,255,.08);" title="Finds shares that made only a small net move today (−5% to +5%) but are quietly building underneath — a recent up-trend that paused, heavy volume with a flat price, or a share that was up during the day and faded into the close (someone took profit). Ranked by accumulation. A data summary, not advice."><span>🫧 Quiet Movers</span> <span class="scan-tag">small move · quietly building · faded EOD</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-pullback"><span class="drag-h">⠿</span><button onclick="pullbackScan()" class="scan-alt" style="border-color:#8f7fff;color:#a99bff;background:rgba(143,127,255,.10);" title="Finds shares in an established uptrend (above their key moving averages) that have paused and pulled back to hug the 20-day line, with RSI cooled into the 35–55 zone — the classic ‘buy the dip’ setup. A data summary from end-of-day prices, not advice."><span>🪜 Pullback in Uptrend</span> <span class="scan-tag">uptrend · dip to the 20-day · RSI cooled</span></button></div>
     </div>
 
     <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) five trading days after it fired — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
@@ -1436,7 +1451,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-267-open';
+const APP_VERSION='2026.07.16-269-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1970,7 +1985,7 @@ let sortKey='volPct', sortDir=-1;
 // Dual-slider scale stops (index 0–8). Index 8 = open-ended top (Any/∞).
 const RANGE_STOPS=[0,5,10,20,30,40,50,100,Infinity];
 const F={
-  dir:'all',days:'0',daysMin:0,news:'any',cap:'any',sm:'any',annq:'any',
+  dir:'all',days:'0',daysMin:0,news:'any',cap:'any',rsi:'any',sm:'any',annq:'any',
   pctLo:0, pctHi:Infinity,   // % change min/max
   volLo:0, volHi:Infinity,   // volume surge min/max
   pMin:0,pMax:500,vMin:0,vMax:50,
@@ -3239,6 +3254,7 @@ function clrFg(k){
   if(k==='vbeh')['cEod','cBlk'].forEach(i=>{document.getElementById(i).checked=false;});
   if(k==='buy')['cDir','cInst','cES','cBS','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
   if(k==='cap')rst1('gCap','any','cap');
+  if(k==='rsi')rst1('gRsi','any','rsi');
   if(k==='type'){['cOrd','cETF','cLIC','cREIT','cOpt','cPref','cBond','cSpec'].forEach(i=>{document.getElementById(i).checked=true;});document.getElementById('cNA').checked=false;}
   mp();dots();
 }
@@ -3246,7 +3262,7 @@ function clrFg(k){
 function dots(){
   const price=F.dir!=='all'||F.pctLo>0||Number.isFinite(F.pctHi)||F.days!=='0'||F.pMin>0||F.pMax<500;
   const vol=F.volLo>0||Number.isFinite(F.volHi)||F.vMinAbs>0||Number.isFinite(F.vMaxAbs)||F.buyDays>0||F.volStreakDays>0||F.accumMin>0||g('cEod')||g('cBlk');
-  const sig=g('cDir')||g('cInst')||g('cES')||g('cBS')||g('cBO')||g('cDI')||g('cVR')||g('cMX')||g('cDirC')||F.minScore>0;
+  const sig=g('cDir')||g('cInst')||g('cES')||g('cBS')||g('cBO')||g('cDI')||g('cVR')||g('cMX')||g('cDirC')||F.minScore>0||F.rsi!=='any';
   const mkt=F.cap!=='any'||!g('cOrd')||!g('cETF')||!g('cLIC')||!g('cREIT')||!g('cOpt')||!g('cPref')||!g('cBond')||!g('cSpec')||g('cNA');
   [['price',price],['vol',vol],['sig',sig],['mkt',mkt]].forEach(([t,a])=>{document.getElementById('tab-'+t).classList.toggle('lit',a);document.getElementById('dot-'+t).style.display=a?'block':'none';});
 }
@@ -3267,7 +3283,8 @@ function mkBadges(){
   if(g('cEod'))add('EOD Spike','vbeh');if(g('cBlk'))add('Block Trade','vbeh');
   if(g('cDir'))add('Informed buying','buy');if(g('cInst'))add('Institutional','buy');if(g('cBO'))add('Breakout','buy');if(g('cDI'))add('Distribution','buy');if(g('cVR'))add('Vol record','buy');if(g('cMX'))add('MA cross','buy');if(g('cDirC'))add('Director ✓','buy');
   if(g('cES'))add('EOD Signal','buy');if(g('cBS'))add('Block Signal','buy');
-  if(F.cap!=='any')add(`Cap: ${F.cap}`,'cap');
+  if(F.cap!=='any')add('💧 '+({l50:'≥$50k/day',l250:'≥$250k/day',l1m:'≥$1M/day'}[F.cap]||F.cap),'cap');
+  if(F.rsi!=='any')add('RSI '+F.rsi,'rsi');
   if(!g('cOrd')||!g('cETF')||!g('cLIC')||!g('cREIT')||!g('cOpt')||!g('cPref')||!g('cBond')||!g('cSpec')||g('cNA'))add('Type filter','type');
   if(!c.children.length)c.innerHTML='<span class="no-filter">No filters active — showing all stocks</span>';
 }
@@ -3284,7 +3301,7 @@ function doApply(){
   }
 }
 function doReset(){
-  rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gSM','any','sm');F.daysMin=0;
+  rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gRsi','any','rsi');rst1('gSM','any','sm');F.daysMin=0;
   resetPctBand();resetVolBand();resetPriceBand();resetAbsVolBand();resetBuyDays();resetVolStreakDays();resetMinScore();resetAccumMin();
   ['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
   ['cOrd','cETF','cLIC','cSpec'].forEach(i=>{document.getElementById(i).checked=true;});
@@ -3298,7 +3315,7 @@ function doReset(){
 function ls(){if(allData.length)applyF();}
 function _resetBeforeScan(){
   try{
-    rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gSM','any','sm');F.daysMin=0;
+    rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap','any','cap');rst1('gRsi','any','rsi');rst1('gSM','any','sm');F.daysMin=0;
     resetPctBand();resetVolBand();resetPriceBand();resetAbsVolBand();resetBuyDays();resetVolStreakDays();resetMinScore();resetAccumMin();
     ['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=false;});
     ['cOrd','cETF','cLIC','cSpec'].forEach(i=>{const el=document.getElementById(i);if(el)el.checked=true;});
@@ -3526,6 +3543,7 @@ function syncPillsToF(){
   rst1('gDir',F.dir,'dir');
   if(F.daysMin>0)rst1('gDays','0','days'); else rst1('gDays',F.days,'days');
   if(document.getElementById('gCap'))rst1('gCap',F.cap,'cap');
+  if(document.getElementById('gRsi'))rst1('gRsi',F.rsi,'rsi');
   if(document.getElementById('gSM'))rst1('gSM',F.sm,'sm');
   if(document.getElementById('gAnn'))rst1('gAnn',F.annq,'annq');
   // % change band
@@ -3642,7 +3660,8 @@ function applyF(){
     if(F.annq==='quiet' && !(s.annConfirmed&&(s.annNews5d||0)===0))return false;
     const typeOk=(g('cOrd')&&s.type==='Ordinary')||(g('cETF')&&s.type==='ETF')||(g('cLIC')&&s.type==='LIC')||(g('cREIT')&&s.type==='REIT')||(g('cOpt')&&s.type==='Option')||(g('cPref')&&s.type==='Preference')||(g('cBond')&&s.type==='Bond')||(g('cSpec')&&s.type==='Speculative')||(g('cNA')&&s.type==='Other');
     if(!typeOk)return false;
-    if(F.cap!=='any'){const mc=s.mc||0;if(F.cap==='micro'&&mc>=50e6)return false;if(F.cap==='small'&&(mc<50e6||mc>=2e9))return false;if(F.cap==='mid'&&(mc<2e9||mc>=10e9))return false;if(F.cap==='large'&&mc<10e9)return false;}
+    if(F.cap!=='any'){const liq=((s.avgVol>0?s.avgVol:(s.volume||0))*(s.price||0));const need=F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0;if(liq<need)return false;}
+    if(F.rsi!=='any'){if(s.rsiState!==F.rsi)return false;}
     return true;
   });
   // v255: active quick stat chips stay applied across filter/search rebuilds
@@ -10339,8 +10358,33 @@ function bgSet(html){
   const plain=String(html||'').replace(/<[^>]*>/g,'').trim();
   if(plain){tx.textContent=plain.length>60?plain.slice(0,58)+'…':plain;}
   el.style.display='flex';
+  try{if(window.__bgApplyPos)window.__bgApplyPos();}catch(e){}
 }
 function bgHide(){const el=document.getElementById('bgInd');if(el)el.style.display='none';}
+// v268: let the progress banner be dragged out of the way (position remembered).
+(function _bgIndDraggable(){
+  const KEY='asxScreener.bgIndPos.v1';
+  function applyPos(el){ try{ const p=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(p&&isFinite(p.left)&&isFinite(p.top)){ el.style.left=p.left+'px'; el.style.top=p.top+'px'; el.style.right='auto'; } }catch(e){} }
+  function clamp(el){ const r=el.getBoundingClientRect(); const mw=window.innerWidth-r.width-4, mh=window.innerHeight-r.height-4;
+    el.style.left=Math.max(4,Math.min(r.left,Math.max(4,mw)))+'px'; el.style.top=Math.max(4,Math.min(r.top,Math.max(4,mh)))+'px'; el.style.right='auto'; }
+  function init(){
+    const el=document.getElementById('bgInd'); if(!el||el._dragInit)return; el._dragInit=true;
+    applyPos(el);
+    let sx=0,sy=0,ox=0,oy=0,drag=false;
+    const move=e=>{ if(!drag)return; const t=e.touches?e.touches[0]:e; el.style.left=(ox+(t.clientX-sx))+'px'; el.style.top=(oy+(t.clientY-sy))+'px'; if(e.cancelable)e.preventDefault(); };
+    const up=()=>{ if(!drag)return; drag=false; el.style.cursor='grab'; clamp(el);
+      try{ const r=el.getBoundingClientRect(); localStorage.setItem(KEY,JSON.stringify({left:Math.round(r.left),top:Math.round(r.top)})); }catch(e){}
+      document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up); };
+    const down=e=>{ if(e.target&&e.target.closest&&e.target.closest('.bg-x'))return; const t=e.touches?e.touches[0]:e; const r=el.getBoundingClientRect();
+      el.style.left=r.left+'px'; el.style.top=r.top+'px'; el.style.right='auto'; ox=r.left; oy=r.top; sx=t.clientX; sy=t.clientY; drag=true; el.style.cursor='grabbing';
+      document.addEventListener('mousemove',move); document.addEventListener('mouseup',up); document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up); if(e.cancelable)e.preventDefault(); };
+    el.addEventListener('mousedown',down); el.addEventListener('touchstart',down,{passive:false});
+    window.__bgApplyPos=()=>{ try{applyPos(el); clamp(el);}catch(e){} };
+    window.addEventListener('resize',()=>{ try{ if(el.style.display!=='none')clamp(el); }catch(e){} });
+  }
+  if(document.readyState!=='loading')init(); else document.addEventListener('DOMContentLoaded',init);
+})();
 // Wrap bulkVolume so the indicator always shows while it runs and is
 // guaranteed to hide on every exit path (success, fallback, or error).
 (function(){
@@ -11473,6 +11517,64 @@ async function quietMoversScan(){
     }
   }
 }
+async function pullbackScan(){
+  _scanStart('🪜 Pullback in Uptrend');
+  exitWatchView&&exitWatchView();
+  _resetBeforeScan();
+  const st=document.getElementById('smartStatus');
+  if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Pullback in Uptrend.'; _scanDone&&_scanDone(); return; }
+  _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
+  if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
+    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
+  }
+  // Pullback needs moving averages + RSI; make sure they've been computed.
+  if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+  const scored=[];
+  for(const s of allData){
+    if(!(s.price>0))continue;
+    if(s.ma20==null||s.ma50==null)continue;                       // need at least a 50-day structure
+    const px=s.price;
+    // established uptrend: prefer 200-day confirmation, else fall back to the 50-day
+    const up=(s.ma200!=null)?(px>s.ma200 && s.ma50>s.ma200):(px>s.ma50);
+    if(!up)continue;
+    // momentum cooled into the buy-the-dip band
+    if(!(s.rsi!=null && s.rsi>=35 && s.rsi<=55))continue;
+    // pulled back to hug the 20-day line
+    const dMa20=((px-s.ma20)/s.ma20)*100;
+    if(!(dMa20>=-5 && dMa20<=8))continue;
+    // shallow, healthy pullback — not collapsed through the 50-day
+    const dMa50=((px-s.ma50)/s.ma50)*100;
+    if(dMa50<-7)continue;
+    const near=Math.abs(dMa20);
+    const rsiMid=Math.abs(s.rsi-45);
+    const trend=(s.ma200!=null&&s.ma200>0)?((s.ma50-s.ma200)/s.ma200)*100:0;
+    const score=Math.max(0,3-near/3)+Math.max(0,2-rsiMid/5)+Math.min(2,Math.max(0,trend)/5)+(s.aboveMA50?1:0)+Math.min(2,(s.accum10||0)*0.2);
+    s._pbDma20=Math.round(dMa20*10)/10; s._pbRsi=Math.round(s.rsi);
+    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
+    scored.push({s,score});
+  }
+  scored.sort((a,b)=>b.score-a.score);
+  F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+  filtered=scored.map(x=>x.s);
+  lastScanLabel='Pullback in Uptrend';
+  _resetStatsForNewView();
+  document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
+  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
+  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('toolbar').style.display='flex';
+  if(typeof scanProgSet==='function')scanProgSet(100);
+  if(typeof scanProgHide==='function')scanProgHide();
+  if(st){
+    if(scored.length){
+      st.innerHTML=`🪜 <strong style="color:var(--amber)">${scored.length}</strong> pullbacks in an uptrend — above the key moving averages, dipped toward the 20-day line, RSI cooled to 35–55`+
+        `<br><span style="font-size:9px;color:var(--orange)">The classic “buy the dip” setup. Ranked by how tightly they hug the 20-day MA and how strong the longer trend is. Estimate from end-of-day data — not advice.</span>`;
+    }else{
+      st.innerHTML='No clean pullbacks right now. <span style="font-size:9px">(needs moving-average &amp; RSI data — try after a full load or another scan; shares need enough price history.)</span>';
+    }
+  }
+}
 function simpleRun(what){
   try{ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur(); }catch(_){}
   const st=document.getElementById('simpleStatus');
@@ -12596,6 +12698,7 @@ button:active{transform:scale(.985);}
 #allSigBtn{border-left-color:#4a93ff!important;}
 [data-dragid="scan-pulse"]>button{border-left-color:#ffb02e!important;}
 [data-dragid="scan-quiet"]>button{border-left-color:#7fd4ff!important;}
+[data-dragid="scan-pullback"]>button{border-left-color:#a99bff!important;}
 [data-dragid="scan-recovery"]>button{border-left-color:#56d4dd!important;}
 /* Simple cards */
 .simple-card{border-radius:12px;box-shadow:0 1px 5px rgba(0,0,0,.22);}
