@@ -327,7 +327,7 @@ body.stat-over-modal .stats{z-index:2100;}
 .sv.g{color:var(--green)}.sv.gold{color:var(--gold)}.sv.r{color:var(--red)}
 .sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
 .sdiv{width:1px;height:24px;background:var(--border);}
-.notice{margin-left:auto;padding:3px 9px;background:#162016;border:1px solid #2a3e2a;border-radius:4px;font-size:10px;color:#4a9a4a;white-space:nowrap;}
+.notice{padding:3px 9px;background:#162016;border:1px solid #2a3e2a;border-radius:4px;font-size:10px;color:#4a9a4a;white-space:nowrap;}
 .toolbar{padding:7px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;flex-wrap:wrap;}
 #searchBox{background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:6px 11px;color:var(--text);font:13px var(--sans);width:220px;outline:none;}
 #searchBox:focus{border-color:var(--gold);}
@@ -501,7 +501,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
   .setup-col .step-hdr{font-size:12px;}
   table th:nth-child(5), table td:nth-child(5){font-size:12px;} /* change col a touch smaller */
   .logo{font-size:15px;}
-  .hbadge{display:none;} /* free up header room on very small phones */
+  .hbadge{display:none;}.notice{display:none!important;} /* free up header room on very small phones */
 }
 /* Floating background-activity indicator (bottom-right) */
 #bgInd{position:fixed;right:14px;top:68px;z-index:9000;display:none;align-items:center;gap:8px;
@@ -578,6 +578,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <span id="appVer" style="font-size:8px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;"></span>
   </div>
   <div class="hbadge" id="exchBadge">🌐 Multi-Exchange Screener</div>
+  <div class="notice" id="notice" style="display:none">—</div>
   <div class="hr2">
     <div id="clock"></div>
     <div class="ms"><div class="sdot closed" id="sdot"></div><span id="stxt">—</span></div>
@@ -1292,7 +1293,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div>
-    <div class="notice" id="notice">—</div>
   </div>
 
   <div id="activeScanBanner"></div>
@@ -1413,7 +1413,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-255-open';
+const APP_VERSION='2026.07.16-256-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9484,7 +9484,7 @@ async function loadOfflineNow(){
     if(progFill)progFill.style.width='100%';
     document.getElementById('emptyState').style.display='none';
     const notice=document.getElementById('notice');
-    if(notice)notice.innerHTML=`📂 ${exch} · offline · ${offlineRows.length.toLocaleString()} shares from your saved data`;
+    if(notice)notice.innerHTML=`📂 ${exch} · offline · ${offlineRows.length.toLocaleString()} shares from your saved data`;if(notice)notice.style.display='inline-block';
     const sb=document.getElementById('statsBar'); if(sb)sb.style.display='flex';
     const tb=document.getElementById('toolbar'); if(tb)tb.style.display='flex';
     const eb=document.getElementById('exchBadge'); if(eb)eb.textContent=`🌐 ${exch} — ${offlineRows.length.toLocaleString()} stocks (offline)`;
@@ -10562,7 +10562,7 @@ Output the complete array. Start with [`;
           btn.disabled=false;spEl.style.display='none';lbl.textContent='⚡ Load / refresh now';
           document.getElementById('emptyState').style.display='none';
           const notice=document.getElementById('notice');
-          if(notice)notice.innerHTML=`📂 ${exch} · offline · ${offlineRows.length.toLocaleString()} shares from your saved data`;
+          if(notice)notice.innerHTML=`📂 ${exch} · offline · ${offlineRows.length.toLocaleString()} shares from your saved data`;if(notice)notice.style.display='inline-block';
           const sb=document.getElementById('statsBar'); if(sb)sb.style.display='flex';
           const tb=document.getElementById('toolbar'); if(tb)tb.style.display='flex';
           const eb=document.getElementById('exchBadge'); if(eb)eb.textContent=`🌐 ${exch} — ${offlineRows.length.toLocaleString()} stocks (offline)`;
@@ -10655,7 +10655,7 @@ Output the complete array. Start with [`;
     return;
   }
 
-  document.getElementById('notice').innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'<span style="color:var(--orange)">live · AI relay</span>':(via==='quote-list'?'live · quote list':'live')}`;
+  {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'<span style="color:var(--orange)">live · AI relay</span>':(via==='quote-list'?'live · quote list':'live')}`; _n.style.display='inline-block';}}
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   document.getElementById('exchBadge').textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
