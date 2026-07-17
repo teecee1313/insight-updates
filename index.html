@@ -1451,7 +1451,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-277-open';
+const APP_VERSION='2026.07.16-278-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4412,8 +4412,12 @@ function _ensureCash(p){
   // balance as if the $10k account had been there from the first trade.
   if(typeof p.cash!=='number'||!isFinite(p.cash)){
     const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
+    const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);
     const closedPl=(p.history||[]).reduce((a,t)=>a+(t.plAbs||0),0);
-    p.cash=+(PAPER_START_CASH-spent+closedPl).toFixed(2);
+    const histFees=(p.history||[]).reduce((a,t)=>a+(t.fees||0),0);
+    const divs=(p.dividends||[]).reduce((a,d)=>a+(d.total||0),0);
+    p.cash=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs).toFixed(2);
+    p.ledgerBase=0;
   }
   return p;
 }
@@ -5546,6 +5550,7 @@ function paperRepairBalance(){
     if(!ok)return;
     p.startCap=+sc.toFixed(2);
     p.cash=cash;
+    p.ledgerBase=0;
     _paperSave(p);refreshPortfolioBtn();
     closeModal&&closeModal();               // force a clean re-render from storage
     setTimeout(()=>showPortfolio(),30);
@@ -5597,9 +5602,8 @@ function paperAddCash(){
   alert((amt>0?'✓ Added $':'✓ Withdrew $')+Math.abs(amt).toLocaleString(undefined,{minimumFractionDigits:2})+(amt>0?' to':' from')+' your practice account.\nCash: $'+p.cash.toLocaleString(undefined,{minimumFractionDigits:2})+' · starting balance now $'+p.startCap.toLocaleString(undefined,{minimumFractionDigits:2})+'.');
   showPortfolio();
 }
-function paperBalanceInconsistent(){
-  const p=_paper();
-  if(!(p.holdings||[]).length&&!(p.history||[]).length&&!(p.orders||[]).length)return false;
+function _paperLedgerDiff(p){
+  // cash − what the ledger says cash should be (0 = perfectly consistent)
   const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
   const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);
   const closedPl=(p.history||[]).reduce((a,t)=>a+(t.plAbs||0),0);
@@ -5609,7 +5613,22 @@ function paperBalanceInconsistent(){
   const histFees=(p.history||[]).reduce((a,t)=>a+(t.fees||0),0);
   const divs=(p.dividends||[]).reduce((a,d)=>a+(d.total||0),0);
   const expect=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs).toFixed(2);
-  return Math.abs((p.cash||0)-expect)>1; // > $1 out = flag it
+  return +(((p.cash||0)-expect)).toFixed(2);
+}
+function paperBalanceInconsistent(){
+  const p=_paper();
+  if(!(p.holdings||[]).length&&!(p.history||[]).length&&!(p.orders||[]).length)return false;
+  // v278: measured against the ACCEPTED baseline, not absolute zero — one
+  // historical mismatch shouldn't nag forever. Only NEW drift re-flags.
+  const base=(typeof p.ledgerBase==='number'&&isFinite(p.ledgerBase))?p.ledgerBase:0;
+  return Math.abs(_paperLedgerDiff(p)-base)>2;
+}
+function paperAcceptBalance(){
+  const p=_paper();
+  p.ledgerBase=_paperLedgerDiff(p);
+  _paperSave(p);
+  try{closeModal&&closeModal();}catch(e){}
+  setTimeout(()=>showPortfolio(),30);
 }
 
 // Portfolio + 1-year history panel (scoped to All or a single exchange).
@@ -5712,7 +5731,7 @@ function showPortfolio(exSel){
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper Trading Portfolio <span style="font-size:8px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
-    ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your return % is not trustworthy right now.</strong> The cash balance doesn't match your trade ledger. If you were adding money, use <strong>➕ add cash</strong> (bottom of this panel) next time — it keeps the % honest. To fix now, set the bankroll you've put in altogether and everything is measured against it (holdings &amp; history untouched): <button onclick="paperRepairBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button></div>`:''}
+    ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
     <div style="display:flex;gap:6px;margin-bottom:12px;">
       <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings &amp; summary (${hold.length})</button>
