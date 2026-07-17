@@ -1451,7 +1451,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-278-open';
+const APP_VERSION='2026.07.16-279-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5621,7 +5621,8 @@ function paperBalanceInconsistent(){
   // v278: measured against the ACCEPTED baseline, not absolute zero — one
   // historical mismatch shouldn't nag forever. Only NEW drift re-flags.
   const base=(typeof p.ledgerBase==='number'&&isFinite(p.ledgerBase))?p.ledgerBase:0;
-  return Math.abs(_paperLedgerDiff(p)-base)>2;
+  const tol=Math.max(5,_startCap(p)*0.001); // rounding dust is not corruption
+  return Math.abs(_paperLedgerDiff(p)-base)>tol;
 }
 function paperAcceptBalance(){
   const p=_paper();
