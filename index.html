@@ -1451,7 +1451,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-279-open';
+const APP_VERSION='2026.07.16-280-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1903,7 +1903,7 @@ function initLang(){
 }
 
 let allData=[], filtered=[], currentExch='ASX';
-window.__setDemoData=function(arr){arr.forEach(function(s){if(typeof _sanShare==='function')_sanShare(s);if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r){return {dateStamp:r.date,open:r.open,close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+window.__setDemoData=function(arr){arr.forEach(function(s){if(typeof _sanShare==='function')_sanShare(s);if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:s._history[s._history.length-1].close,h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r,ix){return {dateStamp:r.date,open:(r.open!=null?r.open:(ix>0?s._history[ix-1].close:r.close)),close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
 
 
 
@@ -7927,19 +7927,12 @@ function _freshenSeriesFromBulk(){
       if((new Date(dd)-new Date(last))>4*86400000)continue; // big gap → needs a full prepare
       s.series.push({d:dd,c:q.c,v:q.v||0});
       // Persist today's new day back to the saved offline store, so your
-      // downloaded history stays current from the normal daily refresh alone —
-      // no need to press Download / update just to gain today's row. Guard:
-      // only write if this series is at least as long as what's already saved,
-      // so we never overwrite deep history with a shorter copy.
-      try{
-        if(_cacheOn && s.exchange && s.ticker){
-          const full=s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v}));
-          histGet(s.exchange,s.ticker).then(prev=>{
-            const prevLen=(prev&&Array.isArray(prev.rows))?prev.rows.length:0;
-            if(full.length>=prevLen){ histPut(s.exchange,s.ticker,full,dd); }
-          }).catch(()=>{ histPut(s.exchange,s.ticker,full,dd); });
-        }
-      }catch(e){}
+      // downloaded history stays current from the normal daily refresh alone.
+      // v280: MERGE, don't rewrite — the old code re-saved the whole history
+      // as {date,close,volume}, wiping stored open/high/low daily (which kept
+      // candles permanently broken). Now stored OHLC is preserved and today's
+      // row is appended with its true open/high/low from the bulk feed.
+      try{ _persistTodayRow(s,q,dd); }catch(e){}
       const hist2=s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v}));
       s.daysUp=countStreak(hist2);s.streakCalced=true;
       const avg3=computeVolAvg(hist2,effVolWindow());
@@ -8302,8 +8295,9 @@ function _chartSvg(ticker, tf){
   const his=rows.map(r=>isFinite(r.hi)&&r.hi>0?r.hi:r.c), los=rows.map(r=>isFinite(r.lo)&&r.lo>0?r.lo:r.c);
   const ohlcOK=opens.filter(o=>o!=null&&o>0).length >= rows.length*0.5;
   const candleWanted=(window._chartStyle==='candle');
-  const candle=candleWanted&&ohlcOK;
-  const candleNote=(candleWanted&&!ohlcOK)?`<div style="margin-top:6px;font-size:9px;color:var(--orange);border:1px solid rgba(255,165,0,.4);background:rgba(255,165,0,.07);border-radius:6px;padding:5px 8px;">🕯 Candles need each day's open/high/low — this share's stored history only has closing prices. Tap 🔄 Refresh / redownload data once and candles will switch on.</div>`:'';
+  const candle=candleWanted;                 // v280: always honour the toggle
+  const approxCandles=candleWanted&&!ohlcOK; // closes-only history → approximate bodies
+  const candleNote=(candleWanted&&!ohlcOK)?`<div style="margin-top:6px;font-size:9px;color:var(--orange);border:1px solid rgba(255,165,0,.4);background:rgba(255,165,0,.07);border-radius:6px;padding:5px 8px;">🕯 <strong>Approximate candles</strong> — this share's stored history has closes only, so each body runs from the previous close to the close (no true opens or wicks yet). The app now saves full open/high/low as each new day arrives; 🔄 Refresh / redownload data restores them at full depth right away.</div>`:'';
   const sLo=candle?Math.min(...los):Math.min(...closes);
   const sHi=candle?Math.max(...his):Math.max(...closes);
   const padV=(sHi-sLo)*0.08||sHi*0.05;
@@ -8327,7 +8321,7 @@ function _chartSvg(ticker, tf){
   if(candle){
     const cw=Math.max(1.5,Math.min(9,plotW/rows.length*0.66));
     for(let i=0;i<rows.length;i++){
-      const o=(opens[i]!=null&&opens[i]>0)?opens[i]:closes[i], c=closes[i];
+      const o=(opens[i]!=null&&opens[i]>0)?opens[i]:(i>0?closes[i-1]:closes[i]), c=closes[i];
       const up=c>=o, col=up?'#3fb950':'#f85149';
       const x=X(i);
       priceLayer+=`<line x1="${x.toFixed(1)}" y1="${Y(his[i]).toFixed(1)}" x2="${x.toFixed(1)}" y2="${Y(los[i]).toFixed(1)}" stroke="${col}" stroke-width="1" opacity="0.9"/>`;
@@ -9556,6 +9550,21 @@ async function histGet(exch,ticker){
     try{const tx=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE).get(histKey(exch,ticker));
       tx.onsuccess=()=>res(tx.result||null);tx.onerror=()=>res(null);}catch(e){res(null);}
   });
+}
+function _persistTodayRow(s,q,dd){
+  if(!_cacheOn||!s||!s.exchange||!s.ticker||!q)return;
+  const nr={dateStamp:dd,open:q.o!=null?q.o:q.c,high:q.h!=null?q.h:q.c,low:q.l!=null?q.l:q.c,close:q.c,volume:q.v||0};
+  histGet(s.exchange,s.ticker).then(prev=>{
+    const prevRows=(prev&&Array.isArray(prev.rows))?prev.rows:null;
+    if(prevRows&&prevRows.length){
+      const dOf=r=>String((r&&(r.dateStamp||r.date||r.Date))||'').slice(0,10);
+      if(!prevRows.some(r=>dOf(r)===dd)){ histPut(s.exchange,s.ticker,prevRows.concat([nr]),dd); }
+      else if(prev.saved!==dd){ histPut(s.exchange,s.ticker,prevRows,dd); }
+    }else{
+      const full=(s.series||[]).map(r=>(r.d===dd?nr:{dateStamp:r.d,close:r.c,volume:r.v}));
+      if(full.length)histPut(s.exchange,s.ticker,full,dd);
+    }
+  }).catch(()=>{});
 }
 async function histPut(exch,ticker,rows,savedDate){
   if(!_cacheOn||!Array.isArray(rows)||!rows.length)return;
