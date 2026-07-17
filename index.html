@@ -1451,7 +1451,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-280-open';
+const APP_VERSION='2026.07.16-281-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11644,55 +11644,83 @@ async function pullbackScan(){
 // ═══ v276 — "What's changed for YOU": your lists checked against each fresh day ═══
 function _myWatchSet(){ const set={}; try{ Object.values(watchlists||{}).forEach(l=>{ Object.keys(l||{}).forEach(t=>{set[t]=1;}); }); }catch(e){} return set; }
 function myChangesData(){
-  const out={items:[],dataDate:null,holdN:0,watchN:0};
+  const out={items:[],lists:[],dataDate:null,holdN:0,watchN:0};
   if(!Array.isArray(allData)||!allData.length) return out;
   try{ out.dataDate=_pfMktDate(currentExch||'ASX'); }catch(e){}
   const by={}; allData.forEach(s=>{by[s.ticker]=s;});
-  const add=(sev,icon,tk,txt)=>out.items.push({sev,icon,tk,txt});
   const seen={};
   let p=null; try{ p=_paper(); }catch(e){ p={holdings:[]}; }
+  const holdItems=[];
+  const addH=(sev,icon,tk,txt)=>holdItems.push({sev,icon,tk,txt});
   (p.holdings||[]).forEach(h=>{
     const s=by[h.ticker]; if(!s||!(s.price>0))return; out.holdN++; seen[h.ticker]=1;
     const chg=s.chgPct!=null?s.chgPct:0, cur=s.currency||'';
-    if(h.stop>0&&s.price<=h.stop) add(0,'🛑',h.ticker,`is AT or BELOW your stop (${fmtP(h.stop,cur)}) — closed ${fmtP(s.price,cur)}. Stops execute on the day's close.`);
-    else if(h.stop>0&&s.price<=h.stop*1.03) add(1,'🛑',h.ticker,`is within 3% of your stop (${fmtP(h.stop,cur)}) — closed ${fmtP(s.price,cur)}${chg?`, ${chg>0?'+':''}${chg.toFixed(1)}% today`:''}.`);
-    if(h.target>0&&s.price>=h.target) add(0,'🎯',h.ticker,`reached your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
-    else if(h.target>0&&s.price>=h.target*0.97) add(1,'🎯',h.ticker,`is within 3% of your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
-    if(Math.abs(chg)>=3) add(2,chg>0?'📈':'📉',h.ticker,`(your holding) moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=100)?` on ${Math.round(s.volPct)}% above-average volume`:''}.`);
-    if(s.annConfirmed&&(s.annNews5d||0)>0) add(1,'📢',h.ticker,`(your holding) has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}. Tap to verify.`);
+    if(h.stop>0&&s.price<=h.stop) addH(0,'🛑',h.ticker,`is AT or BELOW your stop (${fmtP(h.stop,cur)}) — closed ${fmtP(s.price,cur)}. Stops execute on the day's close.`);
+    else if(h.stop>0&&s.price<=h.stop*1.03) addH(1,'🛑',h.ticker,`is within 3% of your stop (${fmtP(h.stop,cur)}) — closed ${fmtP(s.price,cur)}${chg?`, ${chg>0?'+':''}${chg.toFixed(1)}% today`:''}.`);
+    if(h.target>0&&s.price>=h.target) addH(0,'🎯',h.ticker,`reached your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
+    else if(h.target>0&&s.price>=h.target*0.97) addH(1,'🎯',h.ticker,`is within 3% of your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
+    if(Math.abs(chg)>=3) addH(2,chg>0?'📈':'📉',h.ticker,`(your holding) moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=100)?` on ${Math.round(s.volPct)}% above-average volume`:''}.`);
+    if(s.annConfirmed&&(s.annNews5d||0)>0) addH(1,'📢',h.ticker,`(your holding) has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}. Tap to verify.`);
   });
-  const ws=_myWatchSet();
-  Object.keys(ws).forEach(tk=>{
-    if(seen[tk])return; const s=by[tk]; if(!s||!(s.price>0))return; out.watchN++;
-    const chg=s.chgPct!=null?s.chgPct:0;
-    if(s.annConfirmed&&(s.annNews5d||0)>0) add(1,'📢',tk,`has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}.`);
-    if(Math.abs(chg)>=4) add(2,chg>0?'📈':'📉',tk,`moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=150)?` on heavy volume (+${Math.round(s.volPct)}%)`:''}.`);
-    else if(s.volCalced&&s.volPct>=200) add(3,'🔊',tk,`volume is ${Math.round(s.volPct)}% above average on only a ${chg>=0?'+':''}${chg.toFixed(1)}% move — quiet interest.`);
-    if(s.cross==='golden') add(3,'⤴',tk,`20-day average crossed above the 50-day today — a trend-change signal to research.`);
-    else if(s.nearHigh) add(4,'🎈',tk,`is trading near its 52-week high.`);
-  });
-  out.items.sort((a,b)=>a.sev-b.sev);
+  holdItems.sort((a,b)=>a.sev-b.sev);
+  out.holdItems=holdItems;
+  // ── one section per named watchlist ──
+  const attributed={}, counted={};
+  for(const ln of Object.keys(watchlists||{})){
+    const l=watchlists[ln]||{}; const tks=Object.keys(l);
+    const sec={name:ln,total:tks.length,items:[]};
+    for(const tk of tks){
+      const s=by[tk]; if(!s||!(s.price>0))continue;
+      if(!counted[tk]&&!seen[tk]){counted[tk]=1;out.watchN++;}
+      if(seen[tk]||attributed[tk])continue;   // holdings own their lines; first list wins
+      const its=[]; const chg=s.chgPct!=null?s.chgPct:0;
+      if(s.annConfirmed&&(s.annNews5d||0)>0) its.push({sev:1,icon:'📢',tk,txt:`has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}.`});
+      if(Math.abs(chg)>=4) its.push({sev:2,icon:chg>0?'📈':'📉',tk,txt:`moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=150)?` on heavy volume (+${Math.round(s.volPct)}%)`:''}.`});
+      else if(s.volCalced&&s.volPct>=200) its.push({sev:3,icon:'🔊',tk,txt:`volume is ${Math.round(s.volPct)}% above average on only a ${chg>=0?'+':''}${chg.toFixed(1)}% move — quiet interest.`});
+      if(s.cross==='golden') its.push({sev:3,icon:'⤴',tk,txt:`20-day average crossed above the 50-day today — a trend-change signal to research.`});
+      else if(s.nearHigh) its.push({sev:4,icon:'🎈',tk,txt:`is trading near its 52-week high.`});
+      if(its.length){ attributed[tk]=1; sec.items.push(...its); }
+    }
+    sec.items.sort((a,b)=>a.sev-b.sev);
+    sec.flagged=new Set(sec.items.map(i=>i.tk)).size;
+    out.lists.push(sec);
+  }
+  out.items=holdItems.concat(...out.lists.map(x=>x.items));
   return out;
 }
 function showMyChanges(auto){
   const d=myChangesData();
   const watchTotal=Object.keys(_myWatchSet()).length;
   if(auto&&!d.items.length)return false;
-  let body;
+  const rowHtml=it=>`<div onclick="try{closeModal();}catch(e){};deepDive('${it.tk}')" style="display:flex;gap:8px;align-items:flex-start;padding:6px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:14px;flex:none;">${it.icon}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${it.tk}</b> ${it.txt}</span></div>`;
+  const quietLine=`<div style="font-size:10.5px;color:var(--dim);padding:5px 6px;">— all quiet today.</div>`;
+  let body='';
   if(!(d.holdN||watchTotal)){
     body=`<div style="font-size:12px;color:var(--muted);line-height:1.6;padding:6px 2px;">Nothing to check yet — ⭐ star a few shares or make a practice buy, and this panel will brief you on YOUR shares every time fresh data loads.</div>`;
-  }else if(!d.items.length){
-    body=`<div style="font-size:12px;color:var(--muted);line-height:1.6;padding:6px 2px;">All quiet in your lists today — no exit levels near, no big moves, no fresh confirmed news across your ${d.holdN+watchTotal} tracked share${(d.holdN+watchTotal)===1?'':'s'}.</div>`;
   }else{
-    body=d.items.slice(0,30).map(it=>`<div onclick="try{closeModal();}catch(e){};deepDive('${it.tk}')" style="display:flex;gap:8px;align-items:flex-start;padding:7px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:14px;flex:none;">${it.icon}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${it.tk}</b> ${it.txt}</span></div>`).join('');
-    if(d.items.length>30)body+=`<div style="font-size:9px;color:var(--dim);margin-top:5px;">…and ${d.items.length-30} more.</div>`;
-    body+=`<div style="font-size:9px;color:var(--dim);margin-top:8px;">Tap any line to open that share's deep dive. End-of-day estimates — not advice.</div>`;
+    let budget=30;
+    if(d.holdN){
+      body+=`<div style="font:700 11px var(--sans);color:var(--text);margin:4px 0 2px;">💼 Your holdings <span style="font-weight:400;color:var(--dim);">· ${d.holdN}</span></div>`;
+      const its=(d.holdItems||[]).slice(0,budget); budget-=its.length;
+      body+=its.length?its.map(rowHtml).join(''):quietLine;
+    }
+    for(const sec of (d.lists||[])){
+      body+=`<div onclick="_openListFromBriefing(this.dataset.ln)" data-ln="${String(sec.name).replace(/"/g,'&quot;')}" title="Open this watchlist" style="font:700 11px var(--sans);color:var(--text);margin:9px 0 2px;cursor:pointer;">⭐ ${sec.name} <span style="font-weight:400;color:${sec.flagged?'var(--gold)':'var(--dim)'};">· ${sec.flagged} of ${sec.total} flagged</span> <span style="color:var(--dim);font-weight:400;font-size:9px;">open ↗</span></div>`;
+      if(sec.items.length&&budget>0){ const its=sec.items.slice(0,budget); budget-=its.length; body+=its.map(rowHtml).join(''); }
+      else if(sec.items.length){ body+=`<div style="font-size:9px;color:var(--dim);padding:4px 6px;">…more in this list — open it to see everything.</div>`; }
+      else body+=quietLine;
+    }
+    body+=`<div style="font-size:9px;color:var(--dim);margin-top:8px;">Tap any line for that share's deep dive · tap a list name to open the watchlist. End-of-day estimates — not advice.</div>`;
   }
   const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🔔 What's changed for YOU</div>
-    <div style="font-size:9.5px;color:var(--dim);margin:3px 0 10px;">Your holdings & watchlist checked against ${d.dataDate?`the data of <b style="color:var(--muted)">${d.dataDate}</b>`:'the latest data'} · ${d.holdN} holding${d.holdN===1?'':'s'} · ${watchTotal} watched.</div>`;
+    <div style="font-size:9.5px;color:var(--dim);margin:3px 0 10px;">Your holdings & watchlists checked against ${d.dataDate?`the data of <b style="color:var(--muted)">${d.dataDate}</b>`:'the latest data'} · ${d.holdN} holding${d.holdN===1?'':'s'} · ${watchTotal} watched.</div>`;
   showModal(head+body,"🔔 What's changed for me");
   try{ if(d.dataDate)localStorage.setItem('asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
   return true;
+}
+function _openListFromBriefing(nm){
+  try{closeModal();}catch(e){}
+  try{ if(watchlists&&watchlists[nm]){ switchWatch(nm); if(typeof watchViewOn!=='undefined'&&!watchViewOn)toggleWatchView(); } }catch(e){}
 }
 // Auto-open once per fresh data date — never over an open panel, never on a quiet day.
 (function _myChangesAuto(){
