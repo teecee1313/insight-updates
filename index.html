@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-290-open';
+const APP_VERSION='2026.07.16-291-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4493,12 +4493,12 @@ const RULES_KEY='asxScreener.rules.v1';
 function _rules(){
   let r={}; try{ r=JSON.parse(localStorage.getItem(RULES_KEY)||'{}')||{}; }catch(e){ r={}; }
   const num=(v,d)=>{ const n=parseFloat(v); return (isFinite(n)&&n>=0)?n:d; };
-  return { targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
+  return { enabled:(r.enabled!==false), targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
 function _rulesSave(r){
-  const clean={ targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
+  const clean={ enabled:(r.enabled!==false), targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
@@ -4509,6 +4509,10 @@ function showRules(){
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">📋 My trading rules</div>
     <div style="font-size:10px;color:var(--dim);margin:3px 0 12px;line-height:1.5;">Your plan, in your words — the app helps you stick to it. These are limits <b>you</b> set; nothing here is advice.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);">
+      <span style="font:700 11.5px var(--sans);color:var(--text);">Use my trading rules${r.enabled?'':' <span style="font-weight:400;color:var(--dim);font-size:10px;">\u2014 off, nothing is applied</span>'}</span>
+      <button onclick="toggleRulesEnabled()" title="Turn the whole rules feature on or off" style="padding:5px 14px;border-radius:16px;border:1px solid ${r.enabled?'var(--green)':'var(--border2)'};background:${r.enabled?'rgba(63,185,80,.16)':'var(--bg4)'};color:${r.enabled?'var(--green)':'var(--muted)'};font:800 11px var(--sans);cursor:pointer;min-width:56px;">${r.enabled?'ON':'OFF'}</button>
+    </div>
     <div style="font:700 11px var(--sans);color:var(--text);margin:2px 0 6px;">Numbers the app will use</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <label style="font-size:10px;color:var(--muted);">🎯 Take profit at<input type="number" id="rTgt" min="0" step="any" value="${r.targetPct||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % gain</span></label>
@@ -4526,8 +4530,14 @@ function showRules(){
 }
 function saveRulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
-  _rulesSave({ targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan') });
+  _rulesSave({ targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'), enabled:_rules().enabled });
   const m=document.getElementById('rulesMsg'); if(m)m.textContent='✓ Saved — your rules are set.';
+}
+function toggleRulesEnabled(){
+  // save whatever's in the form, flipping the master switch, then re-render
+  const g=id=>(document.getElementById(id)||{}).value;
+  _rulesSave({ targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'), enabled:!_rules().enabled });
+  try{ showRules(); }catch(e){}
 }
 function _ensureCash(p){
   // Migration for accounts created before the cash balance existed: rebuild the
@@ -4916,9 +4926,9 @@ function paperBuy(ticker){
     <div style="font-size:9px;color:var(--orange);margin-top:8px;">⏭ Realistic fills (locked) — market buys queue and fill at the NEXT trading day\u2019s open, so you can\u2019t buy at a close you\u2019ve already seen.${slippagePct()>0?' Slippage '+slippagePct()+'% per side applies.':''} Target/stop fill using each day's intraday high & low — practice only, not real trading or advice.</div>
   `);
   window._buyType='market';
-  setTimeout(()=>{ try{ const _r=_rules(); const tp=document.getElementById('paperTgtPct'), sp=document.getElementById('paperStopPct');
+  setTimeout(()=>{ try{ const _r=_rules(); if(_r.enabled){ const tp=document.getElementById('paperTgtPct'), sp=document.getElementById('paperStopPct');
       if(tp&&_r.targetPct>0&&!tp.value){ tp.value=_r.targetPct; _paperPctSync('tgt'); }
-      if(sp&&_r.stopPct>0&&!sp.value){ sp.value=_r.stopPct; _paperPctSync('stop'); try{_paperRiskPrev();}catch(_){}}
+      if(sp&&_r.stopPct>0&&!sp.value){ sp.value=_r.stopPct; _paperPctSync('stop'); try{_paperRiskPrev();}catch(_){}} }
     }catch(_){}
     const a=document.getElementById('paperAmt');if(a){a.focus();a.oninput=()=>{
     const amt=parseFloat(a.value)||0;
@@ -11937,14 +11947,14 @@ function myChangesData(){
     else if(h.target>0&&s.price>=h.target*0.97) addH(1,'🎯',h.ticker,`is within 3% of your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
     if(Math.abs(chg)>=3) addH(2,chg>0?'📈':'📉',h.ticker,`(your holding) moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=100)?` on ${Math.round(s.volPct)}% above-average volume`:''}.`);
     if(s.annConfirmed&&(s.annNews5d||0)>0) addH(1,'📢',h.ticker,`(your holding) has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}. Tap to verify.`);
-    if(_rul){ const _val=h.qty*s.price;
+    if(_rul&&_rul.enabled){ const _val=h.qty*s.price;
       if(_rul.maxPosPct>0&&_acct>0&&(_val/_acct)*100>_rul.maxPosPct+0.5) addH(2,'📦',h.ticker,`is ${Math.round((_val/_acct)*100)}% of your account — over your ${_rul.maxPosPct}% max-size rule.`);
       if(_rul.stopPct>0&&!(h.stop>0)&&h.buyPrice>0&&s.price<=h.buyPrice*(1-_rul.stopPct/100)) addH(1,'🛑',h.ticker,`is down ${Math.round((1-s.price/h.buyPrice)*100)}% from your ${fmtP(h.buyPrice,cur)} buy — past your -${_rul.stopPct}% stop rule.`);
     }
   });
   holdItems.sort((a,b)=>a.sev-b.sev);
   out.holdItems=holdItems;
-  try{ if(_rul&&_rul.maxPositions>0&&out.holdN>_rul.maxPositions) out.ruleNote=`You're holding ${out.holdN} positions — your rule is max ${_rul.maxPositions}.`; }catch(e){}
+  try{ if(_rul&&_rul.enabled&&_rul.maxPositions>0&&out.holdN>_rul.maxPositions) out.ruleNote=`You're holding ${out.holdN} positions — your rule is max ${_rul.maxPositions}.`; }catch(e){}
   // ── one section per named watchlist ──
   const attributed={}, counted={};
   for(const ln of Object.keys(watchlists||{})){
