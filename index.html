@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-289-open';
+const APP_VERSION='2026.07.16-290-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3371,7 +3371,20 @@ function doReset(){
   setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},600);
   cp();applyF();dots();mkBadges();
 }
-function ls(){if(allData.length)applyF();}
+function ls(){
+  if(!allData.length)return;
+  const a=window._activeScan;
+  // v290: while a finished report is on screen, SEARCH NARROWS THAT REPORT
+  // instead of clearing it and searching the whole market (matches watchlist).
+  if(a && !a.running && !watchViewOn){
+    const srch=(document.getElementById('searchBox').value||'').toLowerCase().trim();
+    if(!Array.isArray(window._scanViewBase)) window._scanViewBase=Array.isArray(filtered)?filtered.slice():[];
+    filtered = srch ? window._scanViewBase.filter(s=>((s.ticker||'')+' '+(s.name||'')).toLowerCase().includes(srch)) : window._scanViewBase.slice();
+    try{ render(); statsBar(); }catch(e){}
+    return;
+  }
+  applyF();
+}
 function _resetBeforeScan(){
   try{
     rst1('gDir','all','dir');rst1('gDays','0','days');rst1('gCap',(F.cap||'any'),'cap');rst1('gRsi','any','rsi');rst1('gSM','any','sm');F.daysMin=0; // v282: 💧 Liquidity floor is STICKY across scans — Clear all still resets it
@@ -3646,7 +3659,7 @@ function refreshMyReportBtn(){
 // start clean and re-capture this new result as their base.
 // ── v228: persistent "which report am I in" banner over the results table ──
 function _scanStart(label){
-  window._activeScan={label:label,running:true};
+  window._activeScan={label:label,running:true}; window._scanViewBase=null; // v290: fresh report → recapture search base
   window._scanGuard=true;             // scans reset filters internally — don't let that clear the banner
   _renderScanBanner();
   // Watchdog: if a scan bails out early (no data / no key), don't stay locked.
@@ -3671,6 +3684,7 @@ function _scanDone(){
 function _scanClear(){
   if(window._scanGuard)return;
   window._activeScan=null;
+  window._scanViewBase=null; // v290
   _renderScanBanner();
 }
 function _renderScanBanner(){
