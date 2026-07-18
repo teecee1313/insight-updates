@@ -28,6 +28,23 @@
   --blue:#4a93ff;--purple:#bc8cff;--orange:#ffa657;--amber:#ffb02e;
   --mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;
 }
+/* v287 — LIGHT THEME: the same variables, light values. Toggle adds body.theme-light. */
+body.theme-light{
+  --bg:#eef2f8;--bg2:#ffffff;--bg3:#f1f4fa;--bg4:#e4eaf3;
+  --border:#d4deec;--border2:#b9c8de;
+  --text:#0e1c30;--muted:#42546f;--dim:#6b7d97;
+  --gold:#9a7a0a;--gold2:#7f6400;--glow:rgba(246,201,21,.14);
+  --green:#1f8f38;--green2:#166b29;--gbg:rgba(31,143,56,.10);
+  --red:#cc1330;--rbg:rgba(226,25,55,.10);
+  --blue:#1f6feb;--purple:#8a4fd0;--orange:#c56a12;--amber:#b5730a;
+  color-scheme:light;
+}
+body.theme-light{background:linear-gradient(180deg,var(--bg) 0%,#dfe6f2 100%)!important;}
+body.theme-light header{background:var(--bg2)!important;}
+body.theme-light .left{background:var(--bg2)!important;}
+/* soften pure-white hover flashes that only read on a dark bg */
+body.theme-light [onmouseover*="rgba(255,255,255"]{}
+
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;display:flex;flex-direction:column;}
@@ -602,6 +619,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <option value="it">🇮🇹 Italiano</option>
       <option value="fil">🇵🇭 Filipino</option>
     </select>
+    <button id="themeBtn" onclick="toggleTheme()" title="Switch between light and dark" style="padding:6px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 12px var(--sans);cursor:pointer;white-space:nowrap;">☀️</button>
     <button id="sidebarToggle" onclick="toggleSidebar()" title="Hide / show the filters panel" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">◀ Hide panel</button>
     <button onclick="changeAppPassword()" title="Change app password" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🔑 Password</button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
@@ -1453,7 +1471,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-286-open';
+const APP_VERSION='2026.07.16-287-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2071,6 +2089,26 @@ function saveWatchlists(){
   catch(e){/* storage may be unavailable in some sandboxes */}
 }
 function curWL(){return watchlists[activeWatch]||(watchlists[activeWatch]={});}
+// v287 — light / dark theme toggle (remembers your choice; matches device first time)
+function _applyTheme(t){
+  try{ document.body.classList.toggle('theme-light', t==='light'); }catch(e){}
+  var b=document.getElementById('themeBtn');
+  if(b){ b.textContent=(t==='light'?'🌙':'☀️'); b.title=(t==='light'?'Switch to dark mode':'Switch to light mode'); }
+}
+function toggleTheme(){
+  var nx=document.body.classList.contains('theme-light')?'dark':'light';
+  try{ localStorage.setItem('asxScreener.theme.v1',nx); }catch(e){}
+  _applyTheme(nx);
+  try{ if(window._chartTicker&&typeof _chartSvg==='function'){ var ca=document.getElementById('chartArea'); if(ca)ca.innerHTML=_chartSvg(_chartTicker,_chartTF); } }catch(e){}
+}
+(function _initTheme(){
+  function go(){ try{
+    var s=null; try{ s=localStorage.getItem('asxScreener.theme.v1'); }catch(e){}
+    if(!s){ s=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'; }
+    _applyTheme(s);
+  }catch(e){} }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
+})();
 function inWatch(ticker){return !!curWL()[ticker];}
 
 // ── Research list ─────────────────────────────────────────────────────────
