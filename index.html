@@ -1285,6 +1285,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
     <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) five trading days after it fired — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" id="myChangesBtn" onclick="showMyChanges(false)" title="Checks YOUR practice holdings and watchlist against the latest day's data: targets and stops hit or near, big moves, confirmed price-sensitive news, volume surges and trend crosses. Opens by itself once per fresh data day — only when there's something to say."><span>🔔 What's changed for me <span style="font-weight:400;color:var(--dim);font-size:10px;">your shares, today</span></span><span class="mb-chev">▶</span></button>
+    <button class="menu-btn" onclick="showRules()" title="Write your own trading rules — take-profit %, stop-loss %, max size per share, max open positions, and your own checklist. Your 🎯/🛑 auto-fill practice buys and going over your limits flags gently in the 🔔 briefing. Your plan, not advice."><span>📋 My trading rules <span style="font-weight:400;color:var(--dim);font-size:10px;">your plan</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="openOverlay('morescans')"><span>🔎 More scans &amp; presets</span><span class="mb-chev">▶</span></button>
     <div id="smartStatus" style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:7px;min-height:12px;text-align:center;"></div>
     <div id="planStatus" style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;min-height:12px;text-align:center;"></div>
@@ -1452,7 +1453,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-284-open';
+const APP_VERSION='2026.07.16-286-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2023,6 +2024,7 @@ function _sanShare(s){
     if('currency' in s)s.currency=_sanText(s.currency,8);
     if('type' in s)s.type=_sanText(s.type,20);
     if('annTitle' in s&&s.annTitle)s.annTitle=_sanText(s.annTitle,160);
+    if('annHeadline' in s&&s.annHeadline)s.annHeadline=_sanText(s.annHeadline,160); // v285
   }catch(e){}
   return s;
 }
@@ -4415,6 +4417,48 @@ function _chargeFee(p,label){
 // money ACTUALLY put in for accounts that traded before the $10k rule existed.
 function _startCap(p){return (typeof p.startCap==='number'&&isFinite(p.startCap)&&p.startCap>0)?p.startCap:PAPER_START_CASH;}
 function _reservedSum(p){return (p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);}
+
+// ═══ v286 — My Rules: the customer's own trading plan (practice discipline) ═══
+const RULES_KEY='asxScreener.rules.v1';
+function _rules(){
+  let r={}; try{ r=JSON.parse(localStorage.getItem(RULES_KEY)||'{}')||{}; }catch(e){ r={}; }
+  const num=(v,d)=>{ const n=parseFloat(v); return (isFinite(n)&&n>=0)?n:d; };
+  return { targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
+    maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
+    plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
+}
+function _rulesSave(r){
+  const clean={ targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
+    maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
+    plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
+  try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
+  return clean;
+}
+function showRules(){
+  const r=_rules(); const esc=v=>String(v==null?'':v).replace(/[<>"'`]/g,'');
+  showModal(`
+    <div style="font-weight:700;font-size:15px;color:var(--text);">📋 My trading rules</div>
+    <div style="font-size:10px;color:var(--dim);margin:3px 0 12px;line-height:1.5;">Your plan, in your words — the app helps you stick to it. These are limits <b>you</b> set; nothing here is advice.</div>
+    <div style="font:700 11px var(--sans);color:var(--text);margin:2px 0 6px;">Numbers the app will use</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <label style="font-size:10px;color:var(--muted);">🎯 Take profit at<input type="number" id="rTgt" min="0" step="any" value="${r.targetPct||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % gain</span></label>
+      <label style="font-size:10px;color:var(--muted);">🛑 Stop loss at<input type="number" id="rStop" min="0" step="any" value="${r.stopPct||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--red);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % loss</span></label>
+      <label style="font-size:10px;color:var(--muted);">📦 Max in one share<input type="number" id="rMaxPos" min="0" step="any" value="${r.maxPosPct||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % of account</span></label>
+      <label style="font-size:10px;color:var(--muted);">🔢 Max open positions<input type="number" id="rMaxN" min="0" step="1" value="${r.maxPositions||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> at once</span></label>
+    </div>
+    <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5;">🎯 and 🛑 auto-fill when you make a practice buy. 📦 and 🔢 show as friendly flags in your 🔔 briefing when you go over — never a block.</div>
+    <div style="font:700 11px var(--sans);color:var(--text);margin:14px 0 6px;">Your own rules — the human stuff</div>
+    <textarea id="rPlan" maxlength="600" placeholder="e.g. Wait for a green day to confirm. Never average down. Only buy above the 200-day line. Review every Sunday." style="width:100%;height:88px;padding:9px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font:12px var(--sans);box-sizing:border-box;resize:vertical;">${esc(r.plan)}</textarea>
+    <button onclick="saveRulesFromForm()" style="width:100%;margin-top:12px;padding:10px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">Save my rules</button>
+    <div id="rulesMsg" style="font-size:10.5px;color:var(--green);margin-top:8px;min-height:13px;text-align:center;"></div>
+    <div style="font-size:9px;color:var(--dim);margin-top:6px;">Practice-first: rules apply to your paper trading — a discipline aid, not financial advice.</div>
+  `,'📋 My trading rules');
+}
+function saveRulesFromForm(){
+  const g=id=>(document.getElementById(id)||{}).value;
+  _rulesSave({ targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan') });
+  const m=document.getElementById('rulesMsg'); if(m)m.textContent='✓ Saved — your rules are set.';
+}
 function _ensureCash(p){
   // Migration for accounts created before the cash balance existed: rebuild the
   // balance as if the $10k account had been there from the first trade.
@@ -4802,7 +4846,11 @@ function paperBuy(ticker){
     <div style="font-size:9px;color:var(--orange);margin-top:8px;">⏭ Realistic fills (locked) — market buys queue and fill at the NEXT trading day\u2019s open, so you can\u2019t buy at a close you\u2019ve already seen.${slippagePct()>0?' Slippage '+slippagePct()+'% per side applies.':''} Target/stop fill using each day's intraday high & low — practice only, not real trading or advice.</div>
   `);
   window._buyType='market';
-  setTimeout(()=>{const a=document.getElementById('paperAmt');if(a){a.focus();a.oninput=()=>{
+  setTimeout(()=>{ try{ const _r=_rules(); const tp=document.getElementById('paperTgtPct'), sp=document.getElementById('paperStopPct');
+      if(tp&&_r.targetPct>0&&!tp.value){ tp.value=_r.targetPct; _paperPctSync('tgt'); }
+      if(sp&&_r.stopPct>0&&!sp.value){ sp.value=_r.stopPct; _paperPctSync('stop'); try{_paperRiskPrev();}catch(_){}}
+    }catch(_){}
+    const a=document.getElementById('paperAmt');if(a){a.focus();a.oninput=()=>{
     const amt=parseFloat(a.value)||0;
     const lim=parseFloat((document.getElementById('paperLimit')||{}).value)||0;
     const px=(window._buyType==='limit'&&lim>0)?lim:(realFillsOn()?s.price:_slipBuy(s.price));
@@ -11809,6 +11857,7 @@ function myChangesData(){
   let p=null; try{ p=_paper(); }catch(e){ p={holdings:[]}; }
   const holdItems=[];
   const addH=(sev,icon,tk,txt)=>holdItems.push({sev,icon,tk,txt});
+  const _rul=(function(){try{return _rules();}catch(e){return null;}})(); let _acct=0; try{_acct=_acctValue(p);}catch(e){}
   (p.holdings||[]).forEach(h=>{
     const s=by[h.ticker]; if(!s||!(s.price>0))return; out.holdN++; seen[h.ticker]=1;
     const chg=s.chgPct!=null?s.chgPct:0, cur=s.currency||'';
@@ -11818,9 +11867,14 @@ function myChangesData(){
     else if(h.target>0&&s.price>=h.target*0.97) addH(1,'🎯',h.ticker,`is within 3% of your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
     if(Math.abs(chg)>=3) addH(2,chg>0?'📈':'📉',h.ticker,`(your holding) moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=100)?` on ${Math.round(s.volPct)}% above-average volume`:''}.`);
     if(s.annConfirmed&&(s.annNews5d||0)>0) addH(1,'📢',h.ticker,`(your holding) has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}. Tap to verify.`);
+    if(_rul){ const _val=h.qty*s.price;
+      if(_rul.maxPosPct>0&&_acct>0&&(_val/_acct)*100>_rul.maxPosPct+0.5) addH(2,'📦',h.ticker,`is ${Math.round((_val/_acct)*100)}% of your account — over your ${_rul.maxPosPct}% max-size rule.`);
+      if(_rul.stopPct>0&&!(h.stop>0)&&h.buyPrice>0&&s.price<=h.buyPrice*(1-_rul.stopPct/100)) addH(1,'🛑',h.ticker,`is down ${Math.round((1-s.price/h.buyPrice)*100)}% from your ${fmtP(h.buyPrice,cur)} buy — past your -${_rul.stopPct}% stop rule.`);
+    }
   });
   holdItems.sort((a,b)=>a.sev-b.sev);
   out.holdItems=holdItems;
+  try{ if(_rul&&_rul.maxPositions>0&&out.holdN>_rul.maxPositions) out.ruleNote=`You're holding ${out.holdN} positions — your rule is max ${_rul.maxPositions}.`; }catch(e){}
   // ── one section per named watchlist ──
   const attributed={}, counted={};
   for(const ln of Object.keys(watchlists||{})){
@@ -11860,6 +11914,7 @@ function showMyChanges(auto){
       body+=`<div style="font:700 11px var(--sans);color:var(--text);margin:4px 0 2px;">💼 Your holdings <span style="font-weight:400;color:var(--dim);">· ${d.holdN}</span></div>`;
       const its=(d.holdItems||[]).slice(0,budget); budget-=its.length;
       body+=its.length?its.map(rowHtml).join(''):quietLine;
+      if(d.ruleNote) body+=`<div style="font-size:10px;color:var(--orange);padding:4px 6px;">📋 ${d.ruleNote}</div>`;
     }
     for(const sec of (d.lists||[])){
       body+=`<div onclick="_openListFromBriefing(this.dataset.ln)" data-ln="${String(sec.name).replace(/"/g,'&quot;')}" title="Open this watchlist" style="font:700 11px var(--sans);color:var(--text);margin:9px 0 2px;cursor:pointer;">⭐ ${sec.name} <span style="font-weight:400;color:${sec.flagged?'var(--gold)':'var(--dim)'};">· ${sec.flagged} of ${sec.total} flagged</span> <span style="color:var(--dim);font-weight:400;font-size:9px;">open ↗</span></div>`;
@@ -12710,6 +12765,7 @@ const TRAIN_HELP={
   "pullbackBtn":{t:"Pullback in Uptrend",d:"Shares in an established up-trend (above their key moving averages) that have dipped back to hug the 20-day line with RSI cooled to 35–55 — the classic 'buy the dip' setup, served as a research list. An estimate, not advice."},
   "gCap":{t:"Liquidity — $ traded/day",d:"Average daily volume × price = how much money actually changes hands on a normal day. Set a floor (≥$50k / ≥$250k / ≥$1M) to skip thinly-traded shares that are hard to buy or sell at a fair price. Replaces the old market-cap filter — the data feed can't supply real market caps, so this is the honest alternative."},
   "gRsi":{t:"RSI zone (14-day)",d:"Relative Strength Index measures how hard a share has run over the last 14 sessions. Oversold ≤30 = beaten down, may be due a bounce; Overbought ≥70 = run hard, may be due a pause; Neutral in between. Combine with any other filter."},
+  "showRules()":{t:"My trading rules",d:"Write your own plan — take-profit %, stop-loss %, max size per share, max open positions, and a free-text checklist. Your 🎯 and 🛑 auto-fill practice buys; going over your size or position limits shows as a gentle flag in the 🔔 briefing. Your rules, not advice."},
   "myChangesBtn":{t:"What's changed for me",d:"Your personal briefing: checks YOUR practice holdings and watchlist against the latest day's data — targets and stops hit or near, big moves, confirmed price-sensitive news, volume surges and trend crosses. Opens by itself once per fresh data day, only when there's something to say. Tap any line to deep-dive that share."},
   "surgeBtn":{t:"Volume Surge Report",d:"Ranks every share by how far today's volume beats its own average — hottest first — in a printable report. Each row is tagged 🟢 buying (price up) or 🔴 selling (price down). Filter buttons narrow by heat level (Warm → Extreme) or to just risers / just fallers. 📰 News + 🏛 announcement links on every row. A data summary, not advice."},
   "techBtn":{t:"Technical Signals",d:"Computes classic indicators — MA crosses, RSI, 52-week position, OBV, gaps, volatility — and ranks shares by a blended technical score."},
@@ -13171,7 +13227,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
   try{ var st=JSON.parse(localStorage.getItem(CK)||'null'); if(st&&st.date===DAY)cache=st; }catch(e){}
   var attempted={}, fails=0, MAXC=3;
   function save(){ try{ var ks=Object.keys(cache.by); if(ks.length>400)ks.slice(0,ks.length-400).forEach(function(k){delete cache.by[k];}); localStorage.setItem(CK,JSON.stringify(cache)); }catch(e){} }
-  function apply(s,rec){ s.annConfirmed=true; s.annNews5d=rec.n||0; s.annDir5d=!!rec.d; s.annHeadline=rec.h||''; }
+  function apply(s,rec){ s.annConfirmed=true; s.annNews5d=rec.n||0; s.annDir5d=!!rec.d; s.annHeadline=(typeof _sanText==='function')?_sanText(rec.h||'',140):String(rec.h||'').replace(/[<>"'`\\]/g,'').slice(0,140); } // v285: cached/feed headlines cleaned at the boundary before any render
   // v275: rolling dated log of confirmed price-sensitive announcements, so the
   // Signal Report Card can split fires into news-driven vs quiet — honestly.
   var LK='asxScreener.annLog.v1';
