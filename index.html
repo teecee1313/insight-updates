@@ -602,7 +602,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <span>Insight<span style="color:var(--gold)"> Trading</span></span>
     <span style="font-size:9px;font-weight:600;letter-spacing:2px;color:var(--muted);">MARKET ANALYSER</span>
     <span id="appVer" style="font-size:8px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;"></span>
-    <span id="betaTag" title="This is a beta-test copy — things may change between visits. Spotted something odd or have an idea? Use the feedback link!" style="font-size:8px;font-weight:800;letter-spacing:1px;color:#ff9142;border:1px solid #ff9142;border-radius:4px;padding:1px 6px;background:rgba(255,145,66,.10);white-space:nowrap;">🧪 BETA · <a href="mailto:tonycotton13@gmail.com?subject=Insight%20Trading%20beta%20feedback%20v2026.07.16-289" style="color:#ff9142;">✉ feedback</a></span>
   </div>
   <div class="hbadge" id="exchBadge">🌐 Multi-Exchange Screener</div>
   <div class="notice" id="notice" style="display:none">—</div>
@@ -690,7 +689,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div id="keyEntryRow">
             <label>EODData API Key</label>
             <input type="password" id="apiKey" value="" placeholder="your EODData apiKey…"
-              oninput="try{localStorage.setItem('BETA_asxScreener.apiKey',this.value);}catch(e){} _refreshKeyUI();">
+              oninput="try{localStorage.setItem('asxScreener.apiKey',this.value);}catch(e){} _refreshKeyUI();">
             <div style="font-size:9px;color:var(--dim);margin-top:4px;">Get one free at eodhd.com · saved on this device only.</div>
           </div>
           <div id="keySavedRow" style="display:none;align-items:center;gap:8px;">
@@ -1474,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-289-beta';
+const APP_VERSION='2026.07.16-289-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1505,7 +1504,7 @@ const APP_VERSION='2026.07.16-289-beta';
 const COPYRIGHT='© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293';
 const APP_SOURCE_SNAPSHOT=(function(){try{return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}catch(e){return '';}})();
 function _verDB(){return new Promise((res,rej)=>{
-  const rq=indexedDB.open('BETA_pnmaVersions',1);
+  const rq=indexedDB.open('pnmaVersions',1);
   rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('versions'))rq.result.createObjectStore('versions',{keyPath:'v'});};
   rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);
 });}
@@ -1915,13 +1914,13 @@ function applyLang(){
 }
 function setLang(code){
   LANG=code;
-  try{localStorage.setItem('BETA_asxScreener.lang',code);}catch(e){}
+  try{localStorage.setItem('asxScreener.lang',code);}catch(e){}
   const sel=document.getElementById('langSel');if(sel)sel.value=code;
   applyLang();
 }
 function initLang(){
   let saved='en';
-  try{saved=localStorage.getItem('BETA_asxScreener.lang')||'en';}catch(e){}
+  try{saved=localStorage.getItem('asxScreener.lang')||'en';}catch(e){}
   setLang(saved);
 }
 
@@ -2021,7 +2020,7 @@ const F={
 // ── Multiple persistent watchlists ──────────────────────────
 // Stored as { listName: { TICKER: {savedStockSnapshot} } } in localStorage so
 // they survive browser closes AND show regardless of current filters.
-const WL_KEY='BETA_asxScreener.watchlists.v1';
+const WL_KEY='asxScreener.watchlists.v1';
 let watchlists={};       // all named lists
 let activeWatch='My Watchlist'; // currently selected list name
 let watchViewOn=false;   // showing the watchlist view (independent of filters)?
@@ -2116,13 +2115,13 @@ function _applyTheme(t){
 }
 function toggleTheme(){
   var nx=document.body.classList.contains('theme-light')?'dark':'light';
-  try{ localStorage.setItem('BETA_asxScreener.theme.v1',nx); }catch(e){}
+  try{ localStorage.setItem('asxScreener.theme.v1',nx); }catch(e){}
   _applyTheme(nx);
   try{ if(window._chartTicker&&typeof _chartSvg==='function'){ var ca=document.getElementById('chartArea'); if(ca)ca.innerHTML=_chartSvg(_chartTicker,_chartTF); } }catch(e){}
 }
 (function _initTheme(){
   function go(){ try{
-    var s=null; try{ s=localStorage.getItem('BETA_asxScreener.theme.v1'); }catch(e){}
+    var s=null; try{ s=localStorage.getItem('asxScreener.theme.v1'); }catch(e){}
     if(!s){ s=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'; }
     _applyTheme(s);
   }catch(e){} }
@@ -2134,7 +2133,7 @@ function inWatch(ticker){return !!curWL()[ticker];}
 // A DIFFERENT thing from the watchlist: a workflow holding-pen for shares you
 // want to look into later. Each entry keeps a snapshot, a "why" note, and the
 // date flagged. You work through it: research → promote to watchlist, or dismiss.
-const RESEARCH_KEY='BETA_asxScreener.research.v1';
+const RESEARCH_KEY='asxScreener.research.v1';
 let researchList={}; // { TICKER: {ticker,exchange,name,note,ts,snap} }
 function loadResearch(){
   try{const raw=localStorage.getItem(RESEARCH_KEY);researchList=raw?JSON.parse(raw)||{}:{};_sanResearch();}
@@ -2252,12 +2251,12 @@ function volDepthRank(w){return {'1-year':5,'6-month':4,'3-month':3,'2-month':2,
 function volDepthGood(w){return volDepthRank(w)>=3;} // 3-month+ = upgraded
 // User-selectable averaging window for the "today vs history" volume comparison.
 // 0 = Auto (use all cached history). Otherwise trading-day counts.
-const VOLWIN_STORE='BETA_asxScreener.volWindow.v1';
+const VOLWIN_STORE='asxScreener.volWindow.v1';
 let volAvgWindow = (function(){try{return parseInt(localStorage.getItem(VOLWIN_STORE))||0;}catch(e){return 0;}})();
 const VOLWIN_LABELS={0:'Auto',22:'1-month',66:'3-month',132:'6-month',252:'1-year'};
 // ── Trading-range window (sessions). Selectable: 3 days ≈ 3, 1 week ≈ 5,
 //    1 month ≈ 20, 3 months ≈ 66. Default 1 month. ──
-const RANGEWIN_STORE='BETA_asxScreener.rangeWindow.v1';
+const RANGEWIN_STORE='asxScreener.rangeWindow.v1';
 let rangeWindow = (function(){try{return parseInt(localStorage.getItem(RANGEWIN_STORE))||20;}catch(e){return 20;}})();
 const RANGEWIN_LABELS={3:'3 days',5:'1 week',10:'2 weeks',20:'1 month',66:'3 months'};
 // Change the averaging window and recompute today-vs-history for every share
@@ -2353,7 +2352,7 @@ const selected=new Set();  // tickers tick-boxed for a one-off report
 function onExchChange(){
   currentExch=document.getElementById('exchSel').value;
   document.getElementById('exchBadge').textContent='🌐 '+currentExch+' Screener';
-  try{localStorage.setItem('BETA_asxScreener.lastExch',currentExch);}catch(e){}
+  try{localStorage.setItem('asxScreener.lastExch',currentExch);}catch(e){}
   applyAssetMode();
   // Auto-load the newly selected exchange (same full load + prepare as startup),
   // so every exchange fills in completely — not just ASX. Needs an API key or
@@ -2409,7 +2408,7 @@ function applyAssetMode(){
   }
 }
 // ── App password gate (hashed; required on every open) ──────────────────────
-const GATE_STORE='BETA_asxScreener.appGate.v1';
+const GATE_STORE='asxScreener.appGate.v1';
 // ── PERSONAL FIXED CODE ──────────────────────────────────────────────────
 // When this holds a {salt,hash} record, the app is locked to ONE code baked
 // into the file. Every device just asks for that code — there is no
@@ -2448,7 +2447,7 @@ function unlockTraining(){
   var code=prompt('Enter training-mode code:');
   if(code===null)return;
   if(code===TRAINING_CODE){
-    try{sessionStorage.setItem('BETA_asxScreener.trainingUnlocked','1');}catch(e){}
+    try{sessionStorage.setItem('asxScreener.trainingUnlocked','1');}catch(e){}
     if(typeof enableTrainingMode==='function'){ enableTrainingMode(); }
     else { /* training layer not present in this build */ alert('Training mode is not available in this build.'); }
   }else{
@@ -2518,7 +2517,7 @@ const LICENCE_ENABLED=true;   // master switch in code (leave true; use dev togg
 // When a customer's copy is older than "version", they see a dismissible
 // "Update available" notice with your download link. To announce an update you
 // edit ONE hosted file — no emailing every customer. Blank = checks off.
-const UPDATE_CHECK_URL='https://teecee1313.github.io/insight-beta/update.json'; // teecee1313's GitHub Pages
+const UPDATE_CHECK_URL='https://teecee1313.github.io/insight-updates/update.json'; // teecee1313's GitHub Pages
 function _verNum(v){const m=String(v||'').match(/(\d{4})\.(\d{2})\.(\d{2})-(\d+)/);return m?((+m[1])*1e8+(+m[2])*1e6+(+m[3])*1e4+(+m[4])):0;}
 function _updEsc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
 function showUpdateToast(info){
@@ -2532,11 +2531,11 @@ function showUpdateToast(info){
     +'<span id="updToastX" style="position:absolute;top:6px;right:9px;cursor:pointer;color:#8fa6c9;font-size:13px;">✕</span>';
   document.body.appendChild(d);
   const x=document.getElementById('updToastX');
-  if(x)x.onclick=()=>{d.remove();try{sessionStorage.setItem('BETA_asxScreener.updDismiss','1');}catch(e){}};
+  if(x)x.onclick=()=>{d.remove();try{sessionStorage.setItem('asxScreener.updDismiss','1');}catch(e){}};
 }
 async function checkForUpdate(){
   if(!UPDATE_CHECK_URL)return;
-  try{ if(sessionStorage.getItem('BETA_asxScreener.updDismiss')==='1')return; }catch(e){}
+  try{ if(sessionStorage.getItem('asxScreener.updDismiss')==='1')return; }catch(e){}
   try{
     const ctrl=new AbortController();
     const t=setTimeout(()=>ctrl.abort(),8000);
@@ -2560,7 +2559,7 @@ async function checkForUpdateNow(){
     document.body.appendChild(d);
     const x=document.getElementById('updToastX'); if(x)x.onclick=()=>d.remove();
   };
-  try{sessionStorage.removeItem('BETA_asxScreener.updDismiss');}catch(e){}
+  try{sessionStorage.removeItem('asxScreener.updDismiss');}catch(e){}
   if(!UPDATE_CHECK_URL){say('⚠ No update source is configured in this copy.');return;}
   say('🔄 Checking for updates…');
   try{
@@ -2583,8 +2582,8 @@ function _setVerLabel(){try{const el=document.getElementById('verLabel');if(el)e
 if(document.readyState!=='loading')_setVerLabel();else document.addEventListener('DOMContentLoaded',_setVerLabel);
 // (Owner mode removed.)
 const LICENCE_REVOKE_URL='';   // optional: baked-in revocation list URL for shipped copies
-const LICENCE_STORE='BETA_asxScreener.licence.v1';
-const OWNER_STORE='BETA_asxScreener.owner.v1';        // {mpSalt, mpHash, secret}
+const LICENCE_STORE='asxScreener.licence.v1';
+const OWNER_STORE='asxScreener.owner.v1';        // {mpSalt, mpHash, secret}
 // The active secret: owner-set (via the protected panel) if present, else the
 // code constant above. This lets you set it in-app without editing code.
 function _lic_activeSecret(){
@@ -2610,8 +2609,8 @@ async function _lic_expectedKey(buyer,exp){
 function _lic_dateGuard(){
   try{
     const t=_lic_todayYMD();
-    const m=localStorage.getItem('BETA_asxScreener.maxSeen')||'';
-    if(t>m)localStorage.setItem('BETA_asxScreener.maxSeen',t);
+    const m=localStorage.getItem('asxScreener.maxSeen')||'';
+    if(t>m)localStorage.setItem('asxScreener.maxSeen',t);
     return (m&&t<m)?m:t;   // returns the max-seen date (effective "today")
   }catch(e){return _lic_todayYMD();}
 }
@@ -2636,7 +2635,7 @@ function _lic_msg(t,c){const el=document.getElementById('licMsg');if(el){el.inne
 // the app fetches it at startup (4s timeout, fail-open when offline) and locks
 // immediately if its own key appears.
 function _lic_localRevoked(key){
-  try{return (JSON.parse(localStorage.getItem('BETA_asxScreener.revokedLocal')||'[]')).includes(key);}catch(e){return false;}
+  try{return (JSON.parse(localStorage.getItem('asxScreener.revokedLocal')||'[]')).includes(key);}catch(e){return false;}
 }
 function _lic_revokeUrl(){
   try{const o=JSON.parse(localStorage.getItem(OWNER_STORE));if(o&&o.revokeUrl)return o.revokeUrl;}catch(e){}
@@ -2891,8 +2890,8 @@ async function changeAppPassword(){
 // update, or under storage pressure), which would wipe the saved API key,
 // portfolio and watchlists. To prevent that, we mirror those critical values
 // into IndexedDB (much stickier) and auto-restore them if localStorage is empty.
-const _CRIT_KEYS=['BETA_asxScreener.apiKey','BETA_asxScreener.newsApiKey.v1','BETA_asxScreener.paperTrades.v1','BETA_asxScreener.watchlists.v1','BETA_asxScreener.brokerage.v1'];
-function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('BETA_asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
+const _CRIT_KEYS=['asxScreener.apiKey','asxScreener.newsApiKey.v1','asxScreener.paperTrades.v1','asxScreener.watchlists.v1','asxScreener.brokerage.v1'];
+function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
 // Does a stored JSON string hold ANY real content? An empty object {}, empty
 // array [], the default one-empty-list watchlist, or a holdings-less paper store
 // all count as "empty" — so we never let an empty value overwrite a good backup,
@@ -2901,12 +2900,12 @@ function _critHasContent(k,raw){
   if(raw==null||raw==='')return false;
   let v;try{v=JSON.parse(raw);}catch(e){return true;} // unparseable but present → keep as-is
   if(v==null)return false;
-  if(k==='BETA_asxScreener.watchlists.v1'){
+  if(k==='asxScreener.watchlists.v1'){
     // {} → empty. {'My Watchlist':{}} (or any lists that are all empty) → empty.
     const lists=Object.values(v||{});
     return lists.some(l=>l&&Object.keys(l).length>0);
   }
-  if(k==='BETA_asxScreener.paperTrades.v1'){
+  if(k==='asxScreener.paperTrades.v1'){
     return !!((v.holdings&&v.holdings.length)||(v.history&&v.history.length)||(v.orders&&v.orders.length));
   }
   if(Array.isArray(v))return v.length>0;
@@ -2959,11 +2958,11 @@ async function restoreFromBackup(){
       const cur=localStorage.getItem(k);
       if(v!=null&&_critHasContent(k,v)&&!_critHasContent(k,cur)){
         try{localStorage.setItem(k,v);
-          if(k==='BETA_asxScreener.watchlists.v1')msg.push('watchlist');
-          else if(k==='BETA_asxScreener.paperTrades.v1')msg.push('paper portfolio');
-          else if(k==='BETA_asxScreener.apiKey')msg.push('API key');
-          else if(k==='BETA_asxScreener.newsApiKey.v1')msg.push('news key');
-          else if(k==='BETA_asxScreener.brokerage.v1')msg.push('brokerage setting');
+          if(k==='asxScreener.watchlists.v1')msg.push('watchlist');
+          else if(k==='asxScreener.paperTrades.v1')msg.push('paper portfolio');
+          else if(k==='asxScreener.apiKey')msg.push('API key');
+          else if(k==='asxScreener.newsApiKey.v1')msg.push('news key');
+          else if(k==='asxScreener.brokerage.v1')msg.push('brokerage setting');
         }catch(e){}
       }
     }
@@ -2985,7 +2984,7 @@ async function restoreFromBackup(){
 
 function initKeyLock(){
   try{
-    const saved=localStorage.getItem('BETA_asxScreener.apiKey');
+    const saved=localStorage.getItem('asxScreener.apiKey');
     if(saved){const el=document.getElementById('apiKey');if(el)el.value=saved;}
     const nk=localStorage.getItem(NEWSAPI_KEY_STORE);
     if(nk){const el=document.getElementById('newsApiKey');if(el)el.value=nk;}
@@ -2995,7 +2994,7 @@ function initKeyLock(){
 }
 // Show the saved-state (collapsed) row when a key exists, else the input row.
 function _refreshKeyUI(){
-  let has=false; try{has=!!(localStorage.getItem('BETA_asxScreener.apiKey')||'').trim();}catch(e){}
+  let has=false; try{has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();}catch(e){}
   const entry=document.getElementById('keyEntryRow');
   const saved=document.getElementById('keySavedRow');
   if(entry&&saved){ entry.style.display=has?'none':'block'; saved.style.display=has?'flex':'none'; }
@@ -3012,8 +3011,8 @@ function changeApiKey(){
 function _maybeFirstRunKeyPrompt(){
   try{
     if(window._keyPromptShown)return;
-    const done=!!(localStorage.getItem('BETA_asxScreener.welcomeDone.v1')||'').trim();
-    const has=!!(localStorage.getItem('BETA_asxScreener.apiKey')||'').trim();
+    const done=!!(localStorage.getItem('asxScreener.welcomeDone.v1')||'').trim();
+    const has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();
     if(done||has)return; // already set up or already dismissed the wizard
     // don't stack over the app gate; wait until the app is visible
     const gate=document.getElementById('appGate');
@@ -3044,7 +3043,7 @@ function _showWizard(step){
       <button onclick="_wizDemo()" style="width:100%;background:transparent;color:#8fa6c9;border:1px solid #24406e;border-radius:9px;padding:11px;font:600 12px system-ui;cursor:pointer;">Just show me a demo first</button>
       ${dots(1)}`);
   } else if(step===2){
-    const savedKey=(localStorage.getItem('BETA_asxScreener.apiKey')||'').trim();
+    const savedKey=(localStorage.getItem('asxScreener.apiKey')||'').trim();
     ov.innerHTML=card(`
       <div style="font:800 16px system-ui;color:#eef3fb;margin-bottom:4px;">🔑 Step 1 — Your data key</div>
       <div style="font-size:12px;color:#9fb2cc;line-height:1.55;margin-bottom:12px;">The app needs a free key from EODData to load live market data. It's saved on this device and you won't be asked again.</div>
@@ -3074,7 +3073,7 @@ function _wizSaveKey(){
   const i=document.getElementById('keyPromptInput'); if(!i)return;
   const v=(i.value||'').trim();
   if(!v){ i.style.borderColor='#E21937'; i.placeholder='Please paste your key, or tap Skip'; return; }
-  try{localStorage.setItem('BETA_asxScreener.apiKey',v);}catch(e){}
+  try{localStorage.setItem('asxScreener.apiKey',v);}catch(e){}
   const f=document.getElementById('apiKey'); if(f)f.value=v;
   try{_refreshKeyUI&&_refreshKeyUI();}catch(e){}
   _showWizard(3);
@@ -3090,7 +3089,7 @@ function _wizFinish(){
   try{ if(typeof loadData==='function')loadData(true); }catch(e){}
 }
 function _wizDone(){
-  try{localStorage.setItem('BETA_asxScreener.welcomeDone.v1','1');}catch(e){}
+  try{localStorage.setItem('asxScreener.welcomeDone.v1','1');}catch(e){}
   const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove();
 }
 function _keyPromptSave(){ _wizSaveKey(); }
@@ -3389,7 +3388,7 @@ function _resetBeforeScan(){
 // ── "My Report" — save the current filter set as a reusable preset ──────────
 // Stored in localStorage so it persists across sessions and is editable
 // (saving again overwrites it). Captures the full F state + the checkboxes.
-const MYREPORT_KEY='BETA_asxScreener.myReport.v1';
+const MYREPORT_KEY='asxScreener.myReport.v1';
 const _CHKS=['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC','cOrd','cETF','cLIC','cREIT','cOpt','cPref','cBond','cSpec'];
 function _serializeInf(v){return v===Infinity?'Infinity':v;}
 function _deserInf(v){return v==='Infinity'?Infinity:v;}
@@ -3439,7 +3438,7 @@ function clearMyReport(){
 // When ON (and a report is saved), the app applies your saved ⭐ My Report
 // filters automatically once data finishes loading — so you land straight on
 // your report instead of tapping it each time.
-const MYREPORT_AUTO_KEY='BETA_asxScreener.myReportAuto.v1';
+const MYREPORT_AUTO_KEY='asxScreener.myReportAuto.v1';
 function myReportAutoOn(){try{return localStorage.getItem(MYREPORT_AUTO_KEY)==='1';}catch(e){return false;}}
 function setMyReportAuto(on){try{localStorage.setItem(MYREPORT_AUTO_KEY,on?'1':'0');}catch(e){}refreshMyReportBtn();}
 function toggleMyReportAuto(){
@@ -3466,7 +3465,7 @@ function maybeAutoMyReport(){
 //  all in sequence with one click. Each run captures its match count and the
 //  matching tickers, then a summary panel lets you view any result set.
 // ═══════════════════════════════════
-const REPORTS_KEY='BETA_asxScreener.reports.v1';
+const REPORTS_KEY='asxScreener.reports.v1';
 function loadReports(){try{return JSON.parse(localStorage.getItem(REPORTS_KEY))||[];}catch(e){return [];}}
 function saveReports(list){try{localStorage.setItem(REPORTS_KEY,JSON.stringify(list));}catch(e){}}
 
@@ -3808,7 +3807,7 @@ function newsSearchFor(ticker,exch,name){
 // Only called when you open a share's deep dive — never for all shares — so it
 // stays within a small free quota. Cached 45 min. If no key or no result, the
 // app silently falls back to the existing click-through news buttons.
-const NEWSAPI_KEY_STORE='BETA_asxScreener.newsApiKey.v1';
+const NEWSAPI_KEY_STORE='asxScreener.newsApiKey.v1';
 function newsApiKey(){try{return (localStorage.getItem(NEWSAPI_KEY_STORE)||'').trim();}catch(e){return '';}}
 function setNewsApiKey(v){try{localStorage.setItem(NEWSAPI_KEY_STORE,(v||'').trim());}catch(e){} const el=document.getElementById('newsKeyMsg'); if(el)el.textContent=newsApiKey()?'✓ Saved. Open any share\u2019s Deep dive to see live headlines.':'Cleared.';}
 const _newsCache={};
@@ -4395,15 +4394,15 @@ function tradingDaysHeld(a,b){
   while(d<end){d=new Date(d.getTime()+86400000);const w=d.getDay();if(w!==0&&w!==6)n++;if(n>2000)break;}
   return n;
 }
-const PAPER_STORE='BETA_asxScreener.paperTrades.v1';
+const PAPER_STORE='asxScreener.paperTrades.v1';
 const PAPER_START_CASH=10000;
 // ── Optional brokerage simulation: a flat fee per transaction (buy or sell),
 //    like a real broker. 0 = off (default). Fees come straight out of cash and
 //    are tallied in p.feesPaid; per-trade P/L stays gross of fees (the running
 //    fee total is shown as its own card so nothing is hidden). ──
-const BROKERAGE_STORE='BETA_asxScreener.brokerage.v1';
-const SLIPPAGE_STORE='BETA_asxScreener.slippage.v1';
-const REALFILL_STORE='BETA_asxScreener.realFills.v1';
+const BROKERAGE_STORE='asxScreener.brokerage.v1';
+const SLIPPAGE_STORE='asxScreener.slippage.v1';
+const REALFILL_STORE='asxScreener.realFills.v1';
 const ORDER_EXPIRY_DAYS=30;
 function slippagePct(){try{const v=parseFloat(localStorage.getItem(SLIPPAGE_STORE));return (isFinite(v)&&v>0)?Math.min(v,10):0;}catch(e){return 0;}}
 function setSlippage(v){const n=parseFloat(v);try{localStorage.setItem(SLIPPAGE_STORE,(isFinite(n)&&n>0)?Math.min(n,10):0);}catch(e){}showPortfolio();}
@@ -4476,7 +4475,7 @@ function _startCap(p){return (typeof p.startCap==='number'&&isFinite(p.startCap)
 function _reservedSum(p){return (p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);}
 
 // ═══ v286 — My Rules: the customer's own trading plan (practice discipline) ═══
-const RULES_KEY='BETA_asxScreener.rules.v1';
+const RULES_KEY='asxScreener.rules.v1';
 function _rules(){
   let r={}; try{ r=JSON.parse(localStorage.getItem(RULES_KEY)||'{}')||{}; }catch(e){ r={}; }
   const num=(v,d)=>{ const n=parseFloat(v); return (isFinite(n)&&n>=0)?n:d; };
@@ -5543,7 +5542,7 @@ function showPasteRestore(){
       <strong>On the version that HAS your portfolio:</strong><br>
       1. Press <b>F12</b> → click the <b>Console</b> tab.<br>
       2. Paste this line and press Enter:<br>
-      <code style="display:block;background:var(--bg3);padding:7px;border-radius:5px;margin:5px 0;font-size:10px;color:var(--gold);user-select:all;">copy(localStorage.getItem('BETA_asxScreener.paperTrades.v1'))</code>
+      <code style="display:block;background:var(--bg3);padding:7px;border-radius:5px;margin:5px 0;font-size:10px;color:var(--gold);user-select:all;">copy(localStorage.getItem('asxScreener.paperTrades.v1'))</code>
       3. It's now copied. Come back here and paste it in the box below.
     </div>
     <textarea id="pasteBox" placeholder="Paste your portfolio data here…" style="width:100%;height:100px;padding:9px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;box-sizing:border-box;"></textarea>
@@ -6224,7 +6223,7 @@ function showModal(html,label){
   // The portfolio is data-dense, so it opens large by default; other panels stay compact.
   const _isBig=_big;
   let sz=_isBig?{w:Math.round(window.innerWidth*0.9),h:Math.round(window.innerHeight*0.9)}:{w:460,h:0};
-  try{const key=_isBig?'BETA_asxScreener.modalSize.big.v1':'BETA_asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
+  try{const key=_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
   const hStyle=sz.h>0?`height:${Math.min(sz.h,window.innerHeight*0.95)}px;`:'';
   m.innerHTML=`<div id="modalBox" style="position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
     <button id="modalCloseX" onclick="closeModal()" title="Close">✕</button>
@@ -6241,7 +6240,7 @@ function showModal(html,label){
   m.style.display='flex';
   // Remember the size whenever the user finishes a resize drag (per size-class).
   const box=document.getElementById('modalBox');
-  if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'BETA_asxScreener.modalSize.big.v1':'BETA_asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
+  if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
   try{_syncStatOverTop();}catch(_){}
 }
 // v262: drop report panels (Top 20 / scans) below the floating stats banner so
@@ -7096,7 +7095,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   try{
     if(!window._deadHist){
       const _dt=new Date().toISOString().slice(0,10);
-      let _saved=null; try{_saved=JSON.parse(localStorage.getItem('BETA_asxScreener.deadHist.v1')||'null');}catch(e){}
+      let _saved=null; try{_saved=JSON.parse(localStorage.getItem('asxScreener.deadHist.v1')||'null');}catch(e){}
       window._deadHist=new Set(_saved&&_saved.date===_dt?_saved.list:[]);
       window._deadHistDate=_dt;
     }
@@ -7237,7 +7236,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     window._goodHistProxy=got.pi;
     window._histFailRun=0;
     window._histOkCount=(window._histOkCount||0)+1;
-    try{ if(window._deadHist&&window._deadHist.delete(exch+':'+ticker)){clearTimeout(window._deadHistT);window._deadHistT=setTimeout(()=>{try{localStorage.setItem('BETA_asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);} }catch(e){}
+    try{ if(window._deadHist&&window._deadHist.delete(exch+':'+ticker)){clearTimeout(window._deadHistT);window._deadHistT=setTimeout(()=>{try{localStorage.setItem('asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);} }catch(e){}
     // Fresh data replaced a stale stored copy → update the disk store so the
     // offline data auto-heals to today's without a full re-download.
     if(Array.isArray(got.out)&&got.out.length>=2){ try{histPut(exch,ticker,got.out);}catch(e){} } // v236: save EVERY fresh fetch — new shares now grow the on-device store
@@ -7262,7 +7261,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     if((window._histOkCount||0)>=10 && window._deadHist){
       window._deadHist.add(exch+':'+ticker);
       clearTimeout(window._deadHistT);
-      window._deadHistT=setTimeout(()=>{try{localStorage.setItem('BETA_asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);
+      window._deadHistT=setTimeout(()=>{try{localStorage.setItem('asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);
     }
   }catch(e){}
   // Serve older stored data if we have it — stale beats nothing, and this is
@@ -8351,8 +8350,8 @@ let _chartTicker=null, _chartTF=66;  // default ~3 months
 // ═══ v220 CHART ENGINE — candles, touch, trades, accumulation, benchmark, log ═══
 function showChart(ticker){
   _chartTicker=ticker; _chartTF=66;
-  try{window._chartStyle=localStorage.getItem('BETA_asxScreener.chartStyle.v1')==='candle'?'candle':'line';}catch(e){window._chartStyle='line';}
-  try{window._chartLog=localStorage.getItem('BETA_asxScreener.chartLog.v1')==='1';}catch(e){window._chartLog=false;}
+  try{window._chartStyle=localStorage.getItem('asxScreener.chartStyle.v1')==='candle'?'candle':'line';}catch(e){window._chartStyle='line';}
+  try{window._chartLog=localStorage.getItem('asxScreener.chartLog.v1')==='1';}catch(e){window._chartLog=false;}
   window._chartBench=false;
   showModal(_chartHtml(ticker),'📈 '+ticker+' price chart');
 }
@@ -8365,12 +8364,12 @@ function _chartRerender(){
 }
 function _chartToggleStyle(){
   window._chartStyle=(window._chartStyle==='candle')?'line':'candle';
-  try{localStorage.setItem('BETA_asxScreener.chartStyle.v1',window._chartStyle);}catch(e){}
+  try{localStorage.setItem('asxScreener.chartStyle.v1',window._chartStyle);}catch(e){}
   _chartRerender();
 }
 function _chartToggleLog(){
   window._chartLog=!window._chartLog;
-  try{localStorage.setItem('BETA_asxScreener.chartLog.v1',window._chartLog?'1':'0');}catch(e){}
+  try{localStorage.setItem('asxScreener.chartLog.v1',window._chartLog?'1':'0');}catch(e){}
   _chartRerender();
 }
 function _chartToggleBench(){
@@ -9107,8 +9106,8 @@ async function autoRunTechnicals(){
 // ── Live Load Presets ──────────────────────────────────────────────────────
 // 3 renameable presets, each saving: security types, gainers-only, min volume.
 // Applies to the LIVE load only. Stored in localStorage.
-const LOADPRESET_STORE='BETA_asxScreener.loadPresets.v1';
-let _activeLoadPreset=(function(){try{return parseInt(localStorage.getItem('BETA_asxScreener.loadPresetActive.v1'))||0;}catch(e){return 0;}})();
+const LOADPRESET_STORE='asxScreener.loadPresets.v1';
+let _activeLoadPreset=(function(){try{return parseInt(localStorage.getItem('asxScreener.loadPresetActive.v1'))||0;}catch(e){return 0;}})();
 function _defaultLoadPresets(){
   return [
     {name:'All shares', types:['Ordinary','ETF','LIC','REIT','Option','Preference','Bond','Speculative'], gainers:false, minVol:0},
@@ -9124,7 +9123,7 @@ function saveLoadPresetsAll(arr){ try{localStorage.setItem(LOADPRESET_STORE,JSON
 // Paint the form with a preset's values
 function selectLoadPreset(slot){
   _activeLoadPreset=slot;
-  try{localStorage.setItem('BETA_asxScreener.loadPresetActive.v1',String(slot));}catch(e){}
+  try{localStorage.setItem('asxScreener.loadPresetActive.v1',String(slot));}catch(e){}
   const p=getLoadPresets()[slot]||_defaultLoadPresets()[slot];
   document.querySelectorAll('#loadPresetTabs .lp-tab').forEach((t,i)=>t.classList.toggle('active',i===slot));
   const nm=document.getElementById('lpName'); if(nm)nm.value=p.name||('Preset '+(slot+1));
@@ -9597,7 +9596,7 @@ async function fetchTechnicalList(exch,apiKey){
 //  of the day fetches ~22 days; every reload after pulls them from disk in
 //  milliseconds and only the newest missing day hits the network.
 // ═══════════════════════════════════
-const CACHE_DB='BETA_pnAnalyser', CACHE_STORE='dailyQuotes', HIST_STORE='shareHistory', CACHE_VER=2;
+const CACHE_DB='pnAnalyser', CACHE_STORE='dailyQuotes', HIST_STORE='shareHistory', CACHE_VER=2;
 // ── API plan settings (EODData/EODHD) ──
 // Daily call limit and per-minute request limit. Upgraded plan = 100,000/day,
 // 1,000 requests/minute. Each EOD history request = 1 call, so the full ASX
@@ -9924,7 +9923,7 @@ async function loadOfflineNow(){
     try{ closeOverlay(); }catch(e){}
     if(statusEl)statusEl.innerHTML=`<span style="color:var(--green)">📂 Loaded ${offlineRows.length.toLocaleString()} ${exch} shares from your saved data (offline — no network used). Prices are from your last download; press ⚡ Load for today's fresh prices.</span>`;
     try{
-      const _full=parseInt(localStorage.getItem('BETA_asxScreener.lastLiveCount.'+exch))||0;
+      const _full=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0;
       if(_full>0 && offlineRows.length<_full*0.9 && statusEl){
         statusEl.innerHTML+=` <span style="color:var(--gold)">Heads-up: your saved data holds ${offlineRows.length.toLocaleString()} of the ~${_full.toLocaleString()} shares on ${exch}. Press the ⚡ live load once — the app fetches &amp; saves the missing ones automatically.</span>`;
       }
@@ -9969,7 +9968,7 @@ async function fetchSymbolList(exch,apiKey){
 // ── MULTI-EXCHANGE DOWNLOAD: pick several markets, download all of them ───────
 const DOWNLOADABLE_EXCH=['ASX','NYSE','NASDAQ','AMEX','LSE','TSX','TSXV','NSE','SGX','FRA','AMS','PAR','BRU','OSL','MSE','SHG','SHE','OTCBB','USMF'];
 function openMultiDownload(){
-  const saved=(()=>{try{return JSON.parse(localStorage.getItem('BETA_asxScreener.dlExch.v1'))||['ASX'];}catch(e){return ['ASX'];}})();
+  const saved=(()=>{try{return JSON.parse(localStorage.getItem('asxScreener.dlExch.v1'))||['ASX'];}catch(e){return ['ASX'];}})();
   const boxes=DOWNLOADABLE_EXCH.map(x=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text);padding:4px 8px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;margin:2px;"><input type="checkbox" class="dlExchChk" value="${x}" ${saved.includes(x)?'checked':''} style="cursor:pointer;margin:0;"> ${x}</label>`).join('');
   window._modalLabel='⬇ Download data';
   showModal(`
@@ -9990,7 +9989,7 @@ async function startMultiDownload(){
   if(!apiKey){alert('Enter your API key first.');return;}
   const chosen=[...document.querySelectorAll('.dlExchChk:checked')].map(c=>c.value);
   if(!chosen.length){alert('Tick at least one exchange.');return;}
-  try{localStorage.setItem('BETA_asxScreener.dlExch.v1',JSON.stringify(chosen));}catch(e){}
+  try{localStorage.setItem('asxScreener.dlExch.v1',JSON.stringify(chosen));}catch(e){}
   const bar=document.getElementById('multiBar'), lbl=document.getElementById('multiLbl'), go=document.getElementById('multiGo');
   _multiAbort=false; if(go){go.disabled=true;go.textContent='Downloading…';}
   const today=new Date().toISOString().slice(0,10);
@@ -10055,7 +10054,7 @@ async function startMultiDownload(){
 // Takes a while (per-share API calls), but afterwards everything works offline.
 let _bulkAbort=false;
 // ── Download type chips: remember which security types you download ────────
-const DLTYPES_STORE='BETA_asxScreener.dlTypes.v1';
+const DLTYPES_STORE='asxScreener.dlTypes.v1';
 function saveDlTypes(){
   const sel=[...document.querySelectorAll('#dlTypes input[data-t]')].filter(c=>c.checked).map(c=>c.getAttribute('data-t'));
   try{localStorage.setItem(DLTYPES_STORE,JSON.stringify(sel));}catch(e){}
@@ -10225,7 +10224,7 @@ async function downloadEverything(){
   updateOfflineStatus();
   // Record when the store was last brought up to date — startup uses this to
   // decide whether a full-depth prepare can safely read from disk (saved today).
-  try{ if(ok>0) localStorage.setItem('BETA_asxScreener.histStoreDate.v1', today); }catch(e){}
+  try{ if(ok>0) localStorage.setItem('asxScreener.histStoreDate.v1', today); }catch(e){}
   window._bulkRunning=false;
   window._forceFullDownload=false; // one-shot: back to smart-update next time
   // Everything is now on disk — prepare all signals from the offline cache so the
@@ -10274,8 +10273,8 @@ async function updateOfflineStatus(){
     const sd=document.getElementById('savedDataStat');
     if(sd){
       if(n){
-        let when=''; try{when=localStorage.getItem('BETA_asxScreener.histStoreDate.v1')||'';}catch(e){}
-        let _cov=''; try{const _f=parseInt(localStorage.getItem('BETA_asxScreener.lastLiveCount.'+((document.getElementById('exchSel')||{}).value||'ASX')))||0; if(_f>0&&n<_f*0.9)_cov=' · <span style="color:var(--gold)">covers '+n.toLocaleString()+' of ~'+_f.toLocaleString()+' — one ⚡ live load fetches &amp; saves the rest</span>';}catch(e){}
+        let when=''; try{when=localStorage.getItem('asxScreener.histStoreDate.v1')||'';}catch(e){}
+        let _cov=''; try{const _f=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+((document.getElementById('exchSel')||{}).value||'ASX')))||0; if(_f>0&&n<_f*0.9)_cov=' · <span style="color:var(--gold)">covers '+n.toLocaleString()+' of ~'+_f.toLocaleString()+' — one ⚡ live load fetches &amp; saves the rest</span>';}catch(e){}
         sd.innerHTML='✓ <span style="color:var(--green)">'+n.toLocaleString()+' shares saved on this device</span>'+(when?' · last updated '+when:'')+_cov;
       } else {
         sd.innerHTML='<span style="color:var(--orange)">Nothing saved yet</span> — press ⬇ Download below once, and every later load is instant.';
@@ -10547,7 +10546,7 @@ function bgSet(html){
 function bgHide(){const el=document.getElementById('bgInd');if(el)el.style.display='none';}
 // v268: let the progress banner be dragged out of the way (position remembered).
 (function _bgIndDraggable(){
-  const KEY='BETA_asxScreener.bgIndPos.v1';
+  const KEY='asxScreener.bgIndPos.v1';
   function applyPos(el){ try{ const p=JSON.parse(localStorage.getItem(KEY)||'null');
     if(p&&isFinite(p.left)&&isFinite(p.top)){ el.style.left=p.left+'px'; el.style.top=p.top+'px'; el.style.right='auto'; } }catch(e){} }
   function clamp(el){ const r=el.getBoundingClientRect(); const mw=window.innerWidth-r.width-4, mh=window.innerHeight-r.height-4;
@@ -10985,7 +10984,7 @@ Output the complete array. Start with [`;
       {
         const _arr=Array.isArray(rows)?rows:((rows&&(rows.symbols||rows.quotes||rows.data))||[]);
         let _known={ASX:1500,NYSE:2000,NASDAQ:3000,LSE:1800,TSX:1200}[exch]||0;
-        try{_known=Math.max(_known,parseInt(localStorage.getItem('BETA_asxScreener.lastLiveCount.'+exch))||0);}catch(e){}
+        try{_known=Math.max(_known,parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0);}catch(e){}
         try{_known=Math.max(_known,await histCount());}catch(e){}
         if(_known>0 && _arr.length<_known*0.85){ rows=null; throw new Error('the AI relay returned only '+_arr.length+' shares of the ~'+_known.toLocaleString()+' on '+exch+' — truncated list rejected'); }
       }
@@ -11071,7 +11070,7 @@ Output the complete array. Start with [`;
     // or the current table. The store accumulates delisted/suspended symbols
     // over time (Tony's held 4,317 vs ~2,900 actually listed), so measuring the
     // live list against it rejected every good list forever.
-    let _kn=(parseInt(localStorage.getItem('BETA_asxScreener.lastLiveCount.'+exch))||0);
+    let _kn=(parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0);
     if(!_kn)_kn=({ASX:1500,NYSE:2000,NASDAQ:3000,LSE:1800,TSX:1200}[exch]||0); // static floor only until a real live count is recorded
     if(_kn>0 && results.length<_kn*0.85 && Array.isArray(allData) && allData.length>results.length){
       const _lsq=document.getElementById('loadStatus');
@@ -11085,7 +11084,7 @@ Output the complete array. Start with [`;
   }catch(e){}
   progFill.style.width='100%';
   allData=results;
-  try{ if(via!=='ai-proxy'){ const _prev=parseInt(localStorage.getItem('BETA_asxScreener.lastLiveCount.'+exch))||0; localStorage.setItem('BETA_asxScreener.lastLiveCount.'+exch,String(Math.max(_prev,results.length))); } }catch(e){} // v238: full-confidence routes only, never shrink (AI-relay truncation had poisoned this)
+  try{ if(via!=='ai-proxy'){ const _prev=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0; localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(Math.max(_prev,results.length))); } }catch(e){} // v238: full-confidence routes only, never shrink (AI-relay truncation had poisoned this)
   window._listRetryN=0;
   window._offlineMode=false; // v236: a successful LIVE load leaves offline mode — history & scans fetch normally again
 
@@ -11155,7 +11154,7 @@ Output the complete array. Start with [`;
 })();
 
 // ── Sidebar: drag-to-resize + hide/show (persist) ───────────────────────────
-const SIDEBAR_W_KEY='BETA_asxScreener.sidebarW', SIDEBAR_HIDDEN_KEY='BETA_asxScreener.sidebarHidden';
+const SIDEBAR_W_KEY='asxScreener.sidebarW', SIDEBAR_HIDDEN_KEY='asxScreener.sidebarHidden';
 let _resizing=false;
 function startResize(e){
   _resizing=true;document.body.classList.add('resizing');
@@ -11190,7 +11189,7 @@ function toggleSidebar(){
   try{localStorage.setItem(SIDEBAR_HIDDEN_KEY,hidden?'1':'0');}catch(_){}
 }
 // ── Simple / Advanced mode ──────────────────────────────────────────────────
-const APP_MODE_KEY='BETA_asxScreener.appMode.v1';
+const APP_MODE_KEY='asxScreener.appMode.v1';
 function setAppMode(mode){
   const simple = mode==='simple';
   document.body.classList.toggle('simple-mode', simple);
@@ -11212,7 +11211,7 @@ function setAppMode(mode){
 // Snapshots key per-share metrics each visit; on the next visit, surfaces the
 // shares that crossed a meaningful threshold (newly accumulating, newly surging,
 // big move). Uses the growing offline history — personal, proactive, offline.
-const WHATSNEW_KEY='BETA_asxScreener.whatsNew.v1';
+const WHATSNEW_KEY='asxScreener.whatsNew.v1';
 function _snapshotNow(){
   const snap={}; 
   if(!Array.isArray(allData))return snap;
@@ -11480,7 +11479,7 @@ function _simpleSearch(query){
 }
 async function simpleLoad(fresh){
   const st=document.getElementById('simpleStatus');
-  const hasKey = (function(){try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('BETA_asxScreener.apiKey');}catch(_){return false;}})();
+  const hasKey = (function(){try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
   // How much saved (offline) data is on the device?
   let saved=0; try{ saved=await histCount(); }catch(_){}
   // DEFAULT = fast: if we have saved data and the caller didn't force fresh,
@@ -11595,7 +11594,7 @@ async function recoveryScan(){
   if(!allData||!allData.length){if(st)st.textContent='Load your shares first.';return;}
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('BETA_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
     else{if(st)st.textContent='Loading volume & streaks…';if(typeof bulkVolume==='function')await bulkVolume();}
   }
@@ -11646,7 +11645,7 @@ async function quietMoversScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Quiet Movers.'; _scanDone&&_scanDone(); return; }
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('BETA_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading volume & streaks…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -11717,7 +11716,7 @@ async function gapScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run the Gap Report.'; _scanDone&&_scanDone(); return; }
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('BETA_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -11796,7 +11795,7 @@ async function trendScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Strong Trends.'; _scanDone&&_scanDone(); return; }
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('BETA_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -11853,7 +11852,7 @@ async function pullbackScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Pullback in Uptrend.'; _scanDone&&_scanDone(); return; }
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('BETA_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -11984,7 +11983,7 @@ function showMyChanges(auto){
   const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🔔 What's changed for YOU</div>
     <div style="font-size:9.5px;color:var(--dim);margin:3px 0 10px;">Your holdings & watchlists checked against ${d.dataDate?`the data of <b style="color:var(--muted)">${d.dataDate}</b>`:'the latest data'} · ${d.holdN} holding${d.holdN===1?'':'s'} · ${watchTotal} watched.</div>`;
   showModal(head+body,"🔔 What's changed for me");
-  try{ if(d.dataDate)localStorage.setItem('BETA_asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
+  try{ if(d.dataDate)localStorage.setItem('asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
   return true;
 }
 function _openListFromBriefing(nm){
@@ -11998,7 +11997,7 @@ function _openListFromBriefing(nm){
       if(!Array.isArray(allData)||!allData.length)return;
       let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
       if(!dd)return;
-      let seenD=null; try{ seenD=localStorage.getItem('BETA_asxScreener.myChangesSeen.v1'); }catch(e){}
+      let seenD=null; try{ seenD=localStorage.getItem('asxScreener.myChangesSeen.v1'); }catch(e){}
       if(seenD===dd)return;
       if(window._myChangesAutoShown===dd)return;      // v288: auto-open at most once per data day, per session
       const m=document.getElementById('appModal');
@@ -12007,7 +12006,7 @@ function _openListFromBriefing(nm){
       // v288: mark it seen with OUR dd (the value this loop compares) BEFORE opening,
       // so it can never disagree with a differently-computed date and loop forever.
       window._myChangesAutoShown=dd;
-      try{ localStorage.setItem('BETA_asxScreener.myChangesSeen.v1',dd); }catch(e){}
+      try{ localStorage.setItem('asxScreener.myChangesSeen.v1',dd); }catch(e){}
       if(!d.items.length)return;
       showMyChanges(true);
     }catch(e){}
@@ -12105,7 +12104,7 @@ function initSidebarLayout(){
 }
 
 // ── Vertical resize: drag the divider to grow section 3 (and shrink 1&2) ─────
-const SETUPROW_H_KEY='BETA_asxScreener.setupRowH';
+const SETUPROW_H_KEY='asxScreener.setupRowH';
 let _vresizing=false;
 function startVResize(e){
   _vresizing=true;document.body.classList.add('vresizing');
@@ -12136,7 +12135,7 @@ function resetVResize(){
 
 // Make every filter group (.fg) collapsible by clicking its label. Persists
 // which groups are collapsed so section 3 can be trimmed to just what you use.
-const FG_COLLAPSE_KEY='BETA_asxScreener.fgCollapsed.v1';
+const FG_COLLAPSE_KEY='asxScreener.fgCollapsed.v1';
 function loadFgCollapsed(){try{return JSON.parse(localStorage.getItem(FG_COLLAPSE_KEY))||{};}catch(e){return {};}}
 function saveFgCollapsed(o){try{localStorage.setItem(FG_COLLAPSE_KEY,JSON.stringify(o));}catch(e){}}
 function initCollapsibleGroups(){
@@ -12187,7 +12186,7 @@ function initCollapsibleGroups(){
 // Hides every hover explanation (filter hints + tooltips) so the methodology
 // behind filters, scans and scores isn't revealed to anyone watching or using
 // the app. Titles are parked in data-ttip and restored if switched off.
-const PRIVATE_STORE='BETA_asxScreener.privateMode.v1';
+const PRIVATE_STORE='asxScreener.privateMode.v1';
 function privateOn(){return true;} // LOCKED ON
 function stripTitles(){
   document.querySelectorAll('[title]').forEach(el=>{
@@ -12211,7 +12210,7 @@ function setPrivateMode(on){ on=true; // locked on
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=on?'🔒 Private mode ON — explanations hidden.':'Private mode off — hover explanations restored.';
 }
-const ADVFILT_STORE='BETA_asxScreener.advFilters.v1';
+const ADVFILT_STORE='asxScreener.advFilters.v1';
 function advFiltersOpen(){try{return localStorage.getItem(ADVFILT_STORE)==='1';}catch(e){return false;}} // default hidden
 function applyAdvFilters(){
   // The Refine-filters section is now a <details> tab (like Setup & data). The
@@ -12234,14 +12233,14 @@ function syncRefineToggle(){
   if(!det)return;
   try{localStorage.setItem(ADVFILT_STORE,det.open?'1':'0');}catch(e){}
 }
-const AUTOTECH_STORE='BETA_asxScreener.autoTech.v1';
+const AUTOTECH_STORE='asxScreener.autoTech.v1';
 function autoTechOn(){try{return localStorage.getItem(AUTOTECH_STORE)!=='0';}catch(e){return true;}} // default ON
 function setAutoTech(on){try{localStorage.setItem(AUTOTECH_STORE,on?'1':'0');}catch(e){}
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=on?'<span style="color:var(--green)">📐 Technicals at startup ON</span> — MA/RSI/52-wk etc. compute automatically for the top shares and all your watchlist stocks.':'Technicals at startup OFF — use the 📐 scan when you want them.';
 }
-const PREPALL_STORE='BETA_asxScreener.prepAll.v1';
-const PREPDEPTH_STORE='BETA_asxScreener.prepDepth.v1';
+const PREPALL_STORE='asxScreener.prepAll.v1';
+const PREPDEPTH_STORE='asxScreener.prepDepth.v1';
 function prepAllOn(){try{return localStorage.getItem(PREPALL_STORE)!=='0';}catch(e){return true;}} // default ON (fills streak/accum/score columns at startup)
 function prepDepthRaw(){try{return localStorage.getItem(PREPDEPTH_STORE)||'all';}catch(e){return 'all';}}
 function prepDepth(){const r=prepDepthRaw();return r==='all'?999999:(parseInt(r)||2000);}
@@ -12254,10 +12253,10 @@ function setPrepDepth(v){try{localStorage.setItem(PREPDEPTH_STORE,v);}catch(e){}
 // A browser page can't run while closed, so this fetches at the set time IF the
 // app is open then, otherwise it catches up the next time you open the app after
 // the scheduled time on a selected day (once per day).
-const AUTODL_STORE='BETA_asxScreener.autoDownload.v1';
-const AUTODL_TIME='BETA_asxScreener.autoDownload.time.v1';
-const AUTODL_DAYS='BETA_asxScreener.autoDownload.days.v1';
-const AUTODL_LAST='BETA_asxScreener.autoDownload.lastRun.v1';
+const AUTODL_STORE='asxScreener.autoDownload.v1';
+const AUTODL_TIME='asxScreener.autoDownload.time.v1';
+const AUTODL_DAYS='asxScreener.autoDownload.days.v1';
+const AUTODL_LAST='asxScreener.autoDownload.lastRun.v1';
 function autoDownloadOn(){try{return localStorage.getItem(AUTODL_STORE)==='1';}catch(e){return false;}} // default OFF
 function autoDownloadTime(){try{return localStorage.getItem(AUTODL_TIME)||'19:00';}catch(e){return '19:00';}}
 function autoDownloadDays(){ // default: weekdays (Mon–Fri)
@@ -12307,7 +12306,7 @@ function startAutoDownloadScheduler(){
   if(_autoDlTimer)clearInterval(_autoDlTimer);
   _autoDlTimer=setInterval(runScheduledDownloadIfDue, 60000); // check each minute
 }
-const AUTOLOAD_STORE='BETA_asxScreener.autoLoad.v1';
+const AUTOLOAD_STORE='asxScreener.autoLoad.v1';
 function autoLoadOn(){try{return localStorage.getItem(AUTOLOAD_STORE)!=='0';}catch(e){return true;}} // default ON
 function setAutoLoad(on){
   try{localStorage.setItem(AUTOLOAD_STORE,on?'1':'0');}catch(e){}
@@ -12331,7 +12330,7 @@ function setAutoLoad(on){
   if(typeof updateOfflineStatus==='function')setTimeout(updateOfflineStatus,500);
   const pd=document.getElementById('prepDepth');if(pd)pd.value=prepDepthRaw();
   try{
-    const last=localStorage.getItem('BETA_asxScreener.lastExch');
+    const last=localStorage.getItem('asxScreener.lastExch');
     if(last){const es=document.getElementById('exchSel');if(es&&es.querySelector(`option[value="${last}"]`)){es.value=last;currentExch=last;applyAssetMode();}}
   }catch(e){}
   if(!autoLoadOn())return;
@@ -12347,7 +12346,7 @@ function setAutoLoad(on){
     let cached=0;
     try{ cached=await histCount(); }catch(e){}
     let key=(document.getElementById('apiKey')||{}).value||'';
-    if(!key){ try{ key=localStorage.getItem('BETA_asxScreener.apiKey')||''; }catch(e){} } // v249: input may not be populated yet at this point
+    if(!key){ try{ key=localStorage.getItem('asxScreener.apiKey')||''; }catch(e){} } // v249: input may not be populated yet at this point
 
     if(cached>0){
       // ── We have offline data — load the list, then prepare signals. ──
@@ -12357,7 +12356,7 @@ function setAutoLoad(on){
       // API calls at startup — so instead we prepare at the normal depth (same
       // as a fresh install) and let the scheduled fetch / manual download bring
       // the full store up to date.
-      const _storeFresh=(function(){try{return localStorage.getItem('BETA_asxScreener.histStoreDate.v1')===new Date().toISOString().slice(0,10);}catch(e){return false;}})();
+      const _storeFresh=(function(){try{return localStorage.getItem('asxScreener.histStoreDate.v1')===new Date().toISOString().slice(0,10);}catch(e){return false;}})();
       if(ls)ls.innerHTML=`<span style="color:var(--green)">📂 Offline data found (${cached.toLocaleString()} shares${_storeFresh?', saved today':''})…</span>`;
       // ── v246: DISK-FIRST STARTUP ──────────────────────────────────────
       // Show the saved market with full signals IMMEDIATELY (seconds, offline),
@@ -12469,8 +12468,8 @@ function makeDraggable(zoneId, storeKey){
 }
 // Wire up the draggable zones once the DOM is ready.
 (function initDrag(){
-  makeDraggable('scanDragZone','BETA_asxScreener.order.scans.v1');
-  makeDraggable('filterDragZone','BETA_asxScreener.order.filters.v1');
+  makeDraggable('scanDragZone','asxScreener.order.scans.v1');
+  makeDraggable('filterDragZone','asxScreener.order.filters.v1');
 })();
 syncP();syncV();
 </script>
@@ -13089,7 +13088,7 @@ window.enableTrainingMode=function(){
 window.disableTrainingMode=function(){
   document.body.classList.remove('training-on');
   document.body.classList.remove('training-min');
-  try{sessionStorage.removeItem('BETA_asxScreener.trainingUnlocked');}catch(e){}
+  try{sessionStorage.removeItem('asxScreener.trainingUnlocked');}catch(e){}
   _hideTT();
   // Clear the demo/practice data so exiting training leaves a clean slate —
   // otherwise the fake demo shares stay on screen after you leave.
@@ -13109,7 +13108,7 @@ window.disableTrainingMode=function(){
   }catch(e){}
 };
 // If already unlocked this session, re-enable on load.
-try{ if(sessionStorage.getItem('BETA_asxScreener.trainingUnlocked')==='1'){ window.addEventListener('load',()=>setTimeout(()=>window.enableTrainingMode&&window.enableTrainingMode(),800)); } }catch(e){}
+try{ if(sessionStorage.getItem('asxScreener.trainingUnlocked')==='1'){ window.addEventListener('load',()=>setTimeout(()=>window.enableTrainingMode&&window.enableTrainingMode(),800)); } }catch(e){}
 })();
 </script>
 <!-- ═══════════ END EMBEDDED TRAINING LAYER ═══════════ -->
@@ -13284,7 +13283,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
 /* ═══ v248 — confirmed ASX announcements layer (news ✓ + director ✓) ═══ */
 (function(){
   var DAY=new Date().toISOString().slice(0,10);
-  var CK='BETA_asxScreener.ann.v2';
+  var CK='asxScreener.ann.v2';
   var cache={date:DAY,by:{}};
   try{ var st=JSON.parse(localStorage.getItem(CK)||'null'); if(st&&st.date===DAY)cache=st; }catch(e){}
   var attempted={}, fails=0, MAXC=3;
@@ -13292,7 +13291,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
   function apply(s,rec){ s.annConfirmed=true; s.annNews5d=rec.n||0; s.annDir5d=!!rec.d; s.annHeadline=(typeof _sanText==='function')?_sanText(rec.h||'',140):String(rec.h||'').replace(/[<>"'`\\]/g,'').slice(0,140); } // v285: cached/feed headlines cleaned at the boundary before any render
   // v275: rolling dated log of confirmed price-sensitive announcements, so the
   // Signal Report Card can split fires into news-driven vs quiet — honestly.
-  var LK='BETA_asxScreener.annLog.v1';
+  var LK='asxScreener.annLog.v1';
   var annLog={start:DAY,checked:{},ps:{}};
   try{ var lg=JSON.parse(localStorage.getItem(LK)||'null'); if(lg&&lg.checked&&lg.ps){annLog=lg; if(!annLog.start)annLog.start=DAY;} }catch(e){}
   var _lgDirty=false;
@@ -13576,7 +13575,7 @@ function _watchTrendChip(s,starPrice,starDate){
 </style>
 <script id="quizJs">
 /* ═══ v254 — lesson quizzes: teaching, not testing ═══ */
-function _quizDone(){ try{return JSON.parse(localStorage.getItem('BETA_asxScreener.quizDone.v1')||'{}');}catch(e){return {};} }
+function _quizDone(){ try{return JSON.parse(localStorage.getItem('asxScreener.quizDone.v1')||'{}');}catch(e){return {};} }
 function _quizHtml(li,quiz){
   var done=_quizDone()['l'+li];
   var h='<div class="lsn-quiz"><div class="lsn-quiz-hd">📝 Quick quiz'+(done?' <span class="lsn-quiz-done">✓ passed</span>':'')+'<span class="lsn-quiz-sub">tap an answer — wrong guesses cost nothing</span></div>';
@@ -13596,7 +13595,7 @@ function _quizPick(el,li,qi,oi,ci){
       q.classList.add('answered');
       var wrap=q.closest('.lsn-quiz');
       if(wrap && wrap.querySelectorAll('.lsn-q').length===wrap.querySelectorAll('.lsn-q.answered').length){
-        try{ var d=_quizDone(); d['l'+li]=true; localStorage.setItem('BETA_asxScreener.quizDone.v1',JSON.stringify(d)); }catch(e){}
+        try{ var d=_quizDone(); d['l'+li]=true; localStorage.setItem('asxScreener.quizDone.v1',JSON.stringify(d)); }catch(e){}
         var hd=wrap.querySelector('.lsn-quiz-hd');
         if(hd && !hd.querySelector('.lsn-quiz-done'))hd.insertAdjacentHTML('beforeend',' <span class="lsn-quiz-done">✓ passed</span>');
       }
