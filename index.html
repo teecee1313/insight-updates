@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-291-open';
+const APP_VERSION='2026.07.16-292-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12032,6 +12032,14 @@ function _openListFromBriefing(nm){
       window._myChangesAutoShown=dd;
       try{ localStorage.setItem('asxScreener.myChangesSeen.v1',dd); }catch(e){}
       if(!d.items.length)return;
+      // v292: rapid re-open guard. If the app opened on yesterday's cached data and
+      // then auto-refreshed to today's, the data date flips mid-session and the
+      // date-keyed guards above stop matching — so the briefing would pop a SECOND
+      // time seconds after you closed the first. A genuine new data day is hours
+      // apart, so this 10-minute cool-down only ever catches that stale→fresh flip
+      // (or a rapid manual reload); the current briefing is always a tap on 🔔 away.
+      if(Date.now()-(window._myChangesAutoTs||0) < 600000) return;
+      window._myChangesAutoTs=Date.now();
       showMyChanges(true);
     }catch(e){}
   },7000);
