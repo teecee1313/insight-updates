@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-299-open';
+const APP_VERSION='2026.07.16-300-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4580,13 +4580,14 @@ function showRules(){
       </div>
       <div style="margin-top:12px;padding-top:9px;border-top:1px dashed var(--border);">
         <div style="font:700 10.5px var(--sans);color:var(--text);">🎯 My picks — your shares, your prices <span style="font-weight:400;color:var(--dim);font-size:9px;">practice limit orders</span></div>
-        <div style="font-size:9px;color:var(--dim);margin:3px 0 7px;line-height:1.5;">Auto-pilot places a practice <b>limit buy</b> at your buy point (sized by your 📦 rule) with your sell point as 🎯 and your stop as 🛑 — leave sell/stop blank to use the % rules above. A pick <b>disarms itself once it fills</b> so it can't re-buy in a loop. Adding a pick for a share you already hold applies the sell/stop to that holding instead.</div>
-        <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr auto;gap:4px;align-items:end;">
+        <div style="font-size:9px;color:var(--dim);margin:3px 0 7px;line-height:1.5;">Auto-pilot places a practice <b>limit buy</b> at your buy point (sized by your 📦 rule) with your sell point as 🎯 and your stop as 🛑 — leave sell/stop blank to use the % rules above. A pick <b>disarms itself once it fills</b> so it can't re-buy in a loop — or tick 🔁 to <b>repeat</b>: after it sells at your 🎯 it buys again at your buy point, cycling until you remove it; if a cycle ends on the 🛑 (a loss) the repeat <b>pauses</b> rather than churning. Adding a pick for a share you already hold applies the sell/stop to that holding instead.</div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr auto auto;gap:4px;align-items:end;">
           <label style="font-size:9px;color:var(--muted);">Code<input id="apPkT" maxlength="6" placeholder="e.g. BHP" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;text-transform:uppercase;"></label>
           <label style="font-size:9px;color:var(--muted);">Buy at $<input id="apPkB" type="number" min="0" step="any" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);box-sizing:border-box;"></label>
           <label style="font-size:9px;color:var(--muted);">Sell at $<input id="apPkS" type="number" min="0" step="any" placeholder="% rule" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
           <label style="font-size:9px;color:var(--muted);">Stop $<input id="apPkX" type="number" min="0" step="any" placeholder="% rule" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
           <label style="font-size:9px;color:var(--muted);">Invest $<input id="apPkA" type="number" min="0" step="any" placeholder="default" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
+          <label title="Repeat: after it sells at your 🎯 (a win), buy again at your buy point — cycles until you remove it. If a cycle ends on the 🛑 stop, the repeat pauses instead of churning." style="font-size:9px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:2px;">🔁<input type="checkbox" id="apPkR" style="width:14px;height:14px;"></label>
           <button onclick="addApPickFromForm()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 10px var(--sans);cursor:pointer;">+ Add</button>
         </div>
         <div id="apPicksBox" style="margin-top:6px;">${_apPicksHtml()}</div>
@@ -4631,7 +4632,7 @@ function _apLogHtml(){
   const l=_apLog().slice(0,6);
   if(!l.length)return '<div style="font-size:9px;color:var(--dim);">No auto-pilot decisions yet — its diary will appear here.</div>';
   return '<div style="font:700 9px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">Decision diary</div>'+l.map(e=>{
-    const b=(e.buys||[]).map(x=>'🤖 '+(x.limit?('pick: limit buy '+x.tk+' — '+x.qty+' @ $'+(+x.px).toFixed(3)):('bought '+x.tk+' — '+x.qty+' @ ~$'+(+x.px).toFixed(3)))+(x.trim?' · trimmed by 📦':'')+(x.score!=null?' · score '+x.score+'/10':'')).join('<br>');
+    const b=(e.buys||[]).map(x=>'🤖 '+(x.limit?('pick: limit buy '+x.tk+' — '+x.qty+' @ $'+(+x.px).toFixed(3)):('bought '+x.tk+' — '+x.qty+' @ ~$'+(+x.px).toFixed(3)))+(x.cycle>1?' · 🔁 cycle '+x.cycle:'')+(x.trim?' · trimmed by 📦':'')+(x.score!=null?' · score '+x.score+'/10':'')).join('<br>');
     const s=(e.skips||[]).slice(0,4).map(x=>'· '+String(x).replace(/</g,'&lt;')).join('<br>');
     return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+'</div>';
   }).join('');
@@ -4697,8 +4698,8 @@ function _apPicksHtml(){
   if(!l.length)return '<div style="font-size:9px;color:var(--dim);">No picks yet.</div>';
   return l.map(k=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:9.5px;color:var(--muted);padding:3px 0;border-top:1px solid var(--border2);">'
     +'<span><b style="color:var(--text)">'+String(k.tk).replace(/[<>]/g,'')+'</b> buy $'+(+k.buyAt).toFixed(3)
-    +(k.sellAt>0?' · sell $'+(+k.sellAt).toFixed(3):' · sell: % rule')+(k.stopAt>0?' · stop $'+(+k.stopAt).toFixed(3):'')+(k.amt>0?' · invest $'+Math.round(k.amt):'')
-    +(k.armed===false?' <span style="color:var(--green)">✓ filled — disarmed</span>':'')+'</span>'
+    +(k.sellAt>0?' · sell $'+(+k.sellAt).toFixed(3):' · sell: % rule')+(k.stopAt>0?' · stop $'+(+k.stopAt).toFixed(3):'')+(k.amt>0?' · invest $'+Math.round(k.amt):'')+(k.repeat?' · 🔁 repeat'+((k.cycles||0)>1?' ×'+k.cycles:''):'')
+    +(k.armed===false?(k.pausedWhy?' <span style="color:#f0b849">⏸ '+k.pausedWhy+' — repeat paused</span>':' <span style="color:var(--green)">✓ filled — disarmed</span>'):'')+'</span>'
     +'<button onclick="removeApPick(\''+String(k.tk).replace(/[^A-Z0-9.]/gi,'')+'\')" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:11px;">✕</button></div>').join('');
 }
 function addApPickFromForm(){
@@ -4706,6 +4707,7 @@ function addApPickFromForm(){
   const tk=g('apPkT').toUpperCase(); const buyAt=parseFloat(g('apPkB'))||0;
   const sellAt=parseFloat(g('apPkS'))||0; const stopAt=parseFloat(g('apPkX'))||0;
   const amt=parseFloat(g('apPkA'))||0;
+  const rpt=((document.getElementById('apPkR')||{}).checked===true);
   const m=document.getElementById('rulesMsg');
   if(!tk||!(buyAt>0)){ if(m)m.textContent='Enter a share code and a buy price.'; return; }
   if(!Array.isArray(allData)||!allData.length){ if(m)m.textContent='Load your market data first, then add picks.'; return; }
@@ -4724,12 +4726,13 @@ function addApPickFromForm(){
   }else{
     const l=_apPicksLoad().filter(k=>k.tk!==tk);
     if(l.length>=20){ if(m)m.textContent='Pick list is full (20) \u2014 remove one first.'; return; }
-    l.unshift({tk:tk,buyAt:buyAt,sellAt:sellAt||0,stopAt:stopAt||0,amt:amt||0,armed:true,added:_todayLocal()});
+    l.unshift({tk:tk,buyAt:buyAt,sellAt:sellAt||0,stopAt:stopAt||0,amt:amt||0,repeat:rpt===true,cycles:0,armed:true,added:_todayLocal()});
     _apPicksSave(l);
     if(m)m.textContent='\u2713 Pick added \u2014 auto-pilot will place the practice limit order on its next run.';
   }
   const box=document.getElementById('apPicksBox'); if(box)box.innerHTML=_apPicksHtml();
   ['apPkT','apPkB','apPkS','apPkX','apPkA'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  try{ const rc=document.getElementById('apPkR'); if(rc)rc.checked=false; }catch(e){}
 }
 function removeApPick(tk){ _apPicksSave(_apPicksLoad().filter(k=>k.tk!==tk)); const box=document.getElementById('apPicksBox'); if(box)box.innerHTML=_apPicksHtml(); }
 function _apPlacePick(s,r,k){
@@ -4759,13 +4762,22 @@ function _apRunPicks(r,ent,maxN){
   for(const k of picks){
     if(k.armed===false)continue;
     const p=_paper();
-    if((p.holdings||[]).some(h=>h.ticker===k.tk)){ k.armed=false; changed=true; ent.skips.push(k.tk+': pick filled \u2014 disarmed (re-add to buy again)'); continue; }
+    if((p.holdings||[]).some(h=>h.ticker===k.tk)){
+      if(k.repeat!==true){ k.armed=false; changed=true; ent.skips.push(k.tk+': pick filled \u2014 disarmed (re-add to buy again)'); }
+      continue; }   // 🔁 repeat picks WAIT while held — the holding's 🎯/🛑 will exit it, then we cycle
     if((p.orders||[]).some(o=>o.ticker===k.tk))continue;
+    if(k.repeat===true){
+      const hist=(p.history||[]).filter(h=>h.ticker===k.tk&&h.sellDate&&(!k.added||h.sellDate>=k.added));
+      const last=hist.length?hist[hist.length-1]:null;
+      if(last&&last.trigger==='stop'){ k.armed=false; k.pausedWhy='stopped out'; changed=true;
+        ent.skips.push(k.tk+': last cycle STOPPED OUT \u2014 repeat paused (re-add to try again)'); continue; }
+    }
     if(((p.holdings||[]).length+(p.orders||[]).length)>=maxN){ ent.skips.push(k.tk+': at your max open positions'); continue; }
     const s=(allData||[]).find(x=>x.ticker===k.tk);
     if(!s||!(s.price>0)){ ent.skips.push(k.tk+': not in loaded data'); continue; }
     const res=_apPlacePick(s,r,k);
-    if(res.ok){ ent.buys.push({tk:k.tk,qty:res.qty,cost:res.cost,px:+k.buyAt,limit:true,trim:res.trim===true,score:(s.watchScore!=null?s.watchScore:null)}); }
+    if(res.ok){ if(k.repeat===true){ k.cycles=(k.cycles||0)+1; changed=true; }
+      ent.buys.push({tk:k.tk,qty:res.qty,cost:res.cost,px:+k.buyAt,limit:true,trim:res.trim===true,cycle:(k.repeat===true?k.cycles:0),score:(s.watchScore!=null?s.watchScore:null)}); }
     else if(ent.skips.length<6)ent.skips.push(k.tk+': '+res.why);
   }
   if(changed)_apPicksSave(picks);
