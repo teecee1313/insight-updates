@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-298-open';
+const APP_VERSION='2026.07.16-299-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4517,6 +4517,7 @@ function _rules(){
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
     apMinScore:num(r.apMinScore,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
+    apAmt:num(r.apAmt,0),
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
@@ -4526,6 +4527,7 @@ function _rulesSave(r){
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
     apMinScore:+r.apMinScore||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
+    apAmt:+r.apAmt||0,
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
@@ -4563,6 +4565,7 @@ function showRules(){
         <label style="font-size:10px;color:var(--muted);">Buys per day (max)<select id="rApMax" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option ${r.apMaxBuys===1?'selected':''}>1</option><option ${r.apMaxBuys===2?'selected':''}>2</option><option ${r.apMaxBuys===3?'selected':''}>3</option></select></label>
         <label style="font-size:10px;color:var(--muted);">Min Watch Score<input type="number" id="rApScore" min="0" max="10" step="1" value="${r.apMinScore||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
+        <label style="font-size:10px;color:var(--muted);">💵 $ per buy<input type="number" id="rApAmt" min="0" step="any" value="${r.apAmt||''}" placeholder="blank = 📦 % rule" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:8.5px;color:var(--dim)">min $500 · capped by 📦</span></label>
       </div>
       <div style="margin-top:8px;">
         <div style="font-size:9.5px;color:var(--muted);margin-bottom:4px;">Only buy when showing <b>at least one</b> ticked signal <span style="color:var(--dim)">(scanner lane · none ticked = off)</span>:</div>
@@ -4578,11 +4581,12 @@ function showRules(){
       <div style="margin-top:12px;padding-top:9px;border-top:1px dashed var(--border);">
         <div style="font:700 10.5px var(--sans);color:var(--text);">🎯 My picks — your shares, your prices <span style="font-weight:400;color:var(--dim);font-size:9px;">practice limit orders</span></div>
         <div style="font-size:9px;color:var(--dim);margin:3px 0 7px;line-height:1.5;">Auto-pilot places a practice <b>limit buy</b> at your buy point (sized by your 📦 rule) with your sell point as 🎯 and your stop as 🛑 — leave sell/stop blank to use the % rules above. A pick <b>disarms itself once it fills</b> so it can't re-buy in a loop. Adding a pick for a share you already hold applies the sell/stop to that holding instead.</div>
-        <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr auto;gap:5px;align-items:end;">
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr auto;gap:4px;align-items:end;">
           <label style="font-size:9px;color:var(--muted);">Code<input id="apPkT" maxlength="6" placeholder="e.g. BHP" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;text-transform:uppercase;"></label>
           <label style="font-size:9px;color:var(--muted);">Buy at $<input id="apPkB" type="number" min="0" step="any" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);box-sizing:border-box;"></label>
           <label style="font-size:9px;color:var(--muted);">Sell at $<input id="apPkS" type="number" min="0" step="any" placeholder="% rule" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
           <label style="font-size:9px;color:var(--muted);">Stop $<input id="apPkX" type="number" min="0" step="any" placeholder="% rule" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
+          <label style="font-size:9px;color:var(--muted);">Invest $<input id="apPkA" type="number" min="0" step="any" placeholder="default" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
           <button onclick="addApPickFromForm()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 10px var(--sans);cursor:pointer;">+ Add</button>
         </div>
         <div id="apPicksBox" style="margin-top:6px;">${_apPicksHtml()}</div>
@@ -4599,7 +4603,7 @@ function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
-    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'),
+    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'),
     apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr'].filter(k=>chk('rApSig_'+k)):_rules().apSignals) };
 }
 function saveRulesFromForm(){
@@ -4627,7 +4631,7 @@ function _apLogHtml(){
   const l=_apLog().slice(0,6);
   if(!l.length)return '<div style="font-size:9px;color:var(--dim);">No auto-pilot decisions yet — its diary will appear here.</div>';
   return '<div style="font:700 9px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">Decision diary</div>'+l.map(e=>{
-    const b=(e.buys||[]).map(x=>'🤖 '+(x.limit?('pick: limit buy '+x.tk+' — '+x.qty+' @ $'+(+x.px).toFixed(3)):('bought '+x.tk+' — '+x.qty+' @ ~$'+(+x.px).toFixed(3)))+(x.score!=null?' · score '+x.score+'/10':'')).join('<br>');
+    const b=(e.buys||[]).map(x=>'🤖 '+(x.limit?('pick: limit buy '+x.tk+' — '+x.qty+' @ $'+(+x.px).toFixed(3)):('bought '+x.tk+' — '+x.qty+' @ ~$'+(+x.px).toFixed(3)))+(x.trim?' · trimmed by 📦':'')+(x.score!=null?' · score '+x.score+'/10':'')).join('<br>');
     const s=(e.skips||[]).slice(0,4).map(x=>'· '+String(x).replace(/</g,'&lt;')).join('<br>');
     return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+'</div>';
   }).join('');
@@ -4655,7 +4659,10 @@ function _apBuy(s,r){
   // queue a PRACTICE buy through the exact same path shape as a manual buy
   const p=_paper(); const fee=brokerageFee(); const today=_todayLocal();
   const acct=_acctValue(p); const sizePct=(r.maxPosPct>0?r.maxPosPct:10);
-  const amt=Math.min(acct*sizePct/100,(p.cash||0)-fee);
+  const _cap=acct*sizePct/100;
+  let _want=(r.apAmt>0?r.apAmt:_cap), _trim=false;
+  if(_want>_cap){ _want=_cap; _trim=true; }   // 📦 rule is a guardrail — your $ never breaches it
+  const amt=Math.min(_want,(p.cash||0)-fee);
   if(!(amt>0))return {ok:false,why:'no practice cash left'};
   const px=s.price; const qty=Math.floor(amt/px);
   const cost=+(qty*px).toFixed(2);
@@ -4680,7 +4687,7 @@ function _apBuy(s,r){
       tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
   }
   _paperSave(p);
-  return {ok:true,qty,cost,px,tgt,stop};
+  return {ok:true,qty,cost,px,tgt,stop,trim:_trim};
 }
 const AP_PICKS_KEY='asxScreener.autoPilot.picks.v1';
 function _apPicksLoad(){ try{ return (JSON.parse(localStorage.getItem(AP_PICKS_KEY)||'[]')||[]).slice(0,20); }catch(e){ return []; } }
@@ -4690,7 +4697,7 @@ function _apPicksHtml(){
   if(!l.length)return '<div style="font-size:9px;color:var(--dim);">No picks yet.</div>';
   return l.map(k=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:9.5px;color:var(--muted);padding:3px 0;border-top:1px solid var(--border2);">'
     +'<span><b style="color:var(--text)">'+String(k.tk).replace(/[<>]/g,'')+'</b> buy $'+(+k.buyAt).toFixed(3)
-    +(k.sellAt>0?' · sell $'+(+k.sellAt).toFixed(3):' · sell: % rule')+(k.stopAt>0?' · stop $'+(+k.stopAt).toFixed(3):'')
+    +(k.sellAt>0?' · sell $'+(+k.sellAt).toFixed(3):' · sell: % rule')+(k.stopAt>0?' · stop $'+(+k.stopAt).toFixed(3):'')+(k.amt>0?' · invest $'+Math.round(k.amt):'')
     +(k.armed===false?' <span style="color:var(--green)">✓ filled — disarmed</span>':'')+'</span>'
     +'<button onclick="removeApPick(\''+String(k.tk).replace(/[^A-Z0-9.]/gi,'')+'\')" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:11px;">✕</button></div>').join('');
 }
@@ -4698,6 +4705,7 @@ function addApPickFromForm(){
   const g=id=>((document.getElementById(id)||{}).value||'').trim();
   const tk=g('apPkT').toUpperCase(); const buyAt=parseFloat(g('apPkB'))||0;
   const sellAt=parseFloat(g('apPkS'))||0; const stopAt=parseFloat(g('apPkX'))||0;
+  const amt=parseFloat(g('apPkA'))||0;
   const m=document.getElementById('rulesMsg');
   if(!tk||!(buyAt>0)){ if(m)m.textContent='Enter a share code and a buy price.'; return; }
   if(!Array.isArray(allData)||!allData.length){ if(m)m.textContent='Load your market data first, then add picks.'; return; }
@@ -4705,6 +4713,7 @@ function addApPickFromForm(){
   if(!s){ if(m)m.textContent=tk+' isn\u2019t in your loaded data \u2014 check the code.'; return; }
   if(sellAt>0&&sellAt<=buyAt){ if(m)m.textContent='Sell point must be above the buy point.'; return; }
   if(stopAt>0&&stopAt>=buyAt){ if(m)m.textContent='Stop must be below the buy point.'; return; }
+  if(amt>0&&amt<500){ if(m)m.textContent='Invest amount must be at least $500 (the ASX minimum parcel).'; return; }
   // already held? apply sell/stop to the holding instead of arming a buy
   const p=_paper(); const h=(p.holdings||[]).find(x=>x.ticker===tk);
   if(h&&(sellAt>0||stopAt>0)){
@@ -4715,18 +4724,21 @@ function addApPickFromForm(){
   }else{
     const l=_apPicksLoad().filter(k=>k.tk!==tk);
     if(l.length>=20){ if(m)m.textContent='Pick list is full (20) \u2014 remove one first.'; return; }
-    l.unshift({tk:tk,buyAt:buyAt,sellAt:sellAt||0,stopAt:stopAt||0,armed:true,added:_todayLocal()});
+    l.unshift({tk:tk,buyAt:buyAt,sellAt:sellAt||0,stopAt:stopAt||0,amt:amt||0,armed:true,added:_todayLocal()});
     _apPicksSave(l);
     if(m)m.textContent='\u2713 Pick added \u2014 auto-pilot will place the practice limit order on its next run.';
   }
   const box=document.getElementById('apPicksBox'); if(box)box.innerHTML=_apPicksHtml();
-  ['apPkT','apPkB','apPkS','apPkX'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  ['apPkT','apPkB','apPkS','apPkX','apPkA'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
 }
 function removeApPick(tk){ _apPicksSave(_apPicksLoad().filter(k=>k.tk!==tk)); const box=document.getElementById('apPicksBox'); if(box)box.innerHTML=_apPicksHtml(); }
 function _apPlacePick(s,r,k){
   const p=_paper(); const fee=brokerageFee(); const today=_todayLocal();
   const acct=_acctValue(p); const sizePct=(r.maxPosPct>0?r.maxPosPct:10);
-  const amt=Math.min(acct*sizePct/100,(p.cash||0)-fee);
+  const _cap=acct*sizePct/100;
+  let _want=(k&&k.amt>0)?k.amt:(r.apAmt>0?r.apAmt:_cap), _trim=false;
+  if(_want>_cap){ _want=_cap; _trim=true; }   // 📦 guardrail
+  const amt=Math.min(_want,(p.cash||0)-fee);
   if(!(amt>0))return {ok:false,why:'no practice cash left'};
   const lim=+k.buyAt; const qty=Math.floor(amt/lim);
   const cost=+(qty*lim).toFixed(2);
@@ -4740,7 +4752,7 @@ function _apPlacePick(s,r,k){
     target:tgt>0?tgt:null,stop:stop>0?stop:null,note:'\ud83e\udd16 Auto-pilot pick (practice)',fee:fee||0,
     tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
   _paperSave(p);
-  return {ok:true,qty:qty,cost:cost};
+  return {ok:true,qty:qty,cost:cost,trim:_trim};
 }
 function _apRunPicks(r,ent,maxN){
   const picks=_apPicksLoad(); if(!picks.length)return; let changed=false;
@@ -4753,7 +4765,7 @@ function _apRunPicks(r,ent,maxN){
     const s=(allData||[]).find(x=>x.ticker===k.tk);
     if(!s||!(s.price>0)){ ent.skips.push(k.tk+': not in loaded data'); continue; }
     const res=_apPlacePick(s,r,k);
-    if(res.ok){ ent.buys.push({tk:k.tk,qty:res.qty,cost:res.cost,px:+k.buyAt,limit:true,score:(s.watchScore!=null?s.watchScore:null)}); }
+    if(res.ok){ ent.buys.push({tk:k.tk,qty:res.qty,cost:res.cost,px:+k.buyAt,limit:true,trim:res.trim===true,score:(s.watchScore!=null?s.watchScore:null)}); }
     else if(ent.skips.length<6)ent.skips.push(k.tk+': '+res.why);
   }
   if(changed)_apPicksSave(picks);
@@ -4782,7 +4794,7 @@ function _autoPilotRun(manual){
       for(const s of cands){
         if(made>=want)break;
         const res=_apBuy(s,r);
-        if(res.ok){ made++; ent.buys.push({tk:s.ticker,qty:res.qty,cost:res.cost,px:res.px,score:(s.watchScore!=null?s.watchScore:null)}); }
+        if(res.ok){ made++; ent.buys.push({tk:s.ticker,qty:res.qty,cost:res.cost,px:res.px,trim:res.trim===true,score:(s.watchScore!=null?s.watchScore:null)}); }
         else if(ent.skips.length<5)ent.skips.push(s.ticker+': '+res.why);
         if(!res.ok&&/cash|parcel/.test(res.why))break; // cash exhausted — stop trying
       }
