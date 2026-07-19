@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-300-open';
+const APP_VERSION='2026.07.16-301-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6540,6 +6540,7 @@ function showModal(html,label){
     <div style="text-align:right;margin-top:12px;flex:none;display:flex;align-items:center;justify-content:space-between;">
       <span class="mb-resizehint" style="font-size:8px;color:var(--dim);">↘ drag corner to resize</span>
       <span>
+        <button onclick="toggleModalFullscreen()" title="Fill the whole screen with this window (Esc to come back)" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">🖥 Full screen</button>
         <button onclick="toggleModalMax()" title="Maximise / restore" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">⛶ Max</button>
         <button onclick="closeModal()" style="padding:6px 14px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">Close</button>
       </span>
@@ -6567,6 +6568,8 @@ function closeModal(){
   const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
   window._detailTicker=null;
   window._simpleModalBase=null;window._simpleModalLabel=null;window._top20Shown=null;
+  try{ if(window._modalEnteredFs){ window._modalEnteredFs=false;
+    if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); } }catch(_){}
   window._modalType=null; // NB: keep _statBaseValid — clearing it here made a chip
   // un-toggle after closing a report restore only the narrowed set (stuck filter).
   try{document.body.classList.remove('stat-over-modal');document.documentElement.style.removeProperty('--soModalTop');}catch(_){}
@@ -6579,6 +6582,29 @@ window.addEventListener('beforeprint',function(){
   }catch(_){}
 });
 window.addEventListener('afterprint',function(){ try{document.body.classList.remove('sheet-printing');}catch(_){} });
+// 🖥 v301 — take the current panel over the ENTIRE screen (and back).
+function toggleModalFullscreen(){
+  const box=document.getElementById('modalBox'); if(!box)return;
+  if(box.dataset.fs==='1'){
+    box.dataset.fs='0'; box.style.cssText=box.dataset.prevCss||'';
+    try{ if(box.dataset.soFs==='1'){ box.dataset.soFs='0'; document.body.classList.add('stat-over-modal'); } }catch(e){}
+    try{ if(window._modalEnteredFs){ window._modalEnteredFs=false;
+      if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); } }catch(e){}
+  }else{
+    box.dataset.prevCss=box.style.cssText; box.dataset.fs='1';
+    try{ if(document.body.classList.contains('stat-over-modal')){ box.dataset.soFs='1'; document.body.classList.remove('stat-over-modal'); } }catch(e){}
+    box.style.position='fixed'; box.style.inset='0'; box.style.width='100vw'; box.style.height='100vh';
+    box.style.maxWidth='100vw'; box.style.maxHeight='100vh'; box.style.borderRadius='0'; box.style.margin='0';
+    try{ if(!(document.fullscreenElement||document.webkitFullscreenElement)){ window._modalEnteredFs=true;
+      (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||function(){}).call(document.documentElement); } }catch(e){}
+  }
+}
+// Esc (or any exit from browser fullscreen) restores a fullscreened panel to its previous size.
+try{ ['fullscreenchange','webkitfullscreenchange'].forEach(function(ev){ document.addEventListener(ev,function(){ try{
+  const box=document.getElementById('modalBox');
+  const on=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  if(!on&&box&&box.dataset.fs==='1'){ box.dataset.fs='0'; box.style.cssText=box.dataset.prevCss||''; window._modalEnteredFs=false; try{ if(box.dataset.soFs==='1'){ box.dataset.soFs='0'; document.body.classList.add('stat-over-modal'); } }catch(e){} }
+}catch(e){} }); }); }catch(e){}
 // ⛶ Maximise / restore the current panel (one click to go near-fullscreen).
 function toggleModalMax(){
   const box=document.getElementById('modalBox');
