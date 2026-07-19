@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-295-open';
+const APP_VERSION='2026.07.16-296-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12530,11 +12530,48 @@ function makeDraggable(zoneId, storeKey){
     row.addEventListener('drop',e=>{ e.preventDefault(); row.classList.remove('drag-over'); persist(); });
   });
 }
+// ═══ v296 PREVIEW — Instant Reports grouped: pinned daily trio + collapsible families ═══
+function _groupScans(){
+  try{
+    if(window.__scansGrouped)return;
+    const zone=document.getElementById('scanDragZone'); if(!zone)return;
+    const GROUPS=[
+      {id:'sgStart',title:'⭐ Start your day',hint:'the three-tap routine',ids:['scan-pulse','scan-top20','scan-smart'],pinned:true},
+      {id:'sgAct',title:'🔎 Today’s action',hint:'what stood out this session',ids:['scan-sharp','scan-unusual','scan-surge','scan-gap']},
+      {id:'sgBuild',title:'🌱 Building quietly',hint:'patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
+      {id:'sgComp',title:'🧩 Composite',hint:'every signal at once',ids:['scan-allsig']}
+    ];
+    let st={}; try{st=JSON.parse(localStorage.getItem('asxScreener.scanGroups.v1'))||{};}catch(e){}
+    const wrap=document.createElement('div'); wrap.id='scanGroups';
+    let lastBody=null;
+    GROUPS.forEach(g=>{
+      const sec=document.createElement('div'); sec.className='scan-group'+(g.pinned?' sg-pinned':'');
+      const open=g.pinned||st[g.id]!==0;
+      const h=document.createElement('div'); h.className='sg-h';
+      h.innerHTML='<span>'+g.title+'<span class="sg-hint">'+g.hint+'</span></span>'+(g.pinned?'':'<span class="sg-ch">'+(open?'▾':'▸')+'</span>');
+      const body=document.createElement('div'); body.className='sg-b'+(g.pinned?' sg-trio':''); if(!open)body.style.display='none';
+      if(!g.pinned){ h.style.cursor='pointer'; h.title='Tap to show or hide this group';
+        h.onclick=function(){ const now=body.style.display==='none'; body.style.display=now?'grid':'none';
+          const c=h.querySelector('.sg-ch'); if(c)c.textContent=now?'▾':'▸';
+          st[g.id]=now?1:0; try{localStorage.setItem('asxScreener.scanGroups.v1',JSON.stringify(st));}catch(e){} }; }
+      g.ids.forEach(id=>{ const row=zone.querySelector('[data-dragid="'+id+'"]');
+        if(row){ row.draggable=false; body.appendChild(row); } });
+      sec.appendChild(h); sec.appendChild(body); wrap.appendChild(sec); lastBody=body;
+    });
+    // safety net: any report this map doesn't know still shows (lands in the last group)
+    zone.querySelectorAll('[data-dragid]').forEach(r=>{ r.draggable=false; lastBody.appendChild(r); });
+    zone.parentNode.insertBefore(wrap,zone); zone.style.display='none';
+    // the “drag ⠿ to reorder” hint no longer applies in the grouped view
+    try{ document.querySelectorAll('.step-sub').forEach(x=>{ if(/reorder/i.test(x.textContent||''))x.style.display='none'; }); }catch(e){}
+    window.__scansGrouped=true;
+  }catch(e){}
+}
 // Wire up the draggable zones once the DOM is ready.
 (function initDrag(){
   makeDraggable('scanDragZone','asxScreener.order.scans.v1');
   makeDraggable('filterDragZone','asxScreener.order.filters.v1');
 })();
+_groupScans();
 syncP();syncV();
 </script>
 
@@ -13230,6 +13267,24 @@ button:active{transform:scale(.985);}
 .sc-emoji .ic{width:24px;height:24px;color:#8fb0e8;}
 .simple-card:hover .sc-emoji .ic{color:var(--gold);}
 #scanDragZone .drag-row>button .ic{width:14px;height:14px;color:#9db4da;}
+/* ═══ v296 PREVIEW — grouped Instant Reports ═══ */
+#scanGroups{display:flex;flex-direction:column;gap:8px;}
+body.simple-mode #scanGroups{display:none;}
+#scanGroups .sg-h{display:flex;justify-content:space-between;align-items:center;font:700 9.5px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:1px 2px;}
+#scanGroups .sg-h .sg-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-size:9px;margin-left:4px;}
+#scanGroups .sg-ch{color:var(--dim);font-size:10px;padding:0 3px;}
+#scanGroups .sg-b{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+#scanGroups .sg-trio{grid-template-columns:1fr 1fr 1fr;gap:5px;}
+#scanGroups .sg-pinned .sg-h>span:first-child{color:var(--gold);}
+#scanGroups .drag-row{display:block;position:relative;margin-top:0;}
+#scanGroups .drag-row>button{width:100%;height:100%;min-height:66px;margin:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 6px 7px;text-align:center;box-sizing:border-box;font-size:12px!important;background:var(--bg2)!important;border:1px solid var(--border)!important;border-left-width:3px!important;border-radius:10px!important;color:var(--text)!important;box-shadow:0 1px 4px rgba(0,0,0,.22);}
+#scanGroups .drag-row>button:hover{border-color:var(--border2)!important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.32);}
+#scanGroups .drag-row>button>span:first-child{font-size:12px;line-height:1.2;font-weight:700;color:var(--text)!important;}
+#scanGroups .scan-tag{font-size:7.5px;line-height:1.25;color:#7d95bd!important;opacity:1!important;}
+#scanGroups .sg-trio .drag-row>button{min-height:60px;font-size:11px!important;padding:7px 4px 6px;border-color:rgba(255,210,0,.5)!important;}
+#scanGroups .sg-trio .drag-row>button>span:first-child{font-size:10.5px;}
+#scanGroups .sg-trio .scan-tag{font-size:7px;}
+#scanGroups .drag-h{display:none;}
 .mode-seg-btn .ic{width:13px;height:13px;}
 .mode-seg-btn.on .ic{color:#0a1428;}
 .step-sub2 .ic{width:12px;height:12px;color:#7d95bd;}
