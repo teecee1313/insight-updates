@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-296-open';
+const APP_VERSION='2026.07.16-297-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4514,11 +4514,17 @@ function _rules(){
   const num=(v,d)=>{ const n=parseFloat(v); return (isFinite(n)&&n>=0)?n:d; };
   return { enabled:(r.enabled!==false), targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
+    apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
+    apMinScore:num(r.apMinScore,0), apQuietOnly:(r.apQuietOnly===true),
+    apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
 function _rulesSave(r){
   const clean={ enabled:(r.enabled!==false), targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
+    apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
+    apMinScore:+r.apMinScore||0, apQuietOnly:(r.apQuietOnly===true),
+    apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
   return clean;
@@ -4544,20 +4550,148 @@ function showRules(){
     <textarea id="rPlan" maxlength="600" placeholder="e.g. Wait for a green day to confirm. Never average down. Only buy above the 200-day line. Review every Sunday." style="width:100%;height:88px;padding:9px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font:12px var(--sans);box-sizing:border-box;resize:vertical;">${esc(r.plan)}</textarea>
     <button onclick="saveRulesFromForm()" style="width:100%;margin-top:12px;padding:10px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">Save my rules</button>
     <div id="rulesMsg" style="font-size:10.5px;color:var(--green);margin-top:8px;min-height:13px;text-align:center;"></div>
+    <div style="margin-top:16px;padding:10px 11px;border:1px solid ${r.apOn?'var(--gold)':'var(--border)'};border-radius:9px;background:${r.apOn?'rgba(255,210,0,.06)':'var(--bg3)'};">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span style="font:700 11.5px var(--sans);color:var(--text);">🤖 Auto-pilot <span style="font-weight:400;color:var(--dim);font-size:9px;">practice buys by your rules</span></span>
+        <button onclick="toggleAutoPilot()" title="Auto-pilot makes PRACTICE buys only, by the entry rules below. Off by default." style="padding:5px 14px;border-radius:16px;border:1px solid ${r.apOn?'var(--gold)':'var(--border2)'};background:${r.apOn?'rgba(255,210,0,.16)':'var(--bg4)'};color:${r.apOn?'var(--gold)':'var(--muted)'};font:800 11px var(--sans);cursor:pointer;min-width:56px;">${r.apOn?'ON':'OFF'}</button>
+      </div>
+      <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option></select></label>
+        <label style="font-size:10px;color:var(--muted);">Buys per day (max)<select id="rApMax" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option ${r.apMaxBuys===1?'selected':''}>1</option><option ${r.apMaxBuys===2?'selected':''}>2</option><option ${r.apMaxBuys===3?'selected':''}>3</option></select></label>
+        <label style="font-size:10px;color:var(--muted);">Min Watch Score<input type="number" id="rApScore" min="0" max="10" step="1" value="${r.apMinScore||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
+        <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <button onclick="runAutoPilotNow()" ${r.apOn&&r.enabled?'':'disabled'} style="flex:1;padding:8px;border-radius:7px;border:1px solid ${r.apOn&&r.enabled?'var(--gold)':'var(--border2)'};background:${r.apOn&&r.enabled?'rgba(255,210,0,.12)':'var(--bg4)'};color:${r.apOn&&r.enabled?'var(--gold)':'var(--dim)'};font:700 11px var(--sans);cursor:${r.apOn&&r.enabled?'pointer':'default'};">▶ Run auto-pilot now (practice)</button>
+      </div>
+      <div id="apLogBox" style="margin-top:8px;">${_apLogHtml()}</div>
+    </div>
     <div style="font-size:9px;color:var(--dim);margin-top:6px;">Practice-first: rules apply to your paper trading — a discipline aid, not financial advice.</div>
   `,'📋 My trading rules');
 }
-function saveRulesFromForm(){
+function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
-  _rulesSave({ targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'), enabled:_rules().enabled });
+  const chk=id=>((document.getElementById(id)||{}).checked===true);
+  return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
+    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax') };
+}
+function saveRulesFromForm(){
+  const cur=_rules();
+  _rulesSave(Object.assign(_rulesFromForm(),{enabled:cur.enabled,apOn:cur.apOn}));
   const m=document.getElementById('rulesMsg'); if(m)m.textContent='✓ Saved — your rules are set.';
 }
 function toggleRulesEnabled(){
-  // save whatever's in the form, flipping the master switch, then re-render
-  const g=id=>(document.getElementById(id)||{}).value;
-  _rulesSave({ targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'), enabled:!_rules().enabled });
+  const cur=_rules();
+  _rulesSave(Object.assign(_rulesFromForm(),{enabled:!cur.enabled,apOn:cur.apOn}));
   try{ showRules(); }catch(e){}
 }
+function toggleAutoPilot(){
+  const cur=_rules();
+  if(!cur.apOn&&!cur.enabled){ alert('Turn "Use my trading rules" ON first — auto-pilot runs by those rules.'); return; }
+  _rulesSave(Object.assign(_rulesFromForm(),{enabled:cur.enabled,apOn:!cur.apOn}));
+  try{ showRules(); }catch(e){}
+}
+
+// ═══ v297 — 🤖 Auto-pilot (PRACTICE): rule-based paper entries ═══
+const AP_LOG_KEY='asxScreener.autoPilot.log.v1', AP_RUN_KEY='asxScreener.autoPilot.lastRun.v1';
+function _apLog(){ try{ return JSON.parse(localStorage.getItem(AP_LOG_KEY)||'[]')||[]; }catch(e){ return []; } }
+function _apLogAdd(e){ const l=_apLog(); l.unshift(e); while(l.length>120)l.pop(); try{ localStorage.setItem(AP_LOG_KEY,JSON.stringify(l)); }catch(_){}}
+function _apLogHtml(){
+  const l=_apLog().slice(0,6);
+  if(!l.length)return '<div style="font-size:9px;color:var(--dim);">No auto-pilot decisions yet — its diary will appear here.</div>';
+  return '<div style="font:700 9px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">Decision diary</div>'+l.map(e=>{
+    const b=(e.buys||[]).map(x=>'🤖 bought '+x.tk+' — '+x.qty+' @ ~$'+(+x.px).toFixed(3)+(x.score!=null?' · score '+x.score+'/10':'')).join('<br>');
+    const s=(e.skips||[]).slice(0,4).map(x=>'· '+String(x).replace(/</g,'&lt;')).join('<br>');
+    return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+'</div>';
+  }).join('');
+}
+function _apLiqOk(s){
+  if(typeof F==='undefined'||!F||!F.cap||F.cap==='any')return true;
+  const liq=((s.avgVol>0?s.avgVol:(s.volume||0))*(s.price||0));
+  const need=F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0;
+  return liq>=need;
+}
+function _apCandidates(r){
+  const p=_paper(); const held=new Set();
+  (p.holdings||[]).forEach(h=>held.add(h.ticker)); (p.orders||[]).forEach(o=>held.add(o.ticker));
+  let pool=(allData||[]).filter(s=>s&&s.price>0&&!held.has(s.ticker)&&_apLiqOk(s));
+  if(r.apSource==='top20'){ pool=pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20); }
+  else{ pool=pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50); }
+  if(r.apMinScore>0)pool=pool.filter(s=>(s.watchScore||0)>=r.apMinScore);
+  if(r.apQuietOnly)pool=pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}});
+  pool.sort((a,b)=>((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0)));
+  return pool;
+}
+function _apBuy(s,r){
+  // queue a PRACTICE buy through the exact same path shape as a manual buy
+  const p=_paper(); const fee=brokerageFee(); const today=_todayLocal();
+  const acct=_acctValue(p); const sizePct=(r.maxPosPct>0?r.maxPosPct:10);
+  const amt=Math.min(acct*sizePct/100,(p.cash||0)-fee);
+  if(!(amt>0))return {ok:false,why:'no practice cash left'};
+  const px=s.price; const qty=Math.floor(amt/px);
+  const cost=+(qty*px).toFixed(2);
+  if(qty<1||cost<500)return {ok:false,why:'size under the $500 minimum parcel'};
+  if(cost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
+  const tgt=r.targetPct>0?+(px*(1+r.targetPct/100)).toFixed(4):0;
+  const stop=r.stopPct>0?+(px*(1-r.stopPct/100)).toFixed(4):0;
+  const note='🤖 Auto-pilot (practice)';
+  p.cash=+(p.cash-cost).toFixed(2); _chargeFee(p);
+  const _id='o'+Date.now()+'a'+Math.floor(Math.random()*1000);
+  if(typeof realFillsOn==='function'&&realFillsOn()){
+    p.orders=p.orders||[];
+    p.orders.push({id:_id,ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
+      market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
+      target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note,fee:fee||0,
+      tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
+  }else{
+    p.holdings=p.holdings||[];
+    p.holdings.push({id:'t'+Date.now()+'a'+Math.floor(Math.random()*1000),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
+      buyDate:today,buyPrice:px,qty,invested:+(qty*px).toFixed(2),buyFee:fee||0,
+      lastPrice:s.price,lastDate:(s._q&&s._q.d)||today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note,
+      tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
+  }
+  _paperSave(p);
+  return {ok:true,qty,cost,px,tgt,stop};
+}
+function _autoPilotRun(manual){
+  try{
+    const r=_rules();
+    if(!(r.enabled&&r.apOn))return {ran:false,why:'off'};
+    if(!Array.isArray(allData)||!allData.length)return {ran:false,why:'no data'};
+    let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
+    if(!dd)return {ran:false,why:'no date'};
+    if(!manual&&localStorage.getItem(AP_RUN_KEY)===dd)return {ran:false,why:'already ran today'};
+    try{ localStorage.setItem(AP_RUN_KEY,dd); }catch(e){}
+    const p=_paper(); const openN=(p.holdings||[]).length+(p.orders||[]).length;
+    const maxN=r.maxPositions>0?r.maxPositions:8;
+    const ent={d:dd,ts:Date.now(),src:r.apSource,buys:[],skips:[]};
+    if(openN>=maxN){ ent.skips.push('at your max of '+maxN+' open positions — no buys'); }
+    else{
+      const want=Math.min(r.apMaxBuys,maxN-openN);
+      const cands=_apCandidates(r);
+      if(!cands.length)ent.skips.push('no shares matched your entry rules today');
+      let made=0;
+      for(const s of cands){
+        if(made>=want)break;
+        const res=_apBuy(s,r);
+        if(res.ok){ made++; ent.buys.push({tk:s.ticker,qty:res.qty,cost:res.cost,px:res.px,score:(s.watchScore!=null?s.watchScore:null)}); }
+        else if(ent.skips.length<5)ent.skips.push(s.ticker+': '+res.why);
+        if(!res.ok&&/cash|parcel/.test(res.why))break; // cash exhausted — stop trying
+      }
+    }
+    _apLogAdd(ent);
+    return {ran:true,entry:ent};
+  }catch(e){ try{ _apLogAdd({d:'?',ts:Date.now(),err:String(e).slice(0,80)}); }catch(_){ } return {ran:false,why:'error'}; }
+}
+function runAutoPilotNow(){
+  const res=_autoPilotRun(true);
+  const m=document.getElementById('rulesMsg');
+  if(m)m.textContent=res.ran?((res.entry.buys.length?('🤖 Queued '+res.entry.buys.length+' practice buy'+(res.entry.buys.length>1?'s':'')+' — fills at the next open.'):'🤖 Ran — nothing qualified to buy. See the diary.')):'Auto-pilot is off or no data loaded.';
+  const box=document.getElementById('apLogBox'); if(box)box.innerHTML=_apLogHtml();
+}
+// auto-run: once per fresh data day, only while opted in (same gentle pattern as the briefing)
+(function _apAuto(){ setInterval(function(){ try{ _autoPilotRun(false); }catch(e){} },11000); })();
 function _ensureCash(p){
   // Migration for accounts created before the cash balance existed: rebuild the
   // balance as if the $10k account had been there from the first trade.
@@ -12009,6 +12143,10 @@ function myChangesData(){
     out.lists.push(sec);
   }
   out.items=holdItems.concat(...out.lists.map(x=>x.items));
+  // v297: report what auto-pilot queued today (practice) — AFTER items are assembled
+  try{ const _apbuys=((JSON.parse(localStorage.getItem('asxScreener.autoPilot.log.v1')||'[]')||[]).filter(x=>x.d===out.dataDate)).flatMap(x=>x.buys||[]);
+    _apbuys.forEach(b=>{ const it={tk:b.tk,icon:'\ud83e\udd16',txt:'Auto-pilot queued a PRACTICE buy — '+b.qty+' shares (~$'+Math.round(b.cost)+'). Fills at the next open; \ud83c\udfaf/\ud83d\uded1 set from your rules.'};
+      out.items.unshift(it); out.holdItems.unshift(it); }); }catch(e){}
   return out;
 }
 function showMyChanges(auto){
