@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-294-open';
+const APP_VERSION='2026.07.16-295-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2017,6 +2017,17 @@ const F={
   minScore:0, // min watch score /10 (0=off) — same scale as Top 20 & Score column
   accumMin:0, // min qualifying days (price up + vol 50%+) in last 10 (0=off)
 };
+// v295: the 💧 Liquidity floor is remembered across sessions, and BRAND-NEW users
+// start at ≥$50k/day (thinly-traded shares are hard to exit at a fair price).
+// One tap back to "Any" — and that choice sticks. Existing users keep their setting.
+const LIQ_PREF_KEY='asxScreener.liqPref.v1';
+function _liqSave(){ try{ localStorage.setItem(LIQ_PREF_KEY,F.cap); }catch(e){} }
+(function _liqInit(){ try{
+  const v=localStorage.getItem(LIQ_PREF_KEY);
+  if(v==='any'||v==='l50'||v==='l250'||v==='l1m'){ F.cap=v; }
+  else { F.cap='l50'; _liqSave(); }
+  document.addEventListener('DOMContentLoaded',function(){ try{ if(typeof rst1==='function')rst1('gCap',F.cap,'cap'); }catch(e){} });
+}catch(e){} })();
 // ── Multiple persistent watchlists ──────────────────────────
 // Stored as { listName: { TICKER: {savedStockSnapshot} } } in localStorage so
 // they survive browser closes AND show regardless of current filters.
@@ -2752,19 +2763,21 @@ function resetLicence(ev){
 //  Lets YOU set the licence secret and generate buyer keys in-app — no code
 //  editing. Buyers can't reach this without your master password.
 // ═══════════════════════════════════
-async function _mp_hash(pw,saltB64){
+async function _mp_hash(pw,saltB64,iters){
   const salt=saltB64?Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0)):crypto.getRandomValues(new Uint8Array(16));
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
-  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,256);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:(iters||150000),hash:'SHA-256'},base,256);
   return {salt:btoa(String.fromCharCode(...salt)),hash:btoa(String.fromCharCode(...new Uint8Array(bits)))};
 }
 function _owner(){try{return JSON.parse(localStorage.getItem(OWNER_STORE))||{};}catch(e){return {};}}
 
 // (Seller Controls removed.)
-async function _gate_hash(pw,saltB64){
+async function _gate_hash(pw,saltB64,iters){
+  // v295: default stays 150k so legacy records and the baked-in FIXED_GATE still verify;
+  // new/changed passwords pass 600000 explicitly (current OWASP PBKDF2-SHA256 guidance).
   const salt=saltB64?Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0)):crypto.getRandomValues(new Uint8Array(16));
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
-  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,256);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:(iters||150000),hash:'SHA-256'},base,256);
   const hashB64=btoa(String.fromCharCode(...new Uint8Array(bits)));
   return {salt:btoa(String.fromCharCode(...salt)),hash:hashB64};
 }
@@ -2830,14 +2843,18 @@ async function gateSubmit(){
     const pw2=document.getElementById('gatePass2').value;
     if(pw.length<4){gateMsg('Password must be at least 4 characters.','#f0b849');return;}
     if(pw!==pw2){gateMsg('The two boxes don\'t match — type the SAME new password in both.','#f85149');return;}
-    const rec=await _gate_hash(pw);
+    const rec=await _gate_hash(pw,null,600000); rec.it=600000;
     try{localStorage.setItem(GATE_STORE,JSON.stringify(rec));}catch(e){gateMsg('Could not save password (storage blocked).','#f85149');return;}
     openApp();
   }else{
     const stored=_gate_stored();
     if(!stored){ initGate(); return; }   // record vanished (storage cleared) → back to setup
-    const rec=await _gate_hash(pw,stored.salt);
-    if(rec.hash===stored.hash)openApp();
+    const rec=await _gate_hash(pw,stored.salt,stored.it);
+    if(rec.hash===stored.hash){
+      // v295: silently upgrade older 150k-iteration records to 600k after a successful login
+      if((stored.it||150000)<600000){ try{ const up=await _gate_hash(pw,null,600000); localStorage.setItem(GATE_STORE,JSON.stringify(Object.assign({},stored,{salt:up.salt,hash:up.hash,it:600000}))); }catch(e){} }
+      openApp();
+    }
     else gateMsg('Wrong password.','#f85149');
   }
 }
@@ -2865,13 +2882,13 @@ async function changeAppPassword(){
     const np2=prompt('Confirm new password:');
     if(np2===null)return;
     if(np!==np2){alert('Passwords did not match.');return;}
-    const rec=await _gate_hash(np);
+    const rec=await _gate_hash(np,null,600000); rec.it=600000;
     try{localStorage.setItem(GATE_STORE,JSON.stringify(rec));alert('App password set.');}catch(e){alert('Could not save password.');}
     return;
   }
   const cur=prompt('Enter your CURRENT app password:');
   if(cur===null)return;
-  const chk=await _gate_hash(cur,stored.salt);
+  const chk=await _gate_hash(cur,stored.salt,stored.it);
   if(chk.hash!==stored.hash){alert('Current password is incorrect.');return;}
   const np=prompt('Enter your NEW password:');
   if(np===null)return;
@@ -2879,7 +2896,7 @@ async function changeAppPassword(){
   const np2=prompt('Confirm NEW password:');
   if(np2===null)return;
   if(np!==np2){alert('New passwords did not match.');return;}
-  const rec=await _gate_hash(np);
+  const rec=await _gate_hash(np,null,600000); rec.it=600000;
   try{localStorage.setItem(GATE_STORE,JSON.stringify(rec));alert('✓ App password changed.');}
   catch(e){alert('Could not save new password.');}
 }
@@ -3100,7 +3117,7 @@ function mp(){if(!allData.length)return;document.getElementById('applyBtn').disa
 function cp(){document.getElementById('applyBtn').disabled=true;document.getElementById('pending').style.display='none';}
 const g=id=>document.getElementById(id).checked;
 
-function sp1(el,gid,fk){document.querySelectorAll(`#${gid} .pill`).forEach(p=>p.classList.remove('on'));el.classList.add('on');F[fk]=el.dataset.v;if(fk==='days')F.daysMin=0;mp();dots();}
+function sp1(el,gid,fk){document.querySelectorAll(`#${gid} .pill`).forEach(p=>p.classList.remove('on'));el.classList.add('on');F[fk]=el.dataset.v;if(fk==='days')F.daysMin=0;if(fk==='cap'&&typeof _liqSave==='function')_liqSave();mp();dots();}
 
 // Dual-handle range slider: keeps the two handles ordered, updates the fill bar,
 // labels, and the F min/max state, then re-applies filters.
@@ -3185,7 +3202,7 @@ function fmtVol(n){return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2
 function inBands(val,set){if(set.has('all'))return true;for(const b of set){const[lo,hi]=b.split(':').map(Number);if(val>=lo&&val<hi)return true;if(hi>=9999&&val>=lo)return true;if(lo<=-999&&val<hi)return true;}return false;}
 
 function rstBand(gid,fkey){document.querySelectorAll(`#${gid} .pill`).forEach(p=>p.classList.remove('ms-on','on'));document.querySelector(`#${gid} .pill[data-v="all"]`).classList.add('ms-on');F[fkey]=new Set(['all']);}
-function rst1(gid,v,fk){document.querySelectorAll(`#${gid} .pill`).forEach(p=>p.classList.remove('on'));const el=document.querySelector(`#${gid} .pill[data-v="${v}"]`);if(el)el.classList.add('on');F[fk]=v;}
+function rst1(gid,v,fk){document.querySelectorAll(`#${gid} .pill`).forEach(p=>p.classList.remove('on'));const el=document.querySelector(`#${gid} .pill[data-v="${v}"]`);if(el)el.classList.add('on');F[fk]=v;if(fk==='cap'&&typeof _liqSave==='function')_liqSave();}
 // A volume-surge band pill was clicked → set F.volLo/volHi.
 function setVolBand(el){
   document.querySelectorAll('#gVol .pill').forEach(p=>p.classList.remove('on'));
@@ -3371,7 +3388,8 @@ function doReset(){
   setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},600);
   cp();applyF();dots();mkBadges();
 }
-function ls(){
+function ls(){ clearTimeout(window._lsT); window._lsT=setTimeout(_lsNow,180); }  // v295: debounce — filter once typing pauses, not per keystroke
+function _lsNow(){
   if(!allData.length)return;
   const a=window._activeScan;
   // v290: while a finished report is on screen, SEARCH NARROWS THAT REPORT
@@ -3928,7 +3946,8 @@ function render(){
     if(sk==='pctFromHigh')return s.pctFromHigh==null?-9999:s.pctFromHigh;
     return s[sk]||0;
   };
-  filtered.sort((a,b)=>{let av=sv(a),bv=sv(b);if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase();}return av<bv?-sortDir:av>bv?sortDir:0;});
+  const _svm=new Map();for(const s of filtered){let v=sv(s);if(typeof v==='string')v=v.toLowerCase();_svm.set(s,v);}  // v295: compute each sort value once, not per comparison
+  filtered.sort((a,b)=>{const av=_svm.get(a),bv=_svm.get(b);return av<bv?-sortDir:av>bv?sortDir:0;});
   if(!filtered.length){
     document.getElementById('tblwrap').style.display='none';
     document.getElementById('noResults').style.display='flex';
@@ -7023,22 +7042,34 @@ function _isBearish(s){
 }
 function statsBar(){
   const d=watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
+  // v295: one pass over the list instead of ~15 separate sweeps — identical numbers.
+  let g=0,l=0,v200=0,dir=0,c2=0,v50=0,qm=0,vs=0,s7=0,hi=0,fl=0,ma=0,bull=0,bear=0;
+  for(const s of d){
+    if(s.chgPct>0)g++; if(s.chgPct<0)l++;
+    if(s.volPct>=200)v200++;
+    if(s.dirBuy)dir++;
+    if(s.streakCalced&&s.daysUp>=2)c2++;
+    if(s.volCalced&&s.volPct>=50&&s.volPct<=100)v50++;
+    if(s.chgPct>=3&&s.volCalced&&s.volPct>=100&&_noNews5d(s))qm++;
+    if(s.volStreakCalced&&(s.volDays||0)>=2)vs++;
+    if(s.watchScore!=null&&s.watchScore>=7)s7++;
+    if(s.pctFromHigh!=null&&s.pctFromHigh>=-5)hi++;
+    if(s.rangePos!=null&&s.rangePos<=10)fl++;
+    if(s.aboveMA200===true)ma++;
+    if(_isBullish(s))bull++;
+    if(_isBearish(s))bear++;
+  }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
-  document.getElementById('sG').textContent=d.filter(s=>s.chgPct>0).length;
-  document.getElementById('sL').textContent=d.filter(s=>s.chgPct<0).length;
-  document.getElementById('sV').textContent=d.filter(s=>s.volPct>=200).length;
-  document.getElementById('sD').textContent=d.filter(s=>s.dirBuy).length;
-  document.getElementById('sC').textContent=d.filter(s=>s.streakCalced&&s.daysUp>=2).length;
+  document.getElementById('sG').textContent=g;
+  document.getElementById('sL').textContent=l;
+  document.getElementById('sV').textContent=v200;
+  document.getElementById('sD').textContent=dir;
+  document.getElementById('sC').textContent=c2;
   const _set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n;};
-  _set('sV50',d.filter(s=>s.volCalced&&s.volPct>=50&&s.volPct<=100).length);
-  _set('sQM',d.filter(s=>s.chgPct>=3&&s.volCalced&&s.volPct>=100&&_noNews5d(s)).length);
-  _set('sVS',d.filter(s=>s.volStreakCalced&&(s.volDays||0)>=2).length);
-  _set('sS7',d.filter(s=>s.watchScore!=null&&s.watchScore>=7).length);
-  _set('sHi',d.filter(s=>s.pctFromHigh!=null&&s.pctFromHigh>=-5).length);
-  _set('sFloor',d.filter(s=>s.rangePos!=null&&s.rangePos<=10).length);
-  _set('sMA',d.filter(s=>s.aboveMA200===true).length);
-  const bull=document.getElementById('sBull'); if(bull)bull.textContent=d.filter(_isBullish).length;
-  const bear=document.getElementById('sBear'); if(bear)bear.textContent=d.filter(_isBearish).length;
+  _set('sV50',v50); _set('sQM',qm); _set('sVS',vs); _set('sS7',s7);
+  _set('sHi',hi); _set('sFloor',fl); _set('sMA',ma);
+  const bl=document.getElementById('sBull'); if(bl)bl.textContent=bull;
+  const br=document.getElementById('sBear'); if(br)br.textContent=bear;
 }
 
 // Currency map
