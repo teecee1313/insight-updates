@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-318-open';
+const APP_VERSION='2026.07.16-319-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4912,14 +4912,12 @@ function _cardHasGradedPairs(mode){
   return false;
 }
 // 📉 Dip Finder — measure a share's REAL dips so the 🎣 depth is data, not a guess.
-async function dipFinder(code){
-  let tk=(code||'').toString().trim().toUpperCase();
-  if(!tk){ tk=(prompt('📉 Dip Finder — which share? (e.g. BHP)')||'').trim().toUpperCase(); }
-  if(!tk)return;
+// v319 — shared dip maths: one source of truth for the big 📉 modal AND the
+// inline Buy-dialog helper. Returns {ok:false,why} or {ok:true,...stats}.
+async function _dipStats(tk){
   const s=(allData||[]).find(x=>x.ticker===tk);
-  if(!s){ alert('Share not found in the loaded market.'); return; }
+  if(!s)return {ok:false,why:'Share not found in the loaded market.'};
   const apiKey=(document.getElementById('apiKey')||{}).value||'';
-  showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">📉 Measuring '+tk+'’s real daily dips…</div>','📉 Dip Finder');
   const parse=(rr)=>{ const out=[]; (rr||[]).forEach(q=>{ const d=String(qField(q,['dateStamp','DateStamp','date','Date','tradeDate'])||'').slice(0,10);
       const l=parseFloat(qField(q,['low','Low','l','lo'])), h=parseFloat(qField(q,['high','High','h','hi'])), c=parseFloat(qField(q,['close','Close','c']));
       if(d&&isFinite(c)&&c>0)out.push({d,l:(isFinite(l)&&l>0)?l:null,h:(isFinite(h)&&h>0)?h:null,c}); }); return out; };
@@ -4934,29 +4932,64 @@ async function dipFinder(code){
     const c5=(i+5<hist.length)?hist[i+5].c:null;
     pts.push({dip,rng,pc,c5});
   }
-  if(pts.length<20){ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;line-height:1.6;">Not enough days with real high/low data for '+tk+' yet — open its 📊 History once while online (that heals the stored data), then try 📉 again.</div>','📉 Dip Finder'); return; }
+  if(pts.length<20)return {ok:false,why:'Not enough days with real high/low data for '+tk+' yet — open its 📊 History once while online (that heals the stored data), then try 📉 again.'};
   const med=a=>{const s2=a.slice().sort((x,y)=>x-y);const n=s2.length;return n%2?s2[(n-1)/2]:(s2[n/2-1]+s2[n/2])/2;};
   const medDip=med(pts.map(p2=>p2.dip)), medRng=med(pts.map(p2=>p2.rng));
-  const f1=x=>((x>=0?'+':'')+x.toFixed(2))+'%';
-  let rowsHtml='';
+  const table=[];
   for(const x of [1,1.5,2,2.5,3,4,5]){
     const hitDays=pts.filter(p2=>p2.dip>=x);
     const fillRate=Math.round(hitDays.length/pts.length*100);
     const withOut=hitDays.filter(p2=>p2.c5!=null&&p2.pc>0);
     const avgOut=withOut.length?withOut.reduce((a,p2)=>a+(((p2.c5)-(p2.pc*(1-x/100)))/(p2.pc*(1-x/100))*100),0)/withOut.length:null;
-    rowsHtml+=`<tr><td style="padding:4px 8px;">${x}%</td><td style="padding:4px 8px;text-align:right;">${fillRate}%</td><td style="padding:4px 8px;text-align:right;color:${avgOut==null?'var(--dim)':(avgOut>=0?'var(--green)':'#ff9caa')}">${avgOut==null?'—':f1(avgOut)}</td><td style="padding:4px 8px;text-align:right;color:var(--dim)">${withOut.length}</td></tr>`;
+    table.push({x,fillRate,avgOut,n:withOut.length});
   }
   const suggest=Math.max(0.5,Math.round(medDip*2)/2);
+  return {ok:true,s,nPts:pts.length,medDip,medRng,table,suggest};
+}
+async function dipFinder(code){
+  let tk=(code||'').toString().trim().toUpperCase();
+  if(!tk){ tk=(prompt('📉 Dip Finder — which share? (e.g. BHP)')||'').trim().toUpperCase(); }
+  if(!tk)return;
+  if(!(allData||[]).find(x=>x.ticker===tk)){ alert('Share not found in the loaded market.'); return; }
+  showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">📉 Measuring '+tk+'’s real daily dips…</div>','📉 Dip Finder');
+  const D=await _dipStats(tk);
+  if(!D.ok){ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;line-height:1.6;">'+D.why+'</div>','📉 Dip Finder'); return; }
+  const f1=x=>((x>=0?'+':'')+x.toFixed(2))+'%';
+  let rowsHtml='';
+  for(const r2 of D.table){
+    rowsHtml+=`<tr><td style="padding:4px 8px;">${r2.x}%</td><td style="padding:4px 8px;text-align:right;">${r2.fillRate}%</td><td style="padding:4px 8px;text-align:right;color:${r2.avgOut==null?'var(--dim)':(r2.avgOut>=0?'var(--green)':'#ff9caa')}">${r2.avgOut==null?'—':f1(r2.avgOut)}</td><td style="padding:4px 8px;text-align:right;color:var(--dim)">${r2.n}</td></tr>`;
+  }
   showModal(`
-    <div style="font-weight:700;font-size:15px;color:var(--text);">📉 Dip Finder — ${tk} <span style="font-size:10px;color:var(--dim);font-weight:400">last ${pts.length} sessions with real high/low</span></div>
-    <div style="font-size:11px;color:var(--muted);margin:8px 0;line-height:1.6;">Median dip below the previous close: <b style="color:var(--text)">${medDip.toFixed(2)}%</b> · median high-to-low range: <b style="color:var(--text)">${medRng.toFixed(2)}%</b>.<br>A 🎣 limit X% under the close only fills when the day actually dips that far — deeper = better price but fewer fills, and fills cluster on WEAK days. The last column shows what happened +5 sessions AFTER a fill, measured from your limit price — the honest test of whether buying that dip pays.</div>
+    <div style="font-weight:700;font-size:15px;color:var(--text);">📉 Dip Finder — ${tk} <span style="font-size:10px;color:var(--dim);font-weight:400">last ${D.nPts} sessions with real high/low</span></div>
+    <div style="font-size:11px;color:var(--muted);margin:8px 0;line-height:1.6;">Median dip below the previous close: <b style="color:var(--text)">${D.medDip.toFixed(2)}%</b> · median high-to-low range: <b style="color:var(--text)">${D.medRng.toFixed(2)}%</b>.<br>A 🎣 limit X% under the close only fills when the day actually dips that far — deeper = better price but fewer fills, and fills cluster on WEAK days. The last column shows what happened +5 sessions AFTER a fill, measured from your limit price — the honest test of whether buying that dip pays.</div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;">
       <thead><tr style="color:var(--muted);font-size:9px;text-transform:uppercase;"><th style="text-align:left;padding:4px 8px;">Limit under close</th><th style="text-align:right;padding:4px 8px;">Days it fills</th><th style="text-align:right;padding:4px 8px;">Avg +5d after fill</th><th style="text-align:right;padding:4px 8px;">n</th></tr></thead>
       <tbody>${rowsHtml}</tbody></table>
-    <div style="font-size:11px;color:var(--gold);margin-top:10px;">Suggested starting depth for ${tk}: <b>~${suggest}%</b> under the close (its median dip). Type it into 🎣, or use it for a 🎯 pick's buy price.</div>
+    <div style="font-size:11px;color:var(--gold);margin-top:10px;">Suggested starting depth for ${tk}: <b>~${D.suggest}%</b> under the close (its median dip). Type it into 🎣, or use it for a 🎯 pick's buy price.</div>
     <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5;">One number never fits all shares — a 3-cent explorer swings 5–10% a day, a bank barely 1%. Measure the share you actually mean to buy. End-of-day estimates, not advice.</div>
   `,'📉 Dip Finder');
 }
+// v319 — inline Dip Finder for the 🛒 Buy dialog: measures the share being
+// bought and offers tap-to-use limit prices WITHOUT swapping the modal away.
+async function dipFinderInline(tk){
+  const box=document.getElementById('dipMini'); if(!box)return;
+  box.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;">📉 Measuring '+tk+'’s real dips…</div>';
+  const D=await _dipStats(tk);
+  const bx=document.getElementById('dipMini'); if(!bx)return; // dialog may have closed meanwhile
+  if(!D.ok){ bx.innerHTML='<div style="font-size:9px;color:var(--dim);line-height:1.5;">'+D.why+'</div>'; return; }
+  const s=D.s, dec=s.price<1?3:2;
+  const fr=x=>{ const row=D.table.filter(r2=>r2.x<=x).pop(); return row?row.fillRate:null; };
+  const chip=x=>{ const px=(s.price*(1-x/100)).toFixed(dec); const f=fr(x);
+    return '<button type="button" onclick="_useDipPx(\''+px+'\')" style="padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 10px var(--sans);cursor:pointer;">'+x+'% → $'+px+(f!=null?' <span style=\'font-weight:400;color:var(--dim)\'>(fills ~'+f+'% of days)</span>':'')+'</button>'; };
+  const depths=[D.suggest]; if(D.suggest!==2)depths.push(2); if(D.suggest!==3)depths.push(3);
+  bx.innerHTML='<div style="font-size:9.5px;color:var(--muted);line-height:1.6;margin-top:2px;">📉 '+tk+' median dip below the previous close: <b style="color:var(--text)">'+D.medDip.toFixed(2)+'%</b> (last '+D.nPts+' sessions). Tap a depth to use it as your limit price:</div>'
+    +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">'+depths.map(chip).join('')+'</div>'
+    +'<div style="font-size:8.5px;color:var(--dim);margin-top:4px;">'+D.suggest+'% is its median dip. Deeper = better price but fewer fills, and fills cluster on weak days. Full table (with the +5-day after-fill test): 📉 Dip Finder in ⚙ bot settings. Estimates, not advice.</div>';
+}
+window._useDipPx=function(px){
+  const el=document.getElementById('paperLimit'); if(el)el.value=px;
+  try{ const a=document.getElementById('paperAmt'); if(a&&a.oninput)a.oninput(); }catch(e){}
+};
 function _apCandidates(r){
   const p=_paper(); const held=new Set();
   (p.holdings||[]).forEach(h=>held.add(h.ticker)); (p.orders||[]).forEach(o=>held.add(o.ticker));
@@ -5623,6 +5656,7 @@ function paperBuy(ticker){
     <div id="limitRow" style="display:none;">
       <label style="display:block;font-size:10px;color:var(--muted);margin:8px 0 4px;">📉 Limit buy price — only fills if the price falls to this or lower on a day</label>
       <input type="number" id="paperLimit" min="0" step="any" placeholder="e.g. ${(s.price*0.95).toFixed(s.price<1?3:2)}" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;box-sizing:border-box;">
+      <div id="dipMini" style="margin-top:6px;"><button type="button" onclick="dipFinderInline('${s.ticker}')" style="padding:5px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">📉 Dip Finder — what dip does ${s.ticker} actually make?</button></div>
     </div>
 
     <label style="display:block;font-size:10px;color:var(--gold);margin:12px 0 4px;">🎯 Sell price (take-profit) — <strong>required</strong>: commit your exit. Auto-sells if the price rises to here.</label>
