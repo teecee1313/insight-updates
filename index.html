@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-320-open';
+const APP_VERSION='2026.07.16-321-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14461,8 +14461,19 @@ function _signalAudit(){
   return {defs,M,base,covered,liqSkipped,liqFloor:LIQ_FLOOR,hold:HOLD,days:DAYS,from,to,ann:annAgg,annStart:(window._annPS?window._annPS.start:null)};
 }
 function signalReportCard(){
+  // v321: the audit is ~0.7s on a full exchange. Recomputing it on EVERY card
+  // open froze slow devices — and reopening froze them again ("Page
+  // Unresponsive / second time"). Reuse the once-per-day cache when warm
+  // (instant); on a cold build paint a spinner FIRST, then compute next tick so
+  // the click never freezes on a blank screen.
+  var _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
+  if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd){ return _renderReportCard(window._auditCache.A); }
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">\u23f3 <b style="color:var(--text)">Grading every signal\u2026</b><br>re-running each flag over the past weeks \u2014 one moment.</div>','\ud83d\udccb Signal report card'); }catch(e){}
+  setTimeout(function(){ try{ _renderReportCard(_auditCached()); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now \u2014 try again in a moment.</div>','\ud83d\udccb Signal report card'); }catch(_){} } }, 30);
+}
+function _renderReportCard(A){
   try{
-    const A=_signalAudit();
+    if(!A){ return; }
     if(!A.covered||A.covered<30||!A.base.n){
       showModal('<div style="padding:14px;font-size:12px;line-height:1.5;color:var(--muted)">Not enough saved history yet to grade the signals'+(A.liqSkipped>0?' (the 💧 $'+Math.round(A.liqFloor/1000)+'k/day tradeability floor also excludes '+A.liqSkipped.toLocaleString()+' thin shares)':'')+'.<br><br>Load your market (signals prepared) and make sure you have a few months of downloaded data — then the report card can re-run every flag over the past weeks and score it honestly.</div>','📋 Signal report card');
       return;
