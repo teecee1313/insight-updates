@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-313-open';
+const APP_VERSION='2026.07.16-314-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4608,6 +4608,18 @@ window.applyRulePreset=function(k){
   const m=document.getElementById('rulesMsg');
   if(m)m.textContent=p.label+' filled in — press 💾 Save my rules to keep it.';
 };
+// 🏆 v314 — one tap assembles the whole recommended bot (fill-only; user saves).
+window.applyBotBestPractice=function(){
+  try{ applyRulePreset('all'); }catch(e){}
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el)el.value=v; };
+  const tick=(id,v)=>{ const el=document.getElementById(id); if(el)el.checked=!!v; };
+  set('rApComboSel','card-good');   // 📋 adaptive: follow whatever YOUR report card grades SOLID/PROMISING now
+  set('rApEntrySel','dip'); set('rApDip',1.5); // 🎣 patient entry ≈ a liquid share's median daily dip
+  set('rApSrc','smart'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
+  set('rApAmt','');                 // size by the 📦 % rule against the bot's $50k
+  const m=document.getElementById('rulesMsg');
+  if(m)m.textContent='🏆 Best-practice bot filled in — review, press 💾 Save my rules, then switch 🤖 Auto-pilot ON.';
+};
 function showRules(){
   const r=_rules(); const esc=v=>String(v==null?'':v).replace(/[<>"'`]/g,'');
   showModal(`
@@ -4646,6 +4658,8 @@ function showRules(){
         <span style="font:700 11.5px var(--sans);color:var(--text);">🤖 Auto-pilot <span style="font-weight:400;color:var(--dim);font-size:9px;">practice buys by your rules</span></span>
         <button onclick="toggleAutoPilot()" title="Auto-pilot makes PRACTICE buys only, by the entry rules below. Off by default." style="padding:5px 14px;border-radius:16px;border:1px solid ${r.apOn?'var(--gold)':'var(--border2)'};background:${r.apOn?'rgba(255,210,0,.16)':'var(--bg4)'};color:${r.apOn?'var(--gold)':'var(--muted)'};font:800 11px var(--sans);cursor:pointer;min-width:56px;">${r.apOn?'ON':'OFF'}</button>
       </div>
+      <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 1.5% dip entry, 🎯 Smart Money source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
+      <div style="font-size:8.5px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯20 🛑8 🪤8 🛡+5 ⏱10) · every don't-chase gate · 📋 adaptive combos from YOUR report card · 🎣 patient 1.5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option></select></label>
