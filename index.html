@@ -50,6 +50,9 @@ body.theme-light [onmouseover*="rgba(255,255,255"]{}
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;display:flex;flex-direction:column;}
 header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 18px;height:50px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+/* v305: on narrower effective windows (e.g. Windows 125% display scaling) the
+   header buttons were clipping off the right edge — wrap instead. */
+@media (max-width:1750px){ header{height:auto;min-height:50px;flex-wrap:wrap;padding:6px 18px;row-gap:6px;} }
 .logo{font-family:var(--sans);font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--text);display:flex;align-items:center;gap:6px;}
 .logo em{color:var(--muted);font-style:normal;}
 .hbadge{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:2px 8px;font-size:10px;font-family:var(--mono);color:var(--muted);}
@@ -419,6 +422,13 @@ th{padding:8px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:
 th:hover{color:var(--gold);}
 td{padding:7px 6px;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle;}
 tr:hover td{background:rgba(255,255,255,.02);}
+/* v305: the results table can be wider than the window (many columns, zoomed
+   displays). Freeze the Ticker/Name column so sideways scrolling never hides
+   WHICH share a row is — same pattern as the portfolio tables on phones. */
+.tblwrap th:nth-child(3),.tblwrap td:nth-child(3){position:sticky;left:0;z-index:3;background:var(--bg);box-shadow:2px 0 6px rgba(0,0,0,.35);}
+.tblwrap thead th:nth-child(3){z-index:11;background:var(--bg2);}
+.tblwrap tbody tr:hover td:nth-child(3){background:var(--bg3);}
+body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child(3){box-shadow:2px 0 6px rgba(0,0,0,.12);}
 .tick-wrap{display:flex;flex-direction:column;gap:1px;}
 .tick-code{font-family:var(--mono);font-weight:700;font-size:13px;}
 .tick-link{display:inline-flex;align-items:center;gap:3px;color:var(--gold);text-decoration:none;}
@@ -1473,7 +1483,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-304-open';
+const APP_VERSION='2026.07.16-305-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9889,6 +9899,7 @@ async function prepareAllSignals(auto){
         } else { _sliceFailed++; (window._prepFailed=window._prepFailed||[]).push(s); }
         done++;
       });
+      try{ statsBar&&statsBar(); }catch(e){} // v305: radar tiles fill in LIVE as signals load (they sat at 0 until the very end)
       _maybeSlowNetworkHint&&_maybeSlowNetworkHint();
       const _servingDisk=(!!window._preferOffline && (window._savedN||0)>=ranked.length) || (window._healCount>i*0.8);
       if(i+BATCH<ranked.length && !_servingDisk)await new Promise(r=>setTimeout(r,350));
@@ -9957,7 +9968,7 @@ async function prepareAllSignals(auto){
       }
     }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
-  finally{window._prepRunning=false;const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}
+  finally{window._prepRunning=false;try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}
   try{ if(window._prepQueued){ window._prepQueued=false; if(!window._prepAbort)setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400); } }catch(e){}}
 }
 async function calcStreaks(){
