@@ -1473,7 +1473,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-301-open';
+const APP_VERSION='2026.07.16-302-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4514,20 +4514,22 @@ function _rules(){
   const num=(v,d)=>{ const n=parseFloat(v); return (isFinite(n)&&n>=0)?n:d; };
   return { enabled:(r.enabled!==false), targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
+    trailPct:num(r.trailPct,0), bePct:num(r.bePct,0), maxHoldDays:Math.round(num(r.maxHoldDays,0)),
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
     apMinScore:num(r.apMinScore,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
-    apAmt:num(r.apAmt,0),
+    apAmt:num(r.apAmt,0), apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,0),
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
 function _rulesSave(r){
   const clean={ enabled:(r.enabled!==false), targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
+    trailPct:+r.trailPct||0, bePct:+r.bePct||0, maxHoldDays:Math.max(0,Math.round(+r.maxHoldDays||0)),
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
     apMinScore:+r.apMinScore||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
-    apAmt:+r.apAmt||0,
+    apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0,
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
@@ -4548,6 +4550,9 @@ function showRules(){
       <label style="font-size:10px;color:var(--muted);">🛑 Stop loss at<input type="number" id="rStop" min="0" step="any" value="${r.stopPct||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--red);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % loss</span></label>
       <label style="font-size:10px;color:var(--muted);">📦 Max in one share<input type="number" id="rMaxPos" min="0" step="any" value="${r.maxPosPct||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % of account</span></label>
       <label style="font-size:10px;color:var(--muted);">🔢 Max open positions<input type="number" id="rMaxN" min="0" step="1" value="${r.maxPositions||''}" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> at once</span></label>
+      <label style="font-size:10px;color:var(--muted);">🪤 Trailing stop<input type="number" id="rTrail" min="0" step="any" value="${r.trailPct||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % below highest close — stop only ever rises</span></label>
+      <label style="font-size:10px;color:var(--muted);">🛡 Break-even at<input type="number" id="rBE" min="0" step="any" value="${r.bePct||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> +% gain → stop moves to your entry (the free trade)</span></label>
+      <label style="font-size:10px;color:var(--muted);">⏱ Max hold<input type="number" id="rHold" min="0" step="1" value="${r.maxHoldDays||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> data days — unresolved positions exit at the next open</span></label>
     </div>
     <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5;">🎯 and 🛑 auto-fill when you make a practice buy. 📦 and 🔢 show as friendly flags in your 🔔 briefing when you go over — never a block.</div>
     <div style="font:700 11px var(--sans);color:var(--text);margin:14px 0 6px;">Your own rules — the human stuff</div>
@@ -4578,6 +4583,12 @@ function showRules(){
           <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApSig_vr" ${r.apSignals.indexOf('vr')>=0?'checked':''} style="width:13px;height:13px;">🥇 Vol record</label>
         </div>
       </div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:9.5px;color:var(--muted);align-items:center;">
+        <span style="color:var(--dim)">Don't-chase (scanner):</span>
+        <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApGreen" ${r.apGreenOnly?'checked':''} style="width:13px;height:13px;">🟢 green day only</label>
+        <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApRsi" ${r.apNoChaseRsi?'checked':''} style="width:13px;height:13px;">skip RSI ≥ 70</label>
+        <label style="display:flex;align-items:center;gap:4px;">skip day-jump &gt;<input type="number" id="rApChase" min="0" step="any" value="${r.apMaxChasePct||''}" placeholder="off" style="width:52px;padding:4px;border-radius:5px;background:var(--bg3);border:1px solid var(--border);color:var(--text);">%</label>
+      </div>
       <div style="margin-top:12px;padding-top:9px;border-top:1px dashed var(--border);">
         <div style="font:700 10.5px var(--sans);color:var(--text);">🎯 My picks — your shares, your prices <span style="font-weight:400;color:var(--dim);font-size:9px;">practice limit orders</span></div>
         <div style="font-size:9px;color:var(--dim);margin:3px 0 7px;line-height:1.5;">Auto-pilot places a practice <b>limit buy</b> at your buy point (sized by your 📦 rule) with your sell point as 🎯 and your stop as 🛑 — leave sell/stop blank to use the % rules above. A pick <b>disarms itself once it fills</b> so it can't re-buy in a loop — or tick 🔁 to <b>repeat</b>: after it sells at your 🎯 it buys again at your buy point, cycling until you remove it; if a cycle ends on the 🛑 (a loss) the repeat <b>pauses</b> rather than churning. Adding a pick for a share you already hold applies the sell/stop to that holding instead.</div>
@@ -4594,6 +4605,7 @@ function showRules(){
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
         <button onclick="runAutoPilotNow()" ${r.apOn&&r.enabled?'':'disabled'} style="flex:1;padding:8px;border-radius:7px;border:1px solid ${r.apOn&&r.enabled?'var(--gold)':'var(--border2)'};background:${r.apOn&&r.enabled?'rgba(255,210,0,.12)':'var(--bg4)'};color:${r.apOn&&r.enabled?'var(--gold)':'var(--dim)'};font:700 11px var(--sans);cursor:${r.apOn&&r.enabled?'pointer':'default'};">▶ Run auto-pilot now (practice)</button>
+        <button onclick="botScoreboard()" title="Win rate, expectancy, profit factor, drawdown — computed from the bot's own closed trades only" style="padding:8px 10px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 11px var(--sans);cursor:pointer;">📊 Scoreboard</button>
       </div>
       <div id="apLogBox" style="margin-top:8px;">${_apLogHtml()}</div>
     </div>
@@ -4604,7 +4616,7 @@ function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
-    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'),
+    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'),
     apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr'].filter(k=>chk('rApSig_'+k)):_rules().apSignals) };
 }
 function saveRulesFromForm(){
@@ -4653,6 +4665,9 @@ function _apCandidates(r){
   if(r.apQuietOnly)pool=pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}});
   if(Array.isArray(r.apSignals)&&r.apSignals.length){ const M={bo:'sigBreakout',inf:'dirBuy',inst:'instBuy',cx:'sigCross',dir:'annDir5d',vr:'sigVolRecord'};
     pool=pool.filter(s=>r.apSignals.some(k=>!!s[M[k]])); }
+  if(r.apNoChaseRsi)pool=pool.filter(s=>!(s.rsi!=null&&s.rsi>=70));
+  if(r.apMaxChasePct>0)pool=pool.filter(s=>!(s.chgPct!=null&&s.chgPct>r.apMaxChasePct));
+  if(r.apGreenOnly)pool=pool.filter(s=>{const o=(s._q&&s._q.o>0)?s._q.o:0; return o>0?(s.price>o):(s.chgPct>0);});
   pool.sort((a,b)=>((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0)));
   return pool;
 }
@@ -4689,6 +4704,45 @@ function _apBuy(s,r){
   }
   _paperSave(p);
   return {ok:true,qty,cost,px,tgt,stop,trim:_trim};
+}
+// 📊 v302 — the bot's scoreboard: judge it like a trader journals, on ITS trades only.
+function botScoreboard(){
+  const p=_paper();
+  const isBot=x=>/Auto-pilot/.test(String(x&&x.note||''));
+  const closed=(p.history||[]).filter(isBot).slice().reverse(); // oldest → newest
+  const openH=(p.holdings||[]).filter(isBot).length, openO=(p.orders||[]).filter(isBot).length;
+  let html='<div style="font-weight:700;font-size:15px;color:var(--text);">📊 Auto-pilot scoreboard <span style="font-size:10px;color:var(--dim);font-weight:400;">practice trades the bot made itself</span></div>';
+  if(!closed.length){
+    html+='<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px;">No closed bot trades yet — '+(openH+openO?('it has <b>'+(openH+openO)+'</b> open position'+(openH+openO===1?'':'s')+'/order'+(openH+openO===1?'':'s')+' working. '):'')+'give it a few data days. Every closed trade lands here automatically, and this panel is the honest judge of whether your rule-set earns its keep.</div>';
+    showModal(html,'📊 Auto-pilot scoreboard'); return;
+  }
+  const n=closed.length, wins=closed.filter(t=>(t.plAbs||0)>0), losses=closed.filter(t=>(t.plAbs||0)<=0);
+  const wr=wins.length/n;
+  const avgW=wins.length?wins.reduce((a,t)=>a+(t.plPct||0),0)/wins.length:0;
+  const avgL=losses.length?Math.abs(losses.reduce((a,t)=>a+(t.plPct||0),0)/losses.length):0;
+  const expct=wr*avgW-(1-wr)*avgL;
+  const gw=wins.reduce((a,t)=>a+(t.plAbs||0),0), gl=Math.abs(losses.reduce((a,t)=>a+(t.plAbs||0),0));
+  const pf=gl>0?gw/gl:(gw>0?Infinity:0);
+  const totPL=+(gw-gl).toFixed(2), fees=closed.reduce((a,t)=>a+(t.fees||0),0);
+  let run=0,peakEq=0,maxDD=0; closed.forEach(t=>{ run+=(t.plAbs||0); if(run>peakEq)peakEq=run; if(peakEq-run>maxDD)maxDD=peakEq-run; });
+  const hold=closed.map(t=>{try{return Math.max(1,Math.round((new Date(t.sellDate)-new Date(t.buyDate))/86400000));}catch(e){return 0;}}).filter(x=>x>0);
+  const avgHold=hold.length?(hold.reduce((a,b)=>a+b,0)/hold.length):0;
+  const trig=k=>closed.filter(t=>t.trigger===k).length;
+  const row=(l,v,c)=>'<div style="display:flex;justify-content:space-between;padding:6px 2px;border-bottom:1px solid var(--border2);font-size:12px;"><span style="color:var(--muted)">'+l+'</span><b style="color:'+(c||'var(--text)')+'">'+v+'</b></div>';
+  html+='<div style="margin-top:10px;">'
+    +row('Closed bot trades',n+(openH+openO?' <span style="font-weight:400;color:var(--dim)">(+'+(openH+openO)+' open)</span>':''))
+    +row('Win rate',Math.round(wr*100)+'%',wr>=0.5?'var(--green)':'#ff9caa')
+    +row('Average win / loss','+'+avgW.toFixed(1)+'% / −'+avgL.toFixed(1)+'%')
+    +row('Expectancy per trade',(expct>=0?'+':'')+expct.toFixed(2)+'%',expct>=0?'var(--green)':'#ff9caa')
+    +row('Profit factor',(pf===Infinity?'∞':pf.toFixed(2)),pf>=1.5?'var(--green)':pf>=1?'var(--gold)':'#ff9caa')
+    +row('Total P/L',(totPL>=0?'+$':'−$')+Math.abs(totPL).toFixed(2),totPL>=0?'var(--green)':'#ff9caa')
+    +row('Brokerage paid','$'+fees.toFixed(2))
+    +row('Max drawdown (closed-trade equity)','−$'+maxDD.toFixed(2))
+    +row('Average hold',avgHold.toFixed(1)+' days')
+    +row('Exits — 🎯 / 🪤 / 🛑 / ⏱',trig('target')+' / '+trig('trail')+' / '+trig('stop')+' / '+trig('time'))
+    +'</div>'
+    +'<div style="font-size:9.5px;color:var(--dim);margin-top:10px;line-height:1.5;">Expectancy = winRate×avgWin − lossRate×avgLoss, per trade. A rule-set needs POSITIVE expectancy after costs — over enough trades — before it deserves real money. Practice results, estimates, not advice.</div>';
+  showModal(html,'📊 Auto-pilot scoreboard');
 }
 const AP_PICKS_KEY='asxScreener.autoPilot.picks.v1';
 function _apPicksLoad(){ try{ return (JSON.parse(localStorage.getItem(AP_PICKS_KEY)||'[]')||[]).slice(0,20); }catch(e){ return []; } }
@@ -4928,7 +4982,9 @@ async function checkAutoSellTargets(){
   if(window._tgtChecking)return [];
   const apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
   const p=_paper();
-  const targeted=(p.holdings||[]).filter(h=>h.target>0||h.stop>0);
+  const R302=_rules();
+  const _trailOn=R302.enabled&&R302.trailPct>0, _beOn=R302.enabled&&R302.bePct>0, _timeOn=R302.enabled&&R302.maxHoldDays>0;
+  const targeted=(p.holdings||[]).filter(h=>h.target>0||h.stop>0||_trailOn||_beOn||_timeOn);
   if(!targeted.length)return [];
   window._tgtChecking=true;
   const autoSold=[];let changed=false;
@@ -4957,7 +5013,8 @@ async function checkAutoSellTargets(){
               d:String(qField(q,['dateStamp','DateStamp','date','Date','tradeDate'])||'').slice(0,10),
               o:parseFloat(qField(q,['open','Open'])),
               hi:parseFloat(qField(q,['high','High'])),
-              lo:parseFloat(qField(q,['low','Low']))
+              lo:parseFloat(qField(q,['low','Low'])),
+              c:parseFloat(qField(q,['close','Close','c']))
             })).filter(x=>x.d&&x.d>h.buyDate).sort((a,b)=>a.d<b.d?-1:1);
             // Sanity band: reject corrupt/glitched OHLC rows so a bad data point
             // (e.g. a spurious low far below the real range) can't trigger a false
@@ -4965,29 +5022,51 @@ async function checkAutoSellTargets(){
             // price; anything wildly outside that is a data error, not a real move.
             const _bp=(h.buyPrice>0?h.buyPrice:(h.lastPrice>0?h.lastPrice:0));
             const _sane=(v)=>isFinite(v)&&v>0&&(_bp<=0||(v>=_bp*0.15 && v<=_bp*6));
+            // v302: hindsight-free ratchet state — each day's stop uses PRIOR closes only.
+            let _peak=(h.peakClose>0?h.peakClose:(h.buyPrice>0?h.buyPrice:0));
+            let _beArmed=(h.beArmed===true);
+            const _dynStop=function(){ let s=(h.stop>0?h.stop:0);
+              if(_beOn&&_beArmed&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
+              if(_trailOn&&_peak>0)s=Math.max(s,+((_peak*(1-R302.trailPct/100))).toFixed(4));
+              return s; };
+            let _held=0;
             for(const day of days){
+              _held++;
               // Skip any day whose values look corrupt (out of a sane band).
-              const oOK=_sane(day.o), hiOK=_sane(day.hi), loOK=_sane(day.lo);
-              // Stop-loss (downside) — checked first, conservative
-              if(h.stop>0){
+              const oOK=_sane(day.o), hiOK=_sane(day.hi), loOK=_sane(day.lo), cOK=_sane(day.c);
+              // ⏱ time stop — held past the limit: exit at this day's open
+              if(_timeOn&&_held>R302.maxHoldDays&&oOK){ hit={date:day.d,fill:day.o,why:'time'}; break; }
+              const _stopNow=_dynStop();
+              const _why=(_stopNow>(h.stop>0?h.stop:0)+1e-9)?'trail':(h.stopSrc==='trail'?'trail':'stop');
+              // Stop (fixed / trailed / break-even) — checked first, conservative
+              if(_stopNow>0){
                 // A real gap-down opens somewhere near the stop, not wildly below it.
                 // If the "open" is more than 35% below the stop, that's almost
                 // certainly a corrupt/mis-scaled data point — fill AT the stop
                 // instead of at an absurd price. Prevents phantom stop-outs like
                 // selling a $125 share at $29 because of one bad data row.
-                if(oOK&&day.o<=h.stop){
-                  const fill=(day.o < h.stop*0.65) ? h.stop : day.o; // clamp glitchy gaps
-                  hit={date:day.d,fill,why:'stop'};break;
+                if(oOK&&day.o<=_stopNow){
+                  const fill=(day.o < _stopNow*0.65) ? _stopNow : day.o; // clamp glitchy gaps
+                  hit={date:day.d,fill,why:_why};break;
                 }
-                if(loOK&&day.lo<=h.stop&&day.lo>=h.stop*0.4){hit={date:day.d,fill:h.stop,why:'stop'};break;} // ignore absurd lows
+                if(loOK&&day.lo<=_stopNow&&day.lo>=_stopNow*0.4){hit={date:day.d,fill:_stopNow,why:_why};break;} // ignore absurd lows
               }
               // Take-profit target (upside)
               if(h.target>0){
                 if(oOK&&day.o>=h.target){hit={date:day.d,fill:day.o,why:'target'};break;}
                 if(hiOK&&day.hi>=h.target){hit={date:day.d,fill:h.target,why:'target'};break;}
               }
+              // Survived the day — TODAY'S close may ratchet the trail / arm break-even (effective tomorrow).
+              if(cOK){ if(day.c>_peak)_peak=day.c;
+                if(_beOn&&!_beArmed&&h.buyPrice>0&&day.c>=h.buyPrice*(1+R302.bePct/100))_beArmed=true; }
             }
-            if(!hit&&days.length)h.tgtChecked=days[days.length-1].d; // scanned through here
+            if(!hit&&days.length){ h.tgtChecked=days[days.length-1].d; // scanned through here
+              // persist the ratchet so the portfolio shows the live trailed stop
+              if(_peak>(h.peakClose||0)){ h.peakClose=_peak; changed=true; }
+              if(_beArmed&&h.beArmed!==true){ h.beArmed=true; changed=true; }
+              const _ns=_dynStop();
+              if(_ns>(h.stop>0?h.stop:0)){ (h.stopLog=h.stopLog||[]).push({d:days[days.length-1].d,ts:_pfStamp(),from:(h.stop>0?h.stop:null),to:_ns,why:'trail'}); h.stop=_ns; h.stopSrc='trail'; }
+            }
           }
         }catch(e){/* fall through to close check */}
       }
@@ -4995,10 +5074,20 @@ async function checkAutoSellTargets(){
       // Same sanity guard — a corrupt last price shouldn't trigger a sell.
       const _bp2=(h.buyPrice>0?h.buyPrice:0);
       const _lpSane=isFinite(h.lastPrice)&&h.lastPrice>0&&(_bp2<=0||(h.lastPrice>=_bp2*0.15&&h.lastPrice<=_bp2*6));
+      if(_lpSane&&(_trailOn||_beOn)){
+        if(h.lastPrice>(h.peakClose||0)){ h.peakClose=h.lastPrice; changed=true; }
+        if(_beOn&&h.beArmed!==true&&h.buyPrice>0&&h.lastPrice>=h.buyPrice*(1+R302.bePct/100)){ h.beArmed=true; changed=true; }
+      }
+      const _fbStop=(function(){ let s=(h.stop>0?h.stop:0);
+        if(_beOn&&h.beArmed===true&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
+        if(_trailOn&&(h.peakClose||0)>0)s=Math.max(s,+(((h.peakClose)*(1-R302.trailPct/100))).toFixed(4));
+        return s; })();
       if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:_todayLocal(),fill:h.lastPrice,why:'target'};
-      if(!hit && _lpSane && h.stop>0 && h.lastPrice<=h.stop)hit={date:_todayLocal(),fill:h.lastPrice,why:'stop'};
+      if(!hit && _lpSane && _fbStop>0 && h.lastPrice<=_fbStop)hit={date:_todayLocal(),fill:h.lastPrice,why:((_fbStop>(h.stop>0?h.stop:0)+1e-9)||h.stopSrc==='trail')?'trail':'stop'};
+      if(!hit && _timeOn && _lpSane && h.buyDate){ const _cd=Math.floor((Date.now()-new Date(String(h.buyDate).slice(0,10)).getTime())/86400000);
+        if(_cd>R302.maxHoldDays+3) hit={date:_todayLocal(),fill:h.lastPrice,why:'time'}; }
       if(hit){
-        if(hit.why==='stop')hit.fill=_slipSell(hit.fill);
+        if(hit.why==='stop'||hit.why==='trail')hit.fill=_slipSell(hit.fill);
         const proceeds=+(h.qty*hit.fill).toFixed(2);
         const _sf=brokerageFee();
         const fees=+(((h.buyFee||0)+_sf)).toFixed(2);
@@ -6136,7 +6225,7 @@ function showPortfolio(exSel){
     const sinceHtml=(_sd!=null&&isFinite(_sd))?`<br><span style="font-size:8px;color:${_sd>1?'var(--gold)':_sd<-1?'var(--green)':'var(--dim)'}">now ${fmtP(_nowPx,t.currency)} · ${_sd>=0?'+':''}${_sd.toFixed(1)}% since you sold${_sd>10?' — it kept climbing':_sd<-10?' — good exit':''}</span>`:'';
     return `<tr>
       <td style="padding:4px 6px;"><strong><a href="#" onclick="printShareReport('${t.ticker}');return false;" title="Open the printable report for ${t.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${t.ticker} 🖨</a></strong> <span style="font-size:8px;color:var(--dim)">${t.exchange}</span>${(function(){
-        const ex=t.trigger==='stop'?'<span style="font-size:8px;color:#ff9caa">🛑 stop-loss</span>':t.trigger==='target'?'<span style="font-size:8px;color:var(--gold)">🎯 target</span>':t.auto?'<span style="font-size:8px;color:var(--gold)">🎯 auto</span>':'<span style="font-size:8px;color:var(--muted)">sold at market</span>';
+        const ex=t.trigger==='trail'?'<span style="font-size:8px;color:var(--green)">🪤 trail stop</span>':t.trigger==='time'?'<span style="font-size:8px;color:#58a6ff">⏱ time stop</span>':t.trigger==='stop'?'<span style="font-size:8px;color:#ff9caa">🛑 stop-loss</span>':t.trigger==='target'?'<span style="font-size:8px;color:var(--gold)">🎯 target</span>':t.auto?'<span style="font-size:8px;color:var(--gold)">🎯 auto</span>':'<span style="font-size:8px;color:var(--muted)">sold at market</span>';
         return ' '+ex;
       })()}${t.partial?' <span style="font-size:8px;color:var(--dim)">(partial)</span>':''}${t.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(t.note).replace(/"/g,'&quot;')}">📝 ${String(t.note).slice(0,40)}${t.note.length>40?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
