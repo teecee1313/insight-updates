@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-306-open';
+const APP_VERSION='2026.07.16-307-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4298,30 +4298,47 @@ function showShareDetail(ticker,days){
       <div style="font-size:11px;color:var(--muted);margin-top:8px;">No history loaded yet for this share. Load the exchange (history builds automatically), then try again.</div>`);
     return;
   }
-  // Opens aren't in the slim cache — fetch this share's OHLC once (1 API call),
-  // remember it on the share, and re-render the panel when it arrives.
-  if(!s._ohlcMap && !s._ohlcLoading){
+  // v307: fetch this share's full OHLC once (1 API call) — opens, HIGHS and
+  // LOWS per day — remember it on the share, and re-render when it arrives.
+  // If the offline-served rows carry no OHLC (old slim store), retry ONCE
+  // straight from the network; a truly empty result backs off for 60s instead
+  // of caching '—' forever (the old behaviour behind the all-dashes Open column).
+  if(!s._ohlcMap && !s._ohlcLoading && !(s._ohlcRetryAt&&Date.now()<s._ohlcRetryAt)){
     const apiKey=(document.getElementById('apiKey')||{}).value||'';
     if(apiKey.trim()){
-      s._ohlcLoading=true;
-      fetchHistory(s.exchange||currentExch,ticker,apiKey.trim(),400).then(rows=>{
-        const map={};
-        (rows||[]).forEach(q=>{
-          const d=String(qField(q,['dateStamp','DateStamp','date','Date','tradeDate'])||'').slice(0,10);
-          const o=parseFloat(qField(q,['open','Open']));
-          if(d&&isFinite(o)&&o>0)map[d]=o;
-        });
-        s._ohlcMap=map;s._ohlcLoading=false;
-        // Only refresh the panel if it's STILL open for this ticker. Without this
-        // check, closing History before the fetch finished would reopen it.
-        const _m=document.getElementById('appModal');
-        const stillOpen=_m && _m.style.display!=='none';
-        if(stillOpen && window._detailTicker===ticker)showShareDetail(ticker,window._detailDays||n);
-      }).catch(()=>{s._ohlcMap={};s._ohlcLoading=false;});
-    }else{s._ohlcMap={};}
+      const _ohlcFetch=(forceNet)=>{
+        s._ohlcLoading=true;
+        fetchHistory(s.exchange||currentExch,ticker,apiKey.trim(),400,forceNet).then(rows=>{
+          const map={};
+          (rows||[]).forEach(q=>{
+            const d=String(qField(q,['dateStamp','DateStamp','date','Date','tradeDate'])||'').slice(0,10);
+            const o=parseFloat(qField(q,['open','Open','o']));
+            const h=parseFloat(qField(q,['high','High','h','hi']));
+            const l=parseFloat(qField(q,['low','Low','l','lo']));
+            if(!d)return;
+            const rec={};
+            if(isFinite(o)&&o>0)rec.o=o;
+            if(isFinite(h)&&h>0)rec.h=h;
+            if(isFinite(l)&&l>0)rec.l=l;
+            if(rec.o||rec.h||rec.l)map[d]=rec;
+          });
+          if(!Object.keys(map).length && !forceNet){ s._ohlcLoading=false; _ohlcFetch(true); return; } // saved rows had no OHLC → one live retry
+          if(Object.keys(map).length){ s._ohlcMap=map; s._ohlcRetryAt=0; }
+          else { s._ohlcMap=null; s._ohlcRetryAt=Date.now()+60000; }
+          s._ohlcLoading=false;
+          // Only refresh the panel if it's STILL open for this ticker. Without this
+          // check, closing History before the fetch finished would reopen it.
+          const _m=document.getElementById('appModal');
+          const stillOpen=_m && _m.style.display!=='none';
+          if(stillOpen && window._detailTicker===ticker)showShareDetail(ticker,window._detailDays||n);
+        }).catch(()=>{s._ohlcMap=null;s._ohlcLoading=false;s._ohlcRetryAt=Date.now()+60000;});
+      };
+      _ohlcFetch(false);
+    }else{s._ohlcMap=null;s._ohlcRetryAt=Date.now()+60000;}
   }
   window._detailDays=n;
-  const openFor=d=>{const m=s._ohlcMap;const o=m?m[d]:null;return (o&&o>0)?o:null;};
+  const ohlcFor=d=>{const m=s._ohlcMap;const r=m?m[d]:null;return r||null;};
+  const openFor=d=>{const r=ohlcFor(d);return (r&&r.o>0)?r.o:null;};
   const ser=s.series;
   // Baseline average volume (history, same spirit as the table's comparison).
   const hv=ser.map(x=>x.v).filter(v=>v>0);
@@ -4337,7 +4354,8 @@ function showShareDetail(ticker,days){
     const acc=accumDays(tmp,10);
     tmp.accum10=acc;
     const sc=watchScore10(tmp).score;
-    return {d:ser[i].d,o:openFor(ser[i].d),c,chg,v,vp,ps,vs,acc,sc};
+    const _oh=ohlcFor(ser[i].d)||{};
+    return {d:ser[i].d,o:openFor(ser[i].d),h:(_oh.h>0?_oh.h:null),l:(_oh.l>0?_oh.l:null),c,chg,v,vp,ps,vs,acc,sc};
   }
   // LOCAL date, not UTC — Australia is ahead of UTC, so toISOString() gives
   // yesterday's date for part of the day, which made the today-check miss and
@@ -4366,7 +4384,7 @@ function showShareDetail(ticker,days){
   // when no range is set or today falls inside it. Its Vol-vs-Avg uses the SAME
   // baseline average as the dated rows so the numbers agree.
   if(!_suppressToday && !histHasToday && (!ranged || ((!from||from<=todayStr)&&(!to||to>=todayStr))))
-    rowsData.push({d:'Today',o:openFor(todayStr)||(s.open>0?s.open:null),c:s.price,chg:s.chgPct||0,v:s.volume,vp:(baseAvg>0&&s.volume>0)?Math.round(((s.volume-baseAvg)/baseAvg)*100):null,ps:s.daysUp||0,vs:s.volDays||0,acc:s.accum10!=null?s.accum10:'—',sc:s.watchScore!=null?s.watchScore:'—',live:true});
+    rowsData.push({d:'Today',o:openFor(todayStr)||(s.open>0?s.open:null),h:((ohlcFor(todayStr)||{}).h)||((s._q&&s._q.hi>0)?s._q.hi:null),l:((ohlcFor(todayStr)||{}).l)||((s._q&&s._q.lo>0)?s._q.lo:null),c:s.price,chg:s.chgPct||0,v:s.volume,vp:(baseAvg>0&&s.volume>0)?Math.round(((s.volume-baseAvg)/baseAvg)*100):null,ps:s.daysUp||0,vs:s.volDays||0,acc:s.accum10!=null?s.accum10:'—',sc:s.watchScore!=null?s.watchScore:'—',live:true});
   for(let i=ser.length-1;i>=0;i--){
     const d=ser[i].d;
     if(ranged){
@@ -4384,6 +4402,8 @@ function showShareDetail(ticker,days){
     return `<tr style="${r.live?'background:rgba(255,210,0,.06);':''}">
       <td style="font-family:var(--mono);font-size:10px;padding:5px 6px;">${r.live?('<strong>Today</strong>'+(r.d&&r.d!=='Today'?' <span style="color:var(--dim);font-size:8px">'+r.d+'</span>':'')):r.d}</td>
       <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.o?fmtP(r.o,s.currency):(s._ohlcLoading?'…':'—')}</td>
+      <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.h?fmtP(r.h,s.currency):(s._ohlcLoading?'…':'—')}</td>
+      <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.l?fmtP(r.l,s.currency):(s._ohlcLoading?'…':'—')}</td>
       <td style="text-align:right;font-family:var(--mono);padding:5px 6px;">${fmtP(r.c,s.currency)}</td>
       <td style="text-align:right;font-family:var(--mono);padding:5px 6px;color:${up?'var(--green)':dn?'var(--red)':'var(--muted)'}">${r.chg>0?'+':''}${fmt(r.chg,2)}%</td>
       <td style="text-align:right;font-family:var(--mono);padding:5px 6px;">${fmtV(r.v)}</td>
@@ -4411,14 +4431,14 @@ function showShareDetail(ticker,days){
     <div class="shd-scroll" style="overflow:auto;border:1px solid var(--border);border-radius:8px;">
       <table class="shd-table hist" style="width:100%;border-collapse:collapse;font-size:10px;">
         <thead><tr style="position:sticky;top:0;background:var(--bg2);">
-          <th style="text-align:left;padding:6px;">Date</th><th class="shd-sec" style="text-align:right;padding:6px;">Open</th><th style="text-align:right;padding:6px;">Close</th><th style="text-align:right;padding:6px;">Change</th>
+          <th style="text-align:left;padding:6px;">Date</th><th class="shd-sec" style="text-align:right;padding:6px;">Open</th><th class="shd-sec" style="text-align:right;padding:6px;">High</th><th class="shd-sec" style="text-align:right;padding:6px;">Low</th><th style="text-align:right;padding:6px;">Close</th><th style="text-align:right;padding:6px;">Change</th>
           <th style="text-align:right;padding:6px;">Volume</th><th class="shd-sec" style="text-align:right;padding:6px;">Vol vs avg</th>
           <th class="shd-sec" style="text-align:right;padding:6px;">📈 Streak</th><th class="shd-sec" style="text-align:right;padding:6px;">📊 Vol Strk</th>
           <th class="shd-sec" style="text-align:right;padding:6px;">🔥 Accum</th><th class="shd-sec" style="text-align:right;padding:6px;">⭐ /10</th>
         </tr></thead><tbody>${body}</tbody>
       </table>
     </div>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens fetched per share (1 call, remembered) · estimates from end-of-day data, not advice.</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows fetched per share (1 call, remembered) · estimates from end-of-day data, not advice.</div>
   `);
 }
 
@@ -13452,6 +13472,8 @@ const COLUMN_HELP={
   "Streak":{t:"Streak",d:"Consecutive days the price closed higher — a running count of the current up-run. A longer streak means more persistent buying."},
   "Open":{t:"Open",d:"The day's opening price — the first traded price when the market opened."},
   "Close":{t:"Close",d:"The day's closing price — the final price when the market shut."},
+  "High":{t:"High",d:"The day's highest traded price. High vs close shows how much of the day's push held into the finish."},
+  "Low":{t:"Low",d:"The day's lowest traded price. A close far above the low means buyers stepped in during the day."},
   "Date":{t:"Date",d:"The trading date for this row of history."},
   "Type":{t:"Type",d:"The kind of security — ordinary share, ETF, REIT, LIC, option, etc. Use the type tabs/filters to focus on one kind."},
   "Type / expiry":{t:"Type / expiry",d:"In the licence register: the key type (trial, monthly, permanent) and when it expires."},
