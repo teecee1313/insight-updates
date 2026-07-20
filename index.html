@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-314-open';
+const APP_VERSION='2026.07.16-315-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4608,6 +4608,14 @@ window.applyRulePreset=function(k){
   const m=document.getElementById('rulesMsg');
   if(m)m.textContent=p.label+' filled in — press 💾 Save my rules to keep it.';
 };
+// ⚙ v315 — advanced bot settings fold away (collapsed by default, remembered).
+window._apAdvOpen=(function(){try{return localStorage.getItem('asxScreener.apAdvOpen.v1')==='1';}catch(e){return false;}})();
+window.toggleApAdv=function(){
+  window._apAdvOpen=!window._apAdvOpen;
+  try{localStorage.setItem('asxScreener.apAdvOpen.v1',window._apAdvOpen?'1':'0');}catch(e){}
+  const b=document.getElementById('apAdvBox'); if(b)b.style.display=window._apAdvOpen?'block':'none';
+  const t=document.getElementById('apAdvToggle'); if(t)t.innerHTML='⚙ Advanced bot settings '+(window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)');
+};
 // 🏆 v314 — one tap assembles the whole recommended bot (fill-only; user saves).
 window.applyBotBestPractice=function(){
   try{ applyRulePreset('all'); }catch(e){}
@@ -4658,8 +4666,28 @@ function showRules(){
         <span style="font:700 11.5px var(--sans);color:var(--text);">🤖 Auto-pilot <span style="font-weight:400;color:var(--dim);font-size:9px;">practice buys by your rules</span></span>
         <button onclick="toggleAutoPilot()" title="Auto-pilot makes PRACTICE buys only, by the entry rules below. Off by default." style="padding:5px 14px;border-radius:16px;border:1px solid ${r.apOn?'var(--gold)':'var(--border2)'};background:${r.apOn?'rgba(255,210,0,.16)':'var(--bg4)'};color:${r.apOn?'var(--gold)':'var(--muted)'};font:800 11px var(--sans);cursor:pointer;min-width:56px;">${r.apOn?'ON':'OFF'}</button>
       </div>
+      ${(()=>{try{
+        const _lr=localStorage.getItem(AP_RUN_KEY);
+        const _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _pfMktDate==='function'?_pfMktDate(currentExch):null);
+        const ranToday=!!(_lr&&_dd&&_lr===_dd);
+        const _e=ranToday?_apLog().find(x=>x&&x.d===_lr):null;
+        const nb=(_e&&Array.isArray(_e.buys))?_e.buys.length:0;
+        const savedOk=!!(r.enabled&&(r.targetPct>0||r.stopPct>0));
+        const tick=ok=>ok?'<span style="color:var(--green);font-weight:800">✓</span>':'<span style="color:var(--dim)">○</span>';
+        let head='';
+        if(!r.apOn){ head='🤖 <b>The bot is OFF.</b> Three taps and it runs itself every day:'; }
+        else if(ranToday){ head='✅ <b>Done for today</b> — it bought <b>'+nb+'</b> share'+(nb===1?'':'s')+(nb===0?' (nothing met your rules today — that\'s discipline, not a fault)':'')+'. It runs again by itself when tomorrow\'s data loads. <b>Nothing to press.</b>'; }
+        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'; }
+        return `<div style="margin:8px 0 4px;padding:9px 11px;border:1px solid ${r.apOn?'var(--green)':'var(--border2)'};border-radius:8px;background:${r.apOn?'rgba(63,185,80,.07)':'var(--bg4)'};font-size:10.5px;color:var(--text);line-height:1.55;">
+          <div>${head}</div>
+          <div style="margin-top:5px;font-size:10px;color:var(--muted);">${tick(savedOk)} 1. Tap 🏆 below, then press 💾 Save my rules &nbsp;·&nbsp; ${tick(r.apOn)} 2. Switch 🤖 ON (top right of this box) &nbsp;·&nbsp; ${tick(ranToday)} 3. Open the app once a day — it does the rest</div>
+          <div style="margin-top:4px;font-size:9px;color:var(--dim);">It trades its own $50,000 practice account — watch it in 💼 Portfolio → 🤖 tab. Every decision it makes is written in its 📜 diary (inside ⚙ advanced, below).</div>
+        </div>`;
+      }catch(e){return '';}})()}
       <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 1.5% dip entry, 🎯 Smart Money source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
       <div style="font-size:8.5px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯20 🛑8 🪤8 🛡+5 ⏱10) · every don't-chase gate · 📋 adaptive combos from YOUR report card · 🎣 patient 1.5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
+      <button onclick="toggleApAdv()" id="apAdvToggle" style="width:100%;margin:2px 0 6px;padding:6px;border-radius:6px;border:1px dashed var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙ Advanced bot settings ${window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)'}</button>
+      <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option></select></label>
@@ -4729,6 +4757,7 @@ function showRules(){
         <button onclick="botScoreboard()" title="Win rate, expectancy, profit factor, drawdown — computed from the bot's own closed trades only" style="padding:8px 10px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 11px var(--sans);cursor:pointer;">📊 Scoreboard</button>
       </div>
       <div id="apLogBox" style="margin-top:8px;">${_apLogHtml()}</div>
+      </div>
     </div>
     <div style="font-size:9px;color:var(--dim);margin-top:6px;">Practice-first: rules apply to your paper trading — a discipline aid, not financial advice.</div>
   `,'📋 My trading rules');
