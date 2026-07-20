@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-315-open';
+const APP_VERSION='2026.07.16-316-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4677,7 +4677,7 @@ function showRules(){
         let head='';
         if(!r.apOn){ head='🤖 <b>The bot is OFF.</b> Three taps and it runs itself every day:'; }
         else if(ranToday){ head='✅ <b>Done for today</b> — it bought <b>'+nb+'</b> share'+(nb===1?'':'s')+(nb===0?' (nothing met your rules today — that\'s discipline, not a fault)':'')+'. It runs again by itself when tomorrow\'s data loads. <b>Nothing to press.</b>'; }
-        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'; }
+        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'+(window._prepRunning?' <span style="color:var(--gold)">(today\'s signals are still preparing — it runs the moment they\'re ready)</span>':''); }
         return `<div style="margin:8px 0 4px;padding:9px 11px;border:1px solid ${r.apOn?'var(--green)':'var(--border2)'};border-radius:8px;background:${r.apOn?'rgba(63,185,80,.07)':'var(--bg4)'};font-size:10.5px;color:var(--text);line-height:1.55;">
           <div>${head}</div>
           <div style="margin-top:5px;font-size:10px;color:var(--muted);">${tick(savedOk)} 1. Tap 🏆 below, then press 💾 Save my rules &nbsp;·&nbsp; ${tick(r.apOn)} 2. Switch 🤖 ON (top right of this box) &nbsp;·&nbsp; ${tick(ranToday)} 3. Open the app once a day — it does the rest</div>
@@ -4911,17 +4911,19 @@ async function dipFinder(code){
 function _apCandidates(r){
   const p=_paper(); const held=new Set();
   (p.holdings||[]).forEach(h=>held.add(h.ticker)); (p.orders||[]).forEach(o=>held.add(o.ticker));
-  let pool=(allData||[]).filter(s=>s&&s.price>0&&!held.has(s.ticker)&&_apLiqOk(s));
-  if(r.apSource==='top20'){ pool=pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20); }
-  else{ pool=pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50); }
-  if(r.apMinScore>0)pool=pool.filter(s=>(s.watchScore||0)>=r.apMinScore);
-  if(r.apQuietOnly)pool=pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}});
+  const _D=[]; const _T=(lbl,pl)=>{ _D.push([lbl,pl.length]); return pl; }; // v316: funnel diagnostics
+  let pool=_T('pool',(allData||[]).filter(s=>s&&s.price>0&&!held.has(s.ticker)&&_apLiqOk(s)));
+  if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
+  else{ pool=_T('smart list',pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50)); }
+  if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,pool.filter(s=>(s.watchScore||0)>=r.apMinScore));
+  if(r.apQuietOnly)pool=_T('🔇quiet',pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}}));
   if(Array.isArray(r.apSignals)&&r.apSignals.length){ const M={bo:'sigBreakout',inf:'dirBuy',inst:'instBuy',cx:'sigCross',dir:'annDir5d',vr:'sigVolRecord'};
-    pool=pool.filter(s=>r.apSignals.some(k=>!!s[M[k]])); }
-  if(r.apNoChaseRsi)pool=pool.filter(s=>!(s.rsi!=null&&s.rsi>=70));
-  if(r.apMaxChasePct>0)pool=pool.filter(s=>!(s.chgPct!=null&&s.chgPct>r.apMaxChasePct));
-  if(r.apGreenOnly)pool=pool.filter(s=>{const o=(s._q&&s._q.o>0)?s._q.o:0; return o>0?(s.price>o):(s.chgPct>0);});
-  if(r.apCombo){ pool=pool.filter(s=>{try{return _apComboOk(s,r.apCombo);}catch(e){return false;}}); } // v313 🧩
+    pool=_T('signals',pool.filter(s=>r.apSignals.some(k=>!!s[M[k]]))); }
+  if(r.apNoChaseRsi)pool=_T('RSI',pool.filter(s=>!(s.rsi!=null&&s.rsi>=70)));
+  if(r.apMaxChasePct>0)pool=_T('day-jump',pool.filter(s=>!(s.chgPct!=null&&s.chgPct>r.apMaxChasePct)));
+  if(r.apGreenOnly)pool=_T('🟢green',pool.filter(s=>{const o=(s._q&&s._q.o>0)?s._q.o:0; return o>0?(s.price>o):(s.chgPct>0);}));
+  if(r.apCombo){ pool=_T('🧩combo',pool.filter(s=>{try{return _apComboOk(s,r.apCombo);}catch(e){return false;}})); } // v313 🧩
+  window._apLastDiag=_D;
   pool.sort((a,b)=>((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0)));
   return pool;
 }
@@ -5119,6 +5121,14 @@ function _autoPilotRun(manual){
     let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
     if(!dd)return {ran:false,why:'no date'};
     if(!manual&&localStorage.getItem(AP_RUN_KEY)===dd)return {ran:false,why:'already ran today'};
+    // v316: NEVER burn the daily slot before signals are prepared — the early
+    // auto-run was scanning an empty pool ("no shares matched") and refusing
+    // to retry. The background loop simply tries again in a few seconds.
+    if(!manual){
+      const _prepped=(allData||[]).reduce((a,s)=>a+((s&&s.streakCalced&&s.volCalced)?1:0),0);
+      if(window._prepRunning||_prepped<Math.min(200,Math.ceil((allData.length||1)*0.05)))
+        return {ran:false,why:'signals still preparing'};
+    }
     try{ localStorage.setItem(AP_RUN_KEY,dd); }catch(e){}
     const maxN=r.maxPositions>0?r.maxPositions:8;
     const ent={d:dd,ts:Date.now(),src:r.apSource,buys:[],skips:[]};
@@ -5130,7 +5140,19 @@ function _autoPilotRun(manual){
     else{
       const want=Math.min(r.apMaxBuys,maxN-openN);
       const cands=_apCandidates(r);
-      if(!cands.length)ent.skips.push('no shares matched your entry rules today');
+      if(!cands.length){
+        let _msg='no shares matched your entry rules today';
+        try{ const _dg=window._apLastDiag;
+          if(Array.isArray(_dg)&&_dg.length){
+            _msg+=' — where they dropped: '+_dg.map(x=>x[0]+' '+x[1].toLocaleString()).join(' → ');
+            const _last=_dg[_dg.length-1];
+            if(_last&&_last[1]===0&&_last[0]==='🧩combo'&&/^card-/.test(r.apCombo||''))
+              _msg+='. Your 📋 report card has no SOLID/PROMISING pairs yet — tiers firm up as fires build over the coming days. Pick a curated pair (e.g. 🚀+🏦) or set the 🧩 combo gate off for now.';
+            else if(_last&&_last[1]===0&&_last[0]==='smart list')
+              _msg+='. The Smart Money list itself was empty — either a quiet market day, or signals had not finished preparing when this ran.';
+          } }catch(e){}
+        ent.skips.push(_msg);
+      }
       let made=0;
       for(const s of cands){
         if(made>=want)break;
