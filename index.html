@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-307-open';
+const APP_VERSION='2026.07.16-308-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4322,7 +4322,17 @@ function showShareDetail(ticker,days){
             if(isFinite(l)&&l>0)rec.l=l;
             if(rec.o||rec.h||rec.l)map[d]=rec;
           });
-          if(!Object.keys(map).length && !forceNet){ s._ohlcLoading=false; _ohlcFetch(true); return; } // saved rows had no OHLC → one live retry
+          // v308: retry LIVE when the map is empty OR the RECENT days on screen
+          // lack OHLC — the daily store heal appends slim close/volume-only rows,
+          // so old bulk days had OHLC (map not empty) while the visible days dashed
+          // and the v307 empty-map retry never fired.
+          let _needNet=false;
+          try{
+            const _sd=(Array.isArray(s.series)?s.series:[]).slice(-10).map(r=>String(r.d).slice(0,10));
+            const _cov=_sd.filter(d=>map[d]&&(map[d].o||map[d].h||map[d].l)).length;
+            _needNet=(_sd.length>0)?(_cov<Math.ceil(_sd.length/2)):(!Object.keys(map).length);
+          }catch(e){ _needNet=!Object.keys(map).length; }
+          if(_needNet && !forceNet){ s._ohlcLoading=false; _ohlcFetch(true); return; } // slim/misaligned saved rows → one LIVE retry
           if(Object.keys(map).length){ s._ohlcMap=map; s._ohlcRetryAt=0; }
           else { s._ohlcMap=null; s._ohlcRetryAt=Date.now()+60000; }
           s._ohlcLoading=false;
@@ -7595,7 +7605,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   // v243: the day-dead flag no longer blocks saved/disk data — it only skips
   // the NETWORK attempt further down. Dead-listed symbols with stored rows
   // were returning null and sitting on "?" although their data was on-device.
-  if(_histCache.has(ckey))return _histCache.get(ckey);   // instant on repeat (session)
+  if(!forceNet && _histCache.has(ckey))return _histCache.get(ckey);   // instant on repeat (session) — v308: forceNet means LIVE, bypass the session cache too (it was handing slim rows back to the OHLC retry)
   // Persistent disk cache (from a bulk download). FRESHNESS RULE:
   //  · saved TODAY  → use it (same-day EOD data can't be fresher; zero API cost)
   //  · saved EARLIER → it's YESTERDAY'S data or older: fetch LIVE from the API,
