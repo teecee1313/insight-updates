@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-316-open';
+const APP_VERSION='2026.07.16-317-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4607,7 +4607,26 @@ window.applyRulePreset=function(k){
   tick('rApGreen',p.green); tick('rApRsi',p.rsi); set('rApChase',p.chase);
   const m=document.getElementById('rulesMsg');
   if(m)m.textContent=p.label+' filled in — press 💾 Save my rules to keep it.';
+  try{_paintPresetChips();}catch(e){}
 };
+// v317 — the gold chip is COMPUTED, not hardcoded: whichever preset exactly
+// matches the numbers+gates in the form is highlighted; otherwise none is
+// ("your own custom mix"). Fixes "running Hunter but it shows All-rounder".
+window._paintPresetChips=function(){try{
+  const g=id=>{const el=document.getElementById(id);return el?+el.value:NaN;};
+  const c=id=>{const el=document.getElementById(id);return el?!!el.checked:false;};
+  let match='';
+  for(const k in RULE_PRESETS){const p=RULE_PRESETS[k];
+    if(g('rTgt')===p.tgt&&g('rStop')===p.stop&&g('rMaxPos')===p.maxPos&&g('rMaxN')===p.maxN&&g('rTrail')===p.trail&&g('rBE')===p.be&&g('rHold')===p.hold&&c('rApGreen')===p.green&&c('rApRsi')===p.rsi&&g('rApChase')===p.chase){match=k;break;}}
+  [['def','pcDef'],['all','pcAll'],['hun','pcHun']].forEach(function(pr){
+    const b=document.getElementById(pr[1]); if(!b)return; const on=match===pr[0];
+    b.style.border='1px solid '+(on?'var(--gold)':'var(--border)');
+    b.style.background=on?'rgba(255,210,0,.10)':'var(--bg4)';
+    b.style.color=on?'var(--gold)':'var(--text)';
+  });
+  const cap=document.getElementById('pcCap');
+  if(cap)cap.innerHTML=match?('The numbers below = <b>'+RULE_PRESETS[match].label+'</b> (highlighted).'):'The numbers below are your own custom mix — no preset highlighted.';
+}catch(e){}};
 // ⚙ v315 — advanced bot settings fold away (collapsed by default, remembered).
 window._apAdvOpen=(function(){try{return localStorage.getItem('asxScreener.apAdvOpen.v1')==='1';}catch(e){return false;}})();
 window.toggleApAdv=function(){
@@ -4639,11 +4658,11 @@ function showRules(){
     </div>
     <div style="margin:4px 0 12px;padding:10px 11px;border:1px dashed var(--border2);border-radius:9px;background:var(--bg3);">
       <div style="font:700 10.5px var(--sans);color:var(--text);margin-bottom:2px;">⚡ Quick start — three ready-made rule sets</div>
-      <div style="font-size:9px;color:var(--dim);margin-bottom:7px;line-height:1.45;">One tap fills every number below plus the don't-chase gates — nothing changes until you press 💾 Save my rules. New installs start on ⚖ All-rounder.</div>
+      <div style="font-size:9px;color:var(--dim);margin-bottom:7px;line-height:1.45;">One tap fills every number below plus the don't-chase gates — nothing changes until you press 💾 Save my rules. New installs start on ⚖ All-rounder. <span id="pcCap"></span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="applyRulePreset('def')" title="Banks wins early, hates drawdowns — 🎯12 🛑6 📦8% 🔢6 🪤6 🛡+4 ⏱8d · all gates on, day-jump 5" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🛡 Defender<span style="display:block;font-weight:400;font-size:8.5px;color:var(--dim);margin-top:2px;">steady · small drawdowns</span></button>
-        <button onclick="applyRulePreset('all')" title="The starter kit the Lessons teach — 🎯20 🛑8 📦10% 🔢8 🪤8 🛡+5 ⏱10d · gates on, day-jump 8" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">⚖ All-rounder<span style="display:block;font-weight:400;font-size:8.5px;color:var(--dim);margin-top:2px;">the starter kit · default</span></button>
-        <button onclick="applyRulePreset('hun')" title="Fewer, bigger, longer — 🎯30 🛑10 📦15% 🔢5 🪤10 🛡+6 ⏱15d · green gate on, RSI gate OFF on purpose, day-jump 10" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚡ Hunter<span style="display:block;font-weight:400;font-size:8.5px;color:var(--dim);margin-top:2px;">concentrated · rides trends</span></button>
+        <button id="pcDef" onclick="applyRulePreset('def')" title="Banks wins early, hates drawdowns — 🎯12 🛑6 📦8% 🔢6 🪤6 🛡+4 ⏱8d · all gates on, day-jump 5" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🛡 Defender<span style="display:block;font-weight:400;font-size:8.5px;color:var(--dim);margin-top:2px;">steady · small drawdowns</span></button>
+        <button id="pcAll" onclick="applyRulePreset('all')" title="The starter kit the Lessons teach — 🎯20 🛑8 📦10% 🔢8 🪤8 🛡+5 ⏱10d · gates on, day-jump 8" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚖ All-rounder<span style="display:block;font-weight:400;font-size:8.5px;color:var(--dim);margin-top:2px;">the starter kit · default</span></button>
+        <button id="pcHun" onclick="applyRulePreset('hun')" title="Fewer, bigger, longer — 🎯30 🛑10 📦15% 🔢5 🪤10 🛡+6 ⏱15d · green gate on, RSI gate OFF on purpose, day-jump 10" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚡ Hunter<span style="display:block;font-weight:400;font-size:8.5px;color:var(--dim);margin-top:2px;">concentrated · rides trends</span></button>
       </div>
     </div>
     <div style="font:700 11px var(--sans);color:var(--text);margin:2px 0 6px;">Numbers the app will use</div>
@@ -4677,7 +4696,7 @@ function showRules(){
         let head='';
         if(!r.apOn){ head='🤖 <b>The bot is OFF.</b> Three taps and it runs itself every day:'; }
         else if(ranToday){ head='✅ <b>Done for today</b> — it bought <b>'+nb+'</b> share'+(nb===1?'':'s')+(nb===0?' (nothing met your rules today — that\'s discipline, not a fault)':'')+'. It runs again by itself when tomorrow\'s data loads. <b>Nothing to press.</b>'; }
-        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'+(window._prepRunning?' <span style="color:var(--gold)">(today\'s signals are still preparing — it runs the moment they\'re ready)</span>':''); }
+        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'+(window._prepRunning?' <span style="color:var(--gold)">(today\'s signals are still preparing — it runs the moment they\'re ready)</span>':'')+((r.apCombo==='card-good'&&window._auditCache&&window._auditCache.A&&!_cardHasGradedPairs('card-good'))?' <span style="color:var(--gold)">(your 📋 report card hasn\'t graded any pairs yet — the bot uses the proven starter pairs until it does)</span>':''); }
         return `<div style="margin:8px 0 4px;padding:9px 11px;border:1px solid ${r.apOn?'var(--green)':'var(--border2)'};border-radius:8px;background:${r.apOn?'rgba(63,185,80,.07)':'var(--bg4)'};font-size:10.5px;color:var(--text);line-height:1.55;">
           <div>${head}</div>
           <div style="margin-top:5px;font-size:10px;color:var(--muted);">${tick(savedOk)} 1. Tap 🏆 below, then press 💾 Save my rules &nbsp;·&nbsp; ${tick(r.apOn)} 2. Switch 🤖 ON (top right of this box) &nbsp;·&nbsp; ${tick(ranToday)} 3. Open the app once a day — it does the rest</div>
@@ -4723,8 +4742,8 @@ function showRules(){
           <option value="inf+inst" ${r.apCombo==='inf+inst'?'selected':''}>🕵️ Informed? + 🏦 Inst? (same day)</option>
           <option value="inst>bo" ${r.apCombo==='inst>bo'?'selected':''}>⛓ 🏦 Inst? (prior 3d) → 🚀 Breakout today</option>
           <option value="inf>bo" ${r.apCombo==='inf>bo'?'selected':''}>⛓ 🕵️ Informed? (prior 3d) → 🚀 Breakout today</option>
-          <option value="card-solid" ${r.apCombo==='card-solid'?'selected':''}>📋 adaptive — only combos currently SOLID on my report card</option>
-          <option value="card-good" ${r.apCombo==='card-good'?'selected':''}>📋 adaptive — SOLID or PROMISING with positive edge</option>
+          <option value="card-solid" ${r.apCombo==='card-solid'?'selected':''}>📋 strict — only combos currently SOLID on my report card (waits if none)</option>
+          <option value="card-good" ${r.apCombo==='card-good'?'selected':''}>📋 adaptive — best card-graded combos (starter pairs until your card is ready)</option>
         </select>
         <span style="font-size:8.5px;color:var(--dim);flex-basis:100%;">the 📋 options re-read YOUR report card each data day — the honest "highest success rate" is whatever is proving itself NOW, not a combo frozen from one good week</span>
       </div>
@@ -4761,6 +4780,7 @@ function showRules(){
     </div>
     <div style="font-size:9px;color:var(--dim);margin-top:6px;">Practice-first: rules apply to your paper trading — a discipline aid, not financial advice.</div>
   `,'📋 My trading rules');
+  setTimeout(function(){try{_paintPresetChips();}catch(e){}},0);
 }
 function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
@@ -4773,6 +4793,7 @@ function saveRulesFromForm(){
   const cur=_rules();
   _rulesSave(Object.assign(_rulesFromForm(),{enabled:cur.enabled,apOn:cur.apOn}));
   const m=document.getElementById('rulesMsg'); if(m)m.textContent='✓ Saved — your rules are set.';
+  try{_paintPresetChips();}catch(e){}
 }
 function toggleRulesEnabled(){
   const cur=_rules();
@@ -4852,15 +4873,41 @@ function _apComboOk(s,mode){
     return false;
   }
   if(mode==='card-solid'||mode==='card-good'){
-    const A=_auditCached(); if(!A||!A.M)return false;
-    const keys=['bo','inf','inst','cx','vr','blk'].filter(k=>f[k]);
-    for(let x=0;x<keys.length;x++)for(let y=x+1;y<keys.length;y++){
-      const m=A.M[keys[x]+'+'+keys[y]];
-      if(m&&m.n>=10&&m.edge>0&&(m.tier==='solid'||(mode==='card-good'&&m.tier==='promising')))return true;
+    const A=_auditCached();
+    if(A&&A.M){
+      const keys=['bo','inf','inst','cx','vr','blk'].filter(k=>f[k]);
+      for(let x=0;x<keys.length;x++)for(let y=x+1;y<keys.length;y++){
+        const m=A.M[keys[x]+'+'+keys[y]];
+        if(m&&m.n>=10&&m.edge>0&&(m.tier==='solid'||(mode==='card-good'&&m.tier==='promising')))return true;
+      }
+    }
+    // v317: 📋 adaptive degrades gracefully while the card is young. If the
+    // card has not graded ANY pair yet (fresh install, thin history, or the
+    // audit could not run), card-good falls back to the proven same-day
+    // starter pairs so the bot still trades — noted in the diary + banner.
+    // It follows YOUR card automatically the day pairs grade.
+    // card-solid stays strict on purpose (its label says "waits if none").
+    if(mode==='card-good'&&!_cardHasGradedPairs(mode)){
+      window._apCardFallback=true;
+      return (f.bo&&f.inst)||(f.bo&&f.blk)||(f.bo&&f.vr)||(f.inf&&f.inst);
     }
     return false;
   }
   return true;
+}
+// v317 — does the report card currently grade ANY pair at this mode's bar?
+// Reads the warm cache only (never triggers a fresh audit) so it is safe to
+// call from the banner; _apComboOk always warms the cache first via _auditCached.
+function _cardHasGradedPairs(mode){
+  try{
+    const A=(window._auditCache&&window._auditCache.A)||null; if(!A||!A.M)return false;
+    const S=['bo','inf','inst','cx','vr','blk'];
+    for(let x=0;x<S.length;x++)for(let y=x+1;y<S.length;y++){
+      const m=A.M[S[x]+'+'+S[y]];
+      if(m&&m.n>=10&&m.edge>0&&(m.tier==='solid'||(mode==='card-good'&&m.tier==='promising')))return true;
+    }
+  }catch(e){}
+  return false;
 }
 // 📉 Dip Finder — measure a share's REAL dips so the 🎣 depth is data, not a guess.
 async function dipFinder(code){
@@ -4922,6 +4969,7 @@ function _apCandidates(r){
   if(r.apNoChaseRsi)pool=_T('RSI',pool.filter(s=>!(s.rsi!=null&&s.rsi>=70)));
   if(r.apMaxChasePct>0)pool=_T('day-jump',pool.filter(s=>!(s.chgPct!=null&&s.chgPct>r.apMaxChasePct)));
   if(r.apGreenOnly)pool=_T('🟢green',pool.filter(s=>{const o=(s._q&&s._q.o>0)?s._q.o:0; return o>0?(s.price>o):(s.chgPct>0);}));
+  window._apCardFallback=false; // v317: set true by _apComboOk when the young-card starter pairs were used
   if(r.apCombo){ pool=_T('🧩combo',pool.filter(s=>{try{return _apComboOk(s,r.apCombo);}catch(e){return false;}})); } // v313 🧩
   window._apLastDiag=_D;
   pool.sort((a,b)=>((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0)));
@@ -5147,7 +5195,9 @@ function _autoPilotRun(manual){
             _msg+=' — where they dropped: '+_dg.map(x=>x[0]+' '+x[1].toLocaleString()).join(' → ');
             const _last=_dg[_dg.length-1];
             if(_last&&_last[1]===0&&_last[0]==='🧩combo'&&/^card-/.test(r.apCombo||''))
-              _msg+='. Your 📋 report card has no SOLID/PROMISING pairs yet — tiers firm up as fires build over the coming days. Pick a curated pair (e.g. 🚀+🏦) or set the 🧩 combo gate off for now.';
+              _msg+=window._apCardFallback
+                ?'. Your 📋 card has no graded pairs yet, so the bot checked the proven starter pairs (🚀+🏦 · 🚀+🔷 · 🚀+🥇 · 🕵️+🏦) instead — none fired today. That is discipline, not a fault; it re-checks every day.'
+                :'. Your 📋 strict gate found no SOLID pairs on the card yet — tiers firm up as fires build. Switch to 📋 adaptive (trades from day one), a curated pair, or gate off.';
             else if(_last&&_last[1]===0&&_last[0]==='smart list')
               _msg+='. The Smart Money list itself was empty — either a quiet market day, or signals had not finished preparing when this ran.';
           } }catch(e){}
@@ -5161,6 +5211,8 @@ function _autoPilotRun(manual){
         else if(ent.skips.length<5)ent.skips.push(s.ticker+': '+res.why);
         if(!res.ok&&/cash|parcel/.test(res.why))break; // cash exhausted — stop trying
       }
+      if(cands.length&&window._apCardFallback&&/^card-/.test(r.apCombo||''))
+        ent.skips.push('📋 your card has no graded pairs yet — today the bot used the proven starter pairs (🚀+🏦 · 🚀+🔷 · 🚀+🥇 · 🕵️+🏦). It follows YOUR card automatically the day pairs grade.');
     }
     _apLogAdd(ent);
     return {ran:true,entry:ent};
