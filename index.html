@@ -781,13 +781,13 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
           <div style="font-size:9px;color:var(--muted);font-weight:700;margin-bottom:4px;">What to load from the API (live)</div>
           <div id="dlTypes" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;">
             <label class="lp-chip"><input type="checkbox" data-t="Ordinary" checked onchange="saveDlTypes()" style="display:none;"><span>Shares</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="ETF" onchange="saveDlTypes()" style="display:none;"><span>ETFs</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="LIC" onchange="saveDlTypes()" style="display:none;"><span>LICs</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="REIT" onchange="saveDlTypes()" style="display:none;"><span>REITs</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="Option" onchange="saveDlTypes()" style="display:none;"><span>Options</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="Preference" onchange="saveDlTypes()" style="display:none;"><span>Pref</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="Bond" onchange="saveDlTypes()" style="display:none;"><span>Bonds</span></label>
-            <label class="lp-chip"><input type="checkbox" data-t="Speculative" onchange="saveDlTypes()" style="display:none;"><span>Spec</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="ETF" checked onchange="saveDlTypes()" style="display:none;"><span>ETFs</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="LIC" checked onchange="saveDlTypes()" style="display:none;"><span>LICs</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="REIT" checked onchange="saveDlTypes()" style="display:none;"><span>REITs</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="Option" checked onchange="saveDlTypes()" style="display:none;"><span>Options</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="Preference" checked onchange="saveDlTypes()" style="display:none;"><span>Pref</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="Bond" checked onchange="saveDlTypes()" style="display:none;"><span>Bonds</span></label>
+            <label class="lp-chip"><input type="checkbox" data-t="Speculative" checked onchange="saveDlTypes()" style="display:none;"><span>Spec</span></label>
           </div>
 
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:10px;color:var(--muted);">
@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-305-open';
+const APP_VERSION='2026.07.16-306-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10536,7 +10536,7 @@ function saveDlTypes(){
 function restoreDlTypes(){
   let sel=null;
   try{sel=JSON.parse(localStorage.getItem(DLTYPES_STORE));}catch(e){}
-  if(!Array.isArray(sel))return; // keep HTML defaults (Shares ticked)
+  if(!Array.isArray(sel))return; // keep HTML defaults (v306: ALL types ticked — fresh installs load the complete exchange; a stored choice always wins)
   document.querySelectorAll('#dlTypes input[data-t]').forEach(c=>{ c.checked=sel.includes(c.getAttribute('data-t')); });
 }
 // Stop an in-progress download (the dedicated red Stop button calls this).
@@ -11533,6 +11533,7 @@ Output the complete array. Start with [`;
     const _sel=[...document.querySelectorAll('#dlTypes input[data-t]')].filter(c=>c.checked).map(c=>c.getAttribute('data-t'));
     if(_sel.length){
       const kept=results.filter(s=>_sel.includes(s.type)||(_sel.includes('Ordinary')&&!s.type));
+      window._dlTypeDropped=(kept.length&&kept.length<results.length)?(results.length-kept.length):0; // v306: surfaced in the load status
       if(kept.length)results=kept; // safety: never filter down to nothing
     }
   }catch(e){}
@@ -11570,7 +11571,7 @@ Output the complete array. Start with [`;
     return;
   }
 
-  {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'<span style="color:var(--orange)">live · AI relay</span>':(via==='quote-list'?'live · quote list':'live')}`; _n.style.display='inline-block';}}
+  {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'<span style="color:var(--orange)">live · AI relay</span>':(via==='quote-list'?'live · quote list':'live')}${(window._dlTypeDropped>0)?` · <span style="color:var(--dim)" title="Your load-type chips (Setup ▸ What to load from the API) are skipping these security types — tick more chips there to load everything">${window._dlTypeDropped.toLocaleString()} skipped by type</span>`:''}`; _n.style.display='inline-block';}}
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   document.getElementById('exchBadge').textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
