@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-347-open';
+const APP_VERSION='2026.07.16-348-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6701,11 +6701,11 @@ function paperAcceptBalance(){
 // v263: flip the portfolio between its two pages without a full re-render.
 function _setPfView(v){
   try{
-    window._pfView=(v==='history')?'history':'holdings';
-    const hv=document.getElementById('pfHoldingsView'), tv=document.getElementById('pfHistoryView');
-    if(hv)hv.style.display=(window._pfView==='holdings')?'block':'none';
-    if(tv)tv.style.display=(window._pfView==='history')?'block':'none';
-    ['holdings','history'].forEach(function(k){
+    const views=['holdings','pending','history','performance'];
+    window._pfView=views.indexOf(v)>=0?v:'holdings';
+    views.forEach(function(k){
+      const el=document.getElementById('pf'+k.charAt(0).toUpperCase()+k.slice(1)+'View');
+      if(el)el.style.display=(k===window._pfView)?'block':'none';
       const bb=document.getElementById('pfTab_'+k); if(!bb)return;
       const on=(k===window._pfView);
       bb.style.borderColor=on?'var(--gold)':'var(--border)';
@@ -6714,6 +6714,23 @@ function _setPfView(v){
     });
     try{const sc=document.querySelector('#appModal .modal-scroll');if(sc)sc.scrollTop=0;}catch(e){}
   }catch(e){}
+}
+// v348: one ⋯ menu per holding row — keeps rows short. Actions reuse the existing paper* fns.
+function _pfCloseMenu(){ const m=document.getElementById('pfRowMenu'); if(m)m.remove(); }
+function _pfRowMenu(id,ev){
+  try{ if(ev){ev.stopPropagation(); ev.preventDefault();} }catch(e){}
+  _pfCloseMenu();
+  const item=(fn,label,color)=>`<button onclick="_pfCloseMenu();${fn}('${id}')" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:${color||'var(--text)'};font:600 12px var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">${label}</button>`;
+  const m=document.createElement('div');
+  m.id='pfRowMenu';
+  m.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:190px;';
+  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
+  document.body.appendChild(m);
+  try{ const r=m.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
+    m.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
+    m.style.top=Math.max(6,Math.min(y, window.innerHeight-r.height-8))+'px';
+  }catch(e){}
+  setTimeout(()=>document.addEventListener('click',_pfCloseMenu,{once:true}),0);
 }
 function showPortfolio(exSel){
   if(exSel)window._pfExSel=exSel;
@@ -6733,6 +6750,13 @@ function showPortfolio(exSel){
   // Exchange tabs from whatever exchanges appear in holdings/history.
   const exs=[...new Set([...(p.holdings||[]),...(p.history||[])].map(x=>x.exchange).filter(Boolean))].sort();
   const tabs=['ALL',...exs].map(e=>`<button onclick="showPortfolio('${e}')" style="padding:4px 10px;border-radius:5px;border:1px solid ${e===ex?'var(--gold)':'var(--border)'};background:${e===ex?'rgba(255,210,0,.15)':'var(--bg3)'};color:${e===ex?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">${e==='ALL'?'All':e}</button>`).join('');
+  // v348: sort holdings per the user's pick (default: biggest % gain first)
+  const _pfSort=window._pfSort||'plpct';
+  const _hpx=h=>h.lastPrice||h.buyPrice, _hval=h=>h.qty*_hpx(h), _hpl=h=>_hval(h)-h.invested;
+  const _pfSorters={plpct:(a,b)=>(_hpl(b)/(b.invested||1))-(_hpl(a)/(a.invested||1)),pl:(a,b)=>_hpl(b)-_hpl(a),val:(a,b)=>_hval(b)-_hval(a),name:(a,b)=>a.ticker<b.ticker?-1:a.ticker>b.ticker?1:0,buy:(a,b)=>(a.buyDate<b.buyDate?1:a.buyDate>b.buyDate?-1:0)};
+  try{ hold.sort(_pfSorters[_pfSort]||_pfSorters.plpct); }catch(e){}
+  const _pfSortControl=`<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:6px;font-size:10px;color:var(--muted);"><span>Sort by</span><select onchange="window._pfSort=this.value;showPortfolio();" style="font-size:10px;padding:3px 6px;border-radius:5px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);cursor:pointer;">`+
+    [['plpct','P/L %'],['pl','P/L $'],['val','Value'],['name','Name A–Z'],['buy','Newest buy']].map(o=>`<option value="${o[0]}"${_pfSort===o[0]?' selected':''}>${o[1]}</option>`).join('')+`</select></div>`;
   let totInv=0,totVal=0;
   const rows=hold.map(h=>{
     const px=h.lastPrice||h.buyPrice, val=h.qty*px, pl=val-h.invested, plp=h.invested>0?(pl/h.invested)*100:0;
@@ -6745,7 +6769,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
-      <td style="text-align:center;padding:5px 6px;white-space:nowrap;"><button onclick="paperSetTarget('${h.id}')" title="Set / change take-profit sell price${(h.tgtLog&&h.tgtLog.length)?' — history: '+_exitLogText(h,'tgt'):''}" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🎯${_exitChangeCount(h,'tgt')?'<sup style="font-size:7px;color:var(--gold);font-weight:800;">'+_exitChangeCount(h,'tgt')+'</sup>':''}</button> <button onclick="paperSetStop('${h.id}')" title="Set / change stop-loss${(h.stopLog&&h.stopLog.length)?' — history: '+_exitLogText(h,'stop'):''}" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">🛑${_exitChangeCount(h,'stop')?'<sup style="font-size:7px;color:#ff9caa;font-weight:800;">'+_exitChangeCount(h,'stop')+'</sup>':''}</button> <button onclick="paperSetNote('${h.id}')" title="Add / edit the trade note (why you bought)" style="padding:4px 7px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">📝</button> <button onclick="paperSellMarket('${h.id}')" title="Sell the whole holding now at the last close" style="padding:4px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">Sell @ mkt</button> <button onclick="paperSell('${h.id}')" title="Sell part or all — choose quantity" style="padding:4px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">Part…</button></td>
+      <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event)" title="Actions — target, stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:800 15px var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
     </tr>`;
   }).join('');
   // Mobile stacked-card version of the same holdings (CSS shows this on phones,
@@ -6780,6 +6804,17 @@ function showPortfolio(exSel){
     </div>`;
   }).join('');
   const totPl=totVal-totInv, totC=totPl>0.005?'var(--green)':totPl<-0.005?'var(--red)':'var(--muted)';
+  // v348: always-visible key numbers (above the tabs, on every view) + pending count
+  const _pfCashNow=p.cash||0, _pfResvNow=_reservedSum(p), _pfAcctNow=_pfCashNow+_pfResvNow+totVal;
+  const _pfPc=x=>x>0.005?'var(--green)':x<-0.005?'var(--red)':'var(--muted)';
+  const _fmtN=x=>'$'+Number(x).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const _ordN=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex).length;
+  const keyStrip=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 13px;margin-bottom:10px;">
+    <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Account</div><div style="font-family:var(--mono);font-weight:800;font-size:15px;color:var(--text);">${_fmtN(_pfAcctNow)}</div></div>
+    <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">💵 Cash</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfCashNow)}</div></div>
+    ${_pfResvNow>0.005?`<div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">⏳ Reserved</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfResvNow)}</div></div>`:''}
+    <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Open P/L</div><div style="font-family:var(--mono);font-weight:800;font-size:15px;color:${_pfPc(totPl)};">${totPl>=0?'+':''}${totPl.toFixed(2)}</div></div>
+  </div>`;
   const histRows=hist.map(t=>{
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
     const _nowS=(allData||[]).find(x=>x.ticker===t.ticker&&x.exchange===t.exchange);
@@ -6808,11 +6843,43 @@ function showPortfolio(exSel){
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     ${acctTabs}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
     ${_autoN?`<div style="border:1px solid var(--green);background:rgba(63,185,80,.08);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:10.5px;color:var(--text);line-height:1.55;">🪤 <b>Your rules auto-sold ${_autoN} position${_autoN>1?'s':''}.</b> To bring any back, open <b>📜 Trade history</b> below and tap the green <b style="color:var(--green)">↩ Undo</b> beside it — that returns the shares and reverses the cash, and pauses auto-sell on it so a rule can't sell it straight back. Restore them all at once here: <button onclick="_undoAllAutoSells()" style="margin-top:7px;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 10.5px var(--sans);cursor:pointer;">↩ Restore all ${_autoN} auto-sold</button></div>`:''}
-    <div style="display:flex;gap:6px;margin-bottom:12px;">
-      <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings &amp; summary (${hold.length})</button>
-      <button onclick="_setPfView('history')" id="pfTab_history" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='history'?'var(--gold)':'var(--border)'};background:${pv==='history'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='history'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📜 Trade history (${hist.length})</button>
+    ${keyStrip}
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings (${hold.length})</button>
+      <button onclick="_setPfView('pending')" id="pfTab_pending" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='pending'?'var(--gold)':'var(--border)'};background:${pv==='pending'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='pending'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">⏳ Pending (${_ordN})</button>
+      <button onclick="_setPfView('history')" id="pfTab_history" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='history'?'var(--gold)':'var(--border)'};background:${pv==='history'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='history'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📜 History (${hist.length})</button>
+      <button onclick="_setPfView('performance')" id="pfTab_performance" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='performance'?'var(--gold)':'var(--border)'};background:${pv==='performance'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='performance'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📈 Performance</button>
     </div>
     <div id="pfHoldingsView" style="display:${pv==='holdings'?'block':'none'};">
+    ${hold.length?_pfSortControl:''}
+    <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Current holdings${ex==='ALL'?'':' · '+ex} (${hold.length})</div>
+    ${hold.length?`<div class="pf-tablewrap" style="max-height:46vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
+      <table class="pf-holdings" style="width:100%;border-collapse:collapse;font-size:10px;">
+        <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:5px 6px;">Share</th><th style="text-align:right;padding:5px 6px;">Qty</th><th style="text-align:right;padding:5px 6px;">Buy</th><th style="text-align:right;padding:5px 6px;">Now</th><th style="text-align:right;padding:5px 6px;">Value</th><th style="text-align:right;padding:5px 6px;">P/L</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <div class="pf-cards">${cards}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin:6px 2px;color:var(--muted);">
+        <span>Invested: <strong style="color:var(--text)">${totInv.toFixed(2)}</strong></span>
+        <span>Value: <strong style="color:var(--text)">${totVal.toFixed(2)}</strong></span>
+        <span>Open P/L: <strong style="color:${totC}">${totPl>=0?'+':''}${totPl.toFixed(2)}</strong></span>
+      </div>`
+    :`<div style="font-size:10px;color:var(--muted);padding:10px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No holdings${ex==='ALL'?'':' on '+ex} yet — use 💼 Buy on any share row.</div>`}
+
+    </div>
+    <div id="pfPendingView" style="display:${pv==='pending'?'block':'none'};">
+    ${(function(){
+      const ords=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex);
+      if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
+      const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
+        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
+      </div>`).join('');
+      return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
+    })()}
+
+    </div>
+    <div id="pfPerformanceView" style="display:${pv==='performance'?'block':'none'};">
     ${(hold.length||hist.length)?(function(){
       const divs=((p.dividends)||[]).filter(d=>ex==='ALL'||d.exchange===ex).reduce((a,d)=>a+(d.total||0),0);
       const totalPl=totPl+closedPl+divs;
@@ -6873,28 +6940,6 @@ function showPortfolio(exSel){
         ${(ex==='ALL'&&fees>0)?card('Fees paid',fees.toFixed(2),'var(--orange)'):''}
       </div>${statsHtml}`;
     })():''}
-    <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Current holdings${ex==='ALL'?'':' · '+ex} (${hold.length})</div>
-    ${hold.length?`<div class="pf-tablewrap" style="max-height:46vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
-      <table class="pf-holdings" style="width:100%;border-collapse:collapse;font-size:10px;">
-        <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:5px 6px;">Share</th><th style="text-align:right;padding:5px 6px;">Qty</th><th style="text-align:right;padding:5px 6px;">Buy</th><th style="text-align:right;padding:5px 6px;">Now</th><th style="text-align:right;padding:5px 6px;">Value</th><th style="text-align:right;padding:5px 6px;">P/L</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-      <div class="pf-cards">${cards}</div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;margin:6px 2px;color:var(--muted);">
-        <span>Invested: <strong style="color:var(--text)">${totInv.toFixed(2)}</strong></span>
-        <span>Value: <strong style="color:var(--text)">${totVal.toFixed(2)}</strong></span>
-        <span>Open P/L: <strong style="color:${totC}">${totPl>=0?'+':''}${totPl.toFixed(2)}</strong></span>
-      </div>`
-    :`<div style="font-size:10px;color:var(--muted);padding:10px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No holdings${ex==='ALL'?'':' on '+ex} yet — use 💼 Buy on any share row.</div>`}
-    ${(function(){
-      const ords=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex);
-      if(!ords.length)return '';
-      const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
-        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
-      </div>`).join('');
-      return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
-    })()}
     ${vh.length>=2?(function(){
       const vals=vh.map(x=>x.eq!=null?x.eq:x.val);
       // ── Benchmark: normalise an index ETF (A200/VAS/STW/IOZ, whichever is
@@ -6935,7 +6980,7 @@ function showPortfolio(exSel){
       </div>`;
     })():''}
     </div>
-    <div id="pfHistoryView" style="display:${pv==='history'?'block':'none'};">
+        <div id="pfHistoryView" style="display:${pv==='history'?'block':'none'};">
     <div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Trade history${ex==='ALL'?'':' · '+ex} · last 12 months shown (${hist.length}) <span style="font-weight:400;font-size:8px;color:var(--dim)">· all trades ever are kept — 📤 CSV exports the full ledger</span></div>
     ${hist.length?`<div class="pf-tablewrap" style="max-height:40vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
       <table class="pf-history" style="width:100%;border-collapse:collapse;font-size:10px;">
