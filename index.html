@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-327-open';
+const APP_VERSION='2026.07.16-328-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4783,7 +4783,7 @@ function showRules(){
       </div>
       <div style="margin-top:10px;padding:8px 10px;border:1px solid var(--gold);border-radius:8px;background:rgba(255,210,0,.05);">
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);font-weight:700;cursor:pointer;"><input type="checkbox" id="rApLadder" ${r.apLadder?'checked':''} style="width:15px;height:15px;">🪜 Auto-follow my report-card ladder</label>
-        <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5;">On = the bot ignores the manual ticks below and each day buys only shares firing the <b>top-rated PROVEN signals</b> on your 📋 report card (SOLID/PROMISING with a positive edge — never an unproven TOO-EARLY one), and its 🧩 combo gate follows the card's best pairs too. It re-reads the ladder every data day, so as flags prove or fade the bot follows — no re-ticking. ${(function(){ try{ var t=(window._apLadderNow&&window._apLadderNow.length)?window._apLadderNow:_ladderTopSignals(); var nm={bo:'🚀 Breakout',inf:'🕵️ Informed?',inst:'🏦 Inst?',cx:'⤴ MA cross',vr:'🥇 Vol record'}; return (t&&t.length)?('<b style="color:var(--gold)">Now leading: '+t.map(function(k){return nm[k]||k;}).join(', ')+'</b>'):'<span style="color:var(--dim)">No single flag is proven enough yet — until one is it leans on the combo gate starter pairs.</span>'; }catch(e){ return ''; } })()}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5;">On = the bot ignores the manual ticks below and each day buys only shares firing the <b>top-rated PROVEN signals</b> on your 📋 report card (SOLID/PROMISING with a positive edge — never an unproven TOO-EARLY one), and its 🧩 combo gate follows the card's best pairs too. It re-reads the ladder every data day, so as flags prove or fade the bot follows — no re-ticking. ${(function(){ try{ var A=(window._auditCache&&window._auditCache.A)||null; var t=(window._apLadderNow&&window._apLadderNow.length)?window._apLadderNow:(A?_ladderTopSignals(A):null); var nm={bo:'🚀 Breakout',inf:'🕵️ Informed?',inst:'🏦 Inst?',cx:'⤴ MA cross',vr:'🥇 Vol record'}; if(t&&t.length)return '<b style="color:var(--gold)">Now leading: '+t.map(function(k){return nm[k]||k;}).join(', ')+'</b>'; if(!A)return '<span style="color:var(--dim)">Open your 📋 report card once today, then today’s leaders show here.</span>'; return '<span style="color:var(--dim)">No single flag is proven enough yet — until one is it leans on the combo gate starter pairs.</span>'; }catch(e){ return ''; } })()}</div>
       </div>
       <div style="margin-top:8px;">
         <div style="font-size:9.5px;color:var(--muted);margin-bottom:4px;">Only buy when showing <b>at least one</b> ticked signal <span style="color:var(--dim)">(scanner lane · none ticked = off · ignored while 🪜 auto-follow is on)</span>:</div>
@@ -4946,8 +4946,8 @@ function _ladderData(A){
 // v326 — the top BULLISH, PROVEN single flags the bot's scanner understands,
 // mapped to its filter keys. Empty until the card grades a single as working —
 // so the bot never auto-chases an unproven flag.
-function _ladderTopSignals(){
-  try{ const A=_auditCached(); if(!A||!A.M)return [];
+function _ladderTopSignals(warmA){
+  try{ const A=(arguments.length>0)?warmA:_auditCached(); if(!A||!A.M)return [];
     const cand=[['bo',A.M.bo],['inf',A.M.inf],['inst',A.M.inst],['cx',A.M.cx],['vr',A.M['vr+']]];
     return cand.filter(x=>x[1]&&x[1].n>=30&&x[1].edge>0&&(x[1].tier==='solid'||x[1].tier==='promising'))
       .sort((a,b)=>b[1].edge-a[1].edge).slice(0,3).map(x=>x[0]);
