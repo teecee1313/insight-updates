@@ -1485,7 +1485,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-340-open';
+const APP_VERSION='2026.07.16-341-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8352,10 +8352,18 @@ function _sortedCloses(history){
 function _sma(arr,n){if(arr.length<n)return null;let s=0;for(let i=arr.length-n;i<arr.length;i++)s+=arr[i];return s/n;}
 function _rsi(closes,period){
   if(closes.length<period+1)return null;
+  // v341: Wilder's RSI (the standard used by virtually every charting platform),
+  // replacing a simple last-N average (Cutler's variant) so values match a broker's
+  // chart. Seed with the simple average of the first `period` changes, then apply
+  // Wilder's smoothing across every later change: avg = (avg*(period-1)+x)/period.
   let gain=0,loss=0;
-  for(let i=closes.length-period;i<closes.length;i++){const d=closes[i]-closes[i-1];if(d>=0)gain+=d;else loss-=d;}
-  const ag=gain/period, al=loss/period;
-  if(al===0)return 100;
+  for(let i=1;i<=period;i++){ const d=closes[i]-closes[i-1]; if(d>=0)gain+=d; else loss-=d; }
+  let ag=gain/period, al=loss/period;
+  for(let i=period+1;i<closes.length;i++){ const d=closes[i]-closes[i-1];
+    ag=(ag*(period-1)+(d>0?d:0))/period;
+    al=(al*(period-1)+(d<0?-d:0))/period;
+  }
+  if(al===0)return ag===0?50:100; // no losses: flat → neutral, gains → 100
   const rs=ag/al;return Math.round(100-(100/(1+rs)));
 }
 // Compute every technical signal for a share from its history rows.
