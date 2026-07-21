@@ -1486,7 +1486,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-342-open';
+const APP_VERSION='2026.07.16-343-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9202,32 +9202,25 @@ function showTop10Panel(pairs){
   const rows=_shown.map(x=>{
     const s=x.p.s,r=x.p.r,i1=x.rank;
     const b=band10(r.score);
-    return `<div style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-        <span style="font-weight:700;color:var(--text);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${i1}. <a href="#" onclick="printShareReport('${s.ticker}');return false;" title="Open the printable one-page report for ${s.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${s.ticker} 🖨</a></span>
-        <span style="display:flex;align-items:center;gap:6px;flex:none;">
-          ${_popupStar(s.ticker)}
-          <span style="font-weight:800;font-size:15px;color:${b.c};">${r.score}</span>
-          <span style="font-size:8px;color:var(--dim);">/10</span>
-        </span>
-      </div>
-      <div style="height:4px;border-radius:3px;background:var(--bg3);margin:4px 0 3px;overflow:hidden;"><div style="height:100%;width:${r.score*10}%;background:${b.c};"></div></div>
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">
-        <span style="font-size:8.5px;color:var(--muted);line-height:1.35;overflow:hidden;">${r.parts.length?r.parts.join(' · '):'No active signals'}</span>
-        <span style="font-size:8px;color:${b.c};flex:none;font-weight:700;">${b.t}</span>
-      </div>
+    const _bd=(r.parts.length?r.parts.join(' · '):'No active signals').replace(/"/g,'&quot;');
+    return `<div title="${_bd}" style="display:flex;align-items:center;gap:9px;padding:6px 3px;border-bottom:1px solid var(--border);">
+      <span style="flex:0 0 30px;text-align:right;font-weight:700;font-size:12px;color:var(--muted);">${i1}.</span>
+      <a href="#" onclick="printShareReport('${s.ticker}');return false;" title="Open the printable one-page report for ${s.ticker}" style="flex:0 0 auto;color:var(--gold);text-decoration:underline;text-decoration-style:dotted;font-weight:700;font-size:12.5px;white-space:nowrap;cursor:pointer;">${s.ticker} 🖨</a>
+      <div style="flex:1 1 auto;height:7px;border-radius:4px;background:var(--bg3);overflow:hidden;min-width:36px;"><div style="height:100%;width:${r.score*10}%;background:${b.c};"></div></div>
+      <span style="flex:0 0 auto;font-weight:800;font-size:15px;color:${b.c};">${r.score}</span><span style="flex:0 0 auto;font-size:9px;color:var(--dim);">/10</span>
+      <span style="flex:0 0 56px;font-size:9px;color:${b.c};text-align:right;">${b.t}</span>
+      ${_popupStar(s.ticker)}
     </div>`;
-  }).join('')||`<div style="padding:22px 8px;text-align:center;color:var(--muted);font-size:12px;grid-column:1/-1;">None of the Top ${_all.length} match the active quick filters.<br><br>Tap <b>Showing</b> in the stats bar above to clear them.</div>`;
+  }).join('')||`<div style="padding:22px 8px;text-align:center;color:var(--muted);font-size:12px;">None of the Top ${_all.length} match the active quick filters.<br><br>Tap <b>Showing</b> in the stats bar above to clear them.</div>`;
   const filtNote=_anyOn?`<div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⚡ Quick filters on — showing ${_shown.length} of ${_all.length}. Tap <b>Showing</b> in the stats bar to clear.</div>`:'';
   window._modalLabel='🏆 Top 20 to Watch';
-  window._modalBig=true; // v342: open wide by default so the grid shows several columns — all 20 fit without fullscreen
   try{document.body.classList.add('stat-over-modal');}catch(_){}
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10</div>
     <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links. <span style="color:var(--gold)">Tap a share code for its report, or ☆ to add it to a watchlist.</span></div>
     ${filtNote}
     ${_popupListSelect()}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:8px 12px;max-height:72vh;overflow-y:auto;padding:2px;">${rows}</div>
+    <div style="max-height:74vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:2px 12px;">${rows}</div>
     <div style="display:flex;gap:8px;margin-top:12px;">
       <button onclick="exportTop20CSV()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:600 12px var(--sans);cursor:pointer;">📤 Save CSV</button>
       <button onclick="printTop10()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--blue);background:rgba(56,139,253,.14);color:var(--blue);font:600 12px var(--sans);cursor:pointer;">🖨 Print / PDF</button>
