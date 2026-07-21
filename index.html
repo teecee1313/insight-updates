@@ -1261,6 +1261,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     </div>
     <div id="simpleDataDate"></div>
     <div id="simpleStatus" class="simple-status"></div>
+    <button class="simple-fresh-btn" style="margin-top:10px;" onclick="exportOfflineData()" title="Export or back up this device's saved market data to a file — for safekeeping, to move to another device, or to send for analysis. On a computer it saves to your Downloads.">⬆ Export / back up my data</button>
     <button class="simple-more" onclick="setAppMode('advanced')">⚙ More tools &amp; settings →</button>
   </div>
 
@@ -1487,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-345-open';
+const APP_VERSION='2026.07.16-346-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
