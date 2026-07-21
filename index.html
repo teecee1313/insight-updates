@@ -1484,7 +1484,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-334-open';
+const APP_VERSION='2026.07.16-335-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7488,7 +7488,7 @@ async function volumeSurgeReport(){
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     if(st)st.textContent='Loading volume & history…';
-    if(window._offlineMode){ _computeSignalsFromSeries(); } else if(typeof bulkVolume==='function'){ await bulkVolume(); }
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else if(typeof bulkVolume==='function'){ await bulkVolume(); }
   }
   const rows=[];
   for(const s of allData){
@@ -8784,7 +8784,7 @@ async function speedingTicketScan(){
   _freshenSeriesFromBulk(); // append today's bulk quote to any stale series first
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     if(st)st.textContent='Loading volume & history…';
-    if(window._offlineMode){ _computeSignalsFromSeries(); } else { await bulkVolume(); }
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   }
   scanProgSet(70);
 
@@ -8964,13 +8964,15 @@ function _maybeSlowNetworkHint(){
     _ratchetLoadBox();
   }catch(e){}
 }
-function _computeSignalsFromSeries(){
+async function _computeSignalsFromSeries(){
   // Compute volume %, streaks, accumulation and score for EVERY share straight
   // from its saved series — no network, no API key. This is what makes the scans
   // work offline (after Load saved data).
   if(!Array.isArray(allData)||!allData.length)return 0;
   let n=0;
-  for(const s of allData){
+  for(let _i=0;_i<allData.length;_i++){
+    if((_i&31)===0&&_i>0)await new Promise(r=>setTimeout(r,0)); // v335: chunk — a full-market recompute must not freeze the phone
+    const s=allData[_i];
     try{
       if(!Array.isArray(s.series)||s.series.length<2)continue;
       const hist=s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v}));
@@ -9053,13 +9055,15 @@ async function topTenScan(){
   _freshenSeriesFromBulk(); // append today's bulk quote to any stale series first
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     if(st)st.textContent='Loading volume & history for scoring…';
-    if(window._offlineMode){ _computeSignalsFromSeries(); } else { await bulkVolume(); }
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   }
   if(typeof scanProgSet==='function')scanProgSet(70);
   if(st)st.textContent='Scoring every share…';
   // Score all out of 10 (accumulation-weighted), keep those with signal, top 10.
   const scored=[];
-  for(const s of allData){
+  for(let _j=0;_j<allData.length;_j++){
+    if((_j&255)===0&&_j>0)await new Promise(_r=>setTimeout(_r,0)); // v335: chunk the scoring pass too — keep the phone responsive
+    const s=allData[_j];
     if(!(s.price>0))continue;
     const r=watchScore10(s);
     s.watchScore=r.score;      // /10 for the table column + sorting
@@ -9263,7 +9267,7 @@ async function technicalScan(){
   if(needHist){
     const ls=document.getElementById('loadStatus');
     if(ls)ls.innerHTML='📐 Fetching price history for technical signals… (runs the 3-month refresh)';
-    if(window._offlineMode){ _computeSignalsFromSeries(); } else { await bulkVolume(); }
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   }
   const have=allData.filter(s=>s.techCalced);
   if(!have.length){alert('Technical signals need price history. Enter your API key and try the 3-month refresh first.');return;}
@@ -9779,7 +9783,7 @@ async function allSignalsScan(){
   _freshenSeriesFromBulk(); // append today's bulk quote to any stale series first
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     if(st)st.textContent='Loading volume & history…';
-    if(window._offlineMode){ _computeSignalsFromSeries(); } else { await bulkVolume(); }
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   }
   scanProgSet&&scanProgSet(60);
   if(st)st.textContent='Scoring every signal…';
@@ -9853,7 +9857,7 @@ async function unusualScan(){
   scanProgShow&&scanProgShow();scanProgSet&&scanProgSet(5);
   // Ensure the ~22-day series is present (bulk load fills s.series).
   if(!allData.some(s=>Array.isArray(s.series))){
-    if(window._offlineMode){ _computeSignalsFromSeries(); } else { await bulkVolume(); }
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   }
   scanProgSet&&scanProgSet(60);
   if(st)st.textContent='Step 2/2 · scoring unusual activity…';
@@ -9911,7 +9915,7 @@ async function smartMoneyScan(minDays,scanAll){
 
   // Step 1: whole-exchange volume average + days-up streak (fast date-range method)
   st.textContent='Step 1/3 · loading volume & streaks…';
-  if(window._offlineMode){ _computeSignalsFromSeries(); } else { await bulkVolume(); }
+  if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   scanProgSet(10);
 
   // Step 2: pick candidates to verify.
@@ -12566,7 +12570,7 @@ async function recoveryScan(){
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
-    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{if(st)st.textContent='Loading volume & streaks…';if(typeof bulkVolume==='function')await bulkVolume();}
   }
   // Primary: been falling 2+ consecutive days, volume elevated, price stabilising
@@ -12617,7 +12621,7 @@ async function quietMoversScan(){
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
-    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading volume & streaks…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
   const LO=-5,HI=5;                     // "small net move today" band
@@ -12688,7 +12692,7 @@ async function gapScan(){
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
-    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
   let priced=0,noOpen=0;
@@ -12767,10 +12771,10 @@ async function trendScan(){
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
-    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
-  if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+  if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
   let have200=0,nearStack=0;
   const scored=[];
   for(const s of allData){
@@ -12824,11 +12828,11 @@ async function pullbackScan(){
   _freshenSeriesFromBulk&&_freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
-    if(window._offlineMode||!hasKey){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+    if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
   // Pullback needs moving averages + RSI; make sure they've been computed.
-  if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){_computeSignalsFromSeries&&_computeSignalsFromSeries();}
+  if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
   const scored=[];
   for(const s of allData){
     if(!(s.price>0))continue;
