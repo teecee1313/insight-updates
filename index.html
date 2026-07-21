@@ -1484,7 +1484,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-333-open';
+const APP_VERSION='2026.07.16-334-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5384,8 +5384,20 @@ function _ensureCash(p){
   return p;
 }
 function _pfFresh(acct){ return ((acct||window._pfCtx)==='auto')?{holdings:[],history:[],cash:AP_START_CASH,startCap:AP_START_CASH}:{holdings:[],history:[]}; }
-function _paper(acct){try{const p=JSON.parse(localStorage.getItem(_pfKey(acct)));return _sanPaper(_ensureCash(p&&typeof p==='object'?p:_pfFresh(acct)));}catch(e){return _ensureCash(_pfFresh(acct));}}
-function _paperSave(p,acct){try{localStorage.setItem(_pfKey(acct),JSON.stringify(p));}catch(e){}}
+var _paperCache={}; // v334: parse+sanitise once per stored string; re-sanitising all history on every _paper() froze phones
+function _paper(acct){
+  const _k=_pfKey(acct);
+  try{
+    const raw=localStorage.getItem(_k);
+    const c=_paperCache[_k];
+    if(c&&c.raw===raw){ return _ensureCash(JSON.parse(c.san)); } // already sanitised — cheap fresh copy, no re-scan
+    const pr=(raw&&typeof raw==='string')?JSON.parse(raw):null;
+    const p=_sanPaper(_ensureCash(pr&&typeof pr==='object'?pr:_pfFresh(acct)));
+    try{ _paperCache[_k]={raw:raw,san:JSON.stringify(p)}; }catch(e){ delete _paperCache[_k]; }
+    return p;
+  }catch(e){return _ensureCash(_pfFresh(acct));}
+}
+function _paperSave(p,acct){try{const _k=_pfKey(acct);localStorage.setItem(_k,JSON.stringify(p));try{delete _paperCache[_k];}catch(e){}}catch(e){}}
 function _paperPrune(p){
   // Closed trades are a PERMANENT ledger — never deleted, so you can always
   // refer back (they're tiny). The panel just DISPLAYS the last 12 months;
