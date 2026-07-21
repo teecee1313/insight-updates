@@ -1267,9 +1267,10 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="setup-col">
 
     <!-- SETUP & DATA (auto-runs; collapsed since it rarely needs touching) -->
-    <div style="background:linear-gradient(90deg,rgba(255,210,0,.06),transparent);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;margin-bottom:8px;">
+    <div id="setupDataBox" style="background:linear-gradient(90deg,rgba(255,210,0,.06),transparent);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;margin-bottom:8px;box-sizing:border-box;">
       <div style="font:700 11px var(--sans);color:var(--gold);margin-bottom:2px;">📊 Insight Trading</div>
       <div id="loadStatus" style="font-size:10px;color:var(--muted);line-height:1.4;">Starting up…</div>
+      <div id="loadHint" style="display:none;font-size:9px;color:#f0b849;margin-top:4px;line-height:1.4;"></div>
       <div class="prog-wrap" id="progWrap" style="margin-top:5px;display:block;"><div class="prog-fill" id="progFill" style="width:0%;"></div></div>
       <div id="loadPhase" style="font-size:9px;color:var(--dim);margin-top:3px;display:none;"></div>
       <button id="prepStopBtn" onclick="stopPrepare()" style="display:none;margin-top:5px;width:100%;padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff6b81;font:700 10px var(--sans);cursor:pointer;">■ Stop loading</button>
@@ -1483,7 +1484,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-332-open';
+const APP_VERSION='2026.07.16-333-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8924,15 +8925,31 @@ function scoreUnusual(s){
 // scan always rank on TODAY.
 // Show a one-line hint when the free CORS proxies are running slow, so the user
 // knows the sluggishness is the network (not the app) and what they can do.
+function _ratchetLoadBox(){
+  // While a load runs, let the setup box only GROW, never shrink — so a shorter
+  // status line or the one-time slow-network hint can't bounce the menus below.
+  try{ var b=document.getElementById('setupDataBox'); if(!b)return;
+    var h=b.offsetHeight; var cur=parseFloat(b.style.minHeight)||0;
+    if(h>cur+0.5)b.style.minHeight=h+'px';
+  }catch(e){}
+}
+function _resetLoadBox(){
+  // Load finished (or a fresh one started): release the reserved height and clear
+  // the slow-network hint so the box returns to its natural size.
+  try{ var b=document.getElementById('setupDataBox'); if(b)b.style.minHeight='';
+    var h=document.getElementById('loadHint'); if(h){ h.style.display='none'; h.innerHTML=''; }
+  }catch(e){}
+}
 function _maybeSlowNetworkHint(){
   try{
     if((window._lastProxyMs||0)>3500){
-      const ls=document.getElementById('loadStatus');
-      if(ls && !document.getElementById('_slowHint')){
-        ls.insertAdjacentHTML('beforeend',
-          '<div id="_slowHint" style="font-size:9px;color:#f0b849;margin-top:4px;line-height:1.4;">\uD83D\uDC0C The free data proxy is running slow right now (this comes and goes through the day \u2014 it\u2019s the network, not the app). Loads will still finish. Tip: after a <b>Download all</b> for offline use, later loads read from your own computer and are instant.</div>');
+      var h=document.getElementById('loadHint');
+      if(h && h.style.display==='none'){
+        h.innerHTML='🐌 The free data proxy is running slow right now (this comes and goes through the day — it\u2019s the network, not the app). Loads will still finish. Tip: after a <b>Download all</b> for offline use, later loads read from your own computer and are instant.';
+        h.style.display='block';
       }
     }
+    _ratchetLoadBox();
   }catch(e){}
 }
 function _computeSignalsFromSeries(){
@@ -10039,7 +10056,7 @@ async function autoRunTechnicals(){
     if(typeof applyF==='function')applyF();
     if(ls)ls.innerHTML=`<span style="color:var(--green)">✓ Technicals ready</span> for the top shares and your watchlist. <span style="font-size:9px;color:var(--dim)">Sort by RSI / technical score, or click 📐 on any row.</span>`;
   }catch(e){}
-  finally{window._autoTechRunning=false;}
+  finally{window._autoTechRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}}
 }
 // Stop the live "preparing all signals" run (the red Stop button calls this).
 // Everything prepared up to that point is kept — only the remaining shares stop.
@@ -10294,7 +10311,7 @@ async function prepareAllSignals(auto){
     const fetchDays=95, BATCH=16;
     let done=0;
     const _pf=document.getElementById('progFill'), _pw=document.getElementById('progWrap');
-    if(_pw)_pw.style.display='block';
+    if(_pw)_pw.style.display='block';try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}
     window._prepAbort=false;window._healCount=0;
     const _stopBtn=document.getElementById('prepStopBtn');
     if(_stopBtn)_stopBtn.style.display='inline-block';
@@ -10435,7 +10452,7 @@ async function prepareAllSignals(auto){
       }
     }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
-  finally{window._prepRunning=false;try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function')_auditWarmIdle();}catch(e){}
+  finally{window._prepRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function')_auditWarmIdle();}catch(e){}
   try{ if(window._prepQueued){ window._prepQueued=false; if(!window._prepAbort)setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400); } }catch(e){}}
 }
 async function calcStreaks(){
