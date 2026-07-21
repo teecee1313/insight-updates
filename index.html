@@ -1484,7 +1484,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-338-open';
+const APP_VERSION='2026.07.16-339-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5467,13 +5467,14 @@ function undoSale(sellDate,ticker,buyDate){
     const totQty=existing.qty+t.qty;
     existing.invested=+(existing.invested+t.invested).toFixed(2);
     existing.qty=totQty;
+    existing.noAuto=true; existing.stop=0; // v339: keep the restored lot — don't let a rule re-sell it
   } else {
     p.holdings.push({
       id:'h'+Date.now()+Math.random().toString(36).slice(2,6),
       ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,
       qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,
       lastPrice:t.buyPrice,lastDate:t.buyDate,
-      target:t.target||0,stop:0,note:t.note||null,
+      target:t.target||0,stop:0,note:t.note||null,noAuto:true,
       tgtChecked:_todayLocal() // don't re-scan history that caused the bad sell
     });
   }
@@ -5481,7 +5482,7 @@ function undoSale(sellDate,ticker,buyDate){
   p.history.splice(idx,1);
   _paperSave(_paperPrune(p));
   const ls=document.getElementById('loadStatus');
-  if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Its stop-loss was cleared so it won't re-trigger; set a new one if you want.`;
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Auto-sell is paused on it so a rule can't sell it straight back; set a 🎯 or 🛑 on it to hand it back to your rules.`;
   showPortfolio();
 }
 // v338 — batch reverse of EVERY auto-triggered sell in the current account (one
@@ -5493,20 +5494,20 @@ function _undoAllAutoSells(){
   if(!autos.length){ alert('There are no auto-sold trades to restore in this account.'); return; }
   const total=autos.reduce((a,x)=>a+(x.t.proceeds||0),0);
   const cur=(autos[0].t.currency)||'AUD';
-  if(!confirm(`Restore all ${autos.length} auto-sold position${autos.length>1?'s':''}?\n\nThis returns every auto-sold holding to your portfolio and reverses ${fmtP(total,cur)} of sale proceeds back out of your cash. Your trading rules are left exactly as they are — so a restored position could be auto-sold again if it still meets a rule. Turn a rule off first (📋 My trading rules) if you don't want that.`))return;
+  if(!confirm(`Restore all ${autos.length} auto-sold position${autos.length>1?'s':''}?\n\nThis returns every auto-sold holding to your portfolio and reverses ${fmtP(total,cur)} of sale proceeds back out of your cash. Auto-sell is then PAUSED on each restored position so a rule can't sell it straight back — it stays put until you set a 🎯 target or 🛑 stop on it (which hands that one back to your rules). Your global rules are unchanged.`))return;
   autos.sort((a,b)=>b.i-a.i); // splice highest index first so earlier indexes stay valid
   let n=0;
   autos.forEach(({t,i})=>{
     p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
     p.holdings=p.holdings||[];
     const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
-    if(existing){ existing.invested=+(existing.invested+t.invested).toFixed(2); existing.qty=existing.qty+t.qty; }
-    else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,tgtChecked:_todayLocal()}); }
+    if(existing){ existing.invested=+(existing.invested+t.invested).toFixed(2); existing.qty=existing.qty+t.qty; existing.noAuto=true; existing.stop=0; }
+    else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,noAuto:true,tgtChecked:_todayLocal()}); }
     p.history.splice(i,1); n++;
   });
   _paperSave(_paperPrune(p));
   const ls=document.getElementById('loadStatus');
-  if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Restored ${n} auto-sold position${n>1?'s':''} to your holdings; cash reversed. Your rules are unchanged.</span>`;
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Restored ${n} auto-sold position${n>1?'s':''}; cash reversed.</span> Auto-sell is paused on each so a rule can't sell them straight back — set a 🎯/🛑 on one to hand it back to your rules.`;
   showPortfolio();
 }
 async function checkAutoSellTargets(acct){
@@ -5534,6 +5535,7 @@ async function checkAutoSellTargets(acct){
   try{
     for(const h of targeted.slice()){
       if(!_armed(h))continue; // skip holdings bought today — give them a day first
+      if(h.noAuto)continue; // v339: a restored (↩ undone) position — auto-sell is paused so it stays; a manual 🎯/🛑 re-arms it
       let hit=null; // {date, fill}
       if(apiKey){
         try{
@@ -6007,7 +6009,7 @@ function paperSetTarget(id){
   if(price!==null&&price<=(lots[0].lastPrice||avg)){
     if(!confirm('That target is at or below the current price — it will sell on the next check. Set it anyway?'))return;
   }
-  lots.forEach(l=>{_logExit(l,'tgt',l.target!=null?l.target:null,price);l.target=price;});
+  lots.forEach(l=>{_logExit(l,'tgt',l.target!=null?l.target:null,price);l.target=price;delete l.noAuto;});
   _paperSave(p);
   showPortfolio();
 }
@@ -6046,7 +6048,7 @@ function paperSetStop(id){
   if(price!==null&&price>=(lots[0].lastPrice||avg)){
     if(!confirm('That stop is at or above the current price — it will sell immediately on the next check. Set it anyway?'))return;
   }
-  lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;});
+  lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;delete l.noAuto;});
   _paperSave(p);
   showPortfolio();
 }
@@ -6786,7 +6788,7 @@ function showPortfolio(exSel){
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     ${acctTabs}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
-    ${_autoN?`<div style="border:1px solid var(--green);background:rgba(63,185,80,.08);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:10.5px;color:var(--text);line-height:1.55;">🪤 <b>Your rules auto-sold ${_autoN} position${_autoN>1?'s':''}.</b> To bring any back, open <b>📜 Trade history</b> below and tap the green <b style="color:var(--green)">↩ Undo</b> beside it — that returns the shares and reverses the cash, and leaves your rules exactly as they are. Restore them all at once here: <button onclick="_undoAllAutoSells()" style="margin-top:7px;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 10.5px var(--sans);cursor:pointer;">↩ Restore all ${_autoN} auto-sold</button></div>`:''}
+    ${_autoN?`<div style="border:1px solid var(--green);background:rgba(63,185,80,.08);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:10.5px;color:var(--text);line-height:1.55;">🪤 <b>Your rules auto-sold ${_autoN} position${_autoN>1?'s':''}.</b> To bring any back, open <b>📜 Trade history</b> below and tap the green <b style="color:var(--green)">↩ Undo</b> beside it — that returns the shares and reverses the cash, and pauses auto-sell on it so a rule can't sell it straight back. Restore them all at once here: <button onclick="_undoAllAutoSells()" style="margin-top:7px;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 10.5px var(--sans);cursor:pointer;">↩ Restore all ${_autoN} auto-sold</button></div>`:''}
     <div style="display:flex;gap:6px;margin-bottom:12px;">
       <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings &amp; summary (${hold.length})</button>
       <button onclick="_setPfView('history')" id="pfTab_history" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='history'?'var(--gold)':'var(--border)'};background:${pv==='history'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='history'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📜 Trade history (${hist.length})</button>
