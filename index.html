@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-326-open';
+const APP_VERSION='2026.07.16-327-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14593,7 +14593,8 @@ function _renderReportCard(A){
     const f1=(x)=>((x>=0?'+':'')+x.toFixed(2))+'%';
     const baseAvg=A.base.sum/A.base.n, baseUp=pct(A.base.up,A.base.n);
     const TIER={solid:['SOLID','var(--green)'],promising:['PROMISING','var(--gold)'],early:['TOO EARLY','var(--dim)']};
-    const chip=m=>{const t=TIER[m.tier];return `<span style="border:1px solid ${t[1]};color:${t[1]};border-radius:4px;padding:0 4px;font-size:8px;font-weight:800;letter-spacing:.5px;">${t[0]}</span>`;};
+    const _tierTip={solid:'SOLID — 50+ fires with a consistent edge (t≥2). The firmest evidence on the card, though still never a guarantee.',promising:'PROMISING — 30+ fires with a decent edge (t≥1). Worth watching; not yet proven.',early:'TOO EARLY — too few fires to tell a real edge from luck yet, whatever the edge looks like.'};
+    const chip=m=>{const t=TIER[m.tier];return `<span title="${_tierTip[m.tier]||''}" style="cursor:help;border:1px solid ${t[1]};color:${t[1]};border-radius:4px;padding:0 4px;font-size:8px;font-weight:800;letter-spacing:.5px;">${t[0]}</span>`;};
     const nameOf=k=>{
       if(A.defs[k])return A.defs[k].name;
       if(k==='vr+')return '🥇 Vol record · up day'; if(k==='vr-')return '🥇 Vol record · down day';
@@ -14614,12 +14615,12 @@ function _renderReportCard(A){
     }
     const track=k=>{ const past=ledger.filter(x=>x&&x.e&&x.e[k]!=null); if(past.length<2)return '';
       const w=past.reduce((a,x)=>a+x.e[k],0);
-      return ` · <span style="color:${w>=past.length*0.6?'var(--green)':'var(--muted)'}">📜 beat in ${w} of last ${past.length} cards</span>`; };
-    const halves=m=>(m.held===null)?'':(m.held?` · <span style="color:var(--green)">✓ held up in both halves</span>`:` · <span style="color:#ff9caa">✗ faded in one half</span>`);
-    const tape=m=>(m.ron.n||m.roff.n)?` · tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})`:'';
+      return ` · <span title="Across the last ${past.length} report cards this app saved, this line was working on ${w} of them. Persistence across weeks is the only evidence that deserves real capital." style="cursor:help;color:${w>=past.length*0.6?'var(--green)':'var(--muted)'}">📜 beat in ${w} of last ${past.length} cards</span>`; };
+    const halves=m=>(m.held===null)?'':(m.held?` · <span title="The graded window was split in two and the edge showed up in BOTH halves — a sign it is not a single hot streak." style="cursor:help;color:var(--green)">✓ held up in both halves</span>`:` · <span title="The edge appeared in only ONE half of the window — weaker; it may have been one good run rather than a durable edge." style="cursor:help;color:#ff9caa">✗ faded in one half</span>`);
+    const tape=m=>(m.ron.n||m.roff.n)?` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work." style="cursor:help;">tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})</span>`:'';
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
-      return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b style="color:var(--text)">${m.n.toLocaleString()}</b>× · <b style="color:var(--text)">${hitTxt}</b> after ${A.hold}d · edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b> ${chip(m)} · median ${f1(m.median)} · wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</div>
+      return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?'How often price was LOWER 5 trading days later — for a warning, lower is the whole point.':'How often price was HIGHER 5 trading days later.'}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${A.hold}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}</div>`;
     };
     let rows='';
@@ -14720,7 +14721,7 @@ function _renderReportCard(A){
     const comboShown=comboLad.slice(0,12), comboMore=comboLad.length-comboShown.length;
     const sMax=singleLad.length?Math.max.apply(null,singleLad.map(x=>Math.abs(x.dir))):0;
     const cMax=comboShown.length?Math.max.apply(null,comboShown.map(x=>Math.abs(x.dir))):0;
-    const ladRow=(it,i,mx)=>{ const w=it.dir>0; const bw=mx>0?Math.max(3,Math.min(100,Math.abs(it.dir)/mx*100)):0; const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const pl=nm.replace(/<[^>]+>/g,'').replace(/"/g,'');
+    const ladRow=(it,i,mx)=>{ const w=it.dir>0; const bw=mx>0?Math.max(3,Math.min(100,Math.abs(it.dir)/mx*100)):0; const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const _dt=it.m.dirNeg?'A WARNING — it works when price FALLS after it fires (so a green/high rung means it caught falls well, NOT that you buy it).':'A buy-side flag — it works when price RISES after it fires.'; const pl=(nm.replace(/<[^>]+>/g,'').replace(/"/g,''))+' — edge '+f1(it.m.edge)+', '+(TIER[it.m.tier]?TIER[it.m.tier][0]:'')+', '+it.m.n.toLocaleString()+' fires. '+_dt+' Ranked by edge in its own direction.';
       return `<div style="display:flex;align-items:center;gap:7px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:11px;">
         <span style="flex:0 0 22px;text-align:center;font-weight:700;color:var(--muted);">${md}</span>
         <span title="${pl}" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}${warn}</span>
@@ -14736,8 +14737,21 @@ function _renderReportCard(A){
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 2px;">② Combinations &amp; sequences${comboMore>0?` <span style="font-weight:400;color:var(--dim);">· top 12 of ${comboLad.length}</span>`:''}</div>
       ${comboShown.length?comboShown.map((it,i)=>ladRow(it,i,cMax)).join(''):'<div style="font-size:10px;color:var(--dim);padding:4px 2px;">No combo reached ≥'+MINC+' fires yet.</div>'}
     </div>`;
+    const _deepOpen=(function(){try{return localStorage.getItem('asxScreener.cardDeepOpen.v1')==='1';}catch(e){return false;}})();
+    const deepDive=`<div style="margin:0 0 12px;border:1px solid var(--border2);border-radius:9px;background:var(--bg3);overflow:hidden;">
+      <div onclick="(function(x){var b=x.nextElementSibling;var o=b.style.display==='none';b.style.display=o?'block':'none';x.querySelector('.dchev').textContent=o?'▾':'▸';try{localStorage.setItem('asxScreener.cardDeepOpen.v1',o?'1':'0');}catch(e){}})(this)" style="cursor:pointer;padding:10px 12px;font:800 12px var(--sans);color:var(--text);display:flex;justify-content:space-between;align-items:center;gap:8px;">📖 How to read this card — a plain-English deep dive <span class="dchev" style="color:var(--gold);">${_deepOpen?'▾':'▸'}</span></div>
+      <div style="display:${_deepOpen?'block':'none'};padding:0 13px 12px;font-size:10.5px;color:var(--muted);line-height:1.65;">
+        <p style="margin:6px 0;"><b style="color:var(--text)">What this is.</b> The app took every buy/sell flag it can spot and re-ran its exact formula across <b>your saved history</b> — every share, every past day it had data for. Each time a flag "fired" it then watched what price did over the next ${A.hold} trading days. So these aren't opinions; they're each flag's own track record on real recent data.</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">EDGE is the number that matters.</b> A flag looking good in a week when the WHOLE market rose isn't impressive. So EDGE measures each fire against the average move of <b>all shares that same day</b>, then averages that. <span style="color:var(--green)">Above zero</span> = it beat the market; lucky good-market weeks are stripped out. For a <b>warning</b> flag (📉 Dist? and the down-day forms) it flips — <span style="color:var(--green)">below zero is good</span>, because a warning is meant to catch falls.</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">The badges — how much to trust it.</b> <b style="color:var(--green)">SOLID</b> = 50+ fires with a steady edge (statistically clear). <b style="color:var(--gold)">PROMISING</b> = 30+ fires, decent but not proven. <b>TOO EARLY</b> = too few fires to tell a real edge from luck. A big edge that's still TOO EARLY has <i>not</i> earned trust.</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">The rest of each line.</b> <b>higher / lower %</b> = how often price went the flag's way. <b>median</b> = the middle outcome (half better, half worse), which one giant winner can't inflate. <b>wins / losses</b> = the average size of the good fires vs the bad. <b>✓ / ✗ halves</b> = whether the edge showed in BOTH halves of the window (✓) or was one hot streak (✗). <b>🟩 / 🟥 tape</b> = how it did on up-market vs down-market days. <b>📜</b> = how many of your recent saved cards it was working on — persistence across weeks is the only evidence that deserves real money.</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">Singles, Combinations, Sequences.</b> <b>Singles</b> = one flag alone. <b>Combinations</b> = two or three flags on the <i>same share, same day</i> — does agreement beat a lone flag? <b>Sequences</b> = quiet-buying flags in the days BEFORE, then an ignition flag today (accumulation-then-move).</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">🪜 The ladder</b> at the bottom ranks everything best→worst by edge in each flag's own direction. Rungs tagged <b>· warning</b> predict FALLS — a green warning is catching falls well, <i>not</i> a buy.</p>
+        <p style="margin:6px 0;color:var(--dim);">Hover — or press &amp; hold on a phone — any number, badge or rung for a one-line reminder. This is the app grading its own estimates honestly: a good past period never guarantees the future, and none of this is financial advice.</p>
+      </div>
+    </div>`;
     window._modalBig=false;
-    showModal(head+rows+comboSec+seqSec+annSec+ladderSec+foot,'📋 Signal report card');
+    showModal(deepDive+head+rows+comboSec+seqSec+annSec+ladderSec+foot,'📋 Signal report card');
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
 }
 
