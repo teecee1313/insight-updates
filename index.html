@@ -1484,7 +1484,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-337-open';
+const APP_VERSION='2026.07.16-338-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4057,7 +4057,7 @@ function renderRows(rows){
 <td><div class="tick-wrap">
   <a href="${tu}" target="_blank" class="tick-link"><span class="tick-code">${s.ticker}</span><span style="font-size:9px;color:var(--dim)">↗</span></a>
   <span class="tick-name" title="${s.name}">${s.name}</span>
-  <div class="tick-links"><a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="color:#ff9caa;font-weight:600;" title="Search the news for ${s.ticker}">📰 News</a><a href="${nu}" target="_blank">Announcements ↗</a><a href="#" onclick="deepDive('${s.ticker}');return false;" style="color:#c88bff;font-weight:600;">🔬 Deep dive</a><a href="#" onclick="showChart('${s.ticker}');return false;" style="color:var(--gold);">📈 Chart</a><a href="#" onclick="showShareDetail('${s.ticker}');return false;" style="color:var(--gold);">📊 History</a><a href="#" onclick="showTechnicals('${s.ticker}');return false;" style="color:#58a6ff;">📐 Technicals</a><a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:#e0a0ff;" title="One-page printable report for ${s.ticker}">🖨 Report</a><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);">💼 Buy</a><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
+  <div class="tick-links"><a href="#" onclick="deepDive('${s.ticker}');return false;" style="color:#c88bff;font-weight:600;" title="Everything about ${s.ticker} — signals, technicals, news & announcements in one panel">🔬 Deep dive</a><a href="#" onclick="showChart('${s.ticker}');return false;" style="color:var(--gold);">📈 Chart</a><a href="#" onclick="showShareDetail('${s.ticker}');return false;" style="color:var(--gold);">📊 History</a><a href="${nu}" target="_blank">📢 Announcements ↗</a><a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:#e0a0ff;" title="One-page printable report for ${s.ticker}">🖨 Report</a><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);">💼 Buy</a><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
@@ -5484,6 +5484,31 @@ function undoSale(sellDate,ticker,buyDate){
   if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Its stop-loss was cleared so it won't re-trigger; set a new one if you want.`;
   showPortfolio();
 }
+// v338 — batch reverse of EVERY auto-triggered sell in the current account (one
+// confirm). Same per-trade restore as undoSale (return shares, reverse cash, clear
+// the holding's stop + guard it from re-firing today). Rules are left untouched.
+function _undoAllAutoSells(){
+  const p=_paper();
+  const autos=(p.history||[]).map((t,i)=>({t,i})).filter(x=>x.t&&x.t.auto);
+  if(!autos.length){ alert('There are no auto-sold trades to restore in this account.'); return; }
+  const total=autos.reduce((a,x)=>a+(x.t.proceeds||0),0);
+  const cur=(autos[0].t.currency)||'AUD';
+  if(!confirm(`Restore all ${autos.length} auto-sold position${autos.length>1?'s':''}?\n\nThis returns every auto-sold holding to your portfolio and reverses ${fmtP(total,cur)} of sale proceeds back out of your cash. Your trading rules are left exactly as they are — so a restored position could be auto-sold again if it still meets a rule. Turn a rule off first (📋 My trading rules) if you don't want that.`))return;
+  autos.sort((a,b)=>b.i-a.i); // splice highest index first so earlier indexes stay valid
+  let n=0;
+  autos.forEach(({t,i})=>{
+    p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
+    p.holdings=p.holdings||[];
+    const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
+    if(existing){ existing.invested=+(existing.invested+t.invested).toFixed(2); existing.qty=existing.qty+t.qty; }
+    else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,tgtChecked:_todayLocal()}); }
+    p.history.splice(i,1); n++;
+  });
+  _paperSave(_paperPrune(p));
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Restored ${n} auto-sold position${n>1?'s':''} to your holdings; cash reversed. Your rules are unchanged.</span>`;
+  showPortfolio();
+}
 async function checkAutoSellTargets(acct){
   const ACCT=acct||window._pfCtx;
   if(window._tgtChecking)return [];
@@ -6748,10 +6773,11 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}${t.auto?`<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Restore ${t.ticker} — return the ${t.qty} shares to your holdings and reverse the cash. Your rules stay unchanged." style="margin-top:4px;padding:2px 8px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 9px var(--sans);cursor:pointer;white-space:nowrap;">↩ Undo</button>`:''}</td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
+  const _autoN=((p.history||[]).filter(t=>t&&t.auto)).length; // v338: auto-sold positions available to restore
   const pv=window._pfView||'holdings';       // v263: which portfolio page is showing
   window._modalBig=true;                    // portfolio opens large by default
   window._modalLabel='💼 Portfolio (paper trading)';
@@ -6760,6 +6786,7 @@ function showPortfolio(exSel){
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     ${acctTabs}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
+    ${_autoN?`<div style="border:1px solid var(--green);background:rgba(63,185,80,.08);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:10.5px;color:var(--text);line-height:1.55;">🪤 <b>Your rules auto-sold ${_autoN} position${_autoN>1?'s':''}.</b> To bring any back, open <b>📜 Trade history</b> below and tap the green <b style="color:var(--green)">↩ Undo</b> beside it — that returns the shares and reverses the cash, and leaves your rules exactly as they are. Restore them all at once here: <button onclick="_undoAllAutoSells()" style="margin-top:7px;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 10.5px var(--sans);cursor:pointer;">↩ Restore all ${_autoN} auto-sold</button></div>`:''}
     <div style="display:flex;gap:6px;margin-bottom:12px;">
       <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings &amp; summary (${hold.length})</button>
       <button onclick="_setPfView('history')" id="pfTab_history" style="flex:1;padding:8px;border-radius:7px;border:1px solid ${pv==='history'?'var(--gold)':'var(--border)'};background:${pv==='history'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='history'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📜 Trade history (${hist.length})</button>
@@ -9634,7 +9661,10 @@ function deepDive(ticker){
   const chgcol=s.chgPct>0?'var(--green)':s.chgPct<0?'#ff6b6b':'var(--muted)';
   let html=`<div style="font-weight:700;font-size:16px;color:var(--text);">🔬 ${s.ticker} <span style="font-size:11px;color:var(--muted)">${s.name||''}</span></div>
   <div style="font-size:9px;color:var(--dim);margin:4px 0 8px;">Everything Insight Trading computes for this share — plus links to official sources for shareholders, directors & news. Estimates from price/volume, not advice.</div>
-  <button onclick="showChart('${s.ticker}')" style="width:100%;margin-bottom:8px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">📈 Open price chart</button>
+  <div style="display:flex;gap:6px;margin-bottom:8px;">
+    <button onclick="showChart('${s.ticker}')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">📈 Price chart</button>
+    <button onclick="showTechnicals('${s.ticker}')" style="flex:1;padding:8px;border-radius:7px;border:1px solid #58a6ff;background:rgba(88,166,255,.12);color:#58a6ff;font:700 11px var(--sans);cursor:pointer;">📐 Technicals</button>
+  </div>
   <button onclick="printShareReport('${s.ticker}')" style="width:100%;margin-bottom:8px;padding:8px;border-radius:7px;border:1px solid #c88bff;background:rgba(200,139,255,.12);color:#e0a0ff;font:700 11px var(--sans);cursor:pointer;">🖨 Printable one-page report</button>
   <div style="display:flex;gap:6px;margin-bottom:8px;">
     <a href="${newsSearchFor(s.ticker,s.exchange,s.name)}" target="_blank" style="flex:1;text-align:center;padding:8px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.10);color:#ff9caa;font:700 11px var(--sans);text-decoration:none;">📰 Latest news</a>
