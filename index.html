@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-330-open';
+const APP_VERSION='2026.07.16-332-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1935,7 +1935,7 @@ function initLang(){
 }
 
 let allData=[], filtered=[], currentExch='ASX';
-window.__setDemoData=function(arr){arr.forEach(function(s){if(typeof _sanShare==='function')_sanShare(s);if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:(s._history[s._history.length-1].open!=null?s._history[s._history.length-1].open:(s._history.length>1?s._history[s._history.length-2].close:s._history[s._history.length-1].close)),h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r,ix){return {dateStamp:r.date,open:(r.open!=null?r.open:(ix>0?s._history[ix-1].close:r.close)),close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}};
+window.__setDemoData=function(arr){arr.forEach(function(s){if(typeof _sanShare==='function')_sanShare(s);if(Array.isArray(s._history)&&s._history.length){s.series=s._history.map(function(r){return {d:r.date,c:r.close,v:r.volume};});s._q={d:s._history[s._history.length-1].date,c:s.price,v:s.volume,o:(s._history[s._history.length-1].open!=null?s._history[s._history.length-1].open:(s._history.length>1?s._history[s._history.length-2].close:s._history[s._history.length-1].close)),h:s._history[s._history.length-1].high,l:s._history[s._history.length-1].low};}s.volCalced=true;s.streakCalced=true;s.volStreakCalced=true;s.techCalced=true;});allData=arr;currentExch='ASX';window._exchDataDate={ASX:(arr[0]&&arr[0]._q&&arr[0]._q.d)||'2026-07-03'};try{if(typeof computeTechnicals==='function')arr.forEach(function(s){try{computeTechnicals(s,s._history.map(function(r,ix){return {dateStamp:r.date,open:(r.open!=null?r.open:(ix>0?s._history[ix-1].close:r.close)),close:r.close,high:r.high,low:r.low,volume:r.volume};}));}catch(e){}});}catch(e){}try{exitWatchView&&exitWatchView();}catch(e){}try{applyF&&applyF();}catch(e){}try{dots&&dots();}catch(e){}try{render&&render();}catch(e){}try{if(typeof _auditWarmIdle==='function')_auditWarmIdle();}catch(e){}};
 
 
 
@@ -4277,6 +4277,9 @@ ${flagsPlain}
 
 Recent sessions (oldest to newest):
 ${hist||'n/a'}
+
+Recent ASX announcements — REAL filings from the official ASX feed (unlike the estimated flags above; ⚠ = market-sensitive):
+${(Array.isArray(s.annList)&&s.annList.length)?s.annList.slice(0,12).map(function(a){return a.d+' · '+(a.ps?'⚠ ':'')+String(a.t||'');}).join('\n'):'none returned by the feed for this share — check the official ASX announcements page'}
 
 Please structure your answer as: (1) one-paragraph summary, (2) bullish reading, (3) bearish reading / cautions, (4) 3 things to research next.`;
 
@@ -10432,7 +10435,7 @@ async function prepareAllSignals(auto){
       }
     }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
-  finally{window._prepRunning=false;try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}
+  finally{window._prepRunning=false;try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function')_auditWarmIdle();}catch(e){}
   try{ if(window._prepQueued){ window._prepQueued=false; if(!window._prepAbort)setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400); } }catch(e){}}
 }
 async function calcStreaks(){
@@ -14317,7 +14320,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
 /* ═══ v248 — confirmed ASX announcements layer (news ✓ + director ✓) ═══ */
 (function(){
   var DAY=new Date().toISOString().slice(0,10);
-  var CK='asxScreener.ann.v2';
+  var CK='asxScreener.ann.v3';
   var cache={date:DAY,by:{}};
   try{ var st=JSON.parse(localStorage.getItem(CK)||'null'); if(st&&st.date===DAY)cache=st; }catch(e){}
   var attempted={}, fails=0, MAXC=3;
@@ -14359,8 +14362,8 @@ body.tbl-tighter .tick-name{max-width:80px;}
   };
   function ingest(json){
     try{
-      var items=(json&&json.data&&json.data.items)||(json&&json.items)||(Array.isArray(json)?json:[])||[];
-      if(!Array.isArray(items))items=[];
+      var raw=(json&&json.data&&json.data.items)||(json&&json.items)||(Array.isArray(json)?json:null);
+      var ok=Array.isArray(raw); var items=ok?raw:[]; // v331: ok = the response actually carried the announcements array
       var cutoff=Date.now()-7*86400000; // ≈ last 5 trading days
       var n=0,d=false,h='',psD=[],list=[];
       items.forEach(function(it){
@@ -14376,8 +14379,8 @@ body.tbl-tighter .tick-name{max-width:80px;}
         if(ps){ n++; if(!h)h=hl.replace(/[<>"`]/g,'').slice(0,140); }
       });
       list.sort(function(a,b){return a.d<b.d?1:(a.d>b.d?-1:0);}); if(list.length>12)list=list.slice(0,12);
-      return {n:n,d:d,h:h,ps:psD,list:list};
-    }catch(e){ return {n:0,d:false,h:''}; }
+      return {n:n,d:d,h:h,ps:psD,list:list,ok:ok};
+    }catch(e){ return {n:0,d:false,h:'',ps:[],list:[],ok:false}; }
   }
   function urlFor(code){ return 'https://asx.api.markitdigital.com/asx-research/1.0/companies/'+encodeURIComponent(code)+'/announcements?access_token=83ff96335c2d45a094df02a206a39ff4&itemsPerPage=20'; }
   async function fetchOne(code){
@@ -14392,7 +14395,10 @@ body.tbl-tighter .tick-name{max-width:80px;}
         if(!r||!r.ok)continue;
         var txt=await r.text();
         if(!txt||(txt.trim()[0]!=='{'&&txt.trim()[0]!=='['))continue;
-        return JSON.parse(txt);
+        var _j=JSON.parse(txt);
+        var _items=(_j&&_j.data&&_j.data.items)||(_j&&_j.items)||(Array.isArray(_j)?_j:null);
+        if(!Array.isArray(_items))continue; // v331: rate-limit/error JSON has no items array → try the next proxy, never cache it as "no announcements"
+        return _j;
       }catch(e){}
     }
     return null;
@@ -14414,7 +14420,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
         while(idx<cand.length && fails<8){
           var s=cand[idx++]; attempted[s.ticker]=1;
           var j=await fetchOne(s.ticker);
-          if(j){ var rec=ingest(j); cache.by[s.ticker]=rec; apply(s,rec); try{logAnn(s.ticker,rec.ps||[]);}catch(e){} changed=true; fails=0; }
+          if(j){ var rec=ingest(j); if(rec&&rec.ok){ cache.by[s.ticker]=rec; apply(s,rec); try{logAnn(s.ticker,rec.ps||[]);}catch(e){} changed=true; fails=0; } else { fails++; } }
           else fails++;
           await new Promise(function(r){setTimeout(r,250);});
         }
@@ -14434,7 +14440,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
     if(!s||s.exchange!=='ASX')return null;
     if(cache.by[tk]){ apply(s,cache.by[tk]); return cache.by[tk]; }
     var j=await fetchOne(tk);
-    if(j){ var rec=ingest(j); cache.by[tk]=rec; apply(s,rec); try{logAnn(tk,rec.ps||[]);}catch(e){} save(); return rec; }
+    if(j){ var rec=ingest(j); if(rec&&rec.ok){ cache.by[tk]=rec; apply(s,rec); try{logAnn(tk,rec.ps||[]);}catch(e){} save(); return rec; } }
     return null; }catch(e){ return null; } };
   try{ if(typeof prepareAllSignals==='function'){ var _p=prepareAllSignals; prepareAllSignals=async function(){ var r=await _p.apply(this,arguments); sweepSoon(); return r; }; } }catch(e){}
   try{ if(typeof applyF==='function'){ var _a=applyF; applyF=function(){ var r=_a.apply(this,arguments); sweepSoon(); return r; }; } }catch(e){}
@@ -14443,9 +14449,14 @@ body.tbl-tighter .tick-name{max-width:80px;}
 </script>
 <script id="auditJs">
 /* ═══ v251 — Signal report card: the app grades its own signals ═══ */
-function _signalAudit(){
-  const HOLD=5, DAYS=60, MINROWS=70, LIQ_FLOOR=50000, SEQ_LOOK=3;
-  const shares=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=MINROWS);
+function _signalAudit(){ return _auditFinalize(_auditRunAll(_auditNewCtx())); }
+// v332 — the audit split so the same maths runs synchronously OR in non-blocking
+// ≤35ms slices. _auditOneShare + _auditFinalize are the ONLY copy of the grading
+// maths; _signalAudit (above) and _auditChunk (below) both drive them, so the
+// numbers are identical whichever path runs.
+var _AUD={HOLD:5,DAYS:60,MINROWS:70,LIQ_FLOOR:50000,SEQ_LOOK:3,
+  CMB_KEYS:['bo','inf','inst','cx','vr','blk'], SEQ_A:['inf','inst','vr','blk'], SEQ_B:['bo','cx']};
+function _auditNewCtx(){
   const defs={
     bo:{name:'🚀 Breakout',dir:1},
     inf:{name:'🕵️ Informed?',dir:1},
@@ -14455,85 +14466,85 @@ function _signalAudit(){
     vr:{name:'🥇 Vol record',dir:0},
     blk:{name:'🔷 Block day',dir:0}
   };
-  const _CMB_KEYS=['bo','inf','inst','cx','vr','blk']; // bearish 'di' excluded from combos/sequences
-  const SEQ_A=['inf','inst','vr','blk'], SEQ_B=['bo','cx'];
-  // one metrics map for EVERYTHING: singles, 'vr+'/'vr-'/'blk+'/'blk-' splits,
-  // 'a+b' pairs, 'a+b+c' triples, 'a>b' sequences
-  const M={};
-  const met=k=>M[k]||(M[k]={n:0,up:0,sumOut:0,outs:[],excSum:0,excSq:0,ha:{n:0,sum:0},hb:{n:0,sum:0},ron:{n:0,sum:0},roff:{n:0,sum:0}});
   const annAgg={}; Object.keys(defs).forEach(k=>annAgg[k]={news:{n:0,up:0,sum:0},quiet:{n:0,up:0,sum:0},unk:0});
-  const base={n:0,up:0,sum:0};
-  const day={}; // date → outcome mean of ALL graded shares that day + breadth
-  let covered=0, liqSkipped=0, from=null, to=null;
-  const recs=[];
-  for(const s of shares){
-    const r=s.series, n=r.length;
-    if(n<MINROWS)continue;
-    // 💧 tradeable universe: mean $ traded/day over the last ~90 rows
-    { let vs=0,vn=0; for(let q=Math.max(0,n-90);q<n;q++){ const $t=(r[q].v||0)*(r[q].c||0); if($t>0){vs+=$t;vn++;} }
-      if(!(vn>0&&(vs/vn)>=LIQ_FLOOR)){ liqSkipped++; continue; } }
-    covered++;
-    const cumV=new Array(n), cumC=new Array(n), maxC=new Array(n), maxV=new Array(n);
-    let cv=0, cc=0, mc=0, mv=0;
-    for(let i=0;i<n;i++){
-      cv+=(r[i].v||0); cc+=(r[i].c||0); cumV[i]=cv; cumC[i]=cc;
-      maxC[i]=mc; maxV[i]=mv;
-      if(r[i].c>mc)mc=r[i].c; if((r[i].v||0)>mv)mv=r[i].v||0;
-    }
-    const avgPrev=(i,len)=>{ const a=Math.max(0,i-len), cnt=i-a; if(cnt<=0)return 0; return (cumV[i-1]-(a>0?cumV[a-1]:0))/cnt; };
-    const ma=(i,len)=>{ const a=i-len+1; if(a<0)return 0; return (cumC[i]-(a>0?cumC[a-1]:0))/len; };
-    const lo=Math.max(60,n-1-HOLD-DAYS), hi=n-1-HOLD;
-    const mid=lo+Math.floor((hi-lo)/2);
-    const prevF=[]; // rolling fired-sets for sequence lookback (nulls keep alignment)
-    for(let i=Math.max(60,lo-SEQ_LOOK);i<hi;i++){
-      const c0=r[i].c, cP=r[i-1].c, c5=r[i+HOLD].c, vol=r[i].v||0;
-      const a90=avgPrev(i,90);
-      const valid=(c0>0&&cP>0&&c5>0&&a90>0);
-      let f=null, out=0, chg=0;
-      if(valid){
-        chg=((c0-cP)/cP)*100;
-        const ratio=vol/a90;
-        out=((c5-c0)/c0)*100;
-        f={
-          inf: chg>0&&chg<8&&vol>5000&&ratio>1.8,
-          inst: chg>0&&vol>30000&&ratio>1.5,
-          di: chg<0&&chg>-25&&vol>5000&&ratio>1.8,
-          bo: c0>maxC[i]*1.0005&&ratio>1.5&&maxC[i]>0,
-          vr: vol>10000&&maxV[i]>0&&vol>=maxV[i]*1.05,
-          blk: ratio>2,
-          cx: (i>=50)&&ma(i,20)>ma(i,50)&&ma(i-1,20)<=ma(i-1,50)
-        };
-      }
-      if(valid && i>=lo){
-        const dk=r[i].d;
-        const D=day[dk]||(day[dk]={n:0,sum:0,bu:0,bn:0});
-        D.n++; D.sum+=out; D.bn++; if(chg>0)D.bu++;
-        base.n++; if(out>0)base.up++; base.sum+=out;
-        if(from===null)from=r[lo].d; to=r[hi-1].d;
-        const half=(i>=mid)?'b':'a';
-        const fired=_CMB_KEYS.filter(k=>f[k]);
-        const ks=[];
-        for(const k in f){ if(f[k])ks.push(k); }
-        if(f.vr){ if(chg>0)ks.push('vr+'); else if(chg<0)ks.push('vr-'); }
-        if(f.blk){ if(chg>0)ks.push('blk+'); else if(chg<0)ks.push('blk-'); }
-        for(let x=0;x<fired.length;x++)for(let y=x+1;y<fired.length;y++){
-          ks.push(fired[x]+'+'+fired[y]);
-          for(let z=y+1;z<fired.length;z++)ks.push(fired[x]+'+'+fired[y]+'+'+fired[z]);
-        }
-        for(const bk of SEQ_B){ if(f[bk]){ for(const ak of SEQ_A){
-          if(prevF.some(st=>st&&st.has(ak)))ks.push(ak+'>'+bk);
-        } } }
-        if(ks.length){
-          let annSt=null;
-          if(window._annPS){ annSt=window._annPS.info(s.ticker, r[Math.max(0,i-2)].d, r[i].d); }
-          recs.push({ks,out,d:dk,half,ann:annSt});
-        }
-      }
-      prevF.push(valid?new Set(_CMB_KEYS.filter(k=>f[k])):null);
-      if(prevF.length>SEQ_LOOK)prevF.shift();
-    }
+  const shares=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
+  return {defs,annAgg,M:{},base:{n:0,up:0,sum:0},day:{},recs:[],covered:0,liqSkipped:0,from:null,to:null,shares};
+}
+function _auditRunAll(X){ for(let i=0;i<X.shares.length;i++)_auditOneShare(X.shares[i],X); return X; }
+// Per-share pass — IDENTICAL maths to the old inline loop body; mutates ctx X.
+function _auditOneShare(s,X){
+  const HOLD=_AUD.HOLD, DAYS=_AUD.DAYS, MINROWS=_AUD.MINROWS, LIQ_FLOOR=_AUD.LIQ_FLOOR, SEQ_LOOK=_AUD.SEQ_LOOK;
+  const _CMB_KEYS=_AUD.CMB_KEYS, SEQ_A=_AUD.SEQ_A, SEQ_B=_AUD.SEQ_B;
+  const r=s.series, n=r.length;
+  if(n<MINROWS)return;
+  { let vs=0,vn=0; for(let q=Math.max(0,n-90);q<n;q++){ const $t=(r[q].v||0)*(r[q].c||0); if($t>0){vs+=$t;vn++;} }
+    if(!(vn>0&&(vs/vn)>=LIQ_FLOOR)){ X.liqSkipped++; return; } }
+  X.covered++;
+  const cumV=new Array(n), cumC=new Array(n), maxC=new Array(n), maxV=new Array(n);
+  let cv=0, cc=0, mc=0, mv=0;
+  for(let i=0;i<n;i++){
+    cv+=(r[i].v||0); cc+=(r[i].c||0); cumV[i]=cv; cumC[i]=cc;
+    maxC[i]=mc; maxV[i]=mv;
+    if(r[i].c>mc)mc=r[i].c; if((r[i].v||0)>mv)mv=r[i].v||0;
   }
-  // pass 2: same-day means & regimes, then aggregate every metric line
+  const avgPrev=(i,len)=>{ const a=Math.max(0,i-len), cnt=i-a; if(cnt<=0)return 0; return (cumV[i-1]-(a>0?cumV[a-1]:0))/cnt; };
+  const ma=(i,len)=>{ const a=i-len+1; if(a<0)return 0; return (cumC[i]-(a>0?cumC[a-1]:0))/len; };
+  const lo=Math.max(60,n-1-HOLD-DAYS), hi=n-1-HOLD;
+  const mid=lo+Math.floor((hi-lo)/2);
+  const prevF=[];
+  for(let i=Math.max(60,lo-SEQ_LOOK);i<hi;i++){
+    const c0=r[i].c, cP=r[i-1].c, c5=r[i+HOLD].c, vol=r[i].v||0;
+    const a90=avgPrev(i,90);
+    const valid=(c0>0&&cP>0&&c5>0&&a90>0);
+    let f=null, out=0, chg=0;
+    if(valid){
+      chg=((c0-cP)/cP)*100;
+      const ratio=vol/a90;
+      out=((c5-c0)/c0)*100;
+      f={
+        inf: chg>0&&chg<8&&vol>5000&&ratio>1.8,
+        inst: chg>0&&vol>30000&&ratio>1.5,
+        di: chg<0&&chg>-25&&vol>5000&&ratio>1.8,
+        bo: c0>maxC[i]*1.0005&&ratio>1.5&&maxC[i]>0,
+        vr: vol>10000&&maxV[i]>0&&vol>=maxV[i]*1.05,
+        blk: ratio>2,
+        cx: (i>=50)&&ma(i,20)>ma(i,50)&&ma(i-1,20)<=ma(i-1,50)
+      };
+    }
+    if(valid && i>=lo){
+      const dk=r[i].d;
+      const D=X.day[dk]||(X.day[dk]={n:0,sum:0,bu:0,bn:0});
+      D.n++; D.sum+=out; D.bn++; if(chg>0)D.bu++;
+      X.base.n++; if(out>0)X.base.up++; X.base.sum+=out;
+      if(X.from===null)X.from=r[lo].d; X.to=r[hi-1].d;
+      const half=(i>=mid)?'b':'a';
+      const fired=_CMB_KEYS.filter(k=>f[k]);
+      const ks=[];
+      for(const k in f){ if(f[k])ks.push(k); }
+      if(f.vr){ if(chg>0)ks.push('vr+'); else if(chg<0)ks.push('vr-'); }
+      if(f.blk){ if(chg>0)ks.push('blk+'); else if(chg<0)ks.push('blk-'); }
+      for(let x=0;x<fired.length;x++)for(let y=x+1;y<fired.length;y++){
+        ks.push(fired[x]+'+'+fired[y]);
+        for(let z=y+1;z<fired.length;z++)ks.push(fired[x]+'+'+fired[y]+'+'+fired[z]);
+      }
+      for(const bk of SEQ_B){ if(f[bk]){ for(const ak of SEQ_A){
+        if(prevF.some(st=>st&&st.has(ak)))ks.push(ak+'>'+bk);
+      } } }
+      if(ks.length){
+        let annSt=null;
+        if(window._annPS){ annSt=window._annPS.info(s.ticker, r[Math.max(0,i-2)].d, r[i].d); }
+        X.recs.push({ks,out,d:dk,half,ann:annSt});
+      }
+    }
+    prevF.push(valid?new Set(_CMB_KEYS.filter(k=>f[k])):null);
+    if(prevF.length>SEQ_LOOK)prevF.shift();
+  }
+}
+// Finalise — IDENTICAL maths; reads ctx X, returns the audit object A.
+function _auditFinalize(X){
+  const HOLD=_AUD.HOLD, DAYS=_AUD.DAYS, LIQ_FLOOR=_AUD.LIQ_FLOOR;
+  const defs=X.defs, M=X.M, day=X.day, recs=X.recs, base=X.base, annAgg=X.annAgg;
+  const met=k=>M[k]||(M[k]={n:0,up:0,sumOut:0,outs:[],excSum:0,excSq:0,ha:{n:0,sum:0},hb:{n:0,sum:0},ron:{n:0,sum:0},roff:{n:0,sum:0}});
   for(const dk in day){ const D=day[dk]; D.mean=D.n?D.sum/D.n:0; D.riskOn=(D.bn?(D.bu/D.bn):0)>0.5; }
   for(const rec of recs){
     const D=day[rec.d]||{mean:0,riskOn:false};
@@ -14569,7 +14580,36 @@ function _signalAudit(){
     m.tier=(m.n>=50&&at>=2)?'solid':((m.n>=30&&at>=1)?'promising':'early');
     m.dirNeg=!!DIRNEG[k];
   }
-  return {defs,M,base,covered,liqSkipped,liqFloor:LIQ_FLOOR,hold:HOLD,days:DAYS,from,to,ann:annAgg,annStart:(window._annPS?window._annPS.start:null)};
+  return {defs,M,base,covered:X.covered,liqSkipped:X.liqSkipped,liqFloor:LIQ_FLOOR,hold:HOLD,days:DAYS,from:X.from,to:X.to,ann:annAgg,annStart:(window._annPS?window._annPS.start:null)};
+}
+// Non-blocking driver — same maths, spread over ≤35ms slices. onDone(A) when ready.
+function _auditChunk(onDone){
+  const X=_auditNewCtx(); let i=0;
+  const _now=()=>{ try{return performance.now();}catch(e){return Date.now();} };
+  (function step(){
+    const t0=_now();
+    while(i<X.shares.length){ _auditOneShare(X.shares[i++],X); if(_now()-t0>=35)break; }
+    if(i<X.shares.length){ setTimeout(step,0); return; }
+    let A=null; try{A=_auditFinalize(X);}catch(e){}
+    try{ onDone&&onDone(A); }catch(e){}
+  })();
+}
+// Pre-compute the audit in idle time once data has loaded, so the 📋 card and the
+// bot open instantly. Once per data-day; never competes with an active load.
+function _auditWarmIdle(){
+  try{
+    if(window._prepRunning||window._auditWarming)return;
+    const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
+    if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd)return;
+    const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
+    if(_sh.length<3)return;
+    window._auditWarming=true;
+    const go=function(){ try{ _auditChunk(function(A){
+        try{ if(A&&A.M){ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; } }catch(e){}
+        window._auditWarming=false;
+      }); }catch(e){ window._auditWarming=false; } };
+    (window.requestIdleCallback?window.requestIdleCallback(go,{timeout:4000}):setTimeout(go,900));
+  }catch(e){ window._auditWarming=false; }
 }
 // v329 — in training mode (body.training-on) turn every titled element on the
 // report card into the app's styled instant popup, so hovering anything (name,
@@ -14602,15 +14642,22 @@ function _cardShowTip(el,d){
 }
 function _cardHideTip(){ if(_cardTipEl){ try{_cardTipEl.remove();}catch(e){} _cardTipEl=null; } }
 function signalReportCard(){
-  // v321: the audit is ~0.7s on a full exchange. Recomputing it on EVERY card
-  // open froze slow devices — and reopening froze them again ("Page
-  // Unresponsive / second time"). Reuse the once-per-day cache when warm
-  // (instant); on a cold build paint a spinner FIRST, then compute next tick so
-  // the click never freezes on a blank screen.
+  // v321/v332: grading the whole exchange is ~1s+ of maths. v332 runs it in
+  // non-blocking ≤35ms slices (_auditChunk) so the click never freezes, and
+  // _auditWarmIdle usually has it pre-computed already — so the card is instant.
   var _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
   if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd){ return _renderReportCard(window._auditCache.A); }
-  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">\u23f3 <b style="color:var(--text)">Grading every signal\u2026</b><br>re-running each flag over the past weeks \u2014 one moment.</div>','\ud83d\udccb Signal report card'); }catch(e){}
-  setTimeout(function(){ try{ _renderReportCard(_auditCached()); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now \u2014 try again in a moment.</div>','\ud83d\udccb Signal report card'); }catch(_){} } }, 30);
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
+  var _tok=(window._rcTok=(window._rcTok||0)+1);
+  try{
+    _auditChunk(function(A){
+      try{ if(A&&A.M)window._auditCache={d:_dd,A:A}; }catch(e){}
+      var m=document.getElementById('appModal');
+      if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
+        try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
+      }
+    });
+  }catch(e){ setTimeout(function(){ try{ _renderReportCard(_auditCached()); }catch(_){} },30); }
 }
 function _renderReportCard(A){
   try{
