@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-321-open';
+const APP_VERSION='2026.07.16-322-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4132,9 +4132,24 @@ function _openPrintable(html, label){
 // A clean, one-page detail sheet for a SINGLE share: headline price/change, the
 // key stats, the signal flags (honestly labelled as estimates), a short recent-
 // history table, and official-source links. Opens a print-ready tab.
-function printShareReport(ticker){
+async function printShareReport(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s){alert(ticker+"'s data isn't loaded right now, so a full report can't be built.\n\nLoad the exchange it's on (press ⚡ Load, or 📂 Load from saved data), then open the report again.");return;}
+  // v322: pull this share's REAL recent ASX announcements so the list shows ON
+  // the report — no need to open the external site. Today's cache renders
+  // instantly; a cold ASX share fetches once (≤3.5s) before the report opens.
+  try{
+    if(s.exchange==='ASX' && !Array.isArray(s.annList)){
+      if(typeof window._annGet==='function') window._annGet(ticker);
+      if(!Array.isArray(s.annList) && typeof window._annFetchOne==='function'){
+        try{ if(typeof showModal==='function') showModal('<div style="padding:16px;color:var(--muted);font-size:12px;">⏳ Building '+ticker+' report — fetching its latest ASX announcements…</div>','📄 '+ticker); }catch(e){}
+        await Promise.race([
+          window._annFetchOne(ticker).then(function(r){ if(!r) s._annStatus='fail'; }).catch(function(){ s._annStatus='fail'; }),
+          new Promise(function(res){ setTimeout(res,3500); })
+        ]);
+      }
+    }
+  }catch(e){}
   const cur=s.currency;
   const up=s.chgPct>0.005,dn=s.chgPct<-0.005;
   const chgCol=up?'#0a7a0a':dn?'#c00':'#666';
@@ -4181,6 +4196,20 @@ function printShareReport(ticker){
       return `<tr><td>${x.d}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
     }).join('');
     histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  // v322: real recent ASX announcements, embedded on the report page itself.
+  let annHtml='';
+  if(s.exchange==='ASX'){
+    if(Array.isArray(s.annList)&&s.annList.length){
+      const arows=s.annList.slice(0,12).map(a=>`<tr><td style="white-space:nowrap;vertical-align:top;">${a.d}</td><td>${a.ps?'<strong style="color:#b8860b;">⚠ market-sensitive</strong> — ':''}${String(a.t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td></tr>`).join('');
+      annHtml=`<h2>Recent ASX announcements <span class="est" style="text-transform:none;letter-spacing:0;">— live from the ASX announcements feed; ⚠ = market-sensitive</span></h2><table class="hist"><thead><tr><th>Date</th><th>Announcement</th></tr></thead><tbody>${arows}</tbody></table>`;
+    } else if(Array.isArray(s.annList)){
+      annHtml=`<h2>Recent ASX announcements</h2><div class="summary">The ASX feed returned no recent announcements for ${s.ticker}. The 🏛 Company announcements link below has the full official list.</div>`;
+    } else if(s._annStatus==='fail'){
+      annHtml=`<h2>Recent ASX announcements</h2><div class="summary">Couldn’t reach the live announcements feed just now — tap 🏛 Company announcements below for the official ASX page, or reopen this report in a moment.</div>`;
+    } else {
+      annHtml=`<h2>Recent ASX announcements</h2><div class="summary">⏳ Still fetching the live list — reopen this report shortly, or tap 🏛 Company announcements below.</div>`;
+    }
   }
   const nu=newsUrlFor(s.ticker,s.exchange), ns=newsSearchFor(s.ticker,s.exchange,s.name), tu=tickerUrlFor(s.ticker,s.exchange);
   const dirLink=s.exchange==='ASX'?`<a href="${directorUrlFor(s.ticker,s.exchange)}" target="_blank">🧑‍💼 Official director trades (ASX announcements) ↗</a> · <a href="${directorAltUrlFor(s.ticker,s.exchange)}" target="_blank" style="color:#888">alt ↗</a>`:'';
@@ -4278,6 +4307,7 @@ Please structure your answer as: (1) one-paragraph summary, (2) bullish reading,
   <h2>Signal flags <span class="est" style="text-transform:none;letter-spacing:0;">— estimates from price &amp; volume, not confirmed filings</span></h2>
   <ul class="flags">${flagsHtml}</ul>
   ${histHtml}
+  ${annHtml}
   <h2>Verify at official sources</h2>
   ${(s.dirBuy||(s.accum10!=null&&s.accum10>=4)||(s.streakCalced&&s.daysUp>=3&&s.volCalced&&s.volPct>=100))?`<div style="margin:8px 0;padding:10px 12px;border:1px solid #C9A100;border-radius:8px;background:rgba(201,161,0,.10);"><div style="font:700 12px sans-serif;color:#C9A100;margin-bottom:4px;">🕵️ Quiet-accumulation footprint — who’s actually buying?</div><div style="font-size:11px;line-height:1.5;margin-bottom:7px;opacity:.85;">The footprint here is our <b>estimate</b> from price &amp; volume. The public ASX filings show whether a real buyer is behind it — worth a one-tap check:</div><div style="display:flex;flex-wrap:wrap;gap:6px;"><a href="${_safeUrl('https://www.google.com/search?q='+encodeURIComponent('ASX '+s.ticker+' top shareholders ownership insider transactions'))}" target="_blank" style="display:inline-block;padding:5px 10px;border-radius:6px;border:1px solid #C9A100;background:rgba(201,161,0,.08);color:inherit;text-decoration:none;font:600 11px sans-serif;">👥 Top shareholders &amp; insiders ↗</a><a href="${_safeUrl(directorUrlFor(s.ticker,s.exchange))}" target="_blank" style="display:inline-block;padding:5px 10px;border-radius:6px;border:1px solid #C9A100;background:rgba(201,161,0,.08);color:inherit;text-decoration:none;font:600 11px sans-serif;">🧑‍💼 Director filings (3Y) ↗</a><a href="${_safeUrl(nu)}" target="_blank" style="display:inline-block;padding:5px 10px;border-radius:6px;border:1px solid #C9A100;background:rgba(201,161,0,.08);color:inherit;text-decoration:none;font:600 11px sans-serif;">📢 Announcements ↗</a></div><div style="font-size:9.5px;margin-top:6px;opacity:.6;">Director buys and sells are the announcements titled “Change of Director’s Interest Notice”; a new 5%+ holder lodges a “substantial holder” notice; the full top-20 register is in each company’s annual report. Holdings under 5% aren’t publicly disclosed. Filings are fact; the footprint is an estimate, not advice.</div></div>`:''}<div class="links"><a href="${nu}" target="_blank">🏛 Company announcements ↗</a><a href="${ns}" target="_blank">📰 News search ↗</a><a href="${tu}" target="_blank">📈 Price page ↗</a>${dirLink}</div>
   ${_reportNotesBox()}
@@ -14225,7 +14255,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
   try{ var st=JSON.parse(localStorage.getItem(CK)||'null'); if(st&&st.date===DAY)cache=st; }catch(e){}
   var attempted={}, fails=0, MAXC=3;
   function save(){ try{ var ks=Object.keys(cache.by); if(ks.length>400)ks.slice(0,ks.length-400).forEach(function(k){delete cache.by[k];}); localStorage.setItem(CK,JSON.stringify(cache)); }catch(e){} }
-  function apply(s,rec){ s.annConfirmed=true; s.annNews5d=rec.n||0; s.annDir5d=!!rec.d; s.annHeadline=(typeof _sanText==='function')?_sanText(rec.h||'',140):String(rec.h||'').replace(/[<>"'`\\]/g,'').slice(0,140); } // v285: cached/feed headlines cleaned at the boundary before any render
+  function apply(s,rec){ s.annConfirmed=true; s.annNews5d=rec.n||0; s.annDir5d=!!rec.d; s.annList=Array.isArray(rec.list)?rec.list:[]; s.annHeadline=(typeof _sanText==='function')?_sanText(rec.h||'',140):String(rec.h||'').replace(/[<>"'`\\]/g,'').slice(0,140); } // v285: cached/feed headlines cleaned at the boundary before any render
   // v275: rolling dated log of confirmed price-sensitive announcements, so the
   // Signal Report Card can split fires into news-driven vs quiet — honestly.
   var LK='asxScreener.annLog.v1';
@@ -14265,17 +14295,19 @@ body.tbl-tighter .tick-name{max-width:80px;}
       var items=(json&&json.data&&json.data.items)||(json&&json.items)||(Array.isArray(json)?json:[])||[];
       if(!Array.isArray(items))items=[];
       var cutoff=Date.now()-7*86400000; // ≈ last 5 trading days
-      var n=0,d=false,h='',psD=[];
+      var n=0,d=false,h='',psD=[],list=[];
       items.forEach(function(it){
         var dt=Date.parse(it.date||it.document_date||it.documentDate||'');
         var hl=String(it.headline||it.header||'');
         var ps=(it.isPriceSensitive===true)||(it.market_sensitive===true)||(it.marketSensitive===true);
+        if(isFinite(dt)&&hl){ list.push({d:new Date(dt).toISOString().slice(0,10), t:(typeof _sanText==='function'?_sanText(hl,120):hl.replace(/[<>"']/g,'').slice(0,120)), ps:!!ps}); }
         if(ps&&isFinite(dt)){ var iso=new Date(dt).toISOString().slice(0,10); if(psD.indexOf(iso)<0)psD.push(iso); }
         if(!(dt>cutoff))return;
         if(/director.{0,4}interest|appendix\s*3y|change of director/i.test(hl))d=true;
         if(ps){ n++; if(!h)h=hl.replace(/[<>"`]/g,'').slice(0,140); }
       });
-      return {n:n,d:d,h:h,ps:psD};
+      list.sort(function(a,b){return a.d<b.d?1:(a.d>b.d?-1:0);}); if(list.length>12)list=list.slice(0,12);
+      return {n:n,d:d,h:h,ps:psD,list:list};
     }catch(e){ return {n:0,d:false,h:''}; }
   }
   function urlFor(code){ return 'https://asx.api.markitdigital.com/asx-research/1.0/companies/'+encodeURIComponent(code)+'/announcements?access_token=83ff96335c2d45a094df02a206a39ff4&itemsPerPage=20'; }
@@ -14325,6 +14357,16 @@ body.tbl-tighter .tick-name{max-width:80px;}
   }
   var t2; function sweepSoon(){ clearTimeout(t2); t2=setTimeout(function(){ sweep(); },1800); }
   window._annSweepSoon=sweepSoon;
+  // v322: read today's cached announcements for one share (sync, applies to the share).
+  window._annGet=function(tk){ try{ tk=String(tk||'').toUpperCase(); var rec=cache.by[tk]; if(rec){ var s=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.find(function(x){return x.ticker===tk;}):null; if(s)apply(s,rec); } return rec||null; }catch(e){ return null; } };
+  // v322: fetch ONE share's real ASX announcements on demand (report/detail open).
+  window._annFetchOne=async function(tk){ try{ tk=String(tk||'').toUpperCase();
+    var s=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.find(function(x){return x.ticker===tk;}):null;
+    if(!s||s.exchange!=='ASX')return null;
+    if(cache.by[tk]){ apply(s,cache.by[tk]); return cache.by[tk]; }
+    var j=await fetchOne(tk);
+    if(j){ var rec=ingest(j); cache.by[tk]=rec; apply(s,rec); try{logAnn(tk,rec.ps||[]);}catch(e){} save(); return rec; }
+    return null; }catch(e){ return null; } };
   try{ if(typeof prepareAllSignals==='function'){ var _p=prepareAllSignals; prepareAllSignals=async function(){ var r=await _p.apply(this,arguments); sweepSoon(); return r; }; } }catch(e){}
   try{ if(typeof applyF==='function'){ var _a=applyF; applyF=function(){ var r=_a.apply(this,arguments); sweepSoon(); return r; }; } }catch(e){}
   [4000,12000].forEach(function(ms){ setTimeout(sweepSoon,ms); });
