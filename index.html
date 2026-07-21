@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-322-open';
+const APP_VERSION='2026.07.16-323-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4188,14 +4188,16 @@ async function printShareReport(ticker){
   let histHtml='';
   if(Array.isArray(s.series)&&s.series.length>1){
     const ser=s.series.slice(-10);
+    const _annBy={}; (Array.isArray(s.annList)?s.annList:[]).forEach(function(a){ (_annBy[a.d]=_annBy[a.d]||[]).push(a); });
+    const annMarkR=(d)=>{ const a=_annBy[String(d).slice(0,10)]; if(!a||!a.length)return ''; const tt=a.map(x=>(x.ps?'⚠ ':'')+String(x.t||'')).join(' · ').replace(/[<>"]/g,''); return ` <span title="${tt}" style="cursor:help;color:#C9A100;">📢</span>`; };
     const rows=ser.map((x,i)=>{
       const prev=i>0?ser[i-1].c:(s.series.length>s.series.indexOf(ser[0])?null:null);
       const pc=i>0?ser[i-1].c:null;
       const chg=pc&&pc>0?((x.c-pc)/pc*100):null;
       const cc=chg==null?'#666':chg>0?'#0a7a0a':chg<0?'#c00':'#666';
-      return `<tr><td>${x.d}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
+      return `<tr><td>${x.d}${annMarkR(x.d)}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
     }).join('');
-    histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>`;
+    histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>${(Array.isArray(s.annList)&&s.annList.length)?'<div style="font-size:10px;color:#888;margin-top:3px;">📢 marks a day with a recent ASX announcement (listed below).</div>':''}`;
   }
   // v322: real recent ASX announcements, embedded on the report page itself.
   let annHtml='';
@@ -4377,6 +4379,21 @@ function showShareDetail(ticker,days){
     }else{s._ohlcMap=null;s._ohlcRetryAt=Date.now()+60000;}
   }
   window._detailDays=n;
+  // v323: mark history days that had an ASX announcement. Fetch this share's
+  // announcements once (same official feed the report uses) and re-render when
+  // they arrive — mirrors the OHLC fetch above. ASX-only.
+  if(s.exchange==='ASX' && !Array.isArray(s.annList) && !s._annLoading2 && !(s._annRetry2&&Date.now()<s._annRetry2)){
+    if(typeof window._annGet==='function'){ try{ window._annGet(ticker); }catch(e){} }
+    if(!Array.isArray(s.annList) && typeof window._annFetchOne==='function'){
+      s._annLoading2=true;
+      window._annFetchOne(ticker).then(function(r){
+        s._annLoading2=false;
+        if(!r && !Array.isArray(s.annList)) s._annRetry2=Date.now()+60000;
+        const _m=document.getElementById('appModal');
+        if(_m && _m.style.display!=='none' && window._detailTicker===ticker && Array.isArray(s.annList)) showShareDetail(ticker, window._detailDays||n);
+      }).catch(function(){ s._annLoading2=false; s._annRetry2=Date.now()+60000; });
+    }
+  }
   const ohlcFor=d=>{const m=s._ohlcMap;const r=m?m[d]:null;return r||null;};
   const openFor=d=>{const r=ohlcFor(d);return (r&&r.o>0)?r.o:null;};
   const ser=s.series;
@@ -4437,10 +4454,12 @@ function showShareDetail(ticker,days){
     rowsData.push(r);
   }
   const fmt=(x,d)=>x==null||x==='—'?'—':(typeof x==='number'?x.toFixed(d):x);
+  const _annBy={}; (Array.isArray(s.annList)?s.annList:[]).forEach(function(a){ (_annBy[a.d]=_annBy[a.d]||[]).push(a); });
+  const _annMark=(rd)=>{ const d=(rd==='Today')?todayStr:String(rd).slice(0,10); const a=_annBy[d]; if(!a||!a.length)return ''; const tt=a.map(x=>(x.ps?'⚠ ':'')+String(x.t||'')).join(' · ').replace(/[<>"]/g,''); return ' <span title="'+tt+'" style="cursor:help;">📢</span>'; };
   const body=rowsData.map(r=>{
     const up=r.chg>0.05,dn=r.chg<-0.05;
     return `<tr style="${r.live?'background:rgba(255,210,0,.06);':''}">
-      <td style="font-family:var(--mono);font-size:10px;padding:5px 6px;">${r.live?('<strong>Today</strong>'+(r.d&&r.d!=='Today'?' <span style="color:var(--dim);font-size:8px">'+r.d+'</span>':'')):r.d}</td>
+      <td style="font-family:var(--mono);font-size:10px;padding:5px 6px;">${r.live?('<strong>Today</strong>'+(r.d&&r.d!=='Today'?' <span style="color:var(--dim);font-size:8px">'+r.d+'</span>':'')):r.d}${_annMark(r.d)}</td>
       <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.o?fmtP(r.o,s.currency):(s._ohlcLoading?'…':'—')}</td>
       <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.h?fmtP(r.h,s.currency):(s._ohlcLoading?'…':'—')}</td>
       <td class="shd-sec" style="text-align:right;font-family:var(--mono);padding:5px 6px;color:var(--muted)">${r.l?fmtP(r.l,s.currency):(s._ohlcLoading?'…':'—')}</td>
@@ -4478,7 +4497,7 @@ function showShareDetail(ticker,days){
         </tr></thead><tbody>${body}</tbody>
       </table>
     </div>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows fetched per share (1 call, remembered) · estimates from end-of-day data, not advice.</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows fetched per share (1 call, remembered)${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
   `);
 }
 
