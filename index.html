@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-329-open';
+const APP_VERSION='2026.07.16-330-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -13729,7 +13729,7 @@ body.training-min{padding-top:30px;}
   #trainBanner button{padding:4px 7px;font-size:10px;}
   body.training-on{padding-top:30px;}
 }
-.tt-pop{position:fixed;z-index:500;max-width:300px;background:#0d1b33;border:1px solid #9333ea;border-radius:10px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.5);font:400 12px 'Inter',sans-serif;color:#eef3fb;line-height:1.5;pointer-events:none;opacity:0;transition:opacity .1s;}
+.tt-pop{position:fixed;z-index:100002;max-width:300px;background:#0d1b33;border:1px solid #9333ea;border-radius:10px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.5);font:400 12px 'Inter',sans-serif;color:#eef3fb;line-height:1.5;pointer-events:none;opacity:0;transition:opacity .1s;}
 .tt-pop.show{opacity:1;}
 .tt-pop b{color:#c88bff;font-family:'Space Grotesk';display:block;margin-bottom:4px;font-size:12.5px;}
 body.training-on [data-train]{position:relative;outline:1px dashed rgba(147,51,234,.35);outline-offset:1px;}
