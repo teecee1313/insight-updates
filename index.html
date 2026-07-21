@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-324-open';
+const APP_VERSION='2026.07.16-325-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4184,11 +4184,24 @@ async function printShareReport(ticker){
     s.volStreakCalced?stat('High-volume streak',`${s.volDays||0} day(s)`):'',
     (s.rangePos!=null)?stat('Position in day range',`${s.rangePos}% ${s.rangePos<=25?'(near low)':s.rangePos>=75?'(near high)':'(mid)'}`):'',
   ].filter(Boolean).join('');
-  // Recent history mini-table (last 10 sessions from retained series).
+  // v325: line the announcements up with the price rows — extend the sessions
+  // window back to cover the recent announcements (cap 40), and split the list
+  // into "within the sessions shown" vs older, so news always lines up.
+  let _annShown=Array.isArray(s.annList)?s.annList.slice():[];
+  let _annOlder=0, _winFrom='';
+  if(Array.isArray(s.series)&&s.series.length){
+    const _all=s.series; let _st=Math.max(0,_all.length-10);
+    const _old=_annShown.length?_annShown[_annShown.length-1].d:null;
+    if(_old){ for(let i=0;i<_all.length;i++){ if(String(_all[i].d).slice(0,10)>=_old){ _st=Math.min(_st,i); break; } } }
+    _st=Math.max(_st,_all.length-40,0);
+    _winFrom=String(_all[_st].d).slice(0,10);
+    const _keep=_annShown.filter(a=>a.d>=_winFrom); _annOlder=_annShown.length-_keep.length; _annShown=_keep;
+  }
+  // Recent history mini-table (extended to cover the announcements listed below).
   let histHtml='';
   if(Array.isArray(s.series)&&s.series.length>1){
-    const ser=s.series.slice(-10);
-    const _annBy={}; (Array.isArray(s.annList)?s.annList:[]).forEach(function(a){ (_annBy[a.d]=_annBy[a.d]||[]).push(a); });
+    const ser=_winFrom?s.series.filter(r=>String(r.d).slice(0,10)>=_winFrom):s.series.slice(-10);
+    const _annBy={}; _annShown.forEach(function(a){ (_annBy[a.d]=_annBy[a.d]||[]).push(a); });
     const annMarkR=(d)=>{ const a=_annBy[String(d).slice(0,10)]; if(!a||!a.length)return ''; const tt=a.map(x=>(x.ps?'⚠ ':'')+String(x.t||'')).join(' · ').replace(/[<>"]/g,''); return ` <span title="${tt}" style="cursor:help;color:#C9A100;">📢</span>`; };
     const rows=ser.map((x,i)=>{
       const prev=i>0?ser[i-1].c:(s.series.length>s.series.indexOf(ser[0])?null:null);
@@ -4197,14 +4210,15 @@ async function printShareReport(ticker){
       const cc=chg==null?'#666':chg>0?'#0a7a0a':chg<0?'#c00':'#666';
       return `<tr><td>${x.d}${annMarkR(x.d)}</td><td class="r">${fmtP(x.c,cur)}</td><td class="r" style="color:${cc}">${chg==null?'—':(chg>0?'+':'')+chg.toFixed(2)+'%'}</td><td class="r">${fmtV(x.v||0)}</td></tr>`;
     }).join('');
-    histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>${(Array.isArray(s.annList)&&s.annList.length)?'<div style="font-size:10px;color:#888;margin-top:3px;">📢 marks a day with a recent ASX announcement (listed below).</div>':''}`;
+    histHtml=`<h2>Recent sessions</h2><table class="hist"><thead><tr><th>Date</th><th class="r">Close</th><th class="r">Change</th><th class="r">Volume</th></tr></thead><tbody>${rows}</tbody></table>${_annShown.length?'<div style="font-size:10px;color:#888;margin-top:3px;">📢 marks a day with an ASX announcement (listed below) — the sessions shown reach back to cover them so they line up.</div>':''}`;
   }
   // v322: real recent ASX announcements, embedded on the report page itself.
   let annHtml='';
   if(s.exchange==='ASX'){
     if(Array.isArray(s.annList)&&s.annList.length){
-      const arows=s.annList.slice(0,12).map(a=>`<tr><td style="white-space:nowrap;vertical-align:top;">${a.d}</td><td>${a.ps?'<strong style="color:#b8860b;">⚠ market-sensitive</strong> — ':''}${String(a.t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td></tr>`).join('');
-      annHtml=`<h2>Recent ASX announcements <span class="est" style="text-transform:none;letter-spacing:0;">— live from the ASX announcements feed; ⚠ = market-sensitive</span></h2><table class="hist"><thead><tr><th>Date</th><th>Announcement</th></tr></thead><tbody>${arows}</tbody></table>`;
+      const _av=(_annShown&&_annShown.length)?_annShown:s.annList.slice(0,12);
+      const arows=_av.slice(0,20).map(a=>`<tr><td style="white-space:nowrap;vertical-align:top;">${a.d}</td><td>${a.ps?'<strong style="color:#b8860b;">⚠ market-sensitive</strong> — ':''}${String(a.t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td></tr>`).join('');
+      annHtml=`<h2>Recent ASX announcements <span class="est" style="text-transform:none;letter-spacing:0;">— live from the ASX announcements feed; ⚠ = market-sensitive</span></h2><table class="hist"><thead><tr><th>Date</th><th>Announcement</th></tr></thead><tbody>${arows}</tbody></table>${(_annShown.length&&_annOlder>0)?`<div style="font-size:10px;color:#888;margin-top:3px;">${_annOlder} older announcement${_annOlder>1?'s':''} predate the sessions above — the 🏛 Company announcements link has the full history.</div>`:''}`;
     } else if(Array.isArray(s.annList)){
       annHtml=`<h2>Recent ASX announcements</h2><div class="summary">The ASX feed returned no recent announcements for ${s.ticker}. The 🏛 Company announcements link below has the full official list.</div>`;
     } else if(s._annStatus==='fail'){
@@ -14316,11 +14330,13 @@ body.tbl-tighter .tick-name{max-width:80px;}
       var cutoff=Date.now()-7*86400000; // ≈ last 5 trading days
       var n=0,d=false,h='',psD=[],list=[];
       items.forEach(function(it){
-        var dt=Date.parse(it.date||it.document_date||it.documentDate||'');
+        var rawD=it.date||it.document_date||it.documentDate||'';
+        var dt=Date.parse(rawD);
+        var dayISO=(String(rawD).match(/^(\d{4}-\d{2}-\d{2})/)||[])[1]||(isFinite(dt)?new Date(dt).toISOString().slice(0,10):''); // v325: ASX date as reported (no UTC shift) so it lines up with the price rows
         var hl=String(it.headline||it.header||'');
         var ps=(it.isPriceSensitive===true)||(it.market_sensitive===true)||(it.marketSensitive===true);
-        if(isFinite(dt)&&hl){ list.push({d:new Date(dt).toISOString().slice(0,10), t:(typeof _sanText==='function'?_sanText(hl,120):hl.replace(/[<>"']/g,'').slice(0,120)), ps:!!ps}); }
-        if(ps&&isFinite(dt)){ var iso=new Date(dt).toISOString().slice(0,10); if(psD.indexOf(iso)<0)psD.push(iso); }
+        if(dayISO&&hl){ list.push({d:dayISO, t:(typeof _sanText==='function'?_sanText(hl,120):hl.replace(/[<>"']/g,'').slice(0,120)), ps:!!ps}); }
+        if(ps&&dayISO){ if(psD.indexOf(dayISO)<0)psD.push(dayISO); }
         if(!(dt>cutoff))return;
         if(/director.{0,4}interest|appendix\s*3y|change of director/i.test(hl))d=true;
         if(ps){ n++; if(!h)h=hl.replace(/[<>"`]/g,'').slice(0,140); }
@@ -14546,8 +14562,8 @@ function _renderReportCard(A){
     const chip=m=>{const t=TIER[m.tier];return `<span style="border:1px solid ${t[1]};color:${t[1]};border-radius:4px;padding:0 4px;font-size:8px;font-weight:800;letter-spacing:.5px;">${t[0]}</span>`;};
     const nameOf=k=>{
       if(A.defs[k])return A.defs[k].name;
-      if(k==='vr+')return '🥇 up-day'; if(k==='vr-')return '🥇 down-day';
-      if(k==='blk+')return '🔷 up-day'; if(k==='blk-')return '🔷 down-day';
+      if(k==='vr+')return '🥇 Vol record · up day'; if(k==='vr-')return '🥇 Vol record · down day';
+      if(k==='blk+')return '🔷 Block day · up day'; if(k==='blk-')return '🔷 Block day · down day';
       if(k.indexOf('>')>0){ const p=k.split('>'); return `${A.defs[p[0]].name} <span style="color:var(--dim)">(prior 3d) →</span> ${A.defs[p[1]].name}`; }
       return k.split('+').map(x=>A.defs[x]?A.defs[x].name:x).join(' <span style="color:var(--dim)">+</span> ');
     };
@@ -14670,17 +14686,17 @@ function _renderReportCard(A){
     const comboShown=comboLad.slice(0,12), comboMore=comboLad.length-comboShown.length;
     const sMax=singleLad.length?Math.max.apply(null,singleLad.map(x=>Math.abs(x.dir))):0;
     const cMax=comboShown.length?Math.max.apply(null,comboShown.map(x=>Math.abs(x.dir))):0;
-    const ladRow=(it,i,mx)=>{ const w=it.dir>0; const bw=mx>0?Math.max(3,Math.min(100,Math.abs(it.dir)/mx*100)):0; const md=i<3?['🥇','🥈','🥉'][i]:((i+1)+'.'); const nm=nameOf(it.k); const pl=nm.replace(/<[^>]+>/g,'').replace(/"/g,'');
+    const ladRow=(it,i,mx)=>{ const w=it.dir>0; const bw=mx>0?Math.max(3,Math.min(100,Math.abs(it.dir)/mx*100)):0; const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const pl=nm.replace(/<[^>]+>/g,'').replace(/"/g,'');
       return `<div style="display:flex;align-items:center;gap:7px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:11px;">
         <span style="flex:0 0 22px;text-align:center;font-weight:700;color:var(--muted);">${md}</span>
-        <span title="${pl}" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}</span>
+        <span title="${pl}" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}${warn}</span>
         <div style="flex:0 0 44px;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;"><div style="width:${bw}%;height:100%;background:${w?'var(--green)':'#ff9caa'};"></div></div>
         <span style="flex:0 0 52px;text-align:right;font-weight:700;font-family:var(--mono);color:${w?'var(--green)':'#ff9caa'};">${f1(it.m.edge)}</span>
         <span style="flex:0 0 auto;">${chip(it.m)}</span>
       </div>`; };
     const ladderSec=`<div style="margin-top:16px;padding-top:11px;border-top:2px solid var(--border2);">
       <div style="font-size:13px;font-weight:800;color:var(--text);">🪜 The ladder — best to worst right now</div>
-      <div style="font-size:10px;color:var(--muted);margin:3px 0 8px;line-height:1.5;">A quick leaderboard of everything above, ranked by <b>edge in each flag's own direction</b> (📉 Dist? and the 🔴 down-day flags score by how far price FELL, so a working warning ranks high). <span style="color:var(--green)">Green</span> = working now, <span style="color:#ff9caa">red</span> = not. The badge still shows how firm it is — a big edge marked <b>TOO EARLY</b> hasn't earned trust yet. Flags with ≥${MINC} fires only; the 📜 record across cards is the real test, not one week.</div>
+      <div style="font-size:10px;color:var(--muted);margin:3px 0 8px;line-height:1.5;">A quick leaderboard of everything above, ranked by <b>edge in each flag's own direction</b> (📉 Dist? and the down-day flags are <b>warnings</b> — they score by how far price FELL, so a warning that's working ranks high but is <b>not a buy</b>, and is tagged “· warning”). <span style="color:var(--green)">Green</span> = working in its own direction now, <span style="color:#ff9caa">red</span> = not. The badge still shows how firm it is — a big edge marked <b>TOO EARLY</b> hasn't earned trust yet. Flags with ≥${MINC} fires only; the 📜 record across cards is the real test, not one week.</div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:6px 0 2px;">① Singles</div>
       ${singleLad.length?singleLad.map((it,i)=>ladRow(it,i,sMax)).join(''):'<div style="font-size:10px;color:var(--dim);padding:4px 2px;">Not enough single-flag fires yet.</div>'}
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 2px;">② Combinations &amp; sequences${comboMore>0?` <span style="font-weight:400;color:var(--dim);">· top 12 of ${comboLad.length}</span>`:''}</div>
