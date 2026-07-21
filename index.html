@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-328-open';
+const APP_VERSION='2026.07.16-329-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14571,6 +14571,36 @@ function _signalAudit(){
   }
   return {defs,M,base,covered,liqSkipped,liqFloor:LIQ_FLOOR,hold:HOLD,days:DAYS,from,to,ann:annAgg,annStart:(window._annPS?window._annPS.start:null)};
 }
+// v329 — in training mode (body.training-on) turn every titled element on the
+// report card into the app's styled instant popup, so hovering anything (name,
+// number, badge, verdict, header, ladder rung) explains it. Outside training
+// mode the native title tooltips still work.
+function _attachCardTips(container){
+  try{
+    if(!container||!document.body.classList.contains('training-on'))return;
+    container.querySelectorAll('[title]').forEach(function(el){
+      if(el.__cardtt||el.tagName==='BUTTON')return; el.__cardtt=1;
+      var d=el.getAttribute('title'); if(!d)return;
+      el.setAttribute('data-tip',d); el.removeAttribute('title'); el.style.cursor='help';
+      el.addEventListener('mouseenter',function(){ _cardShowTip(el,d); });
+      el.addEventListener('mouseleave',_cardHideTip);
+    });
+  }catch(e){}
+}
+var _cardTipEl=null;
+function _cardShowTip(el,d){
+  try{ _cardHideTip();
+    var p=document.createElement('div'); p.className='tt-pop';
+    p.innerHTML='<b>💡 What this means</b>'+String(d).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    document.body.appendChild(p); _cardTipEl=p;
+    var r=el.getBoundingClientRect(); var top=r.bottom+8, left=r.left;
+    if(left+320>window.innerWidth)left=window.innerWidth-330;
+    if(top+150>window.innerHeight)top=r.top-160;
+    p.style.left=Math.max(8,left)+'px'; p.style.top=Math.max(8,top)+'px';
+    requestAnimationFrame(function(){ p.classList.add('show'); });
+  }catch(e){}
+}
+function _cardHideTip(){ if(_cardTipEl){ try{_cardTipEl.remove();}catch(e){} _cardTipEl=null; } }
 function signalReportCard(){
   // v321: the audit is ~0.7s on a full exchange. Recomputing it on EVERY card
   // open froze slow devices — and reopening froze them again ("Page
@@ -14623,17 +14653,26 @@ function _renderReportCard(A){
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?'How often price was LOWER 5 trading days later — for a warning, lower is the whole point.':'How often price was HIGHER 5 trading days later.'}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${A.hold}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}</div>`;
     };
+    const _flagTip={
+      bo:'🚀 Breakout — the share closed at its highest price of the stored year, on above-average volume: buyers pushed it into fresh territory (an estimate from price & volume).',
+      inf:'🕵️ Informed? — a modest up-day on unusually high volume — the footprint of quiet, informed buying. An estimate, not a confirmed filing.',
+      inst:'🏦 Inst? — a large-volume up-day that looks like an institution building a position. An estimate, not a confirmed filing.',
+      cx:'⤴ MA cross — the 20-day average price crossed ABOVE the 50-day today (a “golden cross”), a classic trend-turning-up signal.',
+      di:'📉 Dist? — a down-day on heavy volume: possible distribution (selling into the market). A WARNING — it is graded on how far price then FELL.',
+      vr:'🥇 Vol record — today’s volume was the highest in the share’s stored history. Fires both ways and is graded up-days (bullish) and down-days (a warning) — split just below.',
+      blk:'🔷 Block day — volume more than double the recent average, the mark of one large “block” trade. Fires both ways and is split up vs down below.'
+    };
     let rows='';
     const order=['bo','inf','inst','cx','di','vr','blk'];
     for(const k of order){
       const d=A.defs[k], m=A.M[k];
       if(!m||!m.n){ rows+=`<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:12px;"><span>${d.name}</span><span style="color:var(--dim)">didn't fire in this period</span></div>`; continue; }
-      let verdict,vcol;
-      if(d.dir===1){ const beat=m.edge>0; verdict=beat?'beat the market':'did NOT beat the market'; vcol=beat?'var(--green)':'#ff9caa'; }
-      else if(d.dir===-1){ const good=m.edge<0; verdict=good?'worked as a warning':'did NOT work this period'; vcol=good?'var(--green)':'#ff9caa'; }
-      else { verdict='two-way — split below'; vcol='var(--muted)'; }
+      let verdict,vcol,vtip;
+      if(d.dir===1){ const beat=m.edge>0; verdict=beat?'beat the market':'did NOT beat the market'; vcol=beat?'var(--green)':'#ff9caa'; vtip='“Beat the market” = this flag’s average EDGE was above zero — its shares outran the market on the days it fired. Red = they did not, this period.'; }
+      else if(d.dir===-1){ const good=m.edge<0; verdict=good?'worked as a warning':'did NOT work this period'; vcol=good?'var(--green)':'#ff9caa'; vtip='This is a WARNING flag — it “works” when price then FALLS (edge below zero). Green = it caught the falls this period; red = it did not.'; }
+      else { verdict='two-way — split below'; vcol='var(--muted)'; vtip='This flag fires in both directions, so it is graded separately for price-UP days (bullish) and price-DOWN days (a warning) — shown just below.'; }
       rows+=`<div style="padding:9px 4px;border-bottom:1px solid var(--border);">
-        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;"><span style="font-weight:700">${d.name}</span><span style="color:${vcol};font-weight:700;font-size:11px;">${verdict}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;"><span title="${_flagTip[k]||''}" style="cursor:help;font-weight:700">${d.name}</span><span title="${vtip}" style="cursor:help;color:${vcol};font-weight:700;font-size:11px;">${verdict}</span></div>
         ${statLine(k,m)}
         ${(()=>{ if(d.dir!==0)return '';
           const segs=[];
@@ -14675,7 +14714,7 @@ function _renderReportCard(A){
     if(pairs.length||triples.length){
       const best=pairs.concat(triples).sort((a,b)=>(tierRank[b.m.tier]-tierRank[a.m.tier])||(b.m.edge-a.m.edge))[0];
       comboSec=`<div style="margin-top:14px;">
-        <div style="font-size:12.5px;font-weight:700;color:var(--text);">🧩 Combinations — do flags agreeing beat flags alone?</div>
+        <div title="Combinations = two or three flags firing on the SAME share, the SAME day — does agreement beat any one flag alone? Counted only at ≥10 fires." style="cursor:help;font-size:12.5px;font-weight:700;color:var(--text);">🧩 Combinations — do flags agreeing beat flags alone?</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 6px;line-height:1.5;">Counted only when the flags fired on the <b>same share, the same day</b>. Ranked by confidence tier, then edge. Shown at ≥${MINC} fires${hiddenC>0?` (${hiddenC} rarer combos hidden)`:''}. 📉 Dist? excluded. A strong combo is a lead to keep watching across cards — the 📜 track record is the real test.</div>
         ${best?`<div style="font-size:10.5px;color:var(--gold);margin-bottom:4px;">Strongest this period: <b>${nameOf(best.k)}</b> — edge ${f1(best.m.edge)} (n=${best.m.n}, ${TIER[best.m.tier][0]}).</div>`:''}
         ${pairs.map(secRow).join('')}
@@ -14687,7 +14726,7 @@ function _renderReportCard(A){
     let seqSec='';
     if(seqs.length){
       seqSec=`<div style="margin-top:14px;">
-        <div style="font-size:12.5px;font-weight:700;color:var(--text);">⛓ Sequences — accumulation, then ignition</div>
+        <div title="Sequences = a quiet-buying flag (🕵️ 🏦 🥇 🔷) in the 1–3 days BEFORE, then an ignition flag (🚀 breakout or ⤴ cross) TODAY — the classic accumulation-then-move pattern." style="cursor:help;font-size:12.5px;font-weight:700;color:var(--text);">⛓ Sequences — accumulation, then ignition</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 6px;line-height:1.5;">A different question from same-day combos: quiet-buying flags (🕵️ 🏦 🥇 🔷) in the <b>1–3 days before</b>, then an ignition flag (🚀 breakout or ⤴ MA cross) <b>today</b> — the classic accumulation-then-move pattern. Same maths, same tiers.</div>
         ${seqs.map(secRow).join('')}
       </div>`;
@@ -14703,7 +14742,7 @@ function _renderReportCard(A){
       if(tC>0){
         const wpct=winTot?Math.round(winNews/winTot*100):0;
         annSec=`<div style="margin-top:12px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:rgba(88,166,255,.04);">
-          <div style="font-size:11.5px;font-weight:700;color:var(--text);">📢 The announcement question</div>
+          <div title="Of the winning fires, how many had a confirmed price-sensitive ASX announcement on (or just before) the fire day — i.e. how much of the edge was news-driven vs quiet accumulation." style="cursor:help;font-size:11.5px;font-weight:700;color:var(--text);">📢 The announcement question</div>
           <div style="font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5;">News status is known for <b style="color:var(--text)">${tC.toLocaleString()}</b> of ${tN.toLocaleString()} bullish-flag fires. Of the <b style="color:var(--text)">${winTot.toLocaleString()}</b> winners among them, <b style="color:var(--text)">${winNews.toLocaleString()} (${wpct}%)</b> had a confirmed price-sensitive announcement on the fire day or the 2 days before — the rest rose quietly. Per-flag splits are shown above.</div>
           <div style="font-size:9px;color:var(--dim);margin-top:4px;">From the announcement log this app records as you use it (started ${A.annStart||'—'} · ${window._annPS?window._annPS.size().toLocaleString():0} shares logged so far). Fires the log doesn't cover count as "unknown" — never guessed.</div>
         </div>`;
@@ -14730,7 +14769,7 @@ function _renderReportCard(A){
         <span style="flex:0 0 auto;">${chip(it.m)}</span>
       </div>`; };
     const ladderSec=`<div style="margin-top:16px;padding-top:11px;border-top:2px solid var(--border2);">
-      <div style="font-size:13px;font-weight:800;color:var(--text);">🪜 The ladder — best to worst right now</div>
+      <div title="The ladder ranks every flag and combo best→worst by its EDGE in its own direction — a quick leaderboard of everything above. Warnings are tagged and score by how far price fell." style="cursor:help;font-size:13px;font-weight:800;color:var(--text);">🪜 The ladder — best to worst right now</div>
       <div style="font-size:10px;color:var(--muted);margin:3px 0 8px;line-height:1.5;">A quick leaderboard of everything above, ranked by <b>edge in each flag's own direction</b> (📉 Dist? and the down-day flags are <b>warnings</b> — they score by how far price FELL, so a warning that's working ranks high but is <b>not a buy</b>, and is tagged “· warning”). <span style="color:var(--green)">Green</span> = working in its own direction now, <span style="color:#ff9caa">red</span> = not. The badge still shows how firm it is — a big edge marked <b>TOO EARLY</b> hasn't earned trust yet. Flags with ≥${MINC} fires only; the 📜 record across cards is the real test, not one week.</div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:6px 0 2px;">① Singles</div>
       ${singleLad.length?singleLad.map((it,i)=>ladRow(it,i,sMax)).join(''):'<div style="font-size:10px;color:var(--dim);padding:4px 2px;">Not enough single-flag fires yet.</div>'}
@@ -14752,6 +14791,7 @@ function _renderReportCard(A){
     </div>`;
     window._modalBig=false;
     showModal(deepDive+head+rows+comboSec+seqSec+annSec+ladderSec+foot,'📋 Signal report card');
+    setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
 }
 
