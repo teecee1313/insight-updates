@@ -1399,6 +1399,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <button id="verifySelBtn" onclick="verifySelected()" title="Open the official announcements page for every share you've ticked — confirm the real filings" style="padding:7px 12px;border-radius:6px;border:1px solid var(--purple);background:rgba(188,140,255,.12);color:var(--purple);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">📄 Verify selected (0)</button>
     <button id="printSelBtn" onclick="printPDF('selected')" style="padding:7px 12px;border-radius:6px;border:1px solid var(--blue);background:rgba(56,139,253,.12);color:var(--blue);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">🖨 Print selected (0)</button>
     <button onclick="printPDF('all')" style="padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">🖨 Print all shown</button>
+    <button onclick="exportOfflineData()" title="Export this device's saved market data to a file — a quick backup, to move it to another device, or to send for analysis. On desktop it saves straight to your Downloads." style="padding:7px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">⬆ Export data</button>
     <div style="position:relative;display:inline-block;">
       <button onclick="toggleShareMenu(event)" style="padding:7px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">📤 Share ▾</button>
       <div id="shareMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:50;min-width:190px;overflow:hidden;">
@@ -1486,7 +1487,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-344-open';
+const APP_VERSION='2026.07.16-345-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
