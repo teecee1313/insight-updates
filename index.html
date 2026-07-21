@@ -516,14 +516,15 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
   .right{min-height:60vh;}
   .stats{flex-wrap:wrap;}
   /* Table: keep the essentials, hide the dense columns.
-     Cols: 1 chk · 2 star · 3 ticker · 4 price · 5 change · 6 volSurge · 7 volume · 8 priceStreak · 9 volStreak · 10 accum · 11 score · 12 news · 13 signals */
+     v340 — Cols (14): 1 chk · 2 star · 3 ticker · 4 price · 5 change · 6 RANGE · 7 volSurge · 8 volume · 9 priceStreak · 10 volStreak · 11 accum · 12 score · 13 news · 14 signals.
+     Keep on phones: star, ticker, price, change, 📊 Range, score, news. (Indices were stale from before the Range column existed — they hid Range and the wrong columns.) */
   table:not(.hist) th:nth-child(1), table:not(.hist) td:nth-child(1),   /* checkbox */
-  table:not(.hist) th:nth-child(6), table:not(.hist) td:nth-child(6),   /* vol surge */
-  table:not(.hist) th:nth-child(7), table:not(.hist) td:nth-child(7),   /* volume detail */
-  table:not(.hist) th:nth-child(8), table:not(.hist) td:nth-child(8),   /* price streak */
-  table:not(.hist) th:nth-child(9), table:not(.hist) td:nth-child(9),   /* vol streak */
-  table:not(.hist) th:nth-child(10), table:not(.hist) td:nth-child(10), /* accumulation */
-  table:not(.hist) th:nth-child(13), table:not(.hist) td:nth-child(13){ /* signals */
+  table:not(.hist) th:nth-child(7), table:not(.hist) td:nth-child(7),   /* vol surge */
+  table:not(.hist) th:nth-child(8), table:not(.hist) td:nth-child(8),   /* volume detail */
+  table:not(.hist) th:nth-child(9), table:not(.hist) td:nth-child(9),   /* price streak */
+  table:not(.hist) th:nth-child(10), table:not(.hist) td:nth-child(10), /* vol streak */
+  table:not(.hist) th:nth-child(11), table:not(.hist) td:nth-child(11), /* accumulation */
+  table:not(.hist) th:nth-child(14), table:not(.hist) td:nth-child(14){ /* signals */
     display:none;
   }
   table th,table td{padding:9px 6px;font-size:13px;}
@@ -1484,7 +1485,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-339-open';
+const APP_VERSION='2026.07.16-340-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14356,8 +14357,7 @@ body.tbl-tight .d{width:6px;height:6px;}
 body.tbl-tight .vbg{width:40px;}
 body.tbl-tight .vw{gap:3px;}
 /* stage 2: still too wide → fold the least-critical columns (they return when there's room) */
-body.tbl-tighter #tblwrap th:nth-child(1),body.tbl-tighter #tblwrap td:nth-child(1),
-body.tbl-tighter #tblwrap th:nth-child(6),body.tbl-tighter #tblwrap td:nth-child(6){display:none!important;}
+body.tbl-tighter #tblwrap th:nth-child(1),body.tbl-tighter #tblwrap td:nth-child(1){display:none!important;} /* v340: hide ONLY the checkbox when tight — never the 📊 Range column. (Was hiding nth-child(6); after the Range column was inserted at position 6 that silently hid Range. The table scrolls horizontally instead.) */
 body.tbl-tighter .tick-name{max-width:80px;}
 </style>
 <script id="fitJs">
