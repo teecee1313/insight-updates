@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-346-open';
+const APP_VERSION='2026.07.16-347-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10456,7 +10456,7 @@ async function prepareAllSignals(auto){
         } else { _sliceFailed++; (window._prepFailed=window._prepFailed||[]).push(s); }
         done++;
       });
-      try{ statsBar&&statsBar(); }catch(e){} // v305: radar tiles fill in LIVE as signals load (they sat at 0 until the very end)
+      try{ if(((i/BATCH)&7)===0)statsBar&&statsBar(); }catch(e){} // v347: refresh tiles every 8th batch (was every batch) — much lighter on slow devices; exact tiles are set at the end
       _maybeSlowNetworkHint&&_maybeSlowNetworkHint();
       const _servingDisk=(!!window._preferOffline && (window._savedN||0)>=ranked.length) || (window._healCount>i*0.8);
       if(i+BATCH<ranked.length && !_servingDisk)await new Promise(r=>setTimeout(r,350));
@@ -11665,13 +11665,17 @@ async function bulkVolume(){
   // every scan works fully offline.
   if(allData.length && allData.every(s=>Array.isArray(s.series)&&s.series.length>5) && !window._forceNetBulk){
     let done=0;
-    for(const s of allData){
+    const _cl=[], _vl=[]; // v347: reused scratch arrays — no per-share map/filter/slice garbage, so the whole-market recompute no longer triggers GC-pause freezes
+    for(let _bi=0;_bi<allData.length;_bi++){
+      if((_bi&127)===127)await new Promise(r=>setTimeout(r,0)); // v347: yield every 128 shares so a big saved market can't freeze the UI
+      const s=allData[_bi];
       const ser=s.series; if(!ser||ser.length<3)continue;
-      const closes=ser.map(r=>r.c).filter(isFinite);
-      const vols=ser.map(r=>r.v).filter(v=>isFinite(v)&&v>0);
+      _cl.length=0; _vl.length=0;
+      for(let _k=0;_k<ser.length;_k++){ const _c=ser[_k].c, _v=ser[_k].v; if(isFinite(_c))_cl.push(_c); if(isFinite(_v)&&_v>0)_vl.push(_v); }
+      const closes=_cl, vols=_vl;
       if(vols.length>1){
-        const hist=vols.slice(0,-1);
-        const avg=hist.reduce((a,v)=>a+v,0)/hist.length;
+        let _vsum=0; for(let i=0;i<vols.length-1;i++)_vsum+=vols[i]; // avg of all vols except the most recent (== old vols.slice(0,-1) mean)
+        const avg=_vsum/(vols.length-1);
         s.avgVol=Math.round(avg);
         s.volPct=avg>0?Math.round((vols[vols.length-1]-avg)/avg*100):0;
         s.volCalced=true; s.volWindow=s.volWindow||'demo';
