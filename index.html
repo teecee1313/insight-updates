@@ -1486,7 +1486,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-343-open';
+const APP_VERSION='2026.07.16-344-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5141,7 +5141,7 @@ function _apBuy(s,r){
     const dstop=(r.stopPct>0)?+(lim*(1-r.stopPct/100)).toFixed(lim<1?4:3):0;
     p.cash=+(p.cash-dcost).toFixed(2); _chargeFee(p); p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now()+'d'+Math.floor(Math.random()*1000),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      limit:lim,qty:dq,reserved:dcost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
+      limit:lim,qty:dq,reserved:dcost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
       target:dtgt>0?dtgt:null,stop:dstop>0?dstop:null,note:'\ud83e\udd16 Auto-pilot dip entry (practice)',fee:fee||0,
       tgtLog:dtgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:dtgt}]:[],stopLog:dstop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:dstop}]:[]});
     _paperSave(p);
@@ -5152,7 +5152,7 @@ function _apBuy(s,r){
   if(typeof realFillsOn==='function'&&realFillsOn()){
     p.orders=p.orders||[];
     p.orders.push({id:_id,ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
+      market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
       target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note,fee:fee||0,
       tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
   }else{
@@ -5268,7 +5268,7 @@ function _apPlacePick(s,r,k){
   const stop=k.stopAt>0?+k.stopAt:(r.stopPct>0?+(lim*(1-r.stopPct/100)).toFixed(4):0);
   p.cash=+(p.cash-cost).toFixed(2); _chargeFee(p); p.orders=p.orders||[];
   p.orders.push({id:'o'+Date.now()+'p'+Math.floor(Math.random()*1000),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-    limit:lim,qty:qty,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
+    limit:lim,qty:qty,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
     target:tgt>0?tgt:null,stop:stop>0?stop:null,note:'\ud83e\udd16 Auto-pilot pick (practice)',fee:fee||0,
     tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
   _paperSave(p);
@@ -5887,7 +5887,7 @@ function paperBuyConfirm(ticker){
     _chargeFee(p);
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
+      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
       tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
     _paperSave(p);closeModal();showPortfolio();
     return;
@@ -5899,7 +5899,7 @@ function paperBuyConfirm(ticker){
     _chargeFee(p);
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,expiry:_orderExpiry(today),
+      market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
       target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
       tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
     _paperSave(p);closeModal();showPortfolio();
@@ -5918,6 +5918,20 @@ function paperBuyConfirm(ticker){
   showPortfolio();
 }
 
+// v344: was this order placed BEFORE its exchange opened today? If so it works from the bell,
+// so a price point touched on the placement day itself counts as a same-day fill.
+function _orderPreOpen(exch){
+  try{
+    if((exch||'ASX')!=='ASX')return false; // only the ASX clock is modelled here
+    const f=new Intl.DateTimeFormat('en-US',{timeZone:'Australia/Sydney',hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit'});
+    const parts={}; f.formatToParts(new Date()).forEach(p=>parts[p.type]=p.value);
+    const dow={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[parts.weekday];
+    if(dow<1||dow>5)return false; // weekend — no session to be 'before'
+    let hh=parseInt(parts.hour,10); if(hh===24)hh=0;
+    const m=hh*60+parseInt(parts.minute,10);
+    return m<600; // before 10:00 Sydney = pre-open
+  }catch(e){ return false; }
+}
 // ═══ Pending limit-BUY fills: fill if a day's intraday LOW reached the limit ═══
 // (gapped-down opens fill at the open). Mirrors the sell-target logic.
 async function checkLimitOrders(acct){
@@ -5947,7 +5961,8 @@ async function checkLimitOrders(acct){
           if(rows&&rows.length){
             const days=rows.filter(d=>d.d>since||d.d===since).sort((a,b)=>a.d<b.d?-1:1);
             for(const day of days){
-              if(day.d<=o.placedDate)continue;
+              if(day.d<o.placedDate||(day.d===o.placedDate&&!o.preOpen))continue; // v344: pre-open orders work from the placement day
+
               if(o.market){ if(isFinite(day.o)&&day.o>0){hit={date:day.d,fill:day.o};break;} continue; }
               if(isFinite(day.o)&&day.o<=o.limit){hit={date:day.d,fill:day.o};break;} // gapped below → open
               if(isFinite(day.lo)&&day.lo<=o.limit){hit={date:day.d,fill:o.limit};break;} // dipped to limit
@@ -5958,8 +5973,8 @@ async function checkLimitOrders(acct){
       }
       // Fallback: last close at/below limit fills.
       if(!hit){const s=allData.find(x=>x.ticker===o.ticker);
-        if(s&&o.market&&s.price>0){const qd=(s._q&&s._q.d)||todayL;if(qd>o.placedDate)hit={date:qd,fill:s.price};}
-        else if(s&&!o.market&&s.price<=o.limit)hit={date:todayL,fill:Math.min(o.limit,s.price)};}
+        if(s&&o.market&&s.price>0){const qd=(s._q&&s._q.d)||todayL;if(qd>o.placedDate||(qd===o.placedDate&&o.preOpen))hit={date:qd,fill:s.price};}
+        else if(s&&!o.market&&s.price<=o.limit&&(todayL>o.placedDate||o.preOpen))hit={date:todayL,fill:Math.min(o.limit,s.price)};}
       if(hit){
         const qtyF=o.market?Math.floor((o.amount||o.reserved)/hit.fill):o.qty;
         if(qtyF<1){
