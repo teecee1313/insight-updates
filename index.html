@@ -1483,7 +1483,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-325-open';
+const APP_VERSION='2026.07.16-326-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4639,6 +4639,7 @@ function _rules(){
     apMinScore:num(r.apMinScore,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:num(r.apDipPct,0),
+    apLadder:(r.apLadder===true),
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
@@ -4650,6 +4651,7 @@ function _rulesSave(r){
     apMinScore:+r.apMinScore||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
     apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:+r.apDipPct||0,
+    apLadder:(r.apLadder===true),
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
@@ -4704,6 +4706,7 @@ window.applyBotBestPractice=function(){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el)el.value=v; };
   const tick=(id,v)=>{ const el=document.getElementById(id); if(el)el.checked=!!v; };
   set('rApComboSel','card-good');   // 📋 adaptive: follow whatever YOUR report card grades SOLID/PROMISING now
+  tick('rApLadder',true);           // 🪜 v326: auto-follow the ladder's top proven signals too
   set('rApEntrySel','dip'); set('rApDip',1.5); // 🎣 patient entry ≈ a liquid share's median daily dip
   set('rApSrc','smart'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
   set('rApAmt','');                 // size by the 📦 % rule against the bot's $50k
@@ -4778,8 +4781,12 @@ function showRules(){
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
         <label style="font-size:10px;color:var(--muted);">💵 $ per buy<input type="number" id="rApAmt" min="0" step="any" value="${r.apAmt||''}" placeholder="blank = 📦 % rule" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:8.5px;color:var(--dim)">min $500 · capped by 📦</span></label>
       </div>
+      <div style="margin-top:10px;padding:8px 10px;border:1px solid var(--gold);border-radius:8px;background:rgba(255,210,0,.05);">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);font-weight:700;cursor:pointer;"><input type="checkbox" id="rApLadder" ${r.apLadder?'checked':''} style="width:15px;height:15px;">🪜 Auto-follow my report-card ladder</label>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5;">On = the bot ignores the manual ticks below and each day buys only shares firing the <b>top-rated PROVEN signals</b> on your 📋 report card (SOLID/PROMISING with a positive edge — never an unproven TOO-EARLY one), and its 🧩 combo gate follows the card's best pairs too. It re-reads the ladder every data day, so as flags prove or fade the bot follows — no re-ticking. ${(function(){ try{ var t=(window._apLadderNow&&window._apLadderNow.length)?window._apLadderNow:_ladderTopSignals(); var nm={bo:'🚀 Breakout',inf:'🕵️ Informed?',inst:'🏦 Inst?',cx:'⤴ MA cross',vr:'🥇 Vol record'}; return (t&&t.length)?('<b style="color:var(--gold)">Now leading: '+t.map(function(k){return nm[k]||k;}).join(', ')+'</b>'):'<span style="color:var(--dim)">No single flag is proven enough yet — until one is it leans on the combo gate starter pairs.</span>'; }catch(e){ return ''; } })()}</div>
+      </div>
       <div style="margin-top:8px;">
-        <div style="font-size:9.5px;color:var(--muted);margin-bottom:4px;">Only buy when showing <b>at least one</b> ticked signal <span style="color:var(--dim)">(scanner lane · none ticked = off)</span>:</div>
+        <div style="font-size:9.5px;color:var(--muted);margin-bottom:4px;">Only buy when showing <b>at least one</b> ticked signal <span style="color:var(--dim)">(scanner lane · none ticked = off · ignored while 🪜 auto-follow is on)</span>:</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px 10px;font-size:9.5px;color:var(--muted);">
           <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApSig_bo" ${r.apSignals.indexOf('bo')>=0?'checked':''} style="width:13px;height:13px;">🚀 Breakout</label>
           <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApSig_inf" ${r.apSignals.indexOf('inf')>=0?'checked':''} style="width:13px;height:13px;">🕵️ Informed?</label>
@@ -4850,7 +4857,7 @@ function _rulesFromForm(){
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
     apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
-    apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr'].filter(k=>chk('rApSig_'+k)):_rules().apSignals) };
+    apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder) };
 }
 function saveRulesFromForm(){
   const cur=_rules();
@@ -4925,6 +4932,27 @@ function _auditCached(){
 }
 // v318 — short display name for each combo mode (funnel + diary).
 function _comboShort(m){ return ({'bo+inst':'🚀+🏦','bo+blk':'🚀+🔷','bo+vr':'🚀+🥇','inf+inst':'🕵️+🏦','inst>bo':'🏦→🚀 chain','inf>bo':'🕵️→🚀 chain','card-solid':'📋 strict','card-good':'📋 adaptive'})[m]||'combo'; }
+// v326 — the report-card ladder AS DATA (shared by the card, the printable
+// signal report, and the 🪜 auto-follow bot). Ranks by edge in each flag's own
+// direction (bearish flags score positive when they correctly predict falls).
+function _ladderData(A){
+  if(!A||!A.M)return {singles:[],combos:[]};
+  const MINC=10, dirOf=m=>(m.dirNeg?-m.edge:m.edge);
+  const sK=['bo','inf','inst','cx','di','vr+','vr-','blk+','blk-'];
+  const singles=sK.map(k=>A.M[k]?{k,m:A.M[k],dir:dirOf(A.M[k])}:null).filter(it=>it&&it.m.n>=MINC).sort((a,b)=>b.dir-a.dir);
+  const combos=Object.keys(A.M).map(k=>({k,m:A.M[k]})).filter(it=>((it.k.indexOf('>')>0)||(it.k.indexOf('+')>0&&!/[+-]$/.test(it.k)&&['bo','inf','inst','cx','di','vr','blk'].indexOf(it.k)<0))&&it.m.n>=MINC).map(it=>({k:it.k,m:it.m,dir:dirOf(it.m)})).sort((a,b)=>b.dir-a.dir);
+  return {singles,combos};
+}
+// v326 — the top BULLISH, PROVEN single flags the bot's scanner understands,
+// mapped to its filter keys. Empty until the card grades a single as working —
+// so the bot never auto-chases an unproven flag.
+function _ladderTopSignals(){
+  try{ const A=_auditCached(); if(!A||!A.M)return [];
+    const cand=[['bo',A.M.bo],['inf',A.M.inf],['inst',A.M.inst],['cx',A.M.cx],['vr',A.M['vr+']]];
+    return cand.filter(x=>x[1]&&x[1].n>=30&&x[1].edge>0&&(x[1].tier==='solid'||x[1].tier==='promising'))
+      .sort((a,b)=>b[1].edge-a[1].edge).slice(0,3).map(x=>x[0]);
+  }catch(e){ return []; }
+}
 function _apComboOk(s,mode){
   const f=_liveFired(s);
   if(mode==='bo+inst')return f.bo&&f.inst;
@@ -5063,13 +5091,19 @@ function _apCandidates(r){
   else{ pool=_T('smart list',pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50)); }
   if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,pool.filter(s=>(s.watchScore||0)>=r.apMinScore));
   if(r.apQuietOnly)pool=_T('🔇quiet',pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}}));
-  if(Array.isArray(r.apSignals)&&r.apSignals.length){ const M={bo:'sigBreakout',inf:'dirBuy',inst:'instBuy',cx:'sigCross',dir:'annDir5d',vr:'sigVolRecord'};
-    pool=_T('signals',pool.filter(s=>r.apSignals.some(k=>!!s[M[k]]))); }
+  // v326: 🪜 auto-follow the ladder → the report card's top PROVEN bullish
+  // singles become the signal filter, and the adaptive card gate picks combos.
+  const _ladOn=r.apLadder===true;
+  let _sig=Array.isArray(r.apSignals)?r.apSignals:[]; let _sigLbl='signals';
+  if(_ladOn){ _sig=_ladderTopSignals(); _sigLbl='🪜 top signals'; window._apLadderNow=_sig; }
+  if(Array.isArray(_sig)&&_sig.length){ const M={bo:'sigBreakout',inf:'dirBuy',inst:'instBuy',cx:'sigCross',dir:'annDir5d',vr:'sigVolRecord'};
+    pool=_T(_sigLbl,pool.filter(s=>_sig.some(k=>!!s[M[k]]))); }
   if(r.apNoChaseRsi)pool=_T('RSI',pool.filter(s=>!(s.rsi!=null&&s.rsi>=70)));
   if(r.apMaxChasePct>0)pool=_T('day-jump',pool.filter(s=>!(s.chgPct!=null&&s.chgPct>r.apMaxChasePct)));
   if(r.apGreenOnly)pool=_T('🟢green',pool.filter(s=>{const o=(s._q&&s._q.o>0)?s._q.o:0; return o>0?(s.price>o):(s.chgPct>0);}));
   window._apCardFallback=false; // v317: set true by _apComboOk when the young-card starter pairs were used
-  if(r.apCombo){ pool=_T('🧩'+_comboShort(r.apCombo),pool.filter(s=>{try{return _apComboOk(s,r.apCombo);}catch(e){return false;}})); } // v313 🧩
+  const _combo=_ladOn?'card-good':r.apCombo; // 🪜 also auto-uses the best card-graded combos
+  if(_combo){ pool=_T('🧩'+_comboShort(_combo),pool.filter(s=>{try{return _apComboOk(s,_combo);}catch(e){return false;}})); } // v313 🧩
   window._apLastDiag=_D;
   pool.sort((a,b)=>((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0)));
   return pool;
