@@ -1489,7 +1489,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-354-open';
+const APP_VERSION='2026.07.16-355-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4658,7 +4658,7 @@ function _rules(){
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
     trailPct:num(r.trailPct,fresh?8:0), bePct:num(r.bePct,fresh?5:0), maxHoldDays:Math.round(num(r.maxHoldDays,fresh?10:0)),
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
-    apMinScore:num(r.apMinScore,0), apQuietOnly:(r.apQuietOnly===true),
+    apMinScore:num(r.apMinScore,0), apMinPrice:num(r.apMinPrice,0), apMaxPrice:num(r.apMaxPrice,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:num(r.apDipPct,0),
     apLadder:(r.apLadder===true),
@@ -4670,7 +4670,7 @@ function _rulesSave(r){
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
     trailPct:+r.trailPct||0, bePct:+r.bePct||0, maxHoldDays:Math.max(0,Math.round(+r.maxHoldDays||0)),
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
-    apMinScore:+r.apMinScore||0, apQuietOnly:(r.apQuietOnly===true),
+    apMinScore:+r.apMinScore||0, apMinPrice:+r.apMinPrice||0, apMaxPrice:+r.apMaxPrice||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
     apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:+r.apDipPct||0,
     apLadder:(r.apLadder===true),
@@ -4803,6 +4803,13 @@ function showRules(){
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
         <label style="font-size:10px;color:var(--muted);">💵 $ per buy<input type="number" id="rApAmt" min="0" step="any" value="${r.apAmt||''}" placeholder="blank = 📦 % rule" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:8.5px;color:var(--dim)">min $500 · capped by 📦</span></label>
       </div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 10px;font-size:9.5px;color:var(--muted);align-items:center;">
+        <span style="color:var(--dim)">💲 Only buy shares priced between</span>
+        <label style="display:flex;align-items:center;gap:3px;">$<input type="number" id="rApMinPx" min="0" step="any" value="${r.apMinPrice||''}" placeholder="any" style="width:66px;padding:4px;border-radius:5px;background:var(--bg3);border:1px solid var(--border);color:var(--text);"></label>
+        <span style="color:var(--dim)">and</span>
+        <label style="display:flex;align-items:center;gap:3px;">$<input type="number" id="rApMaxPx" min="0" step="any" value="${r.apMaxPrice||''}" placeholder="any" style="width:66px;padding:4px;border-radius:5px;background:var(--bg3);border:1px solid var(--border);color:var(--text);"></label>
+        <span style="font-size:8.5px;color:var(--dim)">blank = no limit · this share\u2019s last close</span>
+      </div>
       <div style="margin-top:10px;padding:8px 10px;border:1px solid var(--gold);border-radius:8px;background:rgba(255,210,0,.05);">
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);font-weight:700;cursor:pointer;"><input type="checkbox" id="rApLadder" ${r.apLadder?'checked':''} style="width:15px;height:15px;">🪜 Auto-follow my report-card ladder</label>
         <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5;">On = the bot ignores the manual ticks below and each day buys only shares firing the <b>top-rated PROVEN signals</b> on your 📋 report card (SOLID/PROMISING with a positive edge — never an unproven TOO-EARLY one), and its 🧩 combo gate follows the card's best pairs too. It re-reads the ladder every data day, so as flags prove or fade the bot follows — no re-ticking. ${(function(){ try{ var A=(window._auditCache&&window._auditCache.A)||null; var t=(window._apLadderNow&&window._apLadderNow.length)?window._apLadderNow:(A?_ladderTopSignals(A):null); var nm={bo:'🚀 Breakout',inf:'🕵️ Informed?',inst:'🏦 Inst?',cx:'⤴ MA cross',vr:'🥇 Vol record'}; if(t&&t.length)return '<b style="color:var(--gold)">Now leading: '+t.map(function(k){return nm[k]||k;}).join(', ')+'</b>'; if(!A)return '<span style="color:var(--dim)">Open your 📋 report card once today, then today’s leaders show here.</span>'; return '<span style="color:var(--dim)">No single flag is proven enough yet — until one is it leans on the combo gate starter pairs.</span>'; }catch(e){ return ''; } })()}</div>
@@ -4878,7 +4885,7 @@ function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
-    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
+    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
     apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder) };
 }
 function saveRulesFromForm(){
@@ -5109,6 +5116,8 @@ function _apCandidates(r){
   (p.holdings||[]).forEach(h=>held.add(h.ticker)); (p.orders||[]).forEach(o=>held.add(o.ticker));
   const _D=[]; const _T=(lbl,pl)=>{ _D.push([lbl,pl.length]); return pl; }; // v316: funnel diagnostics
   let pool=_T('pool',(allData||[]).filter(s=>s&&s.price>0&&!held.has(s.ticker)&&_apLiqOk(s)));
+  if(+r.apMinPrice>0)pool=_T('≥$'+r.apMinPrice,pool.filter(s=>s.price>=+r.apMinPrice)); // v355: price band
+  if(+r.apMaxPrice>0)pool=_T('≤$'+r.apMaxPrice,pool.filter(s=>s.price<=+r.apMaxPrice));
   if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
   else{ pool=_T('smart list',pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50)); }
   if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,pool.filter(s=>(s.watchScore||0)>=r.apMinScore));
