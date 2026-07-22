@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-364-open';
+const APP_VERSION='2026.07.22-365-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4692,7 +4692,7 @@ function _rules(){
     apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:num(r.apDipPct,0),
     apLadder:(r.apLadder===true),
-    apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
+    apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr','blk'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
 function _rulesSave(r){
@@ -4704,7 +4704,7 @@ function _rulesSave(r){
     apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
     apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:+r.apDipPct||0,
     apLadder:(r.apLadder===true),
-    apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr'].indexOf(k)>=0):[]),
+    apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr','blk'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
   return clean;
@@ -4853,7 +4853,9 @@ function showRules(){
           <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApSig_cx" ${r.apSignals.indexOf('cx')>=0?'checked':''} style="width:13px;height:13px;">⤴ MA cross</label>
           <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApSig_dir" ${r.apSignals.indexOf('dir')>=0?'checked':''} style="width:13px;height:13px;">🧑‍💼 Director ✓</label>
           <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApSig_vr" ${r.apSignals.indexOf('vr')>=0?'checked':''} style="width:13px;height:13px;">🥇 Vol record</label>
+          <label style="display:flex;align-items:center;gap:4px;" title="Block-trade day with buying pressure (▲ accumulation). A ▼ distribution block never counts as a buy."><input type="checkbox" id="rApSig_blk" ${r.apSignals.indexOf('blk')>=0?'checked':''} style="width:13px;height:13px;">🔷 Block ▲</label>
         </div>
+        <div style="font-size:8.5px;color:var(--dim);margin-top:3px;">These are the BUY-side signals. 📉 Dist?, 👁 EOD and 🚨 sharp-move are warning/watch flags — they mark selling or unexplained action, so they're deliberately not buy triggers (the 🧩 combo gate and 📋 report card still track 🔷 Block days).</div>
       </div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:9.5px;color:var(--muted);align-items:center;">
         <span style="color:var(--dim)">Don't-chase (scanner):</span>
@@ -4916,7 +4918,7 @@ function _rulesFromForm(){
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
     apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
-    apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder) };
+    apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr','blk'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder) };
 }
 function saveRulesFromForm(){
   const cur=_rules();
@@ -5158,7 +5160,10 @@ function _apCandidates(r){
   let _sig=Array.isArray(r.apSignals)?r.apSignals:[]; let _sigLbl='signals';
   if(_ladOn){ _sig=_ladderTopSignals(); _sigLbl='🪜 top signals'; window._apLadderNow=_sig; }
   if(Array.isArray(_sig)&&_sig.length){ const M={bo:'sigBreakout',inf:'dirBuy',inst:'instBuy',cx:'sigCross',dir:'annDir5d',vr:'sigVolRecord'};
-    pool=_T(_sigLbl,pool.filter(s=>_sig.some(k=>!!s[M[k]]))); }
+    // v365: 🔷 Block ▲ is now tickable — counts a block-trade day whose inferred
+    // direction is accumulation (or unclear); a ▼ distribution block never buys.
+    const _fire=(s,k)=>{ if(k==='blk'){ if(!s.blockTrade)return false; const d=s.blockDir||(typeof blockDirection==='function'?blockDirection(s):''); return d!=='down'; } return !!s[M[k]]; };
+    pool=_T(_sigLbl,pool.filter(s=>_sig.some(k=>_fire(s,k)))); }
   if(r.apNoChaseRsi)pool=_T('RSI',pool.filter(s=>!(s.rsi!=null&&s.rsi>=70)));
   if(r.apMaxChasePct>0)pool=_T('day-jump',pool.filter(s=>!(s.chgPct!=null&&s.chgPct>r.apMaxChasePct)));
   if(r.apGreenOnly)pool=_T('🟢green',pool.filter(s=>{const o=(s._q&&s._q.o>0)?s._q.o:0; return o>0?(s.price>o):(s.chgPct>0);}));
@@ -7294,6 +7299,18 @@ function renderWatch(){
 function showModal(html,label){
   let m=document.getElementById('appModal');
   const _big=!!window._modalBig; window._modalBig=false; // consume the one-shot flag
+  // v365: park the big share table while a panel is open. With the full table
+  // back (v363) every panel redraw — portfolio taps, rules toggles — was paying
+  // layout costs for up to thousands of heavy rows sitting behind the backdrop.
+  // Hidden = those redraws are cheap; restored (with scroll) on close.
+  try{
+    const tw=document.getElementById('tblwrap');
+    if(tw && tw.style.display!=='none' && !window._twHiddenByModal){
+      window._twScrollSave=tw.scrollTop||0;
+      window._twHiddenByModal=true;
+      tw.style.display='none';
+    }
+  }catch(e){}
   // Label = which report/scan we're in, shown as a header badge. Use the explicit
   // param if given, otherwise a value set just before the call, then clear it so
   // it doesn't leak to the next unlabelled modal.
@@ -7368,6 +7385,14 @@ function _syncStatOverTop(){
 window.addEventListener('resize',function(){try{_syncStatOverTop();}catch(e){}});
 function closeModal(){
   const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
+  // v365: bring the parked share table back exactly where it was
+  try{
+    if(window._twHiddenByModal){
+      window._twHiddenByModal=false;
+      const tw=document.getElementById('tblwrap');
+      if(tw){ tw.style.display='block'; if(window._twScrollSave)tw.scrollTop=window._twScrollSave; }
+    }
+  }catch(e){}
   window._detailTicker=null;
   window._simpleModalBase=null;window._simpleModalLabel=null;window._top20Shown=null;
   try{ if(window._modalEnteredFs){ window._modalEnteredFs=false;
