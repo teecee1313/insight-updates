@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-365-open';
+const APP_VERSION='2026.07.22-366-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4690,8 +4690,9 @@ function _rules(){
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
     apMinScore:num(r.apMinScore,0), apMinPrice:num(r.apMinPrice,0), apMaxPrice:num(r.apMaxPrice,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(num(r.apMaxBuys,1)))),
-    apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:num(r.apDipPct,0),
+    apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,num(r.apDipPct,0)),
     apLadder:(r.apLadder===true),
+    apRegime:(r.apRegime===true), apRiskPct:Math.min(5,num(r.apRiskPct,0)), // v366: 🌏 regime gate + 🎲 risk-per-trade sizing (0 = off; risk capped at 5%)
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr','blk'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
@@ -4702,8 +4703,9 @@ function _rulesSave(r){
     apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
     apMinScore:+r.apMinScore||0, apMinPrice:+r.apMinPrice||0, apMaxPrice:+r.apMaxPrice||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(3,Math.round(+r.apMaxBuys||1))),
-    apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:+r.apDipPct||0,
+    apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,Math.max(0,+r.apDipPct||0)),
     apLadder:(r.apLadder===true),
+    apRegime:(r.apRegime===true), apRiskPct:Math.min(5,Math.max(0,+r.apRiskPct||0)),
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr','blk'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
@@ -4762,6 +4764,7 @@ window.applyBotBestPractice=function(){
   set('rApEntrySel','dip'); set('rApDip',1.5); // 🎣 patient entry ≈ a liquid share's median daily dip
   set('rApSrc','smart'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
   set('rApAmt','');                 // size by the 📦 % rule against the bot's $50k
+  tick('rApRegime',true); set('rApRisk',1); // v366: 🌏 stand aside in a falling market · 🎲 equal ~1% of account at risk per trade
   const m=document.getElementById('rulesMsg');
   if(m)m.textContent='🏆 Best-practice bot filled in — review, press 💾 Save my rules, then switch 🤖 Auto-pilot ON.';
 };
@@ -4822,7 +4825,7 @@ function showRules(){
         </div>`;
       }catch(e){return '';}})()}
       <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 1.5% dip entry, 🎯 Smart Money source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
-      <div style="font-size:8.5px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯20 🛑8 🪤8 🛡+5 ⏱10) · every don't-chase gate · 📋 adaptive combos from YOUR report card · 🎣 patient 1.5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
+      <div style="font-size:8.5px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯20 🛑8 🪤8 🛡+5 ⏱10) · every don't-chase gate · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 1.5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
       <button onclick="toggleApAdv()" id="apAdvToggle" style="width:100%;margin:2px 0 6px;padding:6px;border-radius:6px;border:1px dashed var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙ Advanced bot settings ${window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)'}</button>
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
@@ -4862,6 +4865,12 @@ function showRules(){
         <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApGreen" ${r.apGreenOnly?'checked':''} style="width:13px;height:13px;">🟢 green day only</label>
         <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="rApRsi" ${r.apNoChaseRsi?'checked':''} style="width:13px;height:13px;">skip RSI ≥ 70</label>
         <label style="display:flex;align-items:center;gap:4px;">skip day-jump &gt;<input type="number" id="rApChase" min="0" step="any" value="${r.apMaxChasePct||''}" placeholder="off" style="width:52px;padding:4px;border-radius:5px;background:var(--bg3);border:1px solid var(--border);color:var(--text);">%</label>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:9.5px;color:var(--muted);align-items:center;">
+        <span style="color:var(--dim)">🌏 Market &amp; risk (scanner):</span>
+        <label style="display:flex;align-items:center;gap:4px;" title="Only buy while the index ETF (A200/VAS/STW/IOZ — whichever is loaded) closes above its own 50-day average. Buying breakouts in a falling market is where trend-following bleeds; this sits the bot out on risk-off stretches. If no index ETF is in your data the gate can't judge and stays open."><input type="checkbox" id="rApRegime" ${r.apRegime?'checked':''} style="width:13px;height:13px;">only buy when index &gt; 50-day avg</label>
+        <label style="display:flex;align-items:center;gap:4px;" title="Size each parcel so a full stop-out always costs about this % of the account: parcel = (risk% × account) ÷ stop%. Wide-stop volatile shares get smaller parcels; quiet shares bigger ones — equal risk per trade, the way professionals size. Needs a 🛑 stop % set above. Still capped by your 📦 rule. Blank = size by 📦 alone.">🎲 risk per trade<input type="number" id="rApRisk" min="0" max="5" step="any" value="${r.apRiskPct||''}" placeholder="off" style="width:52px;padding:4px;border-radius:5px;background:var(--bg3);border:1px solid var(--border);color:var(--text);">% of account</label>
+        <span style="font-size:8.5px;color:var(--dim);flex-basis:100%;">🧊 always on: a share the bot was stopped out of is not re-bought for 5 trading days (no falling-knife churn)</span>
       </div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:9.5px;color:var(--muted);align-items:center;">
         <span style="color:var(--dim)">🧩 Combo gate (scanner):</span>
@@ -4918,7 +4927,8 @@ function _rulesFromForm(){
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
     apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
-    apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr','blk'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder) };
+    apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr','blk'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder),
+    apRegime:(document.getElementById('rApRegime')?chk('rApRegime'):_rules().apRegime), apRiskPct:(document.getElementById('rApRisk')?g('rApRisk'):_rules().apRiskPct) };
 }
 function saveRulesFromForm(){
   const cur=_rules();
@@ -4950,6 +4960,29 @@ function _apLogHtml(){
     const s=(e.skips||[]).slice(0,4).map(x=>'· '+String(x).replace(/</g,'&lt;')).join('<br>');
     return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+'</div>';
   }).join('');
+}
+// v366 🌏 — is the market risk-ON? true / false, or null when no index ETF is
+// loaded to judge from. Index close vs its own 50-day MA, computed from the
+// ETF's stored series (prepared) or _history; cached per data day.
+function _apRegimeOn(){
+  try{
+    const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||_todayLocal();
+    if(window._apRegimeCache&&window._apRegimeCache.d===dd)return window._apRegimeCache.on;
+    let on=null;
+    const bm=(allData||[]).find(x=>['A200','VAS','STW','IOZ'].includes(x.ticker)&&((Array.isArray(x.series)&&x.series.length>=55)||(Array.isArray(x._history)&&x._history.length>=55)));
+    if(bm){
+      const useSeries=Array.isArray(bm.series)&&bm.series.length>=55;
+      const rows=useSeries?bm.series:_sortedCloses(bm._history); // series is already chronological; raw _history gets sorted
+      const closes=rows.map(q=>{ const c=(q.c!=null?q.c:parseFloat(qField(q,['close','Close','c']))); return isFinite(c)&&c>0?c:null; }).filter(c=>c!=null);
+      if(closes.length>=51){
+        const last=closes[closes.length-1];
+        let s50=0; for(let i=closes.length-50;i<closes.length;i++)s50+=closes[i];
+        on=last>=(s50/50);
+      }
+    }
+    window._apRegimeCache={d:dd,on:on};
+    return on;
+  }catch(e){ return null; }
 }
 function _apLiqOk(s){
   if(typeof F==='undefined'||!F||!F.cap||F.cap==='any')return true;
@@ -5148,6 +5181,24 @@ function _apCandidates(r){
   (p.holdings||[]).forEach(h=>held.add(h.ticker)); (p.orders||[]).forEach(o=>held.add(o.ticker));
   const _D=[]; const _T=(lbl,pl)=>{ _D.push([lbl,pl.length]); return pl; }; // v316: funnel diagnostics
   let pool=_T('pool',(allData||[]).filter(s=>s&&s.price>0&&!held.has(s.ticker)&&_apLiqOk(s)));
+  // v366 🌏 REGIME GATE (optional): only buy while the whole market is trending
+  // up — index ETF (A200/VAS/STW/IOZ) closing above its own 50-day average.
+  // Buying breakouts in a falling market is where trend systems bleed; sitting
+  // out risk-off days is one of the best-evidenced drawdown reducers there is.
+  if(r.apRegime===true){
+    const reg=_apRegimeOn();
+    if(reg===false){ pool=_T('🌏 risk-off (index < 50d avg)',[]); window._apLastDiag=_D; return pool; }
+    if(reg===null){ /* no index ETF loaded — gate can't judge; trade on, noted in diary */ }
+  }
+  // v366 🧊 COOLDOWN: never re-buy a share the bot was stopped out of in the
+  // last 5 trading days — stops firing then instantly re-entering the same
+  // falling knife was pure churn (fees + repeat losses).
+  {
+    const _today=_todayLocal();
+    const _cool=new Set();
+    (p.history||[]).forEach(t=>{ if(t&&(t.trigger==='stop'||t.trigger==='trail')&&t.sellDate&&tradingDaysHeld(t.sellDate,_today)<5)_cool.add(t.ticker); });
+    if(_cool.size)pool=_T('🧊 cooldown',pool.filter(s=>!_cool.has(s.ticker)));
+  }
   if(+r.apMinPrice>0)pool=_T('≥$'+r.apMinPrice,pool.filter(s=>s.price>=+r.apMinPrice)); // v355: price band
   if(+r.apMaxPrice>0)pool=_T('≤$'+r.apMaxPrice,pool.filter(s=>s.price<=+r.apMaxPrice));
   if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
@@ -5180,6 +5231,15 @@ function _apBuy(s,r){
   const acct=_acctValue(p); const sizePct=(r.maxPosPct>0?r.maxPosPct:10);
   const _cap=acct*sizePct/100;
   let _want=(r.apAmt>0?r.apAmt:_cap), _trim=false;
+  // v366 🎲 RISK-BASED SIZING (optional): equalise the DOLLARS AT RISK per trade
+  // instead of the dollars invested. With risk R% of account and a stop S% below
+  // entry, parcel = (R% × account) / (S%) — a volatile share with a wide stop
+  // gets a smaller parcel, a quiet one a bigger parcel, and a full stop-out
+  // always costs the same ~R% of the account. Still capped by 📦 below.
+  if(r.apRiskPct>0&&r.stopPct>0){
+    const _riskCap=(acct*r.apRiskPct/100)/(r.stopPct/100);
+    if(_riskCap<_want)_want=_riskCap;
+  }
   if(_want>_cap){ _want=_cap; _trim=true; }   // 📦 rule is a guardrail — your $ never breaches it
   const amt=Math.min(_want,(p.cash||0)-fee);
   if(!(amt>0))return {ok:false,why:'no practice cash left'};
@@ -5194,6 +5254,7 @@ function _apBuy(s,r){
     // 🎣 v313 patient entry — practice LIMIT buy under the last close (same
     // shape + cash handling as a 🎯 pick order; fills only if the day dips).
     const lim=+(px*(1-r.apDipPct/100)).toFixed(px<1?4:3);
+    if(!(lim>0))return {ok:false,why:'🎣 dip % too deep — the limit price came out at zero; check the 🎣 setting'}; // v366: apDipPct=100 made lim 0 → Infinity÷NaN poisoned the cash balance
     const dq=Math.floor(amt/lim); const dcost=+(dq*lim).toFixed(2);
     if(dq<1||dcost<500)return {ok:false,why:'dip parcel under $500'};
     if(dcost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
@@ -5294,11 +5355,15 @@ function addApPickFromForm(){
   if(stopAt>0&&stopAt>=buyAt){ if(m)m.textContent='Stop must be below the buy point.'; return; }
   if(amt>0&&amt<500){ if(m)m.textContent='Invest amount must be at least $500 (the ASX minimum parcel).'; return; }
   // already held? apply sell/stop to the holding instead of arming a buy
-  const p=_paper(); const h=(p.holdings||[]).find(x=>x.ticker===tk);
+  // v366: picks always execute on the 🤖 AUTO account, so the "already held"
+  // check must look there too — it was reading whichever account the portfolio
+  // happened to be VIEWING, which could write the sell/stop onto the wrong
+  // account or arm a pick the auto account would instantly disarm.
+  const p=_paper('auto'); const h=(p.holdings||[]).find(x=>x.ticker===tk);
   if(h&&(sellAt>0||stopAt>0)){
     if(sellAt>0){ (h.tgtLog=h.tgtLog||[]).push({d:_pfMktDate(h.exchange),ts:_pfStamp(),from:(h.target!=null?h.target:null),to:sellAt}); h.target=sellAt; }
     if(stopAt>0){ (h.stopLog=h.stopLog||[]).push({d:_pfMktDate(h.exchange),ts:_pfStamp(),from:(h.stop!=null?h.stop:null),to:stopAt}); h.stop=stopAt; }
-    _paperSave(p);
+    _paperSave(p,'auto');
     if(m)m.textContent='\u2713 '+tk+' is already held \u2014 sell/stop applied to that holding.';
   }else{
     const l=_apPicksLoad().filter(k=>k.tk!==tk);
@@ -5345,7 +5410,7 @@ function _apRunPicks(r,ent,maxN){
     if((p.orders||[]).some(o=>o.ticker===k.tk))continue;
     if(k.repeat===true){
       const hist=(p.history||[]).filter(h=>h.ticker===k.tk&&h.sellDate&&(!k.added||h.sellDate>=k.added));
-      const last=hist.length?hist[hist.length-1]:null;
+      const last=hist.length?hist[0]:null; // v366: history is NEWEST-first (unshift) — [length-1] read the OLDEST sale, so "pause after stop-out" never engaged once a cycle had won
       if(last&&last.trigger==='stop'){ k.armed=false; k.pausedWhy='stopped out'; changed=true;
         ent.skips.push(k.tk+': last cycle STOPPED OUT \u2014 repeat paused (re-add to try again)'); continue; }
     }
@@ -5365,6 +5430,8 @@ function _autoPilotRun(manual){
     const r=_rules();
     if(!(r.enabled&&r.apOn))return {ran:false,why:'off'};
     if(!Array.isArray(allData)||!allData.length)return {ran:false,why:'no data'};
+    if(window._tgtChecking||window._ordChecking)return {ran:false,why:'engines busy'}; // v366: buying while a checker holds an account snapshot could be clobbered by its save
+    if(window._bulkRunning)return {ran:false,why:'download running'}; // v366: don't size buys off mid-download prices
     let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
     if(!dd)return {ran:false,why:'no date'};
     if(!manual&&localStorage.getItem(AP_RUN_KEY)===dd)return {ran:false,why:'already ran today'};
@@ -5436,11 +5503,11 @@ function _ensureCash(p){
   // balance as if the $10k account had been there from the first trade.
   if(typeof p.cash!=='number'||!isFinite(p.cash)){
     const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
-    const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);
+    const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0),0); // v366: pending fees already live in feesPaid — counting them here doubled them
     const closedPl=(p.history||[]).reduce((a,t)=>a+(t.plAbs||0),0);
     const histFees=(p.history||[]).reduce((a,t)=>a+(t.fees||0),0);
     const divs=(p.dividends||[]).reduce((a,d)=>a+(d.total||0),0);
-    p.cash=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs).toFixed(2);
+    p.cash=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs-(p.wdProfit||0)).toFixed(2);
     p.ledgerBase=0;
   }
   return p;
@@ -5524,6 +5591,9 @@ function undoSale(sellDate,ticker,buyDate){
   if(!confirm(msg))return;
   // reverse the cash
   p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
+  // v366: refund the SELL-side brokerage too — the sale charged it, so undoing
+  // the sale without refunding it leaked one fee per undone trade.
+  if(t.sellFee>0){ p.cash=+(p.cash+t.sellFee).toFixed(2); p.feesPaid=+(Math.max(0,(p.feesPaid||0)-t.sellFee)).toFixed(2); }
   // restore the holding (merge if the same ticker/buyDate lot exists)
   p.holdings=p.holdings||[];
   const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
@@ -5537,6 +5607,7 @@ function undoSale(sellDate,ticker,buyDate){
       id:'h'+Date.now()+Math.random().toString(36).slice(2,6),
       ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,
       qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,
+      buyFee:(t.buyFee||0), // v366: carry the buy-side fee back so the eventual real sale reports fees correctly
       lastPrice:t.buyPrice,lastDate:t.buyDate,
       target:t.target||0,stop:0,note:t.note||null,noAuto:true,
       tgtChecked:_todayLocal() // don't re-scan history that caused the bad sell
@@ -5563,10 +5634,11 @@ function _undoAllAutoSells(){
   let n=0;
   autos.forEach(({t,i})=>{
     p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
+    if(t.sellFee>0){ p.cash=+(p.cash+t.sellFee).toFixed(2); p.feesPaid=+(Math.max(0,(p.feesPaid||0)-t.sellFee)).toFixed(2); } // v366: refund the sell-side fee the undone sale charged
     p.holdings=p.holdings||[];
     const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
     if(existing){ existing.invested=+(existing.invested+t.invested).toFixed(2); existing.qty=existing.qty+t.qty; existing.noAuto=true; existing.stop=0; }
-    else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,noAuto:true,tgtChecked:_todayLocal()}); }
+    else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,buyFee:(t.buyFee||0),lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,noAuto:true,tgtChecked:_todayLocal()}); }
     p.history.splice(i,1); n++;
   });
   _paperSave(_paperPrune(p));
@@ -5577,6 +5649,7 @@ function _undoAllAutoSells(){
 async function checkAutoSellTargets(acct){
   const ACCT=acct||window._pfCtx;
   if(window._tgtChecking)return [];
+  if(window._ordChecking)return []; // v366: never overlap the order-checker — both snapshot the whole account, and the later save clobbered the earlier one
   if(window._bulkRunning)return []; // v364: don't compete with the bulk download — runs again on the next check after it finishes
   const apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
   const p=_paper(ACCT);
@@ -5618,13 +5691,19 @@ async function checkAutoSellTargets(acct){
           const lookback=Math.min(400,Math.ceil((Date.now()-new Date(since).getTime())/86400000)+5);
           const rows=await fetchHistory(h.exchange,h.ticker,apiKey,lookback);
           if(rows&&rows.length){
+            // v366: filter to > since (the scanned watermark), NOT > buyDate.
+            // The fetch window overlaps ~5 already-scanned days, and replaying
+            // them with the RATCHETED trailing stop persisted at the end of the
+            // last pass fabricated phantom stop-outs dated in the past (a day
+            // whose low was fine against the then-current stop got re-judged
+            // against the later, higher one).
             const days=rows.map(q=>({
               d:String(qField(q,['dateStamp','DateStamp','date','Date','tradeDate'])||'').slice(0,10),
               o:parseFloat(qField(q,['open','Open'])),
               hi:parseFloat(qField(q,['high','High'])),
               lo:parseFloat(qField(q,['low','Low'])),
               c:parseFloat(qField(q,['close','Close','c']))
-            })).filter(x=>x.d&&x.d>h.buyDate).sort((a,b)=>a.d<b.d?-1:1);
+            })).filter(x=>x.d&&x.d>since).sort((a,b)=>a.d<b.d?-1:1);
             // Sanity band: reject corrupt/glitched OHLC rows so a bad data point
             // (e.g. a spurious low far below the real range) can't trigger a false
             // stop/target. A genuine price stays within a sane multiple of the buy
@@ -5639,13 +5718,16 @@ async function checkAutoSellTargets(acct){
               if(_beOn&&_beArmed&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
               if(_trailOn&&_peak>0)s=Math.max(s,+((_peak*(1-_trPct/100))).toFixed(4));
               return s; };
-            let _held=0;
             for(const day of days){
-              _held++;
+              // v366: held-days must count from the BUY, not from this fetch
+              // window — once tgtChecked advanced, the old per-window counter
+              // could never reach maxHoldDays and time stops fired ~3 days late
+              // via the fallback at the wrong price. (tradingDaysHeld is memoised.)
+              const _heldDays=tradingDaysHeld(h.buyDate,day.d);
               // Skip any day whose values look corrupt (out of a sane band).
               const oOK=_sane(day.o), hiOK=_sane(day.hi), loOK=_sane(day.lo), cOK=_sane(day.c);
               // ⏱ time stop — held past the limit: exit at this day's open
-              if(_timeOn&&!_mo&&_held>R302.maxHoldDays&&oOK){ hit={date:day.d,fill:day.o,why:'time'}; break; }
+              if(_timeOn&&!_mo&&_heldDays>R302.maxHoldDays&&oOK){ hit={date:day.d,fill:day.o,why:'time'}; break; }
               const _stopNow=_dynStop();
               const _why=(_stopNow>(h.stop>0?h.stop:0)+1e-9)?'trail':(h.stopSrc==='trail'?'trail':'stop');
               // Stop (fixed / trailed / break-even) — checked first, conservative
@@ -5670,7 +5752,7 @@ async function checkAutoSellTargets(acct){
               if(cOK){ if(day.c>_peak)_peak=day.c;
                 if(_beOn&&!_beArmed&&h.buyPrice>0&&day.c>=h.buyPrice*(1+R302.bePct/100))_beArmed=true; }
             }
-            if(!hit&&days.length){ h.tgtChecked=days[days.length-1].d; // scanned through here
+            if(!hit&&days.length){ h.tgtChecked=days[days.length-1].d; changed=true; // scanned through here (v366: persist the watermark explicitly)
               // persist the ratchet so the portfolio shows the live trailed stop
               if(_peak>(h.peakClose||0)){ h.peakClose=_peak; changed=true; }
               if(_beArmed&&h.beArmed!==true){ h.beArmed=true; changed=true; }
@@ -5707,14 +5789,14 @@ async function checkAutoSellTargets(acct){
         p.history=p.history||[];
         p.history.unshift({ticker:h.ticker,exchange:h.exchange,name:h.name,currency:h.currency,
           buyDate:h.buyDate,buyPrice:h.buyPrice,qty:h.qty,invested:h.invested,
-          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null,tgtLog:h.tgtLog||null,stopLog:h.stopLog||null});
+          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,sellFee:(_sf||0),buyFee:(h.buyFee||0),plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null,tgtLog:h.tgtLog||null,stopLog:h.stopLog||null}); // v366: sellFee/buyFee recorded so ↩ undo can refund the fee properly
         p.cash=+((p.cash||0)+proceeds).toFixed(2);
         _chargeFee(p);
         const i=p.holdings.findIndex(x=>x.id===h.id);
         if(i>=0)p.holdings.splice(i,1);
         autoSold.push(`${h.ticker} ${hit.why==='stop'?'🛑 stopped out':'🎯 target hit'} at ${fmtP(hit.fill,h.currency)} on ${hit.date} (P/L ${plAbs>=0?'+':''}${plAbs})`);
+        changed=true; // v366: only mark changed when something actually changed — the old unconditional flag forced a save every run, which clobbered concurrent buys made while this checker was mid-fetch
       }
-      changed=true;
     }
     if(changed)_paperSave(_paperPrune(p),ACCT);
     if(autoSold.length){
@@ -6014,12 +6096,14 @@ function _orderPreOpen(exch){
 async function checkLimitOrders(acct){
   const ACCT=acct||window._pfCtx;
   if(window._ordChecking)return [];
+  if(window._tgtChecking)return []; // v366: never run while the sell-checker holds its own account snapshot — the later save would clobber the earlier one (lost buys/sells)
   if(window._bulkRunning)return []; // v364: same — wait until the bulk download is done
   const p=_paper(ACCT);
   const orders=(p.orders||[]);
   if(!orders.length)return [];
   window._ordChecking=true;
   const filled=[];
+  let changed=false; // v366: only save when something actually changed — an unconditional save was clobbering concurrent writes
   const todayL=_todayLocal();
   try{
     const key=((document.getElementById('apiKey')||{}).value||'').trim();
@@ -6028,6 +6112,7 @@ async function checkLimitOrders(acct){
         p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
         if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
         p.orders=p.orders.filter(x=>x.id!==o.id);
+        changed=true;
         filled.push(`${o.ticker} order expired after ${ORDER_EXPIRY_DAYS} days — ${fmtP(o.reserved,o.currency)} returned to cash`);
         continue;
       }
@@ -6035,25 +6120,38 @@ async function checkLimitOrders(acct){
       if(key){
         try{
           const since=o.checkedDate||o.placedDate;
-          const rows=await fetchHistory(o.exchange,o.ticker,key,120);
-          if(rows&&rows.length){
-            const days=rows.filter(d=>d.d>since||d.d===since).sort((a,b)=>a.d<b.d?-1:1);
+          const raw=await fetchHistory(o.exchange,o.ticker,key,120);
+          if(raw&&raw.length){
+            // v366 CRITICAL FIX: fetchHistory returns RAW API rows (dateStamp/
+            // open/low/close) — this loop was reading d/o/lo which don't exist,
+            // so `days` was always EMPTY: dip limit orders never filled on an
+            // intraday dip (only via the close fallback) and market orders
+            // filled at the CLOSE, not "the next day's open" as promised.
+            // Normalise exactly like checkAutoSellTargets does.
+            const days=raw.map(q=>({
+              d:String(qField(q,['dateStamp','DateStamp','date','Date','tradeDate'])||'').slice(0,10),
+              o:parseFloat(qField(q,['open','Open'])),
+              lo:parseFloat(qField(q,['low','Low'])),
+              c:parseFloat(qField(q,['close','Close','c']))
+            })).filter(x=>x.d&&(x.d>since||x.d===since)).sort((a,b)=>a.d<b.d?-1:1);
             for(const day of days){
               if(day.d<o.placedDate||(day.d===o.placedDate&&!o.preOpen))continue; // v344: pre-open orders work from the placement day
-
+              // v366: >0 guards — a healed/corrupt row can carry a zero open/low,
+              // and a zero-price fill would mint free shares.
               if(o.market){ if(isFinite(day.o)&&day.o>0){hit={date:day.d,fill:day.o};break;} continue; }
-              if(isFinite(day.o)&&day.o<=o.limit){hit={date:day.d,fill:day.o};break;} // gapped below → open
-              if(isFinite(day.lo)&&day.lo<=o.limit){hit={date:day.d,fill:o.limit};break;} // dipped to limit
+              if(isFinite(day.o)&&day.o>0&&day.o<=o.limit){hit={date:day.d,fill:day.o};break;} // gapped below → open
+              if(isFinite(day.lo)&&day.lo>0&&day.lo<=o.limit){hit={date:day.d,fill:o.limit};break;} // dipped to limit
             }
-            if(!hit&&days.length)o.checkedDate=days[days.length-1].d;
+            if(!hit&&days.length&&days[days.length-1].d>(o.checkedDate||'')){o.checkedDate=days[days.length-1].d;changed=true;}
           }
         }catch(e){}
       }
       // Fallback: last close at/below limit fills.
       if(!hit){const s=allData.find(x=>x.ticker===o.ticker);
         if(s&&o.market&&s.price>0){const qd=(s._q&&s._q.d)||todayL;if(qd>o.placedDate||(qd===o.placedDate&&o.preOpen))hit={date:qd,fill:s.price};}
-        else if(s&&!o.market&&s.price<=o.limit&&(todayL>o.placedDate||o.preOpen))hit={date:todayL,fill:Math.min(o.limit,s.price)};}
+        else if(s&&!o.market&&s.price>0&&s.price<=o.limit&&(todayL>o.placedDate||o.preOpen))hit={date:todayL,fill:Math.min(o.limit,s.price)};} // v366: s.price>0 guard — a suspended share's zero quote minted free shares
       if(hit){
+        changed=true;
         const qtyF=o.market?Math.floor((o.amount||o.reserved)/hit.fill):o.qty;
         if(qtyF<1){
           p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
@@ -6072,7 +6170,7 @@ async function checkLimitOrders(acct){
         filled.push(`${o.ticker} bought ${qtyF} @ ${fmtP(hit.fill,o.currency)} on ${hit.date}${o.market?' (at the day\u2019s open)':''}`);
       }
     }
-    _paperSave(p,ACCT);
+    if(changed)_paperSave(p,ACCT); // v366: no-change runs no longer save (they were overwriting concurrent buys/sells with a stale snapshot)
   }finally{window._ordChecking=false;}
   if(filled.length){const ls=document.getElementById('loadStatus');if(ls)ls.innerHTML=`✅ <span style="color:var(--green)">Limit buy filled: ${filled.join(' · ')}</span> — see 💼 Portfolio.`;refreshPortfolioBtn&&refreshPortfolioBtn();}
   return filled;
@@ -6568,7 +6666,7 @@ function refreshPortfolioBtn(){
   hold.forEach(h=>{val+=h.qty*(h.lastPrice||h.buyPrice);});
   const acct=(p.cash||0)+_reservedSum(p)+val; // reserved limit-order cash is still yours
   const SC=_startCap(p);
-  const pl=acct-SC, plp=(pl/SC)*100;
+  const pl=acct+(p.wdProfit||0)-SC, plp=(pl/SC)*100; // v366: profit you withdrew still counts as profit you made
   const bad=paperBalanceInconsistent();
   const c=bad?'var(--orange)':pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
   b.innerHTML=bad
@@ -6723,14 +6821,14 @@ function paperRepairBalance(){
   const cashA=+(Math.max(0,banked)).toFixed(2);
   const scA=+(cashA+committed-banked).toFixed(2);
   // ── Option B: STANDARD $10k accounting ──
-  const cashB=+(PAPER_START_CASH-committed+closedPl-fees).toFixed(2);
+  const cashB=+(PAPER_START_CASH-committed+closedPl-fees+histFees+divs).toFixed(2); // v366: was missing histFees+divs, so applying B immediately re-flagged "corrupted" by exactly that amount
   const msgA='No number entered. Use an automatic option instead?\n\n'
     +'OPTION A — Match my real trades:\n'
     +'  · Starting balance = money you actually put in: $'+scA.toLocaleString(undefined,{minimumFractionDigits:2})+'\n'
     +'  · Cash = banked profit: $'+cashA.toLocaleString(undefined,{minimumFractionDigits:2})+'\n\n'
     +'OK = Option A · Cancel = see the $10k option';
   if(confirm(msgA)){
-    p.cash=cashA;p.startCap=scA;
+    p.cash=cashA;p.startCap=scA;p.ledgerBase=0; // v366: reset the accepted baseline — a repair means "this is now correct"
     _paperSave(p);refreshPortfolioBtn();showPortfolio();return;
   }
   const msgB='OPTION B — Standard $10,000 accounting:\n\n'
@@ -6738,7 +6836,7 @@ function paperRepairBalance(){
     +'  · Cash becomes: $'+cashB.toLocaleString(undefined,{minimumFractionDigits:2})+(cashB<0?'  (negative)':'')+'\n\n'
     +'OK = apply Option B · Cancel = change nothing';
   if(confirm(msgB)){
-    p.cash=cashB;delete p.startCap;
+    p.cash=cashB;delete p.startCap;p.ledgerBase=0; // v366: reset the accepted baseline
     _paperSave(p);refreshPortfolioBtn();showPortfolio();
   }
 }
@@ -6755,8 +6853,16 @@ function paperAddCash(){
   if(!isFinite(amt)||amt===0){alert('Enter an amount, e.g. 5000.');return;}
   if(amt<0&&(p.cash||0)+amt<0){alert('You can\u2019t withdraw more than your cash balance ('+(p.cash||0).toFixed(2)+').');return;}
   p.cash=+((p.cash||0)+amt).toFixed(2);
-  p.startCap=+((_startCap(p))+amt).toFixed(2);
-  if(p.startCap<1)p.startCap=1;
+  if(amt>0){
+    p.startCap=+((_startCap(p))+amt).toFixed(2);
+  }else{
+    // v366: withdrawals NEVER shrink the starting balance \u2014 any reduction
+    // distorts the return-% denominator (the old symmetric subtraction could
+    // hit the $1 clamp and show returns in the millions). Withdrawn cash is
+    // tracked instead and still counts as money you made: return = (account
+    // now + withdrawn \u2212 start) \u00f7 start.
+    p.wdProfit=+(((p.wdProfit||0)+(-amt))).toFixed(2);
+  }
   p.deposits=p.deposits||[];
   p.deposits.push({date:_todayLocal(),amount:+amt.toFixed(2)});
   _paperSave(p);
@@ -6766,14 +6872,18 @@ function paperAddCash(){
 function _paperLedgerDiff(p){
   // cash − what the ledger says cash should be (0 = perfectly consistent)
   const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
-  const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);
+  // v366: reserved is o.reserved ONLY — the pending order's fee was ALREADY
+  // moved into feesPaid at placement, so adding o.fee here subtracted it twice
+  // and every open order showed a false "balance corrupted" warning of exactly
+  // one brokerage fee.
+  const reserved=(p.orders||[]).reduce((a,o)=>a+(o.reserved||0),0);
   const closedPl=(p.history||[]).reduce((a,t)=>a+(t.plAbs||0),0);
   // v234: closed trades since the fees update carry their fees INSIDE plAbs, and
   // those same fees also sit in feesPaid — add them back so they aren't counted
   // twice. Dividends are real cash in, so they count too.
   const histFees=(p.history||[]).reduce((a,t)=>a+(t.fees||0),0);
   const divs=(p.dividends||[]).reduce((a,d)=>a+(d.total||0),0);
-  const expect=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs).toFixed(2);
+  const expect=+(_startCap(p)-spent-reserved+closedPl-(p.feesPaid||0)+histFees+divs-(p.wdProfit||0)).toFixed(2); // v366: withdrawn profit left the account as real cash
   return +(((p.cash||0)-expect)).toFixed(2);
 }
 function paperBalanceInconsistent(){
@@ -7035,7 +7145,7 @@ function showPortfolio(exSel){
         </div>`;
       }
       return `${mixed?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:9px;color:var(--orange);">⚠ You hold shares in different currencies (${_curs.join(' + ')}) — the combined totals below add them as-is. Use the exchange tabs for exact single-currency figures.</div>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${statsHtml?'8px':'12px'};">
-        ${ex==='ALL'?card('Account total',acct.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' <span style="font-size:9px">('+((acct-SC)/SC*100>=0?'+':'')+((acct-SC)/SC*100).toFixed(1)+'%)</span>',pc(acct-SC)):''}
+        ${ex==='ALL'?(function(){const _wd=(p.wdProfit||0);const _r=((acct+_wd-SC)/SC)*100;return card('Account total',acct.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' <span style="font-size:9px">('+(_r>=0?'+':'')+_r.toFixed(1)+'%'+(_wd>0?' incl. $'+_wd.toLocaleString()+' withdrawn':'')+')</span>',pc(acct+_wd-SC));})():''}
         ${(ex==='ALL'&&SC!==PAPER_START_CASH)?card('Start capital',SC.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
         ${ex==='ALL'?card('💵 Cash',cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
         ${(ex==='ALL'&&resv>0.005)?card('⏳ Reserved',resv.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
@@ -14822,27 +14932,37 @@ function _auditOneShare(s,X){
   { let vs=0,vn=0; for(let q=Math.max(0,n-90);q<n;q++){ const $t=(r[q].v||0)*(r[q].c||0); if($t>0){vs+=$t;vn++;} }
     if(!(vn>0&&(vs/vn)>=LIQ_FLOOR)){ X.liqSkipped++; return; } }
   X.covered++;
-  const cumV=new Array(n), cumC=new Array(n), maxC=new Array(n), maxV=new Array(n);
-  let cv=0, cc=0, mc=0, mv=0;
+  const cumV=new Array(n), cumVn=new Array(n), cumC=new Array(n), maxC=new Array(n), maxV=new Array(n);
+  let cv=0, cvn=0, cc=0, mc=0, mv=0;
   for(let i=0;i<n;i++){
-    cv+=(r[i].v||0); cc+=(r[i].c||0); cumV[i]=cv; cumC[i]=cc;
+    cv+=(r[i].v||0); if((r[i].v||0)>0)cvn++; cumV[i]=cv; cumVn[i]=cvn; cumC[i]=cc+(r[i].c||0); cc=cumC[i];
     maxC[i]=mc; maxV[i]=mv;
     if(r[i].c>mc)mc=r[i].c; if((r[i].v||0)>mv)mv=r[i].v||0;
   }
-  const avgPrev=(i,len)=>{ const a=Math.max(0,i-len), cnt=i-a; if(cnt<=0)return 0; return (cumV[i-1]-(a>0?cumV[a-1]:0))/cnt; };
+  // v366: average volume over TRADED days only (v>0), matching how the LIVE
+  // flags compute it — the old all-days denominator halved the average for
+  // thin stocks, so the audit graded flags that fire on far weaker volume
+  // than the ones the bot actually trades.
+  const avgPrev=(i,len)=>{ const a=Math.max(0,i-len); if(i-a<=0)return 0; const cnt=(cumVn[i-1]||0)-(a>0?(cumVn[a-1]||0):0); if(cnt<=0)return 0; return (cumV[i-1]-(a>0?cumV[a-1]:0))/cnt; };
   const ma=(i,len)=>{ const a=i-len+1; if(a<0)return 0; return (cumC[i]-(a>0?cumC[a-1]:0))/len; };
-  const lo=Math.max(60,n-1-HOLD-DAYS), hi=n-1-HOLD;
+  // v366: outcome measured from the NEXT day's close — every flag needs the full
+  // signal day (close + volume) to exist, so the earliest a follower can act is
+  // the next session. The old close-to-close-from-signal-day counted the
+  // overnight gap the bot can never capture, inflating every edge.
+  const lo=Math.max(60,n-2-HOLD-DAYS), hi=n-2-HOLD;
   const mid=lo+Math.floor((hi-lo)/2);
   const prevF=[];
+  const lastFired={}; // v366: per-key de-overlap — one fire per stock per HOLD window
   for(let i=Math.max(60,lo-SEQ_LOOK);i<hi;i++){
-    const c0=r[i].c, cP=r[i-1].c, c5=r[i+HOLD].c, vol=r[i].v||0;
+    const c0=r[i].c, cP=r[i-1].c, c1=r[i+1].c, cH=r[i+1+HOLD].c, vol=r[i].v||0;
     const a90=avgPrev(i,90);
-    const valid=(c0>0&&cP>0&&c5>0&&a90>0);
+    const valid=(c0>0&&cP>0&&c1>0&&cH>0&&a90>0);
     let f=null, out=0, chg=0;
     if(valid){
       chg=((c0-cP)/cP)*100;
       const ratio=vol/a90;
-      out=((c5-c0)/c0)*100;
+      out=((cH-c1)/c1)*100;
+      out=Math.max(-35,Math.min(35,out)); // v366: winsorise — one split/consolidation artefact must not dominate a small-n combo
       f={
         inf: chg>0&&chg<8&&vol>5000&&ratio>1.8,
         inst: chg>0&&vol>30000&&ratio>1.5,
@@ -14872,10 +14992,16 @@ function _auditOneShare(s,X){
       for(const bk of SEQ_B){ if(f[bk]){ for(const ak of SEQ_A){
         if(prevF.some(st=>st&&st.has(ak)))ks.push(ak+'>'+bk);
       } } }
-      if(ks.length){
+      // v366: DE-OVERLAP — a flag that re-fires on consecutive days of the same
+      // episode was counted up to HOLD times on near-identical outcomes, and a
+      // pair key likewise; that made n look big and the t-stat overconfident,
+      // letting noise reach PROMISING/SOLID. Count each key at most once per
+      // HOLD window per stock.
+      const ksd=ks.filter(k=>{ const lf=lastFired[k]; if(lf!=null&&(i-lf)<HOLD)return false; lastFired[k]=i; return true; });
+      if(ksd.length){
         let annSt=null;
         if(window._annPS){ annSt=window._annPS.info(s.ticker, r[Math.max(0,i-2)].d, r[i].d); }
-        X.recs.push({ks,out,d:dk,half,ann:annSt});
+        X.recs.push({ks:ksd,out,d:dk,half,ann:annSt});
       }
     }
     prevF.push(valid?new Set(_CMB_KEYS.filter(k=>f[k])):null);
@@ -14918,7 +15044,10 @@ function _auditFinalize(X){
     const haAvg=m.ha.n?m.ha.sum/m.ha.n:null, hbAvg=m.hb.n?m.hb.sum/m.hb.n:null;
     m.haAvg=haAvg; m.hbAvg=hbAvg;
     m.held=(m.ha.n>=5&&m.hb.n>=5)?(DIRNEG[k]?(haAvg<0&&hbAvg<0):(haAvg>0&&hbAvg>0)):null;
-    const at=Math.abs(m.tstat);
+    // v366: tier judged on the SIGNED t-stat in the flag's own direction — the
+    // old |t| let a bullish flag that reliably preceded FALLS display "SOLID".
+    // Bearish keys (di / vr- / blk-) qualify on a significantly negative edge.
+    const at=DIRNEG[k]?-m.tstat:m.tstat;
     m.tier=(m.n>=50&&at>=2)?'solid':((m.n>=30&&at>=1)?'promising':'early');
     m.dirNeg=!!DIRNEG[k];
   }
