@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-365-open';
+const APP_VERSION='2026.07.16-366-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5500,13 +5500,14 @@ function updatePaperPrices(acct){
 // row: <button onclick="undoSale('DATE','TICKER','BUYDATE')">↩ undo</button>
 // You can also still trigger it from the browser console: undoSale(sellDate,ticker,buyDate)
 function undoSale(sellDate,ticker,buyDate){
-  // v365: the auto-pilot briefly flips the viewed-account global (_pfCtx) while it runs,
-  // so don't trust it — act on the account that ACTUALLY holds this trade (current view,
-  // then the other account).
+  // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
+  // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
+  // viewed account then the other account, matching exact first, then by ticker + buy-date.
+  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(i<0)i=H.findIndex(t=>t.ticker===ticker&&t.buyDate===buyDate); return i; };
   let _acct=window._pfCtx||'main';
   let p=_paper(_acct);
-  let idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
-  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=(_pa.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
+  let idx=_fT(p);
+  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=_fT(_pa); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
   if(idx<0){alert('Could not find that trade to undo.');return;}
   const t=p.history[idx];
   // v363: SAFE undo. You can only take the sale's money back OUT of cash if it's still
@@ -6360,13 +6361,14 @@ function paperDeleteHolding(id){
   showPortfolio();
 }
 function paperDeleteTrade(sellDate,ticker,buyDate){
-  // v365: the auto-pilot briefly flips the viewed-account global (_pfCtx) while it runs,
-  // so don't trust it — act on the account that ACTUALLY holds this trade (current view,
-  // then the other account).
+  // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
+  // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
+  // viewed account then the other account, matching exact first, then by ticker + buy-date.
+  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(i<0)i=H.findIndex(t=>t.ticker===ticker&&t.buyDate===buyDate); return i; };
   let _acct=window._pfCtx||'main';
   let p=_paper(_acct);
-  let idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
-  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=(_pa.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
+  let idx=_fT(p);
+  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=_fT(_pa); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
   if(idx<0){alert('Could not find that trade to delete.');return;}
   const t=p.history[idx];
   if(!confirm(`🗑 Delete this closed ${t.ticker} trade from your history?\n\nSold ${(+t.qty||0).toLocaleString()} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate} · recorded P/L ${(+t.plAbs||0)>=0?'+':''}${(+t.plAbs||0).toFixed(2)}.\n\nRemoves the record and reverses that ${((+t.plAbs||0)>=0)?'profit':'loss'} from your cash so the balance stays consistent — for clearing a wrong or duplicate trade. Your 🤖 auto-pilot account is NOT affected.`))return;
@@ -6660,8 +6662,11 @@ function doPasteRestore(){
   }catch(e){if(msg){msg.textContent='That doesn\'t look like portfolio data. Make sure you copied the whole line output.';msg.style.color='#ff9caa';}}
 }
 async function exportPortfolioBackup(){
-  const p=_paper();
-  const payload={_type:'insight-trading-portfolio',_version:APP_VERSION,_exported:new Date().toISOString(),account:p};
+  // v366: back up BOTH practice accounts together (👤 My Trading + 🤖 Auto-pilot) so one
+  // file captures everything and a restore brings both back. `account` stays = My Trading
+  // for older app versions that only read that key.
+  const _main=_paper('main'), _auto=_paper('auto');
+  const payload={_type:'insight-trading-portfolio',_version:APP_VERSION,_exported:new Date().toISOString(),main:_main,auto:_auto,account:_main};
   const fname='insight-trading-portfolio_'+new Date().toISOString().slice(0,10)+'.json';
   const json=JSON.stringify(payload,null,2);
   const blob=new Blob([json],{type:'application/json;charset=utf-8;'});
@@ -6682,6 +6687,22 @@ function importPortfolioBackup(input){
   rd.onload=()=>{
     try{
       const data=JSON.parse(String(rd.result));
+      // v366: a newer backup carries BOTH accounts. Restore each to its OWN slot, so a
+      // normal portfolio can never land in the 🤖 bot account by accident again.
+      const _mm=(data&&data.main&&typeof data.main==='object'&&Array.isArray(data.main.holdings))?data.main:null;
+      const _aa=(data&&data.auto&&typeof data.auto==='object'&&Array.isArray(data.auto.holdings))?data.auto:null;
+      if(_mm||_aa){
+        const mH=_mm?_mm.holdings.length:0, mT=_mm?(_mm.history||[]).length:0;
+        const aH=_aa?_aa.holdings.length:0, aT=_aa?(_aa.history||[]).length:0;
+        if(!confirm('Restore BOTH accounts from this file?\n\n👤 My Trading: '+mH+' holding(s), '+mT+' trade(s)\n🤖 Auto-pilot: '+aH+' holding(s), '+aT+' trade(s)\n\nThis REPLACES both paper accounts on this browser. Back up the current ones first if unsure.')){input.value='';return;}
+        if(_mm){ _ensureCash(_mm); _paperSave(_mm,'main'); }
+        if(_aa){ _ensureCash(_aa); _paperSave(_aa,'auto'); }
+        refreshPortfolioBtn&&refreshPortfolioBtn();
+        updatePaperPrices&&updatePaperPrices();
+        showPortfolio&&showPortfolio();
+        alert('✓ Restored both accounts — 👤 My Trading and 🤖 Auto-pilot.');
+        input.value='';return;
+      }
       const acct=(data&&data.account&&typeof data.account==='object')?data.account
                  :(data&&Array.isArray(data.holdings))?data:null;   // accept bare account too
       if(!acct||!Array.isArray(acct.holdings)){alert('That file is not an Insight Trading portfolio backup.');input.value='';return;}
@@ -6713,6 +6734,26 @@ function paperResetAccount(){
 // the cash balance from the permanent ledger AS IF the account had started
 // with $10k from the very first trade: cash = $10,000 − cost of open holdings
 // + realised P/L of every closed trade. Holdings and history are untouched.
+// v366: recompute this account's Fees Paid from its ACTUAL trades and return any
+// over-charged fees to cash. For when an imported / old account carried a fee total that
+// doesn't belong (e.g. a normal portfolio dropped into the bot account). Ledger-consistent
+// (feesPaid drops by X, cash rises by X) and acts only on the account you're viewing.
+function paperRecomputeFees(){
+  const _acct=window._pfCtx||'main';
+  const p=_paper(_acct);
+  const _who=(_acct==='auto')?'🤖 Auto-pilot':'👤 My Trading';
+  const realFees=+(((p.holdings||[]).reduce((a,h)=>a+(+h.buyFee||0),0))+((p.history||[]).reduce((a,t)=>a+(+t.fees||0),0))).toFixed(2);
+  const cur=+(p.feesPaid||0).toFixed(2);
+  const diff=+(cur-realFees).toFixed(2);
+  if(Math.abs(diff)<0.005){ alert('Fees on the '+_who+' account already match your trades ('+fmtP(realFees,'AUD')+'). Nothing to fix.'); return; }
+  if(!confirm(`🧮 Recompute fees on the ${_who} account?\n\nFees shown now: ${fmtP(cur,'AUD')}\nFees from your actual trades: ${fmtP(realFees,'AUD')}\n\nThis sets fees to ${fmtP(realFees,'AUD')} and ${diff>=0?'returns '+fmtP(diff,'AUD')+' to':'takes '+fmtP(-diff,'AUD')+' from'} your cash. Use it when an imported or old account carried fees that don't belong here. Your holdings and history are not changed.`))return;
+  p.feesPaid=realFees;
+  p.cash=+((p.cash||0)+diff).toFixed(2);
+  _paperSave(p,_acct);
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">🧮 Fees on ${_who} corrected to ${fmtP(realFees,'AUD')} — ${diff>=0?fmtP(diff,'AUD')+' returned to':fmtP(-diff,'AUD')+' taken from'} cash.</span>`;
+  showPortfolio();
+}
 function paperRepairBalance(){
   const p=_paper();
   const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
@@ -7146,7 +7187,7 @@ function showPortfolio(exSel){
       <div style="font-size:8px;color:var(--dim);margin-top:4px;text-align:center;line-height:1.5;">Portfolio missing or empty? This recovers it from the backup kept automatically on this device. Backups are per-device — they don't move between phones. For the most durable saving, install the app to your home screen.</div>
     </div>
     <button onclick="showPasteRestore()" title="Move a portfolio from another version by pasting its data" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📋 Paste portfolio from old version</button>
-    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}${_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a></div>
+    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}${_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a> · <a href="#" onclick="paperRecomputeFees();return false;" style="color:var(--orange);" title="Recompute this account's Fees Paid from your actual trades and return any over-charged fees to cash — for an imported or old account whose fees don't belong here.">🧮 fix fees</a></div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Charged on every fill and included in each closed trade’s recorded P/L.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">📉 Slippage per side: <input type="number" min="0" max="10" step="any" value="${slippagePct()||''}" placeholder="0" onchange="setSlippage(this.value)" style="width:44px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;">% — simulates the bid–ask spread: market buys fill that much higher, market sells &amp; stop-outs that much lower. Small ASX shares often cost 1–3% to cross. 0 = off.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">⏭ <strong style="color:var(--muted)">Realistic fills (locked on)</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Always on, so practice results stay honest.</div>
