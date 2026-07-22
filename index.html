@@ -683,7 +683,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
       </select>
     </div>
     <div style="font-size:10.5px;color:var(--muted);background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.25);border-radius:7px;padding:7px 9px;margin:8px 0 2px;line-height:1.5;">💡 <strong>Normal day = just press ⚡.</strong> Today's prices come from the internet, history comes instantly from this device, and anything missing is fetched once and saved automatically. ⬇ Download all is only for the FIRST setup (or a full rebuild). 📂 is for when you have no internet.</div>
-    <div class="step-sub2" style="margin-top:10px;">🌐 FROM THE INTERNET — today's live prices <span style="text-transform:none;font-weight:500;">(needs your API key)</span></div>
+    <div class="step-sub2" style="margin-top:10px;">🌐 FROM THE INTERNET — the latest end-of-day prices <span style="text-transform:none;font-weight:500;">(needs your API key)</span></div>
     <button id="loadBtn" onclick="loadData(true)">
       <div class="sp" id="sp"></div>
       <span id="loadLbl" data-i18n="loadData">⚡ Get today's prices (internet)</span>
@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-348-open';
+const APP_VERSION='2026.07.16-349-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10243,7 +10243,7 @@ function runLoadPreset(){
   window._preferOffline=false;   // force-live overrides prefer-offline for this run
   window._offlineMode=false;     // v236: live preset run leaves offline mode too
   if(typeof _histClearCache==='function')_histClearCache(); // drop session cache too
-  const msg=document.getElementById('lpMsg'); if(msg)msg.innerHTML=`<span style="color:#58a6ff">⚡ Loading "${p.name}" live from the API…</span>`;
+  const msg=document.getElementById('lpMsg'); if(msg)msg.innerHTML=`<span style="color:#58a6ff">⚡ Loading "${p.name}" fresh from the API…</span>`;
   if(!allData.length){
     // need to load the exchange list first, then prepare with the recipe
     if(typeof loadData==='function')loadData();
@@ -12177,7 +12177,7 @@ Output the complete array. Start with [`;
     return;
   }
 
-  {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · ${via==='ai-proxy'?'<span style="color:var(--orange)">live · AI relay</span>':(via==='quote-list'?'live · quote list':'live')}${(window._dlTypeDropped>0)?` · <span style="color:var(--dim)" title="Your load-type chips (Setup ▸ What to load from the API) are skipping these security types — tick more chips there to load everything">${window._dlTypeDropped.toLocaleString()} skipped by type</span>`:''}`; _n.style.display='inline-block';}}
+  {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · <span title="End-of-day closing prices from the last completed trading session — NOT real-time. Fetched just now from the internet (not your saved data).">${via==='ai-proxy'?'<span style="color:var(--orange)">end-of-day · AI relay</span>':(via==='quote-list'?'end-of-day · quote list':'end-of-day')}</span>${(window._dlTypeDropped>0)?` · <span style="color:var(--dim)" title="Your load-type chips (Setup ▸ What to load from the API) are skipping these security types — tick more chips there to load everything">${window._dlTypeDropped.toLocaleString()} skipped by type</span>`:''}`; _n.style.display='inline-block';}}
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
   document.getElementById('exchBadge').textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
@@ -12584,7 +12584,7 @@ async function simpleLoad(fresh){
   }
   // Otherwise we need a live load, which needs an API key.
   if(!hasKey){
-    if(st)st.innerHTML='To load live prices you need your free data key. Open Advanced to add it, or press Demo to try the app with sample shares.';
+    if(st)st.innerHTML='To load the latest end-of-day prices you need your free data key. Open Advanced to add it, or press Demo to try the app with sample shares.';
     _refreshSimpleLoad();
     return;
   }
