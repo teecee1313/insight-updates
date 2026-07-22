@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-364-open';
+const APP_VERSION='2026.07.16-365-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5500,8 +5500,13 @@ function updatePaperPrices(acct){
 // row: <button onclick="undoSale('DATE','TICKER','BUYDATE')">↩ undo</button>
 // You can also still trigger it from the browser console: undoSale(sellDate,ticker,buyDate)
 function undoSale(sellDate,ticker,buyDate){
-  const p=_paper();
-  const idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+  // v365: the auto-pilot briefly flips the viewed-account global (_pfCtx) while it runs,
+  // so don't trust it — act on the account that ACTUALLY holds this trade (current view,
+  // then the other account).
+  let _acct=window._pfCtx||'main';
+  let p=_paper(_acct);
+  let idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=(_pa.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
   if(idx<0){alert('Could not find that trade to undo.');return;}
   const t=p.history[idx];
   // v363: SAFE undo. You can only take the sale's money back OUT of cash if it's still
@@ -5539,7 +5544,7 @@ function undoSale(sellDate,ticker,buyDate){
   }
   // remove the history entry
   p.history.splice(idx,1);
-  _paperSave(_paperPrune(p));
+  _paperSave(_paperPrune(p),_acct);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Auto-sell is paused on it so a rule can't sell it straight back; set a 🎯 or 🛑 on it to hand it back to your rules.`;
   showPortfolio();
@@ -6334,8 +6339,10 @@ function paperSellMarket(id){
 // ledger consistent and act ONLY on the account you're viewing — the 🤖 auto-pilot ($50k)
 // account is a separate store and is never touched.
 function paperDeleteHolding(id){
-  const p=_paper();
-  const lots=_lotsFor(p,id);
+  let _acct=window._pfCtx||'main';
+  let p=_paper(_acct);
+  let lots=_lotsFor(p,id);
+  if(!lots.length){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _la=_lotsFor(_pa,id); if(_la.length){ _acct=_alt; p=_pa; lots=_la; } }
   if(!lots.length)return;
   const tk=lots[0].ticker, cur=lots[0].currency;
   const totQty=lots.reduce((a,l)=>a+(+l.qty||0),0);
@@ -6347,21 +6354,26 @@ function paperDeleteHolding(id){
   if(totBuyFee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-totBuyFee)).toFixed(2);
   const ids=new Set(lots.map(l=>l.id));
   p.holdings=(p.holdings||[]).filter(x=>!ids.has(x.id));
-  _paperSave(_paperPrune?_paperPrune(p):p);
+  _paperSave(_paperPrune?_paperPrune(p):p,_acct);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${tk} removed from holdings — ${fmtP(back,cur)} returned to cash, no sale recorded.</span>`;
   showPortfolio();
 }
 function paperDeleteTrade(sellDate,ticker,buyDate){
-  const p=_paper();
-  const idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+  // v365: the auto-pilot briefly flips the viewed-account global (_pfCtx) while it runs,
+  // so don't trust it — act on the account that ACTUALLY holds this trade (current view,
+  // then the other account).
+  let _acct=window._pfCtx||'main';
+  let p=_paper(_acct);
+  let idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=(_pa.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
   if(idx<0){alert('Could not find that trade to delete.');return;}
   const t=p.history[idx];
   if(!confirm(`🗑 Delete this closed ${t.ticker} trade from your history?\n\nSold ${(+t.qty||0).toLocaleString()} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate} · recorded P/L ${(+t.plAbs||0)>=0?'+':''}${(+t.plAbs||0).toFixed(2)}.\n\nRemoves the record and reverses that ${((+t.plAbs||0)>=0)?'profit':'loss'} from your cash so the balance stays consistent — for clearing a wrong or duplicate trade. Your 🤖 auto-pilot account is NOT affected.`))return;
   p.cash=+((p.cash||0)-(+t.plAbs||0)).toFixed(2);
   if(+t.fees>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-(+t.fees||0))).toFixed(2);
   p.history.splice(idx,1);
-  _paperSave(_paperPrune?_paperPrune(p):p);
+  _paperSave(_paperPrune?_paperPrune(p):p,_acct);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${t.ticker} trade deleted and the balance reconciled.</span>`;
   showPortfolio();
@@ -6851,7 +6863,7 @@ function _pfRowMenu(id,ev){
   const m=document.createElement('div');
   m.id='pfRowMenu';
   m.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:190px;';
-  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)')+item('paperDeleteHolding','🗑 Delete holding (no sale)','#ff9caa');
+  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)')+((typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?item('paperDeleteHolding','🗑 Delete holding (no sale)','#ff9caa'):'');
   document.body.appendChild(m);
   try{ const r=m.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
     m.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
@@ -6958,7 +6970,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button> <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="margin-top:3px;margin-left:4px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:#ff9caa;font:600 9px var(--sans);cursor:pointer;">🗑 Delete</button></td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?` <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="margin-top:3px;margin-left:4px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:#ff9caa;font:600 9px var(--sans);cursor:pointer;">🗑 Delete</button>`:''}</td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
