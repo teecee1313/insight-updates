@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-358-open';
+const APP_VERSION='2026.07.16-359-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14887,6 +14887,19 @@ function _cardShowTip(el,d){
   }catch(e){}
 }
 function _cardHideTip(){ if(_cardTipEl){ try{_cardTipEl.remove();}catch(e){} _cardTipEl=null; } }
+// v359: an at-a-glance Strength score /10 for the report card. Confidence-GATED so an
+// unproven combo can't score high no matter how big its raw edge looks: the tier sets the
+// band (TOO EARLY 0.5–4 · PROMISING 4–7 · SOLID 7–10) and the edge size (in the flag's own
+// direction) positions it inside; a signal not working in its direction scores near zero.
+// The exact edge %, t-stat, tier and fire count stay on the card as the maths behind it.
+function _cardScore10(m){
+  if(!m||!m.n)return 0;
+  const e=(m.dirNeg?-m.edge:m.edge);              // edge in the flag's own direction; >0 = working
+  if(!(e>0))return Math.max(0,+(2+e*0.5).toFixed(1)); // not working → 0–2
+  const band=(m.tier==='solid')?[7,10]:(m.tier==='promising')?[4,7]:[0.5,4];
+  const frac=Math.min(1,e/3);                     // a ~3% market-beating edge over the window tops the band
+  return +(band[0]+(band[1]-band[0])*frac).toFixed(1);
+}
 function signalReportCard(){
   // v321/v332: grading the whole exchange is ~1s+ of maths. v332 runs it in
   // non-blocking ≤35ms slices (_auditChunk) so the click never freezes, and
@@ -15048,22 +15061,22 @@ function _renderReportCard(A){
     // ranked by edge in each flag's own direction (re-uses the same audit).
     const _dirOf=m=>(m.dirNeg?-m.edge:m.edge);
     const singleKeys=['bo','inf','inst','cx','di','vr+','vr-','blk+','blk-'];
-    const singleLad=singleKeys.map(k=>A.M[k]?{k,m:A.M[k],dir:_dirOf(A.M[k])}:null).filter(it=>it&&it.m.n>=MINC).sort((a,b)=>b.dir-a.dir);
-    const comboLad=Object.keys(A.M).map(k=>({k,m:A.M[k]})).filter(it=>((it.k.indexOf('>')>0)||(it.k.indexOf('+')>0&&!/[+-]$/.test(it.k)&&['bo','inf','inst','cx','di','vr','blk'].indexOf(it.k)<0))&&it.m.n>=MINC).map(it=>({k:it.k,m:it.m,dir:_dirOf(it.m)})).sort((a,b)=>b.dir-a.dir);
+    const singleLad=singleKeys.map(k=>A.M[k]?{k,m:A.M[k],dir:_dirOf(A.M[k])}:null).filter(it=>it&&it.m.n>=MINC).sort((a,b)=>(_cardScore10(b.m)-_cardScore10(a.m))||(b.dir-a.dir));
+    const comboLad=Object.keys(A.M).map(k=>({k,m:A.M[k]})).filter(it=>((it.k.indexOf('>')>0)||(it.k.indexOf('+')>0&&!/[+-]$/.test(it.k)&&['bo','inf','inst','cx','di','vr','blk'].indexOf(it.k)<0))&&it.m.n>=MINC).map(it=>({k:it.k,m:it.m,dir:_dirOf(it.m)})).sort((a,b)=>(_cardScore10(b.m)-_cardScore10(a.m))||(b.dir-a.dir));
     const comboShown=comboLad.slice(0,12), comboMore=comboLad.length-comboShown.length;
     const sMax=singleLad.length?Math.max.apply(null,singleLad.map(x=>Math.abs(x.dir))):0;
     const cMax=comboShown.length?Math.max.apply(null,comboShown.map(x=>Math.abs(x.dir))):0;
-    const ladRow=(it,i,mx)=>{ const w=it.dir>0; const bw=mx>0?Math.max(3,Math.min(100,Math.abs(it.dir)/mx*100)):0; const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const _dt=it.m.dirNeg?'A WARNING — it works when price FALLS after it fires (so a green/high rung means it caught falls well, NOT that you buy it).':'A buy-side flag — it works when price RISES after it fires.'; const pl=(nm.replace(/<[^>]+>/g,'').replace(/"/g,''))+' — edge '+f1(it.m.edge)+', '+(TIER[it.m.tier]?TIER[it.m.tier][0]:'')+', '+it.m.n.toLocaleString()+' fires. '+_dt+' Ranked by edge in its own direction.';
-      return `<div style="display:flex;align-items:center;gap:7px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:11px;">
-        <span style="flex:0 0 22px;text-align:center;font-weight:700;color:var(--muted);">${md}</span>
+    const ladRow=(it,i,mx)=>{ const sc=_cardScore10(it.m); const scCol=sc>=7?'var(--green)':sc>=4?'var(--gold)':(it.m.dirNeg?'#9fb2cc':'#ff9caa'); const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const _dt=it.m.dirNeg?'A WARNING — it scores by how well it caught FALLS (a high score means it warned well, NOT that you buy it).':'A buy-side flag — it scores by how well price ROSE after it fired.'; const pl=(nm.replace(/<[^>]+>/g,'').replace(/"/g,''))+' — Strength '+sc+'/10. '+(TIER[it.m.tier]?TIER[it.m.tier][0]:'')+' · edge '+f1(it.m.edge)+' vs market over '+A.hold+' days · '+it.m.n.toLocaleString()+' fires. '+_dt+' Score: the badge sets the band (TOO EARLY 0-4 / PROMISING 4-7 / SOLID 7-10) and the edge size places it inside — so a proven small edge outscores a big unproven one.';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:11px;">
+        <span style="flex:0 0 20px;text-align:center;font-weight:700;color:var(--muted);">${md}</span>
         <span title="${pl}" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}${warn}</span>
-        <div style="flex:0 0 44px;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;"><div style="width:${bw}%;height:100%;background:${w?'var(--green)':'#ff9caa'};"></div></div>
-        <span style="flex:0 0 52px;text-align:right;font-weight:700;font-family:var(--mono);color:${w?'var(--green)':'#ff9caa'};">${f1(it.m.edge)}</span>
+        <span title="Strength /10 — how strong AND how proven, in one number (see 📖 How to read this card below)" style="flex:0 0 46px;text-align:right;font-weight:800;font-family:var(--mono);color:${scCol};cursor:help;">${sc}/10</span>
+        <span title="Its market-beating edge over the next ${A.hold} days — the maths behind the score" style="flex:0 0 48px;text-align:right;font-size:9px;font-family:var(--mono);color:var(--dim);cursor:help;">${f1(it.m.edge)}</span>
         <span style="flex:0 0 auto;">${chip(it.m)}</span>
       </div>`; };
     const ladderSec=`<div style="margin-top:16px;padding-top:11px;border-top:2px solid var(--border2);">
-      <div title="The ladder ranks every flag and combo best→worst by its EDGE in its own direction — a quick leaderboard of everything above. Warnings are tagged and score by how far price fell." style="cursor:help;font-size:13px;font-weight:800;color:var(--text);">🪜 The ladder — best to worst right now</div>
-      <div style="font-size:10px;color:var(--muted);margin:3px 0 8px;line-height:1.5;">A quick leaderboard of everything above, ranked by <b>edge in each flag's own direction</b> (📉 Dist? and the down-day flags are <b>warnings</b> — they score by how far price FELL, so a warning that's working ranks high but is <b>not a buy</b>, and is tagged “· warning”). <span style="color:var(--green)">Green</span> = working in its own direction now, <span style="color:#ff9caa">red</span> = not. The badge still shows how firm it is — a big edge marked <b>TOO EARLY</b> hasn't earned trust yet. Flags with ≥${MINC} fires only; the 📜 record across cards is the real test, not one week.</div>
+      <div title="The ladder ranks every flag and combo best→worst by its Strength /10 — how strong AND how proven each one is. A quick leaderboard of everything above. Warnings are tagged and score by how well they caught falls." style="cursor:help;font-size:13px;font-weight:800;color:var(--text);">🪜 The ladder — best to worst right now</div>
+      <div style="font-size:10px;color:var(--muted);margin:3px 0 8px;line-height:1.5;">A quick leaderboard of everything above, ranked by a <b>Strength score out of 10</b> — it blends how big the edge is with how <b>proven</b> it is, so a smaller edge you can trust beats a big one you can't. (📉 Dist? and the down-day flags are <b>warnings</b> — they score by how well they caught FALLS, so a high-scoring warning is <b>not a buy</b>, and is tagged “· warning”.) <span style="color:var(--green)">Green ≥7</span> = strong &amp; proven, <span style="color:var(--gold)">gold 4–7</span> = promising, <span style="color:#ff9caa">red &lt;4</span> = weak or unproven. The tier badge and edge % beside each row are the maths behind the number. Flags with ≥${MINC} fires only; the 📜 record across cards is the real test, not one week.</div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:6px 0 2px;">① Singles</div>
       ${singleLad.length?singleLad.map((it,i)=>ladRow(it,i,sMax)).join(''):'<div style="font-size:10px;color:var(--dim);padding:4px 2px;">Not enough single-flag fires yet.</div>'}
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 2px;">② Combinations &amp; sequences${comboMore>0?` <span style="font-weight:400;color:var(--dim);">· top 12 of ${comboLad.length}</span>`:''}</div>
@@ -15076,9 +15089,10 @@ function _renderReportCard(A){
         <p style="margin:6px 0;"><b style="color:var(--text)">What this is.</b> The app took every buy/sell flag it can spot and re-ran its exact formula across <b>your saved history</b> — every share, every past day it had data for. Each time a flag "fired" it then watched what price did over the next ${A.hold} trading days. So these aren't opinions; they're each flag's own track record on real recent data.</p>
         <p style="margin:6px 0;"><b style="color:var(--text)">EDGE is the number that matters.</b> A flag looking good in a week when the WHOLE market rose isn't impressive. So EDGE measures each fire against the average move of <b>all shares that same day</b>, then averages that. <span style="color:var(--green)">Above zero</span> = it beat the market; lucky good-market weeks are stripped out. For a <b>warning</b> flag (📉 Dist? and the down-day forms) it flips — <span style="color:var(--green)">below zero is good</span>, because a warning is meant to catch falls.</p>
         <p style="margin:6px 0;"><b style="color:var(--text)">The badges — how much to trust it.</b> <b style="color:var(--green)">SOLID</b> = 50+ fires with a steady edge (statistically clear). <b style="color:var(--gold)">PROMISING</b> = 30+ fires, decent but not proven. <b>TOO EARLY</b> = too few fires to tell a real edge from luck. A big edge that's still TOO EARLY has <i>not</i> earned trust.</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">⭐ The Strength score /10 — the quick read.</b> Most people don't want t-stats, so every line also gets a <b>score out of 10</b> that blends the two things that matter: how big the edge is AND how proven it is. The <b>badge sets the range</b> — TOO EARLY caps at 4/10 (unproven, however big the % looks), PROMISING sits 4–7, SOLID 7–10 — and the size of the edge places it inside that range. A signal not working in its own direction scores near zero. So a smaller-but-proven edge <i>outscores</i> a big-but-unproven one — the honest ranking. <span style="color:var(--green)">Green ≥7</span> strong, <span style="color:var(--gold)">gold 4–7</span> promising, <span style="color:#ff9caa">red &lt;4</span> weak/unproven. The exact edge %, tier badge and fire count stay on every line as the maths behind it.</p>
         <p style="margin:6px 0;"><b style="color:var(--text)">The rest of each line.</b> <b>higher / lower %</b> = how often price went the flag's way. <b>median</b> = the middle outcome (half better, half worse), which one giant winner can't inflate. <b>wins / losses</b> = the average size of the good fires vs the bad. <b>✓ / ✗ halves</b> = whether the edge showed in BOTH halves of the window (✓) or was one hot streak (✗). <b>🟩 / 🟥 tape</b> = how it did on up-market vs down-market days. <b>📜</b> = how many of your recent saved cards it was working on — persistence across weeks is the only evidence that deserves real money.</p>
         <p style="margin:6px 0;"><b style="color:var(--text)">Singles, Combinations, Sequences.</b> <b>Singles</b> = one flag alone. <b>Combinations</b> = two or three flags on the <i>same share, same day</i> — does agreement beat a lone flag? <b>Sequences</b> = quiet-buying flags in the days BEFORE, then an ignition flag today (accumulation-then-move).</p>
-        <p style="margin:6px 0;"><b style="color:var(--text)">🪜 The ladder</b> at the bottom ranks everything best→worst by edge in each flag's own direction. Rungs tagged <b>· warning</b> predict FALLS — a green warning is catching falls well, <i>not</i> a buy.</p>
+        <p style="margin:6px 0;"><b style="color:var(--text)">🪜 The ladder</b> at the bottom ranks everything best→worst by its <b>Strength /10</b>. Rungs tagged <b>· warning</b> predict FALLS — a high-scoring warning is catching falls well, <i>not</i> a buy.</p>
         <p style="margin:6px 0;color:var(--dim);">Hover — or press &amp; hold on a phone — any number, badge or rung for a one-line reminder. This is the app grading its own estimates honestly: a good past period never guarantees the future, and none of this is financial advice.</p>
       </div>
     </div>`;
