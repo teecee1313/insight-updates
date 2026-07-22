@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-350-open';
+const APP_VERSION='2026.07.16-351-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5553,6 +5553,7 @@ async function checkAutoSellTargets(acct){
     for(const h of targeted.slice()){
       if(!_armed(h))continue; // skip holdings bought today — give them a day first
       if(h.noAuto)continue; // v339: a restored (↩ undone) position — auto-sell is paused so it stays; a manual 🎯/🛑 re-arms it
+      const _mo=!!h.stopManual; // v351: a stop set by hand in the portfolio overrides the trail/break-even/time rules for THIS holding
       let hit=null; // {date, fill}
       if(apiKey){
         try{
@@ -5577,6 +5578,7 @@ async function checkAutoSellTargets(acct){
             let _peak=(h.peakClose>0?h.peakClose:(h.buyPrice>0?h.buyPrice:0));
             let _beArmed=(h.beArmed===true);
             const _dynStop=function(){ let s=(h.stop>0?h.stop:0);
+              if(_mo)return s; // v351: manual stop governs — rules don't override it
               if(_beOn&&_beArmed&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
               if(_trailOn&&_peak>0)s=Math.max(s,+((_peak*(1-R302.trailPct/100))).toFixed(4));
               return s; };
@@ -5586,7 +5588,7 @@ async function checkAutoSellTargets(acct){
               // Skip any day whose values look corrupt (out of a sane band).
               const oOK=_sane(day.o), hiOK=_sane(day.hi), loOK=_sane(day.lo), cOK=_sane(day.c);
               // ⏱ time stop — held past the limit: exit at this day's open
-              if(_timeOn&&_held>R302.maxHoldDays&&oOK){ hit={date:day.d,fill:day.o,why:'time'}; break; }
+              if(_timeOn&&!_mo&&_held>R302.maxHoldDays&&oOK){ hit={date:day.d,fill:day.o,why:'time'}; break; }
               const _stopNow=_dynStop();
               const _why=(_stopNow>(h.stop>0?h.stop:0)+1e-9)?'trail':(h.stopSrc==='trail'?'trail':'stop');
               // Stop (fixed / trailed / break-even) — checked first, conservative
@@ -5616,7 +5618,7 @@ async function checkAutoSellTargets(acct){
               if(_peak>(h.peakClose||0)){ h.peakClose=_peak; changed=true; }
               if(_beArmed&&h.beArmed!==true){ h.beArmed=true; changed=true; }
               const _ns=_dynStop();
-              if(_ns>(h.stop>0?h.stop:0)){ (h.stopLog=h.stopLog||[]).push({d:days[days.length-1].d,ts:_pfStamp(),from:(h.stop>0?h.stop:null),to:_ns,why:'trail'}); h.stop=_ns; h.stopSrc='trail'; }
+              if(!_mo&&_ns>(h.stop>0?h.stop:0)){ (h.stopLog=h.stopLog||[]).push({d:days[days.length-1].d,ts:_pfStamp(),from:(h.stop>0?h.stop:null),to:_ns,why:'trail'}); h.stop=_ns; h.stopSrc='trail'; }
             }
           }
         }catch(e){/* fall through to close check */}
@@ -5630,12 +5632,13 @@ async function checkAutoSellTargets(acct){
         if(_beOn&&h.beArmed!==true&&h.buyPrice>0&&h.lastPrice>=h.buyPrice*(1+R302.bePct/100)){ h.beArmed=true; changed=true; }
       }
       const _fbStop=(function(){ let s=(h.stop>0?h.stop:0);
+        if(_mo)return s; // v351: manual stop governs
         if(_beOn&&h.beArmed===true&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
         if(_trailOn&&(h.peakClose||0)>0)s=Math.max(s,+(((h.peakClose)*(1-R302.trailPct/100))).toFixed(4));
         return s; })();
       if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:_todayLocal(),fill:h.lastPrice,why:'target'};
       if(!hit && _lpSane && _fbStop>0 && h.lastPrice<=_fbStop)hit={date:_todayLocal(),fill:h.lastPrice,why:((_fbStop>(h.stop>0?h.stop:0)+1e-9)||h.stopSrc==='trail')?'trail':'stop'};
-      if(!hit && _timeOn && _lpSane && h.buyDate){ const _cd=Math.floor((Date.now()-new Date(String(h.buyDate).slice(0,10)).getTime())/86400000);
+      if(!hit && _timeOn && !_mo && _lpSane && h.buyDate){ const _cd=Math.floor((Date.now()-new Date(String(h.buyDate).slice(0,10)).getTime())/86400000);
         if(_cd>R302.maxHoldDays+3) hit={date:_todayLocal(),fill:h.lastPrice,why:'time'}; }
       if(hit){
         if(hit.why==='stop'||hit.why==='trail')hit.fill=_slipSell(hit.fill);
@@ -5723,6 +5726,7 @@ function _mergeHoldings(hold){
       buyDate:g.lots.length>1?(g.firstBuy+' … '+g.lastBuy):g.firstBuy,
       target:g.targets.size===1?[...g.targets][0]:null,
       stop:g.stops.size===1?[...g.stops][0]:null,
+      stopManual:(g.lots.length>1?g.lots.every(l=>!!l.stopManual):!!(g.lots[0]&&g.lots[0].stopManual)), // v351
       mixedTargets:g.targets.size>1, mixedStops:g.stops.size>1,
       tgtLog:g.lots.reduce((a,l)=>((l.tgtLog||[]).length>((a||[]).length)?l.tgtLog:a),[]),
       stopLog:g.lots.reduce((a,l)=>((l.stopLog||[]).length>((a||[]).length)?l.stopLog:a),[]),
@@ -6080,7 +6084,8 @@ function paperSetStop(id){
   if(price!==null&&price>=(lots[0].lastPrice||avg)){
     if(!confirm('That stop is at or above the current price — it will sell immediately on the next check. Set it anyway?'))return;
   }
-  lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;delete l.noAuto;});
+  lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;delete l.noAuto;
+    if(price!=null&&price>0){ l.stopManual=true; l.stopSrc='manual'; } else { delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; }}); // v351: a stop set here overrides the rules; clearing it hands the holding back to the rules
   _paperSave(p);
   showPortfolio();
 }
@@ -6776,7 +6781,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
@@ -6792,7 +6797,7 @@ function showPortfolio(exSel){
     const px=h.lastPrice||h.buyPrice, val=h.qty*px, pl=val-h.invested, plp=h.invested>0?(pl/h.invested)*100:0;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     const tgt=h.target?`🎯 ${fmtP(h.target,h.currency)}`:'';
-    const stp=h.stop?`🛑 ${fmtP(h.stop,h.currency)}`:'';
+    const stp=h.stop?`🛑 ${fmtP(h.stop,h.currency)}${h.stopManual?' 🔒':''}`:'';
     const note=h.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-top:4px;">📝 ${String(h.note).slice(0,60)}${h.note.length>60?'…':''}</div>`:'';
     const btn=(fn,arg,title,label,style)=>`<button onclick="${fn}('${arg}')" title="${title}" style="${style}">${label}</button>`;
     return `<div class="pf-card">
@@ -6842,7 +6847,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}${t.auto?`<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Restore ${t.ticker} — return the ${t.qty} shares to your holdings and reverse the cash. Auto-sell is paused on it so a rule can't sell it straight back; set a 🛑 stop to lock in your own price (it now overrides the rules)." style="margin-top:4px;padding:2px 8px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 9px var(--sans);cursor:pointer;white-space:nowrap;">↩ Undo</button>`:''}</td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
@@ -6855,6 +6860,7 @@ function showPortfolio(exSel){
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     ${acctTabs}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
+    ${_autoN?`<div style="border:1px solid var(--green);background:rgba(63,185,80,.08);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:10.5px;color:var(--text);line-height:1.55;">🪤 <b>Your rules auto-sold ${_autoN} position${_autoN>1?'s':''}.</b> To bring any back, open <b>📜 History</b> and tap the green <b style="color:var(--green)">↩ Undo</b> beside it — that returns the shares and reverses the cash, and pauses auto-sell on it so a rule can't sell it straight back. Restore them all at once here: <button onclick="_undoAllAutoSells()" style="margin-top:7px;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 10.5px var(--sans);cursor:pointer;">↩ Restore all ${_autoN} auto-sold</button> <span style="font-size:9px;color:var(--dim);display:block;margin-top:5px;">Tip: after restoring, set a 🛑 stop on it — a stop you set here now <b>overrides</b> your rules (🔒), so the trailing rule can't sell it out from under you again.</span></div>`:''}
     ${keyStrip}
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
       <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings (${hold.length})</button>
