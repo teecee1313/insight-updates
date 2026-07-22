@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-352-open';
+const APP_VERSION='2026.07.16-353-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6876,7 +6876,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}${t.auto?`<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Restore ${t.ticker} — return the ${t.qty} shares to your holdings and reverse the cash. Auto-sell is paused on it so a rule can't sell it straight back; set a 🛑 stop to lock in your own price (it now overrides the rules)." style="margin-top:4px;padding:2px 8px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 9px var(--sans);cursor:pointer;white-space:nowrap;">↩ Undo</button>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}</td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
@@ -6889,7 +6889,6 @@ function showPortfolio(exSel){
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     ${acctTabs}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
-    ${_autoN?`<div style="border:1px solid var(--green);background:rgba(63,185,80,.08);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:10.5px;color:var(--text);line-height:1.55;">🪤 <b>Your rules auto-sold ${_autoN} position${_autoN>1?'s':''}.</b> To bring any back, open <b>📜 History</b> and tap the green <b style="color:var(--green)">↩ Undo</b> beside it — that returns the shares and reverses the cash, and pauses auto-sell on it so a rule can't sell it straight back. Restore them all at once here: <button onclick="_undoAllAutoSells()" style="margin-top:7px;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 10.5px var(--sans);cursor:pointer;">↩ Restore all ${_autoN} auto-sold</button> <span style="font-size:9px;color:var(--dim);display:block;margin-top:5px;">Tip: after restoring, set a 🛑 stop on it — a stop you set here now <b>overrides</b> your rules (🔒), so the trailing rule can't sell it out from under you again.</span></div>`:''}
     ${keyStrip}
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
       <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings (${hold.length})</button>
@@ -6984,7 +6983,7 @@ function showPortfolio(exSel){
         ${card('Realised P/L 12mo',(closedPl>=0?'+':'')+closedPl.toFixed(2),pc(closedPl))}
         ${divs>0.005?card('💰 Dividends','+'+divs.toFixed(2),'var(--green)'):''}
         ${card('Total P/L',(totalPl>=0?'+':'')+totalPl.toFixed(2),pc(totalPl))}
-        ${(ex==='ALL'&&fees>0)?card('Fees paid',fees.toFixed(2),'var(--orange)'):''}
+        ${(ex==='ALL'&&fees>0)?card('Fees paid',fees.toFixed(2)+(brokerageFee()>0?' <span style="font-size:9px;color:var(--dim)">($'+brokerageFee()+'/trade)</span>':''),'var(--orange)'):''}
       </div>${statsHtml}`;
     })():''}
     ${vh.length>=2?(function(){
