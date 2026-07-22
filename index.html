@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-361-open';
+const APP_VERSION='2026.07.22-362-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11283,7 +11283,10 @@ function refreshBulkReady(){
 }
 async function downloadEverything(){
   if(window._bulkRunning)return;
-  const apiKey=(document.getElementById('apiKey')||{}).value.trim();
+  let apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
+  // v362: same startup-race fallback as loadData — the box can be empty while
+  // the saved key is in localStorage, which used to abort the auto first-run.
+  if(!apiKey){ try{ apiKey=(localStorage.getItem('asxScreener.apiKey')||'').trim(); if(apiKey){ const _ki=document.getElementById('apiKey'); if(_ki)_ki.value=apiKey; } }catch(e){} }
   const _lbl=document.getElementById('bulkLbl')||document.getElementById('loadStatus');
   const _say=(m)=>{ if(_lbl)_lbl.innerHTML='<span style="color:#f0b849">'+m+'</span>'; };
   if(!apiKey){
@@ -11332,7 +11335,15 @@ async function downloadEverything(){
   const _typeNames={'Ordinary':'Shares','ETF':'ETFs','LIC':'LICs','REIT':'REITs','Option':'Options','Preference':'Pref','Bond':'Bonds','Speculative':'Spec'};
   const _typeLabel='all types'; // v249: fixed a crash — this line referenced a variable removed when type-filtering moved to live loads, which broke the whole Download all button at the confirm step
   const filteredNote = n<allData.length ? `\n• Filtered to ${n.toLocaleString()} of ${allData.length.toLocaleString()} shares (${_typeLabel}${gainersOnly?', gainers only':''})` : '';
-  if(!confirm(`Download ALL data for ${n} shares on ${currentExch}?${filteredNote}\n\n• About ${n} API calls (~${Math.round(n/DAILY_API_LIMIT*100)}% of your ${DAILY_API_LIMIT.toLocaleString()}/day limit)\n• Roughly ${mins}–${mins+10} minutes\n• Stored on THIS computer so you can research offline afterwards\n\nYou can keep using the app while it runs. Proceed?`))return;
+  if(!confirm(`Download ALL data for ${n} shares on ${currentExch}?${filteredNote}\n\n• About ${n} API calls (~${Math.round(n/DAILY_API_LIMIT*100)}% of your ${DAILY_API_LIMIT.toLocaleString()}/day limit)\n• Roughly ${mins}–${mins+10} minutes\n• Stored on THIS computer so you can research offline afterwards\n\nYou can keep using the app while it runs. Proceed?`)){
+    // v362: cancelling here used to leave _bulkRunning=true, which silently
+    // blocked EVERY later download (auto, scheduled and manual) until a page
+    // reload — a classic "not auto running" trap. Reset it properly.
+    window._bulkRunning=false;
+    try{ _restoreBulkButtons(); }catch(e){}
+    _say('Download cancelled — nothing fetched. Press ⬇ Download all whenever you\'re ready.');
+    return;
+  }
   _bulkAbort=false;
   const bar=document.getElementById('bulkBar'), lbl=document.getElementById('bulkLbl'), btn=document.getElementById('bulkBtn');
   const stopBtn=document.getElementById('bulkStopBtn');
@@ -12032,7 +12043,17 @@ function mapRecord(r,exch,currency,today){
 // ═══════════════════════════════════
 async function loadData(userClick){
   if(typeof _histClearCache==="function")_histClearCache();
-  const apiKey=document.getElementById('apiKey').value.trim();
+  let apiKey=document.getElementById('apiKey').value.trim();
+  // v362: at startup the key box may not be restored yet (init is async), which
+  // made this bail SILENTLY on the auto-load path — the app then sat on the
+  // "First run: downloading…" banner forever. Fall back to the saved key and
+  // put it in the box so every later reader sees it too.
+  if(!apiKey){
+    try{
+      apiKey=(localStorage.getItem('asxScreener.apiKey')||'').trim();
+      if(apiKey){ const _ki=document.getElementById('apiKey'); if(_ki)_ki.value=apiKey; if(typeof _refreshKeyUI==='function')_refreshKeyUI(); }
+    }catch(e){}
+  }
   const exch=document.getElementById('exchSel').value;
   if(!apiKey){
     let hasOffline=false; try{ hasOffline=(window._offlineMode||(await histCount())>0); }catch(_){}
@@ -13500,8 +13521,9 @@ function saveAutoDownloadDays(){
 function autoDownloadDue(){
   if(!autoDownloadOn())return false;
   if(window._bulkRunning)return false;
-  const key=(document.getElementById('apiKey')||{}).value||'';
-  if(!key.trim())return false;
+  let key=((document.getElementById('apiKey')||{}).value||'').trim();
+  if(!key){ try{ key=(localStorage.getItem('asxScreener.apiKey')||'').trim(); }catch(e){} } // v362: box may be empty at startup while the key is saved
+  if(!key)return false;
   const now=new Date();
   const days=autoDownloadDays();
   if(days.length && !days.includes(now.getDay()))return false;
@@ -13600,17 +13622,36 @@ function setAutoLoad(on){
 
     // ── No offline data yet. Download everything to disk (one time), then prepare. ──
     if(key.trim()){
+      // v362: the saved key lives in localStorage but the key BOX may not be
+      // populated yet (init restores it asynchronously) — and loadData() /
+      // downloadEverything() read the box. Fill it now so nothing bails.
+      try{ const _ki=document.getElementById('apiKey'); if(_ki && !_ki.value.trim()){ _ki.value=key; if(typeof _refreshKeyUI==='function')_refreshKeyUI(); } }catch(e){}
       if(ls)ls.innerHTML='<span style="color:var(--gold)">⬇ First run: downloading all ASX data to your computer so everything works offline.</span>';
       setPhase('This happens once — you can keep using the app as it fills');
       if(!allData.length) loadData();
       // Wait until the exchange list has actually loaded before starting the bulk
-      // download — otherwise it fires with nothing to download. Poll up to ~20s;
-      // if data never arrives (no key / offline), quietly do nothing (no popup).
+      // download — otherwise it fires with nothing to download.
+      // v362: the old poll gave up QUIETLY after 20s — shorter than one slow
+      // proxy fetch — so on a slow day the first run never started and nothing
+      // said why. Now: poll up to 30 min, re-kick the list load every ~30s if
+      // it isn't mid-fetch (an early call can bail harmlessly), and after 4 min
+      // of nothing, say what's happening instead of going silent.
       let _tries=0;
       const _startDl=setInterval(()=>{
         _tries++;
-        if(allData.length){ clearInterval(_startDl); try{ if(typeof downloadEverything==='function' && !window._bulkRunning) downloadEverything(); }catch(e){} }
-        else if(_tries>=10){ clearInterval(_startDl); /* gave up quietly — user can press Download all when ready */ }
+        if(allData.length){
+          clearInterval(_startDl);
+          try{ if(typeof downloadEverything==='function' && !window._bulkRunning) downloadEverything(); }catch(e){}
+          return;
+        }
+        if(_tries===120){ // ~4 min with no list — tell the user, keep trying in the background
+          if(ls)ls.innerHTML='<span style="color:var(--orange)">⚠ The share list hasn\'t loaded yet — check your internet connection. Still retrying in the background; the first-run download starts by itself once the list arrives.</span>';
+          setPhase('');
+        }
+        if(_tries>=900){ clearInterval(_startDl); return; } // 30 min — stop polling
+        if(_tries%15===0){ // every ~30s: restart the list load if it isn't already fetching
+          try{ const _b=document.getElementById('loadBtn'); if(_b && !_b.disabled) loadData(); }catch(e){}
+        }
       }, 2000);
     } else {
       if(ls)ls.innerHTML='<span style="color:var(--gold)">⚙ Enter your API key in Setup &amp; data to begin.</span>';
