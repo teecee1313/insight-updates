@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-363-open';
+const APP_VERSION='2026.07.22-364-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4570,11 +4570,16 @@ function showShareDetail(ticker,days){
 // Trading days held: counts weekdays (Mon–Fri) after the buy date up to and
 // including the end date. Public holidays aren't excluded (no holiday calendar
 // in end-of-day data), so counts can run 1–2 high across holiday periods.
+const _tdhCache=new Map(); // v364: memoised — the portfolio calls this for every row + every stats pass; on a big history the repeated day-walk was a freeze-level cost
 function tradingDaysHeld(a,b){
+  const k=a+'|'+b;
+  const hit=_tdhCache.get(k); if(hit!==undefined)return hit;
   let d=new Date(a);const end=new Date(b);
   if(!isFinite(d)||!isFinite(end)||end<=d)return 0;
   let n=0;
   while(d<end){d=new Date(d.getTime()+86400000);const w=d.getDay();if(w!==0&&w!==6)n++;if(n>2000)break;}
+  if(_tdhCache.size>8000)_tdhCache.clear();
+  _tdhCache.set(k,n);
   return n;
 }
 const PAPER_STORE='asxScreener.paperTrades.v1';
@@ -5462,8 +5467,10 @@ function _paperPrune(p){
 function updatePaperPrices(acct){
   const ACCT=acct||window._pfCtx;
   const p=_paper(ACCT);let changed=false;
+  // v364: one Map instead of allData.find per holding (O(1) lookups)
+  const _adm=new Map();(allData||[]).forEach(x=>{_adm.set(x.ticker+'|'+x.exchange,x);});
   (p.holdings||[]).forEach(h=>{
-    const s=allData.find(x=>x.ticker===h.ticker&&x.exchange===h.exchange);
+    const s=_adm.get(h.ticker+'|'+h.exchange);
     if(s&&s.price>0){h.lastPrice=s.price;h.lastDate=(s._q&&s._q.d)||_todayLocal();changed=true;}
   });
   // 🎯 Auto-sell targets are checked by checkAutoSellTargets() (async), which
@@ -5565,6 +5572,7 @@ function _undoAllAutoSells(){
 async function checkAutoSellTargets(acct){
   const ACCT=acct||window._pfCtx;
   if(window._tgtChecking)return [];
+  if(window._bulkRunning)return []; // v364: don't compete with the bulk download — runs again on the next check after it finishes
   const apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
   const p=_paper(ACCT);
   const R302=_rules();
@@ -6001,6 +6009,7 @@ function _orderPreOpen(exch){
 async function checkLimitOrders(acct){
   const ACCT=acct||window._pfCtx;
   if(window._ordChecking)return [];
+  if(window._bulkRunning)return []; // v364: same — wait until the bulk download is done
   const p=_paper(ACCT);
   const orders=(p.orders||[]);
   if(!orders.length)return [];
@@ -6820,8 +6829,14 @@ function showPortfolio(exSel){
   try{document.body.classList.toggle('pf-hideprofit',_pfHideProfit());}catch(e){}
   if(exSel)window._pfExSel=exSel;
   updatePaperPrices();
-  if(!window._tgtChecking)checkAutoSellTargets().then(sold=>{if(sold&&sold.length)showPortfolio();});
-  if(!window._ordChecking)checkLimitOrders().then(fl=>{if(fl&&fl.length)showPortfolio();});
+  // v364: while the bulk "download everything" run is going, DON'T also kick the
+  // per-holding target/limit engines — their per-share live fetches queue behind
+  // the download on the same rate limiter and the portfolio sat there frozen
+  // waiting. They run automatically on the next open after the download ends.
+  if(!window._bulkRunning){
+    if(!window._tgtChecking)checkAutoSellTargets().then(sold=>{if(sold&&sold.length)showPortfolio();});
+    if(!window._ordChecking)checkLimitOrders().then(fl=>{if(fl&&fl.length)showPortfolio();});
+  }
   const {p,ex,hold:holdRaw,hist,histAll,vh}=_paperFiltered();
   const hold=_mergeHoldings(holdRaw); // one line per share, average buy price
   _paperSave(p);
@@ -6901,9 +6916,12 @@ function showPortfolio(exSel){
     <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Open P/L</div><div class="pf-pl" style="font-family:var(--mono);font-weight:800;font-size:15px;color:${_pfPc(totPl)};">${totPl>=0?'+':''}${totPl.toFixed(2)}</div></div>
     <button id="pfHideBtn" onclick="_pfToggleProfit()" title="Hide or show your profit/loss figures in the portfolio" style="margin-left:auto;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">${_pfHideProfit()?'🙈 Show P/L':'👁 Hide P/L'}</button>
   </div>`;
+  // v364: Map lookup instead of a full allData scan per history row — with a
+  // long trade history over ~3,000 loaded shares this alone was seconds of work.
+  const _adMapPf=new Map();(allData||[]).forEach(x=>{_adMapPf.set(x.ticker+'|'+x.exchange,x);});
   const histRows=hist.map(t=>{
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
-    const _nowS=(allData||[]).find(x=>x.ticker===t.ticker&&x.exchange===t.exchange);
+    const _nowS=_adMapPf.get(t.ticker+'|'+t.exchange);
     const _nowPx=(_nowS&&_nowS.price>0)?_nowS.price:null;
     const _sd=(_nowPx&&t.sellPrice>0)?((_nowPx-t.sellPrice)/t.sellPrice)*100:null;
     const sinceHtml=(_sd!=null&&isFinite(_sd))?`<br><span style="font-size:8px;color:${_sd>1?'var(--gold)':_sd<-1?'var(--green)':'var(--dim)'}">now ${fmtP(_nowPx,t.currency)} · ${_sd>=0?'+':''}${_sd.toFixed(1)}% since you sold${_sd>10?' — it kept climbing':_sd<-10?' — good exit':''}</span>`:'';
