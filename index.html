@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-351-open';
+const APP_VERSION='2026.07.16-352-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5533,8 +5533,13 @@ async function checkAutoSellTargets(acct){
   const apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
   const p=_paper(ACCT);
   const R302=_rules();
-  const _trailOn=R302.enabled&&R302.trailPct>0, _beOn=R302.enabled&&R302.bePct>0, _timeOn=R302.enabled&&R302.maxHoldDays>0;
-  const targeted=(p.holdings||[]).filter(h=>h.target>0||h.stop>0||_trailOn||_beOn||_timeOn);
+  // v352: the automatic trailing / break-even / max-hold rules run on the 🤖 auto-pilot
+  // account ONLY. On your 👤 My Trading account a share is sold only by a stop or target you
+  // set, or a trailing stop you add to that holding yourself (h.trail). Nothing auto-sells
+  // your own shares unless you asked for it.
+  const _isAuto=(ACCT==='auto');
+  const _trailG=_isAuto&&R302.enabled&&R302.trailPct>0, _beG=_isAuto&&R302.enabled&&R302.bePct>0, _timeG=_isAuto&&R302.enabled&&R302.maxHoldDays>0;
+  const targeted=(p.holdings||[]).filter(h=>h.target>0||h.stop>0||(+h.trail>0)||_trailG||_beG||_timeG);
   if(!targeted.length)return [];
   window._tgtChecking=true;
   const autoSold=[];let changed=false;
@@ -5554,6 +5559,10 @@ async function checkAutoSellTargets(acct){
       if(!_armed(h))continue; // skip holdings bought today — give them a day first
       if(h.noAuto)continue; // v339: a restored (↩ undone) position — auto-sell is paused so it stays; a manual 🎯/🛑 re-arms it
       const _mo=!!h.stopManual; // v351: a stop set by hand in the portfolio overrides the trail/break-even/time rules for THIS holding
+      // v352: per-holding rules — auto-pilot uses the global trail%; your own account trails a
+      // holding only if you opted it in (🪤 h.trail%). A manual 🛑 stop still overrides everything.
+      const _trPct=_isAuto?(_trailG?R302.trailPct:0):(+h.trail>0?+h.trail:0);
+      const _trailOn=_trPct>0, _beOn=_beG, _timeOn=_timeG;
       let hit=null; // {date, fill}
       if(apiKey){
         try{
@@ -5580,7 +5589,7 @@ async function checkAutoSellTargets(acct){
             const _dynStop=function(){ let s=(h.stop>0?h.stop:0);
               if(_mo)return s; // v351: manual stop governs — rules don't override it
               if(_beOn&&_beArmed&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
-              if(_trailOn&&_peak>0)s=Math.max(s,+((_peak*(1-R302.trailPct/100))).toFixed(4));
+              if(_trailOn&&_peak>0)s=Math.max(s,+((_peak*(1-_trPct/100))).toFixed(4));
               return s; };
             let _held=0;
             for(const day of days){
@@ -5634,7 +5643,7 @@ async function checkAutoSellTargets(acct){
       const _fbStop=(function(){ let s=(h.stop>0?h.stop:0);
         if(_mo)return s; // v351: manual stop governs
         if(_beOn&&h.beArmed===true&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
-        if(_trailOn&&(h.peakClose||0)>0)s=Math.max(s,+(((h.peakClose)*(1-R302.trailPct/100))).toFixed(4));
+        if(_trailOn&&(h.peakClose||0)>0)s=Math.max(s,+(((h.peakClose)*(1-_trPct/100))).toFixed(4));
         return s; })();
       if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:_todayLocal(),fill:h.lastPrice,why:'target'};
       if(!hit && _lpSane && _fbStop>0 && h.lastPrice<=_fbStop)hit={date:_todayLocal(),fill:h.lastPrice,why:((_fbStop>(h.stop>0?h.stop:0)+1e-9)||h.stopSrc==='trail')?'trail':'stop'};
@@ -5727,6 +5736,7 @@ function _mergeHoldings(hold){
       target:g.targets.size===1?[...g.targets][0]:null,
       stop:g.stops.size===1?[...g.stops][0]:null,
       stopManual:(g.lots.length>1?g.lots.every(l=>!!l.stopManual):!!(g.lots[0]&&g.lots[0].stopManual)), // v351
+      trail:(g.lots.length>1?(g.lots.every(l=>+l.trail>0)?+g.lots[0].trail:0):(+(g.lots[0]&&g.lots[0].trail)||0)), // v352
       mixedTargets:g.targets.size>1, mixedStops:g.stops.size>1,
       tgtLog:g.lots.reduce((a,l)=>((l.tgtLog||[]).length>((a||[]).length)?l.tgtLog:a),[]),
       stopLog:g.lots.reduce((a,l)=>((l.stopLog||[]).length>((a||[]).length)?l.stopLog:a),[]),
@@ -6085,7 +6095,26 @@ function paperSetStop(id){
     if(!confirm('That stop is at or above the current price — it will sell immediately on the next check. Set it anyway?'))return;
   }
   lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;delete l.noAuto;
-    if(price!=null&&price>0){ l.stopManual=true; l.stopSrc='manual'; } else { delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; }}); // v351: a stop set here overrides the rules; clearing it hands the holding back to the rules
+    if(price!=null&&price>0){ l.stopManual=true; l.stopSrc='manual'; delete l.trail; } else { delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; }}); // v352: a fixed stop clears any trailing stop // v351: a stop set here overrides the rules; clearing it hands the holding back to the rules
+  _paperSave(p);
+  showPortfolio();
+}
+// v352: give ONE holding a trailing stop (opt-in). Your other shares are never auto-sold
+// unless you add a stop, a target, or a trailing stop like this.
+function paperTrail(id){
+  const p=_paper();
+  const lots=_lotsFor(p,id);
+  if(!lots.length)return;
+  const cur=(lots.length===1&&+lots[0].trail>0)?+lots[0].trail:null;
+  const many=lots.length>1?`\n(applies to all ${lots.length} lots)`:'';
+  const def=cur?String(cur):String(_rules().trailPct||8);
+  const v=prompt(`🪤 Trailing stop for ${lots[0].ticker}${cur?` — now ${cur}%`:''}${many}\n\nSells this holding if it falls this % below its highest close from here on — the stop only ever rises, never falls. Applies to THIS holding only; your other shares aren\u2019t auto-sold unless you add one.\n\nEnter a percent (e.g. 8). Leave blank to remove.`, def);
+  if(v===null)return;
+  const t=String(v).trim();
+  if(t===''){ lots.forEach(l=>{ delete l.trail; if(l.stopSrc==='trail'){ l.stop=0; delete l.stopSrc; delete l.peakClose; } }); _paperSave(p); showPortfolio(); return; }
+  const pct=parseFloat(t.replace('%',''));
+  if(!(isFinite(pct)&&pct>0&&pct<90)){ alert('Enter a percent between 0 and 90 — for example 8.'); return; }
+  lots.forEach(l=>{ l.trail=+pct; delete l.noAuto; delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; if(!(+l.peakClose>0))l.peakClose=Math.max(+l.buyPrice||0,+l.lastPrice||0); });
   _paperSave(p);
   showPortfolio();
 }
@@ -6742,7 +6771,7 @@ function _pfRowMenu(id,ev){
   const m=document.createElement('div');
   m.id='pfRowMenu';
   m.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:190px;';
-  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
+  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
   document.body.appendChild(m);
   try{ const r=m.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
     m.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
@@ -6781,7 +6810,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:7px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:8px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:8px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:8px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:8px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${h.note?`<br><span style="font-size:8px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
@@ -6805,7 +6834,7 @@ function showPortfolio(exSel){
         <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${h.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${h.ticker} 🖨</a></strong>
         <span style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(1)}%)</span>
       </div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}${(+h.trail>0)?' · 🪤 '+h.trail+'%':''}</div>
       <div class="pf-card-grid">
         <div><span>Qty</span> <b>${h.qty.toLocaleString()}</b></div>
         <div><span>Buy</span> <b>${fmtP(h.buyPrice,h.currency)}</b></div>
