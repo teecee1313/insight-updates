@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-366-open';
+const APP_VERSION='2026.07.22-367-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4007,7 +4007,7 @@ function render(){
   const _defCap=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches)?250:1000;
   const cap=(window._rowCap||_defCap);
   if(cnt>cap){
-    document.getElementById('rcount').innerHTML=`${cnt.toLocaleString()} stocks loaded &amp; scanned · showing top ${cap.toLocaleString()} · <a href="#" onclick="_showAllRows();return false;" style="color:var(--blue);font-weight:700;">Show all ${cnt.toLocaleString()}</a>`;
+    document.getElementById('rcount').innerHTML=`${cnt.toLocaleString()} stocks loaded &amp; scanned · showing top ${cap.toLocaleString()} · <a href="#" onclick="_showAllRows();return false;" style="color:var(--blue);font-weight:700;">Show all ${cnt.toLocaleString()}</a> <span style="font-size:9px;color:var(--dim)">(big lists take a moment)</span>`;
   } else {
     document.getElementById('rcount').textContent=`${cnt.toLocaleString()} stock${cnt!==1?'s':''}`+(window._rowCap&&cnt>_defCap?' · all shown':'');
   }
@@ -4016,12 +4016,12 @@ function render(){
 // Lift the render cap to show every filtered share. Stays on until the user
 // reloads or clicks back to the fast view.
 function _showAllRows(){
-  // v363: no more 500-row ceiling — show EVERYTHING. The chunked renderer
+  // v363/v367: no more 500-row ceiling — show EVERYTHING. The chunked renderer
   // streams rows in frame-aligned batches so the page stays responsive while
   // thousands of rows draw in behind the top of the table.
   window._rowCap=1e9;
   const ls=document.getElementById('loadStatus');
-  if(ls)ls.innerHTML='<span style="color:var(--gold)">Showing ALL shares — the rest are drawing in below as you scroll…</span>';
+  if(ls)ls.innerHTML='<span style="color:var(--gold)">Showing ALL shares — the rest draw in as you scroll (🔍 search or a filter jumps straight to a share)…</span>';
   try{ (typeof applyF==='function'?applyF():render&&render()); }catch(e){}
 }
 function _showFastRows(){ window._rowCap=1000; try{ (typeof applyF==='function'?applyF():render&&render()); }catch(e){} }
@@ -4108,13 +4108,13 @@ function renderRows(rows){
   tbody.innerHTML=_rr(0,FIRST);
   window._rrToken=(window._rrToken||0)+1; const _tok=window._rrToken;
   if(rows.length>FIRST){
-    // v361: fewer, bigger, frame-aligned chunks. Every incremental insert reflows the
-    // sticky columns of the WHOLE table, so a few large rAF chunks are far cheaper than
-    // many small setTimeout(0) ones.
-    const _raf=window.requestAnimationFrame?window.requestAnimationFrame.bind(window):(f=>setTimeout(f,16));
+    // v362: keep the bigger 80-row chunks (far fewer sticky-column reflows than the old
+    // 30-row ones) but drive them with setTimeout(0) so the fill ALWAYS finishes —
+    // requestAnimationFrame pauses when the tab isn't visible, which could leave a big
+    // list half-painted.
     let _i=FIRST; const _CH=80;
-    const _step=()=>{ if(_tok!==window._rrToken)return; const _to=Math.min(_i+_CH,rows.length); try{ tbody.insertAdjacentHTML('beforeend',_rr(_i,_to)); }catch(e){} _i=_to; if(_i<rows.length)_raf(_step); };
-    _raf(_step);
+    const _step=()=>{ if(_tok!==window._rrToken)return; const _to=Math.min(_i+_CH,rows.length); try{ tbody.insertAdjacentHTML('beforeend',_rr(_i,_to)); }catch(e){} _i=_to; if(_i<rows.length)setTimeout(_step,0); };
+    setTimeout(_step,0);
   }
 }
 
@@ -5583,17 +5583,36 @@ function updatePaperPrices(acct){
 // row: <button onclick="undoSale('DATE','TICKER','BUYDATE')">↩ undo</button>
 // You can also still trigger it from the browser console: undoSale(sellDate,ticker,buyDate)
 function undoSale(sellDate,ticker,buyDate){
-  const p=_paper();
-  const idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+  // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
+  // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
+  // viewed account then the other account, matching exact first, then by ticker + buy-date.
+  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(i<0)i=H.findIndex(t=>t.ticker===ticker&&t.buyDate===buyDate); return i; };
+  let _acct=window._pfCtx||'main';
+  let p=_paper(_acct);
+  let idx=_fT(p);
+  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=_fT(_pa); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
   if(idx<0){alert('Could not find that trade to undo.');return;}
   const t=p.history[idx];
-  const msg=`Undo this sale?\n\n${t.ticker}: sold ${t.qty} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate}.\n\nThis returns the ${t.qty} shares to your holdings and reverses the ${fmtP(t.proceeds,t.currency)} cash. Use this if a stop-loss fired on bad price data.`;
+  // v363: SAFE undo. You can only take the sale's money back OUT of cash if it's still
+  // there. If the proceeds were already reinvested, undoing would drive cash negative (the
+  // old balance-corruption bug) — so block it, with a clear way out.
+  // v367: the net cash the sale paid you = proceeds − the SELL-side fee only.
+  // v366+ trades record sellFee exactly; older rows estimate it as the current
+  // brokerage (capped by the recorded total). The BUY fee is NOT refunded —
+  // the restored holding carries it, since that purchase still stands.
+  const _sf=(t.sellFee!=null)?(+t.sellFee||0):Math.min((t.fees||0),((typeof brokerageFee==='function'?brokerageFee():0)||0));
+  const _back=+(((t.proceeds||0)-_sf)).toFixed(2);
+  if(_back>(p.cash||0)+0.005){
+    const _need=+(_back-(p.cash||0)).toFixed(2);
+    alert(`Can't undo this ${t.ticker} sale yet — you've already reinvested the money.\n\nUndoing puts the ${t.qty.toLocaleString()} shares back and takes back the ${fmtP(_back,t.currency)} you were paid, but you only have ${fmtP(p.cash||0,t.currency)} cash right now.\n\nFree up about ${fmtP(_need,t.currency)} first — cancel a pending order or sell a holding, or use ➕ add cash — then undo.`);
+    return;
+  }
+  const msg=`Undo this sale?\n\n${t.ticker}: sold ${t.qty.toLocaleString()} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate}.\n\nThis returns the ${t.qty.toLocaleString()} shares to your holdings and takes the ${fmtP(_back,t.currency)} back out of your cash. Auto-sell is paused on the restored shares so a rule can't sell them straight back.`;
   if(!confirm(msg))return;
-  // reverse the cash
-  p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
-  // v366: refund the SELL-side brokerage too — the sale charged it, so undoing
-  // the sale without refunding it leaked one fee per undone trade.
-  if(t.sellFee>0){ p.cash=+(p.cash+t.sellFee).toFixed(2); p.feesPaid=+(Math.max(0,(p.feesPaid||0)-t.sellFee)).toFixed(2); }
+  // v367 (merged): take back the NET cash the sale added and refund the
+  // sell-side fee in the ledger — balance stays exactly consistent.
+  p.cash=+((p.cash||0)-_back).toFixed(2);
+  if(_sf>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-_sf)).toFixed(2);
   // restore the holding (merge if the same ticker/buyDate lot exists)
   p.holdings=p.holdings||[];
   const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
@@ -5615,7 +5634,7 @@ function undoSale(sellDate,ticker,buyDate){
   }
   // remove the history entry
   p.history.splice(idx,1);
-  _paperSave(_paperPrune(p));
+  _paperSave(_paperPrune(p),_acct);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Auto-sell is paused on it so a rule can't sell it straight back; set a 🎯 or 🛑 on it to hand it back to your rules.`;
   showPortfolio();
@@ -6435,6 +6454,50 @@ function paperSellMarket(id){
   showPortfolio();
 }
 
+// v364 (customer): manual DELETE tools for fixing the portfolio by hand. Both keep the
+// ledger consistent and act ONLY on the account you're viewing — the 🤖 auto-pilot ($50k)
+// account is a separate store and is never touched.
+function paperDeleteHolding(id){
+  let _acct=window._pfCtx||'main';
+  let p=_paper(_acct);
+  let lots=_lotsFor(p,id);
+  if(!lots.length){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _la=_lotsFor(_pa,id); if(_la.length){ _acct=_alt; p=_pa; lots=_la; } }
+  if(!lots.length)return;
+  const tk=lots[0].ticker, cur=lots[0].currency;
+  const totQty=lots.reduce((a,l)=>a+(+l.qty||0),0);
+  const totInv=lots.reduce((a,l)=>a+(l.invested!=null?+l.invested:(+l.qty||0)*(+l.buyPrice||0)),0);
+  const totBuyFee=lots.reduce((a,l)=>a+(+l.buyFee||0),0);
+  const back=+(totInv+totBuyFee).toFixed(2);
+  if(!confirm(`🗑 Delete ${tk} from your holdings?\n\nRemoves this position (${totQty.toLocaleString()} shares) WITHOUT recording a sale — use it to clear a wrong or corrupted holding. The ${fmtP(back,cur)} you paid for it goes back to your cash; no profit or loss is recorded.\n\nYour 🤖 auto-pilot account is NOT affected. Tip: 💾 back up first — this can't be undone.`))return;
+  p.cash=+((p.cash||0)+back).toFixed(2);
+  if(totBuyFee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-totBuyFee)).toFixed(2);
+  const ids=new Set(lots.map(l=>l.id));
+  p.holdings=(p.holdings||[]).filter(x=>!ids.has(x.id));
+  _paperSave(_paperPrune?_paperPrune(p):p,_acct);
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${tk} removed from holdings — ${fmtP(back,cur)} returned to cash, no sale recorded.</span>`;
+  showPortfolio();
+}
+function paperDeleteTrade(sellDate,ticker,buyDate){
+  // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
+  // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
+  // viewed account then the other account, matching exact first, then by ticker + buy-date.
+  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(i<0)i=H.findIndex(t=>t.ticker===ticker&&t.buyDate===buyDate); return i; };
+  let _acct=window._pfCtx||'main';
+  let p=_paper(_acct);
+  let idx=_fT(p);
+  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=_fT(_pa); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
+  if(idx<0){alert('Could not find that trade to delete.');return;}
+  const t=p.history[idx];
+  if(!confirm(`🗑 Delete this closed ${t.ticker} trade from your history?\n\nSold ${(+t.qty||0).toLocaleString()} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate} · recorded P/L ${(+t.plAbs||0)>=0?'+':''}${(+t.plAbs||0).toFixed(2)}.\n\nRemoves the record and reverses that ${((+t.plAbs||0)>=0)?'profit':'loss'} from your cash so the balance stays consistent — for clearing a wrong or duplicate trade. Your 🤖 auto-pilot account is NOT affected.`))return;
+  p.cash=+((p.cash||0)-(+t.plAbs||0)).toFixed(2);
+  if(+t.fees>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-(+t.fees||0))).toFixed(2);
+  p.history.splice(idx,1);
+  _paperSave(_paperPrune?_paperPrune(p):p,_acct);
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${t.ticker} trade deleted and the balance reconciled.</span>`;
+  showPortfolio();
+}
 // Sell some or all of a holding at its last-known close. Partial sells split
 // the lot: cost basis moves with the shares sold (qty × buy price), and the
 // remainder stays in the portfolio at the same buy price.
@@ -6717,8 +6780,11 @@ function doPasteRestore(){
   }catch(e){if(msg){msg.textContent='That doesn\'t look like portfolio data. Make sure you copied the whole line output.';msg.style.color='#ff9caa';}}
 }
 async function exportPortfolioBackup(){
-  const p=_paper();
-  const payload={_type:'insight-trading-portfolio',_version:APP_VERSION,_exported:new Date().toISOString(),account:p};
+  // v366: back up BOTH practice accounts together (👤 My Trading + 🤖 Auto-pilot) so one
+  // file captures everything and a restore brings both back. `account` stays = My Trading
+  // for older app versions that only read that key.
+  const _main=_paper('main'), _auto=_paper('auto');
+  const payload={_type:'insight-trading-portfolio',_version:APP_VERSION,_exported:new Date().toISOString(),main:_main,auto:_auto,account:_main};
   const fname='insight-trading-portfolio_'+new Date().toISOString().slice(0,10)+'.json';
   const json=JSON.stringify(payload,null,2);
   const blob=new Blob([json],{type:'application/json;charset=utf-8;'});
@@ -6739,6 +6805,22 @@ function importPortfolioBackup(input){
   rd.onload=()=>{
     try{
       const data=JSON.parse(String(rd.result));
+      // v366: a newer backup carries BOTH accounts. Restore each to its OWN slot, so a
+      // normal portfolio can never land in the 🤖 bot account by accident again.
+      const _mm=(data&&data.main&&typeof data.main==='object'&&Array.isArray(data.main.holdings))?data.main:null;
+      const _aa=(data&&data.auto&&typeof data.auto==='object'&&Array.isArray(data.auto.holdings))?data.auto:null;
+      if(_mm||_aa){
+        const mH=_mm?_mm.holdings.length:0, mT=_mm?(_mm.history||[]).length:0;
+        const aH=_aa?_aa.holdings.length:0, aT=_aa?(_aa.history||[]).length:0;
+        if(!confirm('Restore BOTH accounts from this file?\n\n👤 My Trading: '+mH+' holding(s), '+mT+' trade(s)\n🤖 Auto-pilot: '+aH+' holding(s), '+aT+' trade(s)\n\nThis REPLACES both paper accounts on this browser. Back up the current ones first if unsure.')){input.value='';return;}
+        if(_mm){ _ensureCash(_mm); _paperSave(_mm,'main'); }
+        if(_aa){ _ensureCash(_aa); _paperSave(_aa,'auto'); }
+        refreshPortfolioBtn&&refreshPortfolioBtn();
+        updatePaperPrices&&updatePaperPrices();
+        showPortfolio&&showPortfolio();
+        alert('✓ Restored both accounts — 👤 My Trading and 🤖 Auto-pilot.');
+        input.value='';return;
+      }
       const acct=(data&&data.account&&typeof data.account==='object')?data.account
                  :(data&&Array.isArray(data.holdings))?data:null;   // accept bare account too
       if(!acct||!Array.isArray(acct.holdings)){alert('That file is not an Insight Trading portfolio backup.');input.value='';return;}
@@ -6770,6 +6852,26 @@ function paperResetAccount(){
 // the cash balance from the permanent ledger AS IF the account had started
 // with $10k from the very first trade: cash = $10,000 − cost of open holdings
 // + realised P/L of every closed trade. Holdings and history are untouched.
+// v366: recompute this account's Fees Paid from its ACTUAL trades and return any
+// over-charged fees to cash. For when an imported / old account carried a fee total that
+// doesn't belong (e.g. a normal portfolio dropped into the bot account). Ledger-consistent
+// (feesPaid drops by X, cash rises by X) and acts only on the account you're viewing.
+function paperRecomputeFees(){
+  const _acct=window._pfCtx||'main';
+  const p=_paper(_acct);
+  const _who=(_acct==='auto')?'🤖 Auto-pilot':'👤 My Trading';
+  const realFees=+(((p.holdings||[]).reduce((a,h)=>a+(+h.buyFee||0),0))+((p.history||[]).reduce((a,t)=>a+(+t.fees||0),0))+((p.orders||[]).reduce((a,o)=>a+(+o.fee||0),0))).toFixed(2); // v367: pending orders' escrowed fees are legitimate feesPaid too — without them, fix-fees + a later cancel double-refunded
+  const cur=+(p.feesPaid||0).toFixed(2);
+  const diff=+(cur-realFees).toFixed(2);
+  if(Math.abs(diff)<0.005){ alert('Fees on the '+_who+' account already match your trades ('+fmtP(realFees,'AUD')+'). Nothing to fix.'); return; }
+  if(!confirm(`🧮 Recompute fees on the ${_who} account?\n\nFees shown now: ${fmtP(cur,'AUD')}\nFees from your actual trades: ${fmtP(realFees,'AUD')}\n\nThis sets fees to ${fmtP(realFees,'AUD')} and ${diff>=0?'returns '+fmtP(diff,'AUD')+' to':'takes '+fmtP(-diff,'AUD')+' from'} your cash. Use it when an imported or old account carried fees that don't belong here. Your holdings and history are not changed.`))return;
+  p.feesPaid=realFees;
+  p.cash=+((p.cash||0)+diff).toFixed(2);
+  _paperSave(p,_acct);
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">🧮 Fees on ${_who} corrected to ${fmtP(realFees,'AUD')} — ${diff>=0?fmtP(diff,'AUD')+' returned to':fmtP(-diff,'AUD')+' taken from'} cash.</span>`;
+  showPortfolio();
+}
 function paperRepairBalance(){
   const p=_paper();
   const spent=(p.holdings||[]).reduce((a,h)=>a+(h.invested||0),0);
@@ -6932,7 +7034,7 @@ function _pfRowMenu(id,ev){
   const m=document.createElement('div');
   m.id='pfRowMenu';
   m.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:190px;';
-  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
+  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)')+((typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?item('paperDeleteHolding','🗑 Delete holding (no sale)','#ff9caa'):'');
   document.body.appendChild(m);
   try{ const r=m.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
     m.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
@@ -7048,7 +7150,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?` <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="margin-top:3px;margin-left:4px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:#ff9caa;font:600 9px var(--sans);cursor:pointer;">🗑 Delete</button>`:''}</td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
@@ -7224,7 +7326,7 @@ function showPortfolio(exSel){
       <div style="font-size:8px;color:var(--dim);margin-top:4px;text-align:center;line-height:1.5;">Portfolio missing or empty? This recovers it from the backup kept automatically on this device. Backups are per-device — they don't move between phones. For the most durable saving, install the app to your home screen.</div>
     </div>
     <button onclick="showPasteRestore()" title="Move a portfolio from another version by pasting its data" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📋 Paste portfolio from old version</button>
-    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}${_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a></div>
+    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}${_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a> · <a href="#" onclick="paperRecomputeFees();return false;" style="color:var(--orange);" title="Recompute this account's Fees Paid from your actual trades and return any over-charged fees to cash — for an imported or old account whose fees don't belong here.">🧮 fix fees</a></div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Charged on every fill and included in each closed trade’s recorded P/L.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">📉 Slippage per side: <input type="number" min="0" max="10" step="any" value="${slippagePct()||''}" placeholder="0" onchange="setSlippage(this.value)" style="width:44px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;">% — simulates the bid–ask spread: market buys fill that much higher, market sells &amp; stop-outs that much lower. Small ASX shares often cost 1–3% to cross. 0 = off.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">⏭ <strong style="color:var(--muted)">Realistic fills (locked on)</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Always on, so practice results stay honest.</div>
@@ -12198,6 +12300,8 @@ function mapRecord(r,exch,currency,today){
 //  Tries direct browser fetch first, then routes via Claude
 //  web_search proxy if CORS blocks the direct call.
 // ═══════════════════════════════════
+/* v362: ask the browser not to evict this site's saved data (offline history, watchlists, portfolio) under storage pressure — best-effort, silently ignored where unsupported */
+(function(){ try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persisted().then(function(p){ if(!p)navigator.storage.persist(); }).catch(function(){}); } }catch(e){} })();
 async function loadData(userClick){
   if(typeof _histClearCache==="function")_histClearCache();
   let apiKey=document.getElementById('apiKey').value.trim();
