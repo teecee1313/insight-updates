@@ -1490,7 +1490,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-356-open';
+const APP_VERSION='2026.07.16-357-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11191,16 +11191,32 @@ async function startMultiDownload(){
 // Takes a while (per-share API calls), but afterwards everything works offline.
 let _bulkAbort=false;
 // ── Download type chips: remember which security types you download ────────
-const DLTYPES_STORE='asxScreener.dlTypes.v1';
+const DLTYPES_STORE='asxScreener.dlTypes.v1'; // legacy (v306): array of TICKED types
+const DLTYPES_OFF='asxScreener.dlTypesOff.v1'; // v357: array of types the user explicitly turned OFF
 function saveDlTypes(){
-  const sel=[...document.querySelectorAll('#dlTypes input[data-t]')].filter(c=>c.checked).map(c=>c.getAttribute('data-t'));
-  try{localStorage.setItem(DLTYPES_STORE,JSON.stringify(sel));}catch(e){}
+  // v357: remember which types are turned OFF (not which are on) so a security type
+  // added in a later app version is loaded BY DEFAULT instead of being silently dropped
+  // by a stale saved set.
+  const off=[...document.querySelectorAll('#dlTypes input[data-t]')].filter(c=>!c.checked).map(c=>c.getAttribute('data-t'));
+  try{localStorage.setItem(DLTYPES_OFF,JSON.stringify(off));}catch(e){}
+  try{localStorage.removeItem(DLTYPES_STORE);}catch(e){} // retire the legacy ticked-list
 }
 function restoreDlTypes(){
-  let sel=null;
-  try{sel=JSON.parse(localStorage.getItem(DLTYPES_STORE));}catch(e){}
-  if(!Array.isArray(sel))return; // keep HTML defaults (v306: ALL types ticked — fresh installs load the complete exchange; a stored choice always wins)
-  document.querySelectorAll('#dlTypes input[data-t]').forEach(c=>{ c.checked=sel.includes(c.getAttribute('data-t')); });
+  // v357: honour the "turned OFF" set; every other type (incl. ones added in later
+  // versions) stays ticked, so a stale saved preset can't silently exclude a whole
+  // security type ("not loading all data").
+  let off=null;
+  try{off=JSON.parse(localStorage.getItem(DLTYPES_OFF));}catch(e){}
+  if(!Array.isArray(off)){
+    // No new-style set yet. Do NOT honour a legacy ticked-list — it may be missing types
+    // that didn't exist when it was saved (e.g. the Speculative chip → all sub-$0.10
+    // shares) and would keep dropping them. Tick EVERY type (load the whole exchange) and
+    // clear the legacy key; future explicit deselections are remembered under the new key.
+    document.querySelectorAll('#dlTypes input[data-t]').forEach(c=>{ c.checked=true; });
+    try{localStorage.removeItem(DLTYPES_STORE);}catch(e){}
+    return;
+  }
+  document.querySelectorAll('#dlTypes input[data-t]').forEach(c=>{ c.checked=!off.includes(c.getAttribute('data-t')); });
 }
 // Stop an in-progress download (the dedicated red Stop button calls this).
 function stopBulkDownload(){
