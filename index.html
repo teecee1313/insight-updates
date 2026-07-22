@@ -637,6 +637,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <button id="fsBtn" onclick="toggleFullscreen()" title="Full screen (Esc to exit)" style="padding:6px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 12px var(--sans);cursor:pointer;white-space:nowrap;">⛶</button>
     <button id="sidebarToggle" onclick="toggleSidebar()" title="Hide / show the filters panel" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">◀ Hide panel</button>
     <button onclick="changeAppPassword()" title="Change app password" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🔑 Password</button>
+    <button id="researchBtn" onclick="renderResearch()" title="🔬 Research further — open your worklist of shares parked to look into later. Flag any share from its report or the 🔔 What’s-changed list to add it here." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🔬 Research <span data-research-count style="color:var(--green);font-weight:700;"></span></button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
     <button onclick="logout()" title="Log out — re-locks the app behind your password" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🚪 Log out</button>
   </div>
@@ -1489,7 +1490,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-355-open';
+const APP_VERSION='2026.07.16-356-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12005,13 +12006,23 @@ async function loadData(userClick){
   btn.disabled=true;spEl.style.display='block';lbl.textContent='Fetching…';
   progWrap.style.display='block';progFill.style.width='8%';
   keyErr.style.display='none';
-  document.getElementById('emptyState').style.display='flex';
-  document.getElementById('tblwrap').style.display='none';
-  document.getElementById('noResults').style.display='none';
-  document.getElementById('statsBar').style.display='none';
-  document.getElementById('toolbar').style.display='none';
-  document.getElementById('emptyTitle').textContent=`Loading ${exch}…`;
-  document.getElementById('emptyDesc').textContent=`Fetching all ${exch} symbols from EODData…`;
+  // v356: only wipe the screen to the "Loading…" state on a FIRST load or when
+  // switching exchange. On a same-exchange refresh/retry (including the silent
+  // background auto-retry) keep the table + 📡 Market Radar + toolbar on screen so
+  // they don't flicker/vanish every cycle. (currentExch still holds the PREVIOUS
+  // exchange here — it's set to `exch` a few lines below.)
+  const _firstLoad=!(Array.isArray(allData)&&allData.length>0&&currentExch===exch);
+  if(_firstLoad){
+    document.getElementById('emptyState').style.display='flex';
+    document.getElementById('tblwrap').style.display='none';
+    document.getElementById('noResults').style.display='none';
+    document.getElementById('statsBar').style.display='none';
+    document.getElementById('toolbar').style.display='none';
+    document.getElementById('emptyTitle').textContent=`Loading ${exch}…`;
+    document.getElementById('emptyDesc').textContent=`Fetching all ${exch} symbols from EODData…`;
+  } else {
+    const _ls=document.getElementById('loadStatus'); if(_ls)_ls.textContent=`Refreshing ${exch}…`;
+  }
   currentExch=exch;
   const currency=EXCH_CUR[exch]||'USD';
   const today=new Date().toLocaleDateString('en-AU',{timeZone:'Australia/Sydney',day:'2-digit',month:'short',year:'numeric'});
