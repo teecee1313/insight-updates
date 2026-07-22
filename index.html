@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-361-open';
+const APP_VERSION='2026.07.16-362-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4002,7 +4002,7 @@ function render(){
   const _defCap=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches)?60:120; // v337/v350 capped; v361: 60 phone / 120 desktop — each row is heavy and the sticky columns reflow on every insert, so fewer rows = snappier filter/scan/scroll (Show more lifts it)
   const cap=(window._rowCap||_defCap);
   if(cnt>cap){
-    document.getElementById('rcount').innerHTML=`${cnt.toLocaleString()} stocks · showing top ${cap.toLocaleString()}`+(window._rowCap?` of ${cnt.toLocaleString()} <span style="font-size:9px;color:var(--dim)">— narrow with 🔍 search or a filter to find a specific share</span>`:` · <a href="#" onclick="_showAllRows();return false;" style="color:var(--blue);font-weight:700;">Show more</a>`);
+    document.getElementById('rcount').innerHTML=`${cnt.toLocaleString()} stocks · showing top ${cap.toLocaleString()} · <a href="#" onclick="_showAllRows();return false;" style="color:var(--blue);font-weight:700;">Show all ${cnt.toLocaleString()}</a> <span style="font-size:9px;color:var(--dim)">(big lists take a moment)</span>`;
   } else {
     document.getElementById('rcount').textContent=`${cnt.toLocaleString()} stock${cnt!==1?'s':''}`+(window._rowCap>1000&&cnt>1000?' · all shown':'');
   }
@@ -4011,13 +4011,13 @@ function render(){
 // Lift the render cap to show every filtered share. Stays on until the user
 // reloads or clicks back to the fast view.
 function _showAllRows(){
-  // v361: a table with thousands of live rows freezes render AND scrolling (each insert
-  // reflows the sticky columns of the whole table). Cap "show more" at a scrollable
-  // maximum; past that, narrow with search/filters to reach a specific share.
-  const _mob=(window.matchMedia&&window.matchMedia('(max-width:820px)').matches);
-  window._rowCap=_mob?200:500;
+  // v362: Tony needs his WHOLE market, so "Show all" shows every share again (the v361
+  // cap was too aggressive). The v361 box-shadow removal + bigger render chunks keep this
+  // much faster than it used to be; on a very large list, 🔍 search / a filter / a column
+  // sort is still the quick way to a specific share.
+  window._rowCap=999999;
   const ls=document.getElementById('loadStatus');
-  if(ls)ls.innerHTML='<span style="color:var(--gold)">Showing more shares… (use 🔍 search or a filter to jump straight to a share)</span>';
+  if(ls)ls.innerHTML='<span style="color:var(--gold)">Showing all shares… (a big list takes a moment to fill; 🔍 search or a filter jumps straight to a share)</span>';
   try{ (typeof applyF==='function'?applyF():render&&render()); }catch(e){}
 }
 function _showFastRows(){ window._rowCap=1000; try{ (typeof applyF==='function'?applyF():render&&render()); }catch(e){} }
@@ -4104,13 +4104,13 @@ function renderRows(rows){
   tbody.innerHTML=_rr(0,FIRST);
   window._rrToken=(window._rrToken||0)+1; const _tok=window._rrToken;
   if(rows.length>FIRST){
-    // v361: fewer, bigger, frame-aligned chunks. Every incremental insert reflows the
-    // sticky columns of the WHOLE table, so a few large rAF chunks are far cheaper than
-    // many small setTimeout(0) ones.
-    const _raf=window.requestAnimationFrame?window.requestAnimationFrame.bind(window):(f=>setTimeout(f,16));
+    // v362: keep the bigger 80-row chunks (far fewer sticky-column reflows than the old
+    // 30-row ones) but drive them with setTimeout(0) so the fill ALWAYS finishes —
+    // requestAnimationFrame pauses when the tab isn't visible, which could leave a big
+    // list half-painted.
     let _i=FIRST; const _CH=80;
-    const _step=()=>{ if(_tok!==window._rrToken)return; const _to=Math.min(_i+_CH,rows.length); try{ tbody.insertAdjacentHTML('beforeend',_rr(_i,_to)); }catch(e){} _i=_to; if(_i<rows.length)_raf(_step); };
-    _raf(_step);
+    const _step=()=>{ if(_tok!==window._rrToken)return; const _to=Math.min(_i+_CH,rows.length); try{ tbody.insertAdjacentHTML('beforeend',_rr(_i,_to)); }catch(e){} _i=_to; if(_i<rows.length)setTimeout(_step,0); };
+    setTimeout(_step,0);
   }
 }
 
@@ -12030,6 +12030,8 @@ function mapRecord(r,exch,currency,today){
 //  Tries direct browser fetch first, then routes via Claude
 //  web_search proxy if CORS blocks the direct call.
 // ═══════════════════════════════════
+/* v362: ask the browser not to evict this site's saved data (offline history, watchlists, portfolio) under storage pressure — best-effort, silently ignored where unsupported */
+(function(){ try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persisted().then(function(p){ if(!p)navigator.storage.persist(); }).catch(function(){}); } }catch(e){} })();
 async function loadData(userClick){
   if(typeof _histClearCache==="function")_histClearCache();
   const apiKey=document.getElementById('apiKey').value.trim();
