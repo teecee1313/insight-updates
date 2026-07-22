@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-362-open';
+const APP_VERSION='2026.07.16-363-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5504,10 +5504,21 @@ function undoSale(sellDate,ticker,buyDate){
   const idx=(p.history||[]).findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
   if(idx<0){alert('Could not find that trade to undo.');return;}
   const t=p.history[idx];
-  const msg=`Undo this sale?\n\n${t.ticker}: sold ${t.qty} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate}.\n\nThis returns the ${t.qty} shares to your holdings and reverses the ${fmtP(t.proceeds,t.currency)} cash. Use this if a stop-loss fired on bad price data.`;
+  // v363: SAFE undo. You can only take the sale's money back OUT of cash if it's still
+  // there. If the proceeds were already reinvested, undoing would drive cash negative (the
+  // old balance-corruption bug) — so block it, with a clear way out.
+  const _back=+(((t.proceeds||0)-(t.fees||0))).toFixed(2); // the net cash the sale paid you
+  if(_back>(p.cash||0)+0.005){
+    const _need=+(_back-(p.cash||0)).toFixed(2);
+    alert(`Can't undo this ${t.ticker} sale yet — you've already reinvested the money.\n\nUndoing puts the ${t.qty.toLocaleString()} shares back and takes back the ${fmtP(_back,t.currency)} you were paid, but you only have ${fmtP(p.cash||0,t.currency)} cash right now.\n\nFree up about ${fmtP(_need,t.currency)} first — cancel a pending order or sell a holding, or use ➕ add cash — then undo.`);
+    return;
+  }
+  const msg=`Undo this sale?\n\n${t.ticker}: sold ${t.qty.toLocaleString()} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate}.\n\nThis returns the ${t.qty.toLocaleString()} shares to your holdings and takes the ${fmtP(_back,t.currency)} back out of your cash. Auto-sell is paused on the restored shares so a rule can't sell them straight back.`;
   if(!confirm(msg))return;
-  // reverse the cash
-  p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
+  // reverse the cash the sale added (proceeds minus the fee) and refund the sell fee in the
+  // fee ledger, so the balance stays consistent with the trade record
+  p.cash=+((p.cash||0)-_back).toFixed(2);
+  p.feesPaid=+(Math.max(0,(p.feesPaid||0)-(t.fees||0))).toFixed(2);
   // restore the holding (merge if the same ticker/buyDate lot exists)
   p.holdings=p.holdings||[];
   const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
@@ -6911,7 +6922,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button></td>
     </tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
