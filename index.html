@@ -353,6 +353,7 @@ body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-
 .sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
 .sdiv{width:1px;height:24px;background:var(--border);}
 .notice{padding:3px 9px;background:#162016;border:1px solid #2a3e2a;border-radius:4px;font-size:10px;color:#4a9a4a;white-space:nowrap;}
+body.pf-hideprofit .pf-pl{filter:blur(8px)!important;-webkit-filter:blur(8px)!important;cursor:pointer;user-select:none;transition:filter .12s;}
 .toolbar{padding:7px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;flex-wrap:wrap;}
 #searchBox{background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:6px 11px;color:var(--text);font:13px var(--sans);width:220px;outline:none;}
 #searchBox:focus{border-color:var(--gold);}
@@ -1488,7 +1489,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-353-open';
+const APP_VERSION='2026.07.16-354-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6746,6 +6747,8 @@ function paperAcceptBalance(){
 
 // Portfolio + 1-year history panel (scoped to All or a single exchange).
 // v263: flip the portfolio between its two pages without a full re-render.
+function _pfHideProfit(){ try{return localStorage.getItem('asxScreener.pfHideProfit.v1')==='1';}catch(e){return false;} }
+function _pfToggleProfit(){ const on=!_pfHideProfit(); try{localStorage.setItem('asxScreener.pfHideProfit.v1',on?'1':'0');}catch(e){} try{document.body.classList.toggle('pf-hideprofit',on);}catch(e){} const b=document.getElementById('pfHideBtn'); if(b)b.textContent=on?'🙈 Show P/L':'👁 Hide P/L'; }
 function _setPfView(v){
   try{
     const views=['holdings','pending','history','performance'];
@@ -6780,6 +6783,7 @@ function _pfRowMenu(id,ev){
   setTimeout(()=>document.addEventListener('click',_pfCloseMenu,{once:true}),0);
 }
 function showPortfolio(exSel){
+  try{document.body.classList.toggle('pf-hideprofit',_pfHideProfit());}catch(e){}
   if(exSel)window._pfExSel=exSel;
   updatePaperPrices();
   if(!window._tgtChecking)checkAutoSellTargets().then(sold=>{if(sold&&sold.length)showPortfolio();});
@@ -6815,7 +6819,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
-      <td style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
+      <td class="pf-pl" style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
       <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event)" title="Actions — target, stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:800 15px var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
     </tr>`;
   }).join('');
@@ -6832,7 +6836,7 @@ function showPortfolio(exSel){
     return `<div class="pf-card">
       <div class="pf-card-top">
         <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${h.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${h.ticker} 🖨</a></strong>
-        <span style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(1)}%)</span>
+        <span class="pf-pl" style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(1)}%)</span>
       </div>
       <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}${(+h.trail>0)?' · 🪤 '+h.trail+'%':''}</div>
       <div class="pf-card-grid">
@@ -6860,7 +6864,8 @@ function showPortfolio(exSel){
     <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Account</div><div style="font-family:var(--mono);font-weight:800;font-size:15px;color:var(--text);">${_fmtN(_pfAcctNow)}</div></div>
     <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">💵 Cash</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfCashNow)}</div></div>
     ${_pfResvNow>0.005?`<div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">⏳ Reserved</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfResvNow)}</div></div>`:''}
-    <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Open P/L</div><div style="font-family:var(--mono);font-weight:800;font-size:15px;color:${_pfPc(totPl)};">${totPl>=0?'+':''}${totPl.toFixed(2)}</div></div>
+    <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Open P/L</div><div class="pf-pl" style="font-family:var(--mono);font-weight:800;font-size:15px;color:${_pfPc(totPl)};">${totPl>=0?'+':''}${totPl.toFixed(2)}</div></div>
+    <button id="pfHideBtn" onclick="_pfToggleProfit()" title="Hide or show your profit/loss figures in the portfolio" style="margin-left:auto;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">${_pfHideProfit()?'🙈 Show P/L':'👁 Hide P/L'}</button>
   </div>`;
   const histRows=hist.map(t=>{
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
@@ -6908,7 +6913,7 @@ function showPortfolio(exSel){
       <div style="display:flex;justify-content:space-between;font-size:10px;margin:6px 2px;color:var(--muted);">
         <span>Invested: <strong style="color:var(--text)">${totInv.toFixed(2)}</strong></span>
         <span>Value: <strong style="color:var(--text)">${totVal.toFixed(2)}</strong></span>
-        <span>Open P/L: <strong style="color:${totC}">${totPl>=0?'+':''}${totPl.toFixed(2)}</strong></span>
+        <span>Open P/L: <strong class="pf-pl" style="color:${totC}">${totPl>=0?'+':''}${totPl.toFixed(2)}</strong></span>
       </div>`
     :`<div style="font-size:10px;color:var(--muted);padding:10px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No holdings${ex==='ALL'?'':' on '+ex} yet — use 💼 Buy on any share row.</div>`}
 
@@ -6929,7 +6934,7 @@ function showPortfolio(exSel){
     ${(hold.length||hist.length)?(function(){
       const divs=((p.dividends)||[]).filter(d=>ex==='ALL'||d.exchange===ex).reduce((a,d)=>a+(d.total||0),0);
       const totalPl=totPl+closedPl+divs;
-      const card=(lbl,v,c)=>`<div style="flex:1;min-width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;"><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">${lbl}</div><div style="font-family:var(--mono);font-size:14px;font-weight:800;color:${c||'var(--text)'};margin-top:2px;">${v}</div></div>`;
+      const card=(lbl,v,c,cls)=>`<div style="flex:1;min-width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;"><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">${lbl}</div><div class="${cls||''}" style="font-family:var(--mono);font-size:14px;font-weight:800;color:${c||'var(--text)'};margin-top:2px;">${v}</div></div>`;
       const pc=x=>x>0.005?'var(--green)':x<-0.005?'var(--red)':'var(--muted)';
       const cash=p.cash||0, resv=_reservedSum(p), acct=cash+resv+totVal;
       const _curs=[...new Set(hold.map(h=>h.currency).filter(Boolean))];
@@ -6979,10 +6984,10 @@ function showPortfolio(exSel){
         ${(ex==='ALL'&&resv>0.005)?card('⏳ Reserved',resv.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
         ${card('Holdings value',totVal.toFixed(2))}
         ${card('Invested',totInv.toFixed(2))}
-        ${card('Unrealised P/L',(totPl>=0?'+':'')+totPl.toFixed(2)+' ('+(totInv>0?((totPl/totInv)*100>=0?'+':'')+((totPl/totInv)*100).toFixed(1):'0')+'%)',pc(totPl))}
-        ${card('Realised P/L 12mo',(closedPl>=0?'+':'')+closedPl.toFixed(2),pc(closedPl))}
+        ${card('Unrealised P/L',(totPl>=0?'+':'')+totPl.toFixed(2)+' ('+(totInv>0?((totPl/totInv)*100>=0?'+':'')+((totPl/totInv)*100).toFixed(1):'0')+'%)',pc(totPl),'pf-pl')}
+        ${card('Realised P/L 12mo',(closedPl>=0?'+':'')+closedPl.toFixed(2),pc(closedPl),'pf-pl')}
         ${divs>0.005?card('💰 Dividends','+'+divs.toFixed(2),'var(--green)'):''}
-        ${card('Total P/L',(totalPl>=0?'+':'')+totalPl.toFixed(2),pc(totalPl))}
+        ${card('Total P/L',(totalPl>=0?'+':'')+totalPl.toFixed(2),pc(totalPl),'pf-pl')}
         ${(ex==='ALL'&&fees>0)?card('Fees paid',fees.toFixed(2)+(brokerageFee()>0?' <span style="font-size:9px;color:var(--dim)">($'+brokerageFee()+'/trade)</span>':''),'var(--orange)'):''}
       </div>${statsHtml}`;
     })():''}
