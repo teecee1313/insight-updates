@@ -1369,6 +1369,18 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div>
     <div class="sdiv"></div>
     <div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover (volume over 30k and at least 1.5× its average). An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div>
+    <div class="sdiv"></div>
+    <div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div>
   </div>
 
   <div id="activeScanBanner"></div>
@@ -1490,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.16-357-open';
+const APP_VERSION='2026.07.16-358-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7977,7 +7989,7 @@ function printPDFRows(rows,title){
 // combine them (e.g. Gainers + Vol ≥200% + Up 2+ Days). Click one again to
 // turn just it off; click "Showing" to clear all. Gainers/Losers are mutually
 // exclusive (a share can't be both).
-let _statOn={gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false};
+let _statOn={gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false};
 function statFilter(which){
   if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
   else if(which==='bullish'||which==='bearish'){
@@ -8034,6 +8046,12 @@ function _statPass(s){
   if(_statOn.ma200 && s.aboveMA200!==true)return false;
   if(window._statBullBear==='bullish' && !_isBullish(s))return false;
   if(window._statBullBear==='bearish' && !_isBearish(s))return false;
+  if(_statOn.brk && !s.sigBreakout)return false;   // v358: report-card signal filters
+  if(_statOn.vrec && !s.sigVolRecord)return false;
+  if(_statOn.cross && !s.sigCross)return false;
+  if(_statOn.inst && !s.instBuy)return false;
+  if(_statOn.blk && !s.blockTrade)return false;
+  if(_statOn.dist && !s.sigDist)return false;
   return true;
 }
 function _applyStatFilters(){
@@ -8095,6 +8113,7 @@ function statsBar(){
   const d=watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
   // v295: one pass over the list instead of ~15 separate sweeps — identical numbers.
   let g=0,l=0,v200=0,dir=0,c2=0,v50=0,qm=0,vs=0,s7=0,hi=0,fl=0,ma=0,bull=0,bear=0;
+  let _brk=0,_vrec=0,_cross=0,_inst=0,_blk=0,_dist=0; // v358: report-card signal tiles
   for(const s of d){
     if(s.chgPct>0)g++; if(s.chgPct<0)l++;
     if(s.volPct>=200)v200++;
@@ -8109,6 +8128,7 @@ function statsBar(){
     if(s.aboveMA200===true)ma++;
     if(_isBullish(s))bull++;
     if(_isBearish(s))bear++;
+    if(s.sigBreakout)_brk++; if(s.sigVolRecord)_vrec++; if(s.sigCross)_cross++; if(s.instBuy)_inst++; if(s.blockTrade)_blk++; if(s.sigDist)_dist++; // v358
   }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
   document.getElementById('sG').textContent=g;
@@ -8121,6 +8141,7 @@ function statsBar(){
   _set('sHi',hi); _set('sFloor',fl); _set('sMA',ma);
   const bl=document.getElementById('sBull'); if(bl)bl.textContent=bull;
   const br=document.getElementById('sBear'); if(br)br.textContent=bear;
+  _set('sBrk',_brk); _set('sVR',_vrec); _set('sCx',_cross); _set('sInst',_inst); _set('sBlk',_blk); _set('sDist',_dist); // v358
 }
 
 // Currency map
