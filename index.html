@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-375-open';
+const APP_VERSION='2026.07.22-376-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5070,7 +5070,7 @@ function _auditCached(){
   try{
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||_todayLocal();
     if(window._auditCache&&window._auditCache.d===dd)return window._auditCache.A;
-    const A=_signalAudit(); window._auditCache={d:dd,A:A}; return A;
+    const A=_signalAudit(); window._auditCache={d:dd,A:A}; window._gradeSrc='local'; return A;
   }catch(e){ return null; }
 }
 // v318 — short display name for each combo mode (funnel + diary).
@@ -15291,14 +15291,14 @@ function _auditWarmIdle(){
     // v374b: grade on the SERVER (maths held server-side). Fall back to the local
     // engine only if the server is unreachable, so the card/bot never go dark.
     const _localWarm=function(){ const go=function(){ try{ _auditChunk(function(A){
-        try{ if(A&&A.M){ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; } }catch(e){}
+        try{ if(A&&A.M){ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; window._gradeSrc='local'; } }catch(e){}
         window._auditWarming=false;
       }); }catch(e){ window._auditWarming=false; } };
       (window.requestIdleCallback?window.requestIdleCallback(go,{timeout:4000}):setTimeout(go,900)); };
     if(typeof DATA_PROXY==='string' && DATA_PROXY){
       const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
       _serverGrades(payload,dd,currentExch).then(function(A){
-        if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; }catch(e){} window._auditWarming=false; }
+        if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; window._gradeSrc='server'; }catch(e){} window._auditWarming=false; }
         else { _localWarm(); }
       }).catch(function(){ _localWarm(); });
     } else { _localWarm(); }
@@ -15363,10 +15363,10 @@ function signalReportCard(){
     }
   };
   // v374b: grade on the SERVER first; fall back to the local engine if unreachable.
-  var _localFB=function(){ try{ _auditChunk(function(A){ _show(A); }); }catch(e){ setTimeout(function(){ try{ _renderReportCard(_auditCached()); }catch(_){} },30); } };
+  var _localFB=function(){ try{ _auditChunk(function(A){ window._gradeSrc='local'; _show(A); }); }catch(e){ setTimeout(function(){ try{ window._gradeSrc='local'; _renderReportCard(_auditCached()); }catch(_){} },30); } };
   if(typeof DATA_PROXY==='string' && DATA_PROXY){
     var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).map(function(s){return {ticker:s.ticker,series:s.series};});
-    _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ _show(A); } else { _localFB(); } }).catch(function(){ _localFB(); });
+    _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ window._gradeSrc='server'; _show(A); } else { _localFB(); } }).catch(function(){ _localFB(); });
   } else { _localFB(); }
 }
 function _renderReportCard(A){
@@ -15446,7 +15446,10 @@ function _renderReportCard(A){
           return `<div style="font-size:10px;color:var(--muted);margin-top:3px;">${seg(na.news,'📢','news-driven','#ff9caa')} &nbsp;·&nbsp; ${seg(na.quiet,'🔇','quiet','var(--green)')}${na.unk?` <span style="color:var(--dim)">· ${na.unk.toLocaleString()} unknown</span>`:''}</div>`;})()}
       </div>`;
     }
-    const head=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`;
+    const _srcBadge=(window._gradeSrc==='server')
+      ?'<div style="margin-bottom:8px;"><span title="These grades were computed on YOUR server — the scoring formula runs there, not in this page." style="display:inline-block;border:1px solid var(--green);color:var(--green);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">⚡ GRADED ON YOUR SERVER</span></div>'
+      :'<div style="margin-bottom:8px;"><span title="Computed on this device — the app graded here because your server was not reachable this time." style="display:inline-block;border:1px solid var(--gold);color:var(--gold);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">🖥 COMPUTED ON THIS DEVICE</span></div>';
+    const head=_srcBadge+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`;
     // rank helper for combo/sequence sections
     const tierRank={solid:2,promising:1,early:0};
     const lines=Object.keys(A.M).map(k=>({k,m:A.M[k]}));
