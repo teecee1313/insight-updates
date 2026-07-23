@@ -685,7 +685,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
       </select>
     </div>
     <div style="font-size:10.5px;color:var(--muted);background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.25);border-radius:7px;padding:7px 9px;margin:8px 0 2px;line-height:1.5;">💡 <strong>Normal day = just press ⚡.</strong> Today's prices come from the internet, history comes instantly from this device, and anything missing is fetched once and saved automatically. ⬇ Download all is only for the FIRST setup (or a full rebuild). 📂 is for when you have no internet.</div>
-    <div class="step-sub2" style="margin-top:10px;">🌐 FROM THE INTERNET — the latest end-of-day prices <span style="text-transform:none;font-weight:500;">(needs your API key)</span></div>
+    <div class="step-sub2" style="margin-top:10px;">🌐 FROM THE INTERNET — the latest end-of-day prices <span style="text-transform:none;font-weight:500;">(from your server)</span></div>
     <button id="loadBtn" onclick="loadData(true)">
       <div class="sp" id="sp"></div>
       <span id="loadLbl" data-i18n="loadData">⚡ Get today's prices (internet)</span>
@@ -693,9 +693,10 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="step-sub2" style="margin-top:12px;">💾 FROM THIS DEVICE — your saved data <span style="text-transform:none;font-weight:500;">(instant · works offline)</span></div>
     <div id="savedDataStat" style="font-size:9.5px;color:var(--muted);margin:0 0 6px;font-family:var(--mono);"></div>
     <button id="offlineLoadBtn" onclick="loadOfflineNow()" style="display:none;width:100%;padding:8px;border-radius:6px;border:1px solid #58a6ff;background:rgba(88,166,255,.12);color:#58a6ff;font:700 12px var(--sans);cursor:pointer;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;" title="Load the data you already downloaded, instantly — no network, no waiting on proxies. Prices are from your last download.">📂 Load from saved data (instant)</button>
-    <div class="adv-note" style="margin-top:6px;"><strong style="color:var(--muted)">The difference:</strong> 🌐 internet = today's fresh prices, needs your key and a network · 💾 this device = your last download, loads instantly with no internet. The app picks automatically on startup; these buttons are for doing it by hand.</div>
+    <div class="adv-note" style="margin-top:6px;"><strong style="color:var(--muted)">The difference:</strong> 🌐 internet = today's fresh prices, needs a network · 💾 this device = your last download, loads instantly with no internet. The app picks automatically on startup; these buttons are for doing it by hand.</div>
 
-        <!-- API key -->
+        <!-- API key (v382: hidden when the server provides data) -->
+        <div id="keyConnBlock">
         <div class="adv-note">Your data connection. Enter it once — it's remembered.</div>
         <div class="field" style="margin-bottom:10px;">
           <!-- When a key is saved, this whole row collapses to a small "Change" button.
@@ -711,6 +712,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
             <button onclick="changeApiKey()" style="padding:5px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">✏ Change key</button>
           </div>
         </div>
+        </div><!-- /keyConnBlock -->
 
         <!-- ── Advanced settings (collapsed by default) ─────────────── -->
         <details id="advSettingsWrap" style="margin:4px 0 10px;">
@@ -1430,9 +1432,8 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="et" id="emptyTitle" data-i18n="welcomeTitle">Welcome to Insight Trading</div>
     <div style="font-size:12px;color:var(--gold);margin:-4px 0 10px;font-weight:600;" data-i18n="welcomeSub">Multi-exchange end-of-day share screener</div>
     <div class="ed" id="emptyDesc">
-      Select any exchange from the dropdown on the left, enter your <strong style="color:var(--gold)">EODData API key</strong>, then press <strong style="color:var(--gold)">⚡ Load Exchange Data</strong>.<br><br>
-      Supports <strong>ASX · NYSE · NASDAQ · LSE · TSX · SGX · Frankfurt · Euronext · Crypto · Forex</strong> and more — all from the one key.<br><br>
-      <strong style="color:var(--muted)">Key returning 401?</strong> Go to <a href="https://www.eoddata.com/myaccount/api.aspx" target="_blank">eoddata.com → My Account → APINEW</a> and generate your REST API key.
+      Select any exchange from the dropdown on the left, then press <strong style="color:var(--gold)">⚡ Load Exchange Data</strong>.<br><br>
+      Supports <strong>ASX · NYSE · NASDAQ · LSE · TSX · SGX · Frankfurt · Euronext · Crypto · Forex</strong> and more.
     </div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;max-width:560px;margin-left:auto;margin-right:auto;">
       <div style="flex:1;min-width:150px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:left;">
@@ -1502,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-380-open';
+const APP_VERSION='2026.07.22-382-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2122,6 +2123,7 @@ function _safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u.rep
 // (set it to '' to turn the server off and use the old relays).
 let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
 try{ const _dp=localStorage.getItem('asxScreener.dataProxy.v1'); if(_dp!=null) DATA_PROXY=String(_dp).trim(); }catch(e){}
+function _serverData(){ return (typeof DATA_PROXY==='string' && !!DATA_PROXY); } // v382: the Worker provides the data, so no user API key is needed
 // ═══ v380 — ACCESS GATE (client side) ══════════════════════════════════════
 // A shared "tester password" that the Worker enforces server-side (it refuses to
 // send any data or grades without it). This page only (1) remembers the key, (2)
@@ -2539,7 +2541,7 @@ function onExchChange(){
   // offline data for that exchange.
   const key=(document.getElementById('apiKey')||{}).value||'';
   const ls=document.getElementById('loadStatus');
-  if(key.trim()){
+  if(key.trim() || _serverData()){
     if(ls)ls.innerHTML=`<span style="color:var(--gold)">Loading ${currentExch}…</span>`;
     setTimeout(()=>{ try{ loadData(); }catch(e){} }, 150);
   } else if(ls){
@@ -3180,6 +3182,7 @@ function initKeyLock(){
 }
 // Show the saved-state (collapsed) row when a key exists, else the input row.
 function _refreshKeyUI(){
+  const _kb=document.getElementById('keyConnBlock'); if(_kb)_kb.style.display=_serverData()?'none':''; // v382: hide the key field when the server provides data
   let has=false; try{has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();}catch(e){}
   const entry=document.getElementById('keyEntryRow');
   const saved=document.getElementById('keySavedRow');
@@ -3215,6 +3218,7 @@ function _wizExch(){
   return sel.innerHTML; // reuse the app's full exchange list
 }
 function _showWizard(step){
+  if(step===2 && _serverData()){ return _showWizard(3); } // v382: no data-key step when the server provides data
   let ov=document.getElementById('keyPromptOv');
   if(!ov){ ov=document.createElement('div'); ov.id='keyPromptOv'; document.body.appendChild(ov); }
   ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(3,10,22,.82);display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -9405,7 +9409,7 @@ async function speedingTicketScan(){
   _resetBeforeScan();
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
-  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Enter your API key first (or load your saved data).';return;}
+  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Load your market data first — tap ⚡ Load.';return;}
   if(!allData.length){if(st)st.textContent='Load an exchange first.';return;}
   const P=SPEED_PRESETS[speedSensitivity]||SPEED_PRESETS.normal;
   scanProgShow();scanProgSet(15);
@@ -9677,7 +9681,7 @@ async function topTenScan(){
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('top10Btn');
-  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Enter your API key first (or load your saved data).';return;}
+  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Load your market data first — tap ⚡ Load.';return;}
   if(!allData.length){if(st)st.textContent='Load an exchange first.';return;}
   if(btn){btn.disabled=true;btn.style.opacity='.6';}
   if(typeof scanProgShow==='function')scanProgShow();
@@ -9897,7 +9901,7 @@ async function technicalScan(){
     if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
   }
   const have=allData.filter(s=>s.techCalced);
-  if(!have.length){alert('Technical signals need price history. Enter your API key and try the 3-month refresh first.');return;}
+  if(!have.length){alert('Technical signals need price history — tap ⚡ Load, then the 3-month refresh.');return;}
   // Rank: reward fresh golden cross, near-high momentum, healthy RSI, rising OBV
   have.forEach(s=>{
     let sc=0;
@@ -10406,7 +10410,7 @@ async function allSignalsScan(){
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('allSigBtn');
-  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Enter your API key first (or load your saved data).';return;}
+  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Load your market data first — tap ⚡ Load.';return;}
   if(!allData.length){if(st)st.textContent='Load an exchange first.';return;}
   if(btn){btn.disabled=true;btn.style.opacity='.6';}
   scanProgShow&&scanProgShow();scanProgSet&&scanProgSet(10);
@@ -10480,7 +10484,7 @@ async function unusualScan(){
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('unusualBtn');
-  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Enter your API key first (or load your saved data).';return;}
+  if(!apiKey && !(allData&&allData.length)){if(st)st.textContent='Load your market data first — tap ⚡ Load.';return;}
   if(!allData.length){if(st)st.textContent='Load an exchange first.';return;}
   if(btn){btn.disabled=true;btn.style.opacity='.6';}
   if(st)st.textContent='Step 1/2 · loading price & volume history…';
@@ -10529,7 +10533,7 @@ async function smartMoneyScan(minDays,scanAll){
   const apiKey=document.getElementById('apiKey').value.trim();
   const st=document.getElementById('smartStatus');
   const btn=document.getElementById('smartBtn');
-  if(!apiKey && !(allData&&allData.length)){st.textContent='Enter your API key first (or load your saved data).';return;}
+  if(!apiKey && !(allData&&allData.length)){st.textContent='Load your market data first — tap ⚡ Load.';return;}
   if(!allData.length){
     st.textContent='Loading exchange first…';
     if(!window._offlineMode) await loadData();
@@ -10673,7 +10677,7 @@ async function smartMoneyScan(minDays,scanAll){
 // than full prepare-all; runs by default at startup.
 async function autoRunTechnicals(){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
-  if(!apiKey||!allData.length)return;
+  if((!apiKey && !_serverData())||!allData.length)return;
   if(window._prepRunning||window._autoTechRunning)return;
   // If full prepare-all is on, it already does technicals — don't double up.
   if(typeof prepAllOn==='function'&&prepAllOn())return;
@@ -10787,7 +10791,7 @@ function runLoadPreset(){
 async function testConnectionSpeed(){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
   const el=document.getElementById('speedTestOut');
-  if(!apiKey){ if(el)el.innerHTML='<span style="color:#ff9caa">Enter your API key first.</span>'; return; }
+  if(!apiKey && !_serverData()){ if(el)el.innerHTML='<span style="color:#ff9caa">Enter your API key first.</span>'; return; }
   if(el)el.innerHTML='🔎 Testing 3 routes with one real fetch each…';
   const t=(allData[0]||{}).ticker||'BHP', ex=currentExch||'ASX';
   const to=new Date(), from=new Date(to.getTime()-90*864e5), fmt=d=>d.toISOString().slice(0,10);
@@ -10814,7 +10818,7 @@ async function testConnectionSpeed(){
 }
 async function refreshLiveFromApi(){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
-  if(!apiKey){alert('Enter your API key first.');return;}
+  if(!apiKey && !_serverData()){alert('Enter your API key first.');return;}
   const msg=document.getElementById('lpMsg');
   if(msg)msg.innerHTML='<span style="color:var(--gold)">🔄 Re-fetching fresh from the API…</span>';
   // apply the active preset recipe too
@@ -10871,7 +10875,7 @@ async function prepareAllSignals(auto){
   // bail if we have neither (nothing to fetch history with).
   let haveOffline=false;
   try{haveOffline=(await histCount())>0;}catch(e){}
-  if(!apiKey && !haveOffline)return;
+  if(!apiKey && !_serverData() && !haveOffline)return;
   try{
     const _offN=haveOffline?await histCount():0; window._savedN=_offN;
     if(!window._forceLiveRefresh && (window._offlineMode || _offN>=Math.min(allData.length,300))){
@@ -11105,7 +11109,7 @@ async function calcStreaks(){
   const apiKey=document.getElementById('apiKey').value.trim();
   const btn=document.getElementById('streakBtn');
   const st=document.getElementById('streakStatus');
-  if(!apiKey && !(allData&&allData.length)){st.textContent='Enter your API key first (or load your saved data).';return;}
+  if(!apiKey && !(allData&&allData.length)){st.textContent='Load your market data first — tap ⚡ Load.';return;}
   if(!filtered.length){st.textContent='No results — filter down to some shares first.';return;}
   const MAX=60;
   const toCalc=filtered.slice(0,MAX);
@@ -11590,7 +11594,7 @@ function openMultiDownload(){
 let _multiAbort=false;
 async function startMultiDownload(){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
-  if(!apiKey){alert('Enter your API key first.');return;}
+  if(!apiKey && !_serverData()){alert('Enter your API key first.');return;}
   const chosen=[...document.querySelectorAll('.dlExchChk:checked')].map(c=>c.value);
   if(!chosen.length){alert('Tick at least one exchange.');return;}
   try{localStorage.setItem('asxScreener.dlExch.v1',JSON.stringify(chosen));}catch(e){}
@@ -11727,7 +11731,7 @@ async function downloadEverything(){
   if(!apiKey){ try{ apiKey=(localStorage.getItem('asxScreener.apiKey')||'').trim(); if(apiKey){ const _ki=document.getElementById('apiKey'); if(_ki)_ki.value=apiKey; } }catch(e){} }
   const _lbl=document.getElementById('bulkLbl')||document.getElementById('loadStatus');
   const _say=(m)=>{ if(_lbl)_lbl.innerHTML='<span style="color:#f0b849">'+m+'</span>'; };
-  if(!apiKey){
+  if(!apiKey && !_serverData()){
     _say('⚠ Enter your API key first (in Setup &amp; data), then press Download all.');
     alert('Download all needs your API key.\n\nIt saves the price history for every share, which requires your free EODData key.\n\n1. Open "⚙ Setup & data" (top of the panel)\n2. Enter your API key in the key box\n3. Then press "⬇ Download all" again.');
     try{const s=document.getElementById('setupGroup')||document.getElementById('advGroup'); if(s&&s.scrollIntoView)s.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
@@ -11874,7 +11878,7 @@ async function downloadEverything(){
 async function retryFailedDownload(){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
   const miss=(window._lastFailedShares||[]);
-  if(!apiKey){alert('Enter your API key first.');return;}
+  if(!apiKey && !_serverData()){alert('Enter your API key first.');return;}
   if(!miss.length){alert('Nothing left to retry — all shares are downloaded.');return;}
   const lbl=document.getElementById('bulkLbl');
   const today=new Date().toISOString().slice(0,10);
@@ -12495,7 +12499,7 @@ async function loadData(userClick){
     }catch(e){}
   }
   const exch=document.getElementById('exchSel').value;
-  if(!apiKey){
+  if(!apiKey && !_serverData()){
     let hasOffline=false; try{ hasOffline=(window._offlineMode||(await histCount())>0); }catch(_){}
     if(userClick===true && !hasOffline){ alert('Please enter your EODData API key.'); }
     return;
@@ -14067,7 +14071,7 @@ function setAutoLoad(on){
       // list first) left the screen empty while a slow network ground away.
       setPhase('Step 1 of 2 — showing your saved data');
       try{ await loadOfflineNow(); }catch(e){}
-      if(key && navigator.onLine!==false){
+      if((key || _serverData()) && navigator.onLine!==false){
         setPhase('Step 2 of 2 — fetching today\'s fresh prices in the background');
         const _ls2=document.getElementById('loadStatus');
         if(_ls2)_ls2.innerHTML='<span style="color:var(--green)">📂 Showing your saved data.</span> <span style="color:var(--muted)">Fetching today\'s fresh prices in the background…</span>';
@@ -14084,7 +14088,7 @@ function setAutoLoad(on){
     }
 
     // ── No offline data yet. Download everything to disk (one time), then prepare. ──
-    if(key.trim()){
+    if(key.trim() || _serverData()){
       // v362: the saved key lives in localStorage but the key BOX may not be
       // populated yet (init restores it asynchronously) — and loadData() /
       // downloadEverything() read the box. Fill it now so nothing bails.
