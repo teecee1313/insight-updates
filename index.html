@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-384-open';
+const APP_VERSION='2026.07.22-385-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6195,6 +6195,14 @@ function paperBuy(ticker){
       </div>
     </div>
     <div style="font-size:9px;color:var(--dim);margin-top:5px;">A sell price is <b style="color:var(--gold)">required</b> — type a <b>%</b> (fills the price from the ${fmtP(s.price,s.currency)} buy) or an exact price. The stop-loss is optional. You can change the target later — every change is dated and kept on the record.</div>
+    <label style="display:block;font-size:10px;color:var(--muted);margin:10px 0 4px;">🪤 Trailing stop — auto-sells if it falls this % below its highest close (optional)</label>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <div style="position:relative;flex:0 0 92px;">
+        <input type="number" id="paperTrailPct" min="0" step="any" placeholder="8" style="width:100%;padding:9px 22px 9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--green);color:var(--text);font-size:13px;box-sizing:border-box;">
+        <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--green);font-size:12px;font-weight:700;">%</span>
+      </div>
+      <span style="font-size:9px;color:var(--dim);flex:1;line-height:1.4;">The stop only ever RISES with the price — locks in gains as it climbs, never loosens. Works alongside your 🛑 stop &amp; 🎯 target. Leave blank for none.</span>
+    </div>
     <input type="hidden" id="paperBuyPx" value="${s.price}">
 
     <label style="display:block;font-size:10px;color:var(--muted);margin:10px 0 4px;">📝 Why this trade? — a note to your future self (optional, shows in the ledger)</label>
@@ -6233,6 +6241,8 @@ function paperBuyConfirm(ticker){
   const amt=parseFloat((document.getElementById('paperAmt')||{}).value)||0;
   const tgt=parseFloat((document.getElementById('paperTgt')||{}).value)||0;
   const stop=parseFloat((document.getElementById('paperStop')||{}).value)||0;
+  const trail=parseFloat((document.getElementById('paperTrailPct')||{}).value)||0;
+  const _trV=(trail>0?trail:null); // v385: 🪤 trailing stop chosen at buy time
   const isLimit=(window._buyType==='limit');
   const lim=parseFloat((document.getElementById('paperLimit')||{}).value)||0;
   const px=(isLimit&&lim>0)?lim:(realFillsOn()?s.price:_slipBuy(s.price));
@@ -6254,7 +6264,7 @@ function paperBuyConfirm(ticker){
     _chargeFee(p);
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
-      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
+      limit:lim,qty,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),target:tgt>0?tgt:null,stop:stop>0?stop:null,trail:_trV,note:note||null,fee:fee||0,
       tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
     _paperSave(p);closeModal();showPortfolio();
     return;
@@ -6267,7 +6277,7 @@ function paperBuyConfirm(ticker){
     p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
       market:true,limit:0,qty:0,amount:cost,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
-      target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,fee:fee||0,
+      target:tgt>0?tgt:null,stop:stop>0?stop:null,trail:_trV,note:note||null,fee:fee||0,
       tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
     _paperSave(p);closeModal();showPortfolio();
     return;
@@ -6278,7 +6288,7 @@ function paperBuyConfirm(ticker){
   _chargeFee(p);
   p.holdings.push({id:'t'+Date.now(),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
     buyDate:today,buyPrice:px,qty,invested:+(qty*px).toFixed(2),buyFee:fee||0,
-    lastPrice:s.price,lastDate:(s._q&&s._q.d)||today,target:tgt>0?tgt:null,stop:stop>0?stop:null,note:note||null,
+    lastPrice:s.price,lastDate:(s._q&&s._q.d)||today,target:tgt>0?tgt:null,stop:stop>0?stop:null,trail:_trV,note:note||null,
     tgtLog:tgt>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stop>0?[{d:_pfMktDate(s.exchange),ts:_pfStamp(),from:null,to:stop}]:[]});
   _paperSave(p);
   closeModal();
@@ -6388,7 +6398,7 @@ async function checkLimitOrders(acct){
         const refund=+(o.reserved-cost).toFixed(2);            // reserved at limit; fill ≤ limit → refund difference
         if(refund>0)p.cash=+((p.cash||0)+refund).toFixed(2);
         p.holdings.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),ticker:o.ticker,exchange:o.exchange,name:o.name,currency:o.currency,
-          buyDate:hit.date,buyPrice:hit.fill,qty:qtyF,invested:cost,buyFee:o.fee||0,lastPrice:hit.fill,lastDate:hit.date,target:o.target,stop:o.stop,note:o.note||null,
+          buyDate:hit.date,buyPrice:hit.fill,qty:qtyF,invested:cost,buyFee:o.fee||0,lastPrice:hit.fill,lastDate:hit.date,target:o.target,stop:o.stop,trail:o.trail||0,note:o.note||null,
           tgtLog:Array.isArray(o.tgtLog)?o.tgtLog:[],stopLog:Array.isArray(o.stopLog)?o.stopLog:[]});
         p.orders=p.orders.filter(x=>x.id!==o.id);
         filled.push(`${o.ticker} bought ${qtyF} @ ${fmtP(hit.fill,o.currency)} on ${hit.date}${o.market?' (at the day\u2019s open)':''}`);
@@ -14672,6 +14682,7 @@ const TRAIN_HELP={
   "paperTgtPct":{t:"Take-profit %",d:"Type a percentage (e.g. 15) and the app fills in the take-profit PRICE automatically — 15% above your buy price. The holding auto-sells if the price rises to it, locking in a gain. Or type the exact price in the box beside it. Leave blank for none."},
   "paperTgt":{t:"Take-profit price",d:"The exact price to auto-sell at for a gain. Fills in automatically if you type a % beside it, or type a price directly — the % updates to match. Optional."},
   "paperStopPct":{t:"Stop-loss %",d:"Type a percentage (e.g. 10) and the app fills in the stop-loss PRICE automatically — 10% below your buy price. The holding auto-sells if the price falls to it, capping a loss. Or type the exact price beside it. Leave blank for none."},
+  "paperTrailPct":{t:"Trailing stop %",d:"Optional, set at buy time. The stop starts this % below your buy price and RISES as the price climbs (never falls) — locking in gains while letting a winner run. Works alongside a fixed 🛑 stop and 🎯 target."},
   "paperStop":{t:"Stop-loss price",d:"The exact price to auto-sell at to cap a loss. Fills in automatically if you type a % beside it, or type a price directly — the % updates to match. Optional."},
   "paperNote":{t:"Trade note",d:"Optional. Write down WHY you're making this trade (e.g. 'volume streak + range breakout'). The note follows the trade into your holdings and history — the single best habit for learning what works."},
   "buyGoBtn":{t:"Place practice order",d:"Confirms and places the paper (practice) buy order. No real money is used."},
