@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-369-open';
+const APP_VERSION='2026.07.22-370-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10526,7 +10526,7 @@ async function autoRunTechnicals(){
     // skip any that already have technicals from this session
     set=set.filter(s=>!s.techCalced);
     if(!set.length){window._autoTechRunning=false;return;}
-    const fetchDays=95, BATCH=16;
+    const fetchDays=200, BATCH=16;
     for(let i=0;i<set.length;i+=BATCH){
       const slice=set.slice(i,i+BATCH);
       if(ls)ls.innerHTML=`📐 Preparing technicals… <strong>${Math.min(i+BATCH,set.length)}/${set.length}</strong> <span style="font-size:9px;color:var(--dim)">(incl. watchlist)</span>`;
@@ -10790,7 +10790,7 @@ async function prepareAllSignals(auto){
         }
       });
     }catch(e){}
-    const fetchDays=95, BATCH=16;
+    const fetchDays=200, BATCH=16;
     let done=0;
     const _pf=document.getElementById('progFill'), _pw=document.getElementById('progWrap');
     if(_pw)_pw.style.display='block';try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}
@@ -10949,7 +10949,7 @@ async function calcStreaks(){
   scanProgShow();
   let done=0,failed=0,gotData=0,emptyData=0;
   // Fetch ~95 days so we get a solid 3-month (≈90-day) average.
-  const fetchDays=95;
+  const fetchDays=200;
   // Parallel in batches — dramatically faster than one-at-a-time, while staying
   // under the API's rate limit (batch size tuned to ~50 calls/min).
   const BATCH=10;
@@ -15025,7 +15025,7 @@ function _signalAudit(){ return _auditFinalize(_auditRunAll(_auditNewCtx())); }
 // ≤35ms slices. _auditOneShare + _auditFinalize are the ONLY copy of the grading
 // maths; _signalAudit (above) and _auditChunk (below) both drive them, so the
 // numbers are identical whichever path runs.
-var _AUD={HOLD:5,DAYS:60,MINROWS:70,LIQ_FLOOR:50000,SEQ_LOOK:3,
+var _AUD={HOLD:5,DAYS:140,MINROWS:70,LIQ_FLOOR:50000,SEQ_LOOK:3,
   CMB_KEYS:['bo','inf','inst','cx','vr','blk'], SEQ_A:['inf','inst','vr','blk'], SEQ_B:['bo','cx']};
 function _auditNewCtx(){
   const defs={
