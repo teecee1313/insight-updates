@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-377-open';
+const APP_VERSION='2026.07.22-378-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5076,7 +5076,7 @@ function _auditCached(){
   try{
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||_todayLocal();
     if(window._auditCache&&window._auditCache.d===dd)return window._auditCache.A;
-    const A=_signalAudit(); window._auditCache={d:dd,A:A}; window._gradeSrc='local'; return A;
+    return null; // v378: grading is server-side; the warm/report-card paths fetch it. Bot waits if not warm yet.
   }catch(e){ return null; }
 }
 // v318 — short display name for each combo mode (funnel + diary).
@@ -15119,171 +15119,12 @@ body.tbl-tighter .tick-name{max-width:80px;}
 })();
 </script>
 <script id="auditJs">
-/* ═══ v251 — Signal report card: the app grades its own signals ═══ */
-function _signalAudit(){ return _auditFinalize(_auditRunAll(_auditNewCtx())); }
-// v332 — the audit split so the same maths runs synchronously OR in non-blocking
-// ≤35ms slices. _auditOneShare + _auditFinalize are the ONLY copy of the grading
-// maths; _signalAudit (above) and _auditChunk (below) both drive them, so the
-// numbers are identical whichever path runs.
-var _AUD={HOLD:5,DAYS:140,MINROWS:70,LIQ_FLOOR:50000,SEQ_LOOK:3,
-  CMB_KEYS:['bo','inf','inst','cx','vr','blk'], SEQ_A:['inf','inst','vr','blk'], SEQ_B:['bo','cx']};
-function _auditNewCtx(){
-  const defs={
-    bo:{name:'🚀 Breakout',dir:1},
-    inf:{name:'🕵️ Informed?',dir:1},
-    inst:{name:'🏦 Inst?',dir:1},
-    cx:{name:'⤴ MA cross',dir:1},
-    di:{name:'📉 Dist?',dir:-1},
-    vr:{name:'🥇 Vol record',dir:0},
-    blk:{name:'🔷 Block day',dir:0}
-  };
-  const annAgg={}; Object.keys(defs).forEach(k=>annAgg[k]={news:{n:0,up:0,sum:0},quiet:{n:0,up:0,sum:0},unk:0});
-  const shares=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
-  return {defs,annAgg,M:{},base:{n:0,up:0,sum:0},day:{},recs:[],covered:0,liqSkipped:0,from:null,to:null,shares};
-}
-function _auditRunAll(X){ for(let i=0;i<X.shares.length;i++)_auditOneShare(X.shares[i],X); return X; }
-// Per-share pass — IDENTICAL maths to the old inline loop body; mutates ctx X.
-function _auditOneShare(s,X){
-  const HOLD=_AUD.HOLD, DAYS=_AUD.DAYS, MINROWS=_AUD.MINROWS, LIQ_FLOOR=_AUD.LIQ_FLOOR, SEQ_LOOK=_AUD.SEQ_LOOK;
-  const _CMB_KEYS=_AUD.CMB_KEYS, SEQ_A=_AUD.SEQ_A, SEQ_B=_AUD.SEQ_B;
-  const r=s.series, n=r.length;
-  if(n<MINROWS)return;
-  { let vs=0,vn=0; for(let q=Math.max(0,n-90);q<n;q++){ const $t=(r[q].v||0)*(r[q].c||0); if($t>0){vs+=$t;vn++;} }
-    if(!(vn>0&&(vs/vn)>=LIQ_FLOOR)){ X.liqSkipped++; return; } }
-  X.covered++;
-  const cumV=new Array(n), cumVn=new Array(n), cumC=new Array(n), maxC=new Array(n), maxV=new Array(n);
-  let cv=0, cvn=0, cc=0, mc=0, mv=0;
-  for(let i=0;i<n;i++){
-    cv+=(r[i].v||0); if((r[i].v||0)>0)cvn++; cumV[i]=cv; cumVn[i]=cvn; cumC[i]=cc+(r[i].c||0); cc=cumC[i];
-    maxC[i]=mc; maxV[i]=mv;
-    if(r[i].c>mc)mc=r[i].c; if((r[i].v||0)>mv)mv=r[i].v||0;
-  }
-  // v366: average volume over TRADED days only (v>0), matching how the LIVE
-  // flags compute it — the old all-days denominator halved the average for
-  // thin stocks, so the audit graded flags that fire on far weaker volume
-  // than the ones the bot actually trades.
-  const avgPrev=(i,len)=>{ const a=Math.max(0,i-len); if(i-a<=0)return 0; const cnt=(cumVn[i-1]||0)-(a>0?(cumVn[a-1]||0):0); if(cnt<=0)return 0; return (cumV[i-1]-(a>0?cumV[a-1]:0))/cnt; };
-  const ma=(i,len)=>{ const a=i-len+1; if(a<0)return 0; return (cumC[i]-(a>0?cumC[a-1]:0))/len; };
-  // v366: outcome measured from the NEXT day's close — every flag needs the full
-  // signal day (close + volume) to exist, so the earliest a follower can act is
-  // the next session. The old close-to-close-from-signal-day counted the
-  // overnight gap the bot can never capture, inflating every edge.
-  const lo=Math.max(60,n-2-HOLD-DAYS), hi=n-2-HOLD;
-  const mid=lo+Math.floor((hi-lo)/2);
-  const prevF=[];
-  const lastFired={}; // v366: per-key de-overlap — one fire per stock per HOLD window
-  for(let i=Math.max(60,lo-SEQ_LOOK);i<hi;i++){
-    const c0=r[i].c, cP=r[i-1].c, c1=r[i+1].c, cH=r[i+1+HOLD].c, vol=r[i].v||0;
-    const a90=avgPrev(i,90);
-    const valid=(c0>0&&cP>0&&c1>0&&cH>0&&a90>0);
-    let f=null, out=0, chg=0;
-    if(valid){
-      chg=((c0-cP)/cP)*100;
-      const ratio=vol/a90;
-      out=((cH-c1)/c1)*100;
-      out=Math.max(-35,Math.min(35,out)); // v366: winsorise — one split/consolidation artefact must not dominate a small-n combo
-      f={
-        inf: chg>0&&chg<8&&vol>5000&&ratio>1.8,
-        inst: chg>0&&vol>30000&&ratio>1.5,
-        di: chg<0&&chg>-25&&vol>5000&&ratio>1.8,
-        bo: c0>maxC[i]*1.0005&&ratio>1.5&&maxC[i]>0,
-        vr: vol>10000&&maxV[i]>0&&vol>=maxV[i]*1.05,
-        blk: ratio>2,
-        cx: (i>=50)&&ma(i,20)>ma(i,50)&&ma(i-1,20)<=ma(i-1,50)
-      };
-    }
-    if(valid && i>=lo){
-      const dk=r[i].d;
-      const D=X.day[dk]||(X.day[dk]={n:0,sum:0,bu:0,bn:0});
-      D.n++; D.sum+=out; D.bn++; if(chg>0)D.bu++;
-      X.base.n++; if(out>0)X.base.up++; X.base.sum+=out;
-      if(X.from===null)X.from=r[lo].d; X.to=r[hi-1].d;
-      const half=(i>=mid)?'b':'a';
-      const fired=_CMB_KEYS.filter(k=>f[k]);
-      const ks=[];
-      for(const k in f){ if(f[k])ks.push(k); }
-      if(f.vr){ if(chg>0)ks.push('vr+'); else if(chg<0)ks.push('vr-'); }
-      if(f.blk){ if(chg>0)ks.push('blk+'); else if(chg<0)ks.push('blk-'); }
-      for(let x=0;x<fired.length;x++)for(let y=x+1;y<fired.length;y++){
-        ks.push(fired[x]+'+'+fired[y]);
-        for(let z=y+1;z<fired.length;z++)ks.push(fired[x]+'+'+fired[y]+'+'+fired[z]);
-      }
-      for(const bk of SEQ_B){ if(f[bk]){ for(const ak of SEQ_A){
-        if(prevF.some(st=>st&&st.has(ak)))ks.push(ak+'>'+bk);
-      } } }
-      // v366: DE-OVERLAP — a flag that re-fires on consecutive days of the same
-      // episode was counted up to HOLD times on near-identical outcomes, and a
-      // pair key likewise; that made n look big and the t-stat overconfident,
-      // letting noise reach PROMISING/SOLID. Count each key at most once per
-      // HOLD window per stock.
-      const ksd=ks.filter(k=>{ const lf=lastFired[k]; if(lf!=null&&(i-lf)<HOLD)return false; lastFired[k]=i; return true; });
-      if(ksd.length){
-        let annSt=null;
-        if(window._annPS){ annSt=window._annPS.info(s.ticker, r[Math.max(0,i-2)].d, r[i].d); }
-        X.recs.push({ks:ksd,out,d:dk,half,ann:annSt});
-      }
-    }
-    prevF.push(valid?new Set(_CMB_KEYS.filter(k=>f[k])):null);
-    if(prevF.length>SEQ_LOOK)prevF.shift();
-  }
-}
-// Finalise — IDENTICAL maths; reads ctx X, returns the audit object A.
-function _auditFinalize(X){
-  const HOLD=_AUD.HOLD, DAYS=_AUD.DAYS, LIQ_FLOOR=_AUD.LIQ_FLOOR;
-  const defs=X.defs, M=X.M, day=X.day, recs=X.recs, base=X.base, annAgg=X.annAgg;
-  const met=k=>M[k]||(M[k]={n:0,up:0,sumOut:0,outs:[],excSum:0,excSq:0,ha:{n:0,sum:0},hb:{n:0,sum:0},ron:{n:0,sum:0},roff:{n:0,sum:0}});
-  for(const dk in day){ const D=day[dk]; D.mean=D.n?D.sum/D.n:0; D.riskOn=(D.bn?(D.bu/D.bn):0)>0.5; }
-  for(const rec of recs){
-    const D=day[rec.d]||{mean:0,riskOn:false};
-    const exc=rec.out-D.mean;
-    for(const k of rec.ks){
-      const m=met(k);
-      m.n++; if(rec.out>0)m.up++; m.sumOut+=rec.out; m.outs.push(rec.out);
-      m.excSum+=exc; m.excSq+=exc*exc;
-      const h=(rec.half==='a')?m.ha:m.hb; h.n++; h.sum+=exc;
-      const g=D.riskOn?m.ron:m.roff; g.n++; g.sum+=exc;
-      if(defs[k]){
-        const na=annAgg[k], annSt=rec.ann;
-        if(annSt&&annSt.covered){ const gg=annSt.hit?na.news:na.quiet; gg.n++; if(rec.out>0)gg.up++; gg.sum+=rec.out; }
-        else na.unk++;
-      }
-    }
-  }
-  const DIRNEG={di:1,'vr-':1,'blk-':1};
-  for(const k in M){ const m=M[k];
-    m.avg=m.sumOut/m.n; m.edge=m.excSum/m.n;
-    const varE=Math.max(0,(m.excSq/m.n)-(m.edge*m.edge));
-    m.tstat=(m.n>1&&varE>0)?(m.edge/Math.sqrt(varE/m.n)):0;
-    const so=m.outs.slice().sort((a,b)=>a-b);
-    m.median=so.length?(so.length%2?so[(so.length-1)/2]:(so[so.length/2-1]+so[so.length/2])/2):0;
-    let ws=0,wn=0,ls=0,ln2=0;
-    for(const o of m.outs){ if(o>0){ws+=o;wn++;} else if(o<0){ls+=o;ln2++;} }
-    m.avgWin=wn?ws/wn:0; m.avgLoss=ln2?ls/ln2:0;
-    m.outs=null;
-    const haAvg=m.ha.n?m.ha.sum/m.ha.n:null, hbAvg=m.hb.n?m.hb.sum/m.hb.n:null;
-    m.haAvg=haAvg; m.hbAvg=hbAvg;
-    m.held=(m.ha.n>=5&&m.hb.n>=5)?(DIRNEG[k]?(haAvg<0&&hbAvg<0):(haAvg>0&&hbAvg>0)):null;
-    // v366: tier judged on the SIGNED t-stat in the flag's own direction — the
-    // old |t| let a bullish flag that reliably preceded FALLS display "SOLID".
-    // Bearish keys (di / vr- / blk-) qualify on a significantly negative edge.
-    const at=DIRNEG[k]?-m.tstat:m.tstat;
-    m.tier=(m.n>=50&&at>=2)?'solid':((m.n>=30&&at>=1)?'promising':'early');
-    m.dirNeg=!!DIRNEG[k];
-  }
-  return {defs,M,base,covered:X.covered,liqSkipped:X.liqSkipped,liqFloor:LIQ_FLOOR,hold:HOLD,days:DAYS,from:X.from,to:X.to,ann:annAgg,annStart:(window._annPS?window._annPS.start:null)};
-}
-// Non-blocking driver — same maths, spread over ≤35ms slices. onDone(A) when ready.
-function _auditChunk(onDone){
-  const X=_auditNewCtx(); let i=0;
-  const _now=()=>{ try{return performance.now();}catch(e){return Date.now();} };
-  (function step(){
-    const t0=_now();
-    while(i<X.shares.length){ _auditOneShare(X.shares[i++],X); if(_now()-t0>=35)break; }
-    if(i<X.shares.length){ setTimeout(step,0); return; }
-    let A=null; try{A=_auditFinalize(X);}catch(e){}
-    try{ onDone&&onDone(A); }catch(e){}
-  })();
-}
+/* v378 — grading moved SERVER-SIDE (Phase 2). The scoring/grading maths
+   (signal edge / t-stat / tier / score) no longer lives in this page — it runs on
+   the Cloudflare Worker's POST /grades endpoint. The app sends the day's price
+   series and renders the graded table it gets back. If the server can't be reached
+   the card says so and the auto-pilot simply waits — it never grades here. */
+var _AUD={MINROWS:70};
 // Pre-compute the audit in idle time once data has loaded, so the 📋 card and the
 // bot open instantly. Once per data-day; never competes with an active load.
 function _auditWarmIdle(){
@@ -15293,21 +15134,13 @@ function _auditWarmIdle(){
     if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd)return;
     const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
     if(_sh.length<3)return;
+    if(!(typeof DATA_PROXY==='string' && DATA_PROXY))return; // v378: grading is server-side — nothing to warm without the server
     window._auditWarming=true;
-    // v374b: grade on the SERVER (maths held server-side). Fall back to the local
-    // engine only if the server is unreachable, so the card/bot never go dark.
-    const _localWarm=function(){ const go=function(){ try{ _auditChunk(function(A){
-        try{ if(A&&A.M){ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; window._gradeSrc='local'; } }catch(e){}
-        window._auditWarming=false;
-      }); }catch(e){ window._auditWarming=false; } };
-      (window.requestIdleCallback?window.requestIdleCallback(go,{timeout:4000}):setTimeout(go,900)); };
-    if(typeof DATA_PROXY==='string' && DATA_PROXY){
-      const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
-      _serverGrades(payload,dd,currentExch).then(function(A){
-        if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; window._gradeSrc='server'; }catch(e){} window._auditWarming=false; }
-        else { _localWarm(); }
-      }).catch(function(){ _localWarm(); });
-    } else { _localWarm(); }
+    const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
+    _serverGrades(payload,dd,currentExch).then(function(A){
+      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; window._gradeSrc='server'; }catch(e){} }
+      window._auditWarming=false;
+    }).catch(function(){ window._auditWarming=false; });
   }catch(e){ window._auditWarming=false; }
 }
 // v329 — in training mode (body.training-on) turn every titled element on the
@@ -15368,12 +15201,13 @@ function signalReportCard(){
       try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
     }
   };
-  // v374b: grade on the SERVER first; fall back to the local engine if unreachable.
-  var _localFB=function(){ try{ _auditChunk(function(A){ window._gradeSrc='local'; _show(A); }); }catch(e){ setTimeout(function(){ try{ window._gradeSrc='local'; _renderReportCard(_auditCached()); }catch(_){} },30); } };
+  // v378: grade on the SERVER (the maths lives there now). If it can't be reached,
+  // say so plainly rather than grading here — the recipe is no longer in this page.
+  var _fail=function(){ var m=document.getElementById('appModal'); if(window._rcTok===_tok && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not reach your grading server just now.</b><br>The report card is graded on your server — give it a moment and open it again. Your prices, signals and portfolio are unaffected.</div>','📋 Signal report card'); }catch(e){} } };
   if(typeof DATA_PROXY==='string' && DATA_PROXY){
     var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).map(function(s){return {ticker:s.ticker,series:s.series};});
-    _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ window._gradeSrc='server'; _show(A); } else { _localFB(); } }).catch(function(){ _localFB(); });
-  } else { _localFB(); }
+    _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ window._gradeSrc='server'; _show(A); } else { _fail(); } }).catch(function(){ _fail(); });
+  } else { _fail(); }
 }
 function _renderReportCard(A){
   try{
