@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-383-open';
+const APP_VERSION='2026.07.22-384-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4837,6 +4837,7 @@ function _rules(){
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,num(r.apDipPct,0)),
     apLadder:(r.apLadder===true),
     apRegime:(r.apRegime===true), apRiskPct:Math.min(5,num(r.apRiskPct,0)), // v366: 🌏 regime gate + 🎲 risk-per-trade sizing (0 = off; risk capped at 5%)
+    scaleOut:(fresh?true:(r.scaleOut===true)), scaleOutPct:Math.min(90,Math.max(10,num(r.scaleOutPct,50))), // v384: 🎯 scale-out — sell part at target, runner rides the trail
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr','blk'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
 }
@@ -4850,6 +4851,7 @@ function _rulesSave(r){
     apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,Math.max(0,+r.apDipPct||0)),
     apLadder:(r.apLadder===true),
     apRegime:(r.apRegime===true), apRiskPct:Math.min(5,Math.max(0,+r.apRiskPct||0)),
+    scaleOut:(r.scaleOut===true), scaleOutPct:Math.min(90,Math.max(10,+r.scaleOutPct||50)),
     apSignals:(Array.isArray(r.apSignals)?r.apSignals.filter(k=>['bo','inf','inst','cx','dir','vr','blk'].indexOf(k)>=0):[]),
     plan:(typeof _sanText==='function'?_sanText(r.plan,600):String(r.plan||'')) };
   try{ localStorage.setItem(RULES_KEY,JSON.stringify(clean)); }catch(e){}
@@ -4939,6 +4941,10 @@ function showRules(){
       <label style="font-size:10px;color:var(--muted);">🪤 Trailing stop<input type="number" id="rTrail" min="0" step="any" value="${r.trailPct||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % below highest close — stop only ever rises</span></label>
       <label style="font-size:10px;color:var(--muted);">🛡 Break-even at<input type="number" id="rBE" min="0" step="any" value="${r.bePct||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> +% gain → stop moves to your entry (the free trade)</span></label>
       <label style="font-size:10px;color:var(--muted);">⏱ Max hold<input type="number" id="rHold" min="0" step="1" value="${r.maxHoldDays||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> data days — unresolved positions exit at the next open</span></label>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:8px;font-size:10.5px;color:var(--muted);margin-top:10px;padding:9px 10px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);">
+      <input type="checkbox" id="rScaleOut" ${r.scaleOut?'checked':''} style="width:15px;height:15px;margin-top:1px;cursor:pointer;flex:none;">
+      <span style="line-height:1.55;">🎯 <b style="color:var(--text)">Scale out at target</b> (auto-pilot) — sell <input type="number" id="rScalePct" min="10" max="90" step="5" value="${r.scaleOutPct||50}" style="width:52px;padding:3px 5px;border-radius:5px;background:var(--bg2);border:1px solid var(--border);color:var(--text);"> % of the position when it hits your 🎯, bank the gain, and let the rest run: its stop lifts to break-even and it rides your 🪤 trailing stop. <span style="color:var(--dim)">Turns one target into "take some, let winners run."</span></span>
     </div>
     <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5;">🎯 and 🛑 auto-fill when you make a practice buy. 📦 and 🔢 show as friendly flags in your 🔔 briefing when you go over — never a block.</div>
     <div style="font:700 11px var(--sans);color:var(--text);margin:14px 0 6px;">Your own rules — the human stuff</div>
@@ -5072,7 +5078,8 @@ function _rulesFromForm(){
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
     apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
     apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr','blk'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder),
-    apRegime:(document.getElementById('rApRegime')?chk('rApRegime'):_rules().apRegime), apRiskPct:(document.getElementById('rApRisk')?g('rApRisk'):_rules().apRiskPct) };
+    apRegime:(document.getElementById('rApRegime')?chk('rApRegime'):_rules().apRegime), apRiskPct:(document.getElementById('rApRisk')?g('rApRisk'):_rules().apRiskPct),
+    scaleOut:(document.getElementById('rScaleOut')?chk('rScaleOut'):_rules().scaleOut), scaleOutPct:(document.getElementById('rScalePct')?g('rScalePct'):_rules().scaleOutPct) };
 }
 function saveRulesFromForm(){
   const cur=_rules();
@@ -5956,20 +5963,46 @@ async function checkAutoSellTargets(acct){
         if(_cd>R302.maxHoldDays+3) hit={date:_todayLocal(),fill:h.lastPrice,why:'time'}; }
       if(hit){
         if(hit.why==='stop'||hit.why==='trail')hit.fill=_slipSell(hit.fill);
-        const proceeds=+(h.qty*hit.fill).toFixed(2);
+        // v384 — SCALE-OUT: on a 🎯 target hit (auto-pilot), optionally sell only PART,
+        // bank that gain, and keep the rest running — the stop lifts to break-even and the
+        // target is cleared so the runner rides the trailing stop. Splits ONCE, and only
+        // when both the sold slice and the runner are worth keeping; otherwise a full sale.
+        const _origQty=h.qty;
+        let _sellQty=h.qty, _partial=false;
+        if(_isAuto && R302.enabled && R302.scaleOut && hit.why==='target' && !(h.scaledOut>0)){
+          const _pct=Math.min(90,Math.max(10,R302.scaleOutPct||50));
+          const _q=Math.floor(h.qty*_pct/100), _keep=h.qty-_q, _px=hit.fill||h.lastPrice||h.buyPrice||0;
+          if(_q>=1 && _keep>=1 && _q*_px>=100 && _keep*_px>=100){ _sellQty=_q; _partial=true; }
+        }
+        const _perInv=(h.qty>0?h.invested/h.qty:0);
+        const _soldInv=+(_perInv*_sellQty).toFixed(2);
+        const proceeds=+(_sellQty*hit.fill).toFixed(2);
         const _sf=brokerageFee();
-        const fees=+(((h.buyFee||0)+_sf)).toFixed(2);
-        const plAbs=+(proceeds-h.invested-fees).toFixed(2);
-        const plPct=+(h.invested>0?(plAbs/h.invested)*100:0).toFixed(2);
+        const _buyFeePart=_partial?+(((h.buyFee||0)*_sellQty/_origQty)).toFixed(2):(h.buyFee||0);
+        const fees=+((_buyFeePart+_sf)).toFixed(2);
+        const plAbs=+(proceeds-_soldInv-fees).toFixed(2);
+        const plPct=+(_soldInv>0?(plAbs/_soldInv)*100:0).toFixed(2);
         p.history=p.history||[];
         p.history.unshift({ticker:h.ticker,exchange:h.exchange,name:h.name,currency:h.currency,
-          buyDate:h.buyDate,buyPrice:h.buyPrice,qty:h.qty,invested:h.invested,
-          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,sellFee:(_sf||0),buyFee:(h.buyFee||0),plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:hit.why,note:h.note||null,tgtLog:h.tgtLog||null,stopLog:h.stopLog||null}); // v366: sellFee/buyFee recorded so ↩ undo can refund the fee properly
+          buyDate:h.buyDate,buyPrice:h.buyPrice,qty:_sellQty,invested:_soldInv,
+          sellDate:hit.date,sellPrice:hit.fill,proceeds,fees,sellFee:(_sf||0),buyFee:_buyFeePart,plAbs,plPct,auto:true,target:h.target,stop:h.stop,trigger:_partial?'target-scale':hit.why,note:h.note||null,tgtLog:h.tgtLog||null,stopLog:h.stopLog||null}); // v366: sellFee/buyFee recorded so ↩ undo can refund the fee properly
         p.cash=+((p.cash||0)+proceeds).toFixed(2);
         _chargeFee(p);
-        const i=p.holdings.findIndex(x=>x.id===h.id);
-        if(i>=0)p.holdings.splice(i,1);
-        autoSold.push(`${h.ticker} ${hit.why==='stop'?'🛑 stopped out':'🎯 target hit'} at ${fmtP(hit.fill,h.currency)} on ${hit.date} (P/L ${plAbs>=0?'+':''}${plAbs})`);
+        if(_partial){
+          // Keep the runner: reduce qty + cost basis, lift the stop to break-even,
+          // clear the target so it rides the trailing stop, and mark it scaled.
+          h.qty=_origQty-_sellQty;
+          h.invested=+(h.invested-_soldInv).toFixed(2);
+          h.buyFee=+(((h.buyFee||0)-_buyFeePart)).toFixed(2);
+          if(h.buyPrice>0){ const _be=Math.max((h.stop>0?h.stop:0),h.buyPrice); if(_be>(h.stop>0?h.stop:0)){ (h.stopLog=h.stopLog||[]).push({d:hit.date,ts:_pfStamp(),from:(h.stop>0?h.stop:null),to:_be,why:'scale-BE'}); } h.stop=_be; h.stopSrc='scale'; }
+          (h.tgtLog=h.tgtLog||[]).push({d:hit.date,ts:_pfStamp(),from:(h.target!=null?h.target:null),to:null,why:'scale-out'});
+          h.target=null; h.scaledOut=(h.scaledOut||0)+1;
+          autoSold.push(`${h.ticker} 🎯 scaled out ${_sellQty}/${_origQty} at ${fmtP(hit.fill,h.currency)} — runner rides the stop (P/L ${plAbs>=0?'+':''}${plAbs})`);
+        }else{
+          const i=p.holdings.findIndex(x=>x.id===h.id);
+          if(i>=0)p.holdings.splice(i,1);
+          autoSold.push(`${h.ticker} ${hit.why==='stop'?'🛑 stopped out':(hit.why==='time'?'⏱ time exit':'🎯 target hit')} at ${fmtP(hit.fill,h.currency)} on ${hit.date} (P/L ${plAbs>=0?'+':''}${plAbs})`);
+        }
         changed=true; // v366: only mark changed when something actually changed — the old unconditional flag forced a save every run, which clobbered concurrent buys made while this checker was mid-fetch
       }
     }
