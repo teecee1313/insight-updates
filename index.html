@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-374-open';
+const APP_VERSION='2026.07.22-375-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2136,6 +2136,26 @@ function _eodProxy(u){
     if(qi>=0){ const path=rest.slice(0,qi); const kept=rest.slice(qi+1).split('&').filter(kv=>kv&&!/^apikey=/i.test(kv)); rest=path+(kept.length?('?'+kept.join('&')):''); }
     return DATA_PROXY.replace(/\/+$/,'')+'/eod/'+rest;
   }catch(e){return u;}
+}
+// v374b: PHASE 2 — grade the signals on OUR server (the maths lives there, not in
+// this page). Probes the daily cache with an empty payload first (tiny); only if
+// the grade isn't cached for this data-day does it upload the day's price series.
+// Returns the audit object A, or null if the server can't be reached (caller then
+// falls back to the in-browser engine so the card/bot never go dark).
+async function _serverGrades(shares, dataDate, exch){
+  try{
+    if(!DATA_PROXY)return null;
+    const base=DATA_PROXY.replace(/\/+$/,'')+'/grades';
+    const _post=async(body)=>{
+      const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok)return null;
+      const j=await r.json();
+      return (j&&j.A&&j.A.M)?j.A:null;
+    };
+    if(dataDate){ try{ const cached=await _post({exch:exch||'ASX',dataDate,shares:[]}); if(cached)return cached; }catch(e){} } // cache probe
+    if(shares&&shares.length){ try{ const fresh=await _post({exch:exch||'ASX',dataDate:dataDate||'',shares}); if(fresh)return fresh; }catch(e){} }
+    return null;
+  }catch(e){ return null; }
 }
 function loadWatchlists(){
   try{
@@ -15268,11 +15288,20 @@ function _auditWarmIdle(){
     const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
     if(_sh.length<3)return;
     window._auditWarming=true;
-    const go=function(){ try{ _auditChunk(function(A){
+    // v374b: grade on the SERVER (maths held server-side). Fall back to the local
+    // engine only if the server is unreachable, so the card/bot never go dark.
+    const _localWarm=function(){ const go=function(){ try{ _auditChunk(function(A){
         try{ if(A&&A.M){ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; } }catch(e){}
         window._auditWarming=false;
       }); }catch(e){ window._auditWarming=false; } };
-    (window.requestIdleCallback?window.requestIdleCallback(go,{timeout:4000}):setTimeout(go,900));
+      (window.requestIdleCallback?window.requestIdleCallback(go,{timeout:4000}):setTimeout(go,900)); };
+    if(typeof DATA_PROXY==='string' && DATA_PROXY){
+      const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
+      _serverGrades(payload,dd,currentExch).then(function(A){
+        if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; }catch(e){} window._auditWarming=false; }
+        else { _localWarm(); }
+      }).catch(function(){ _localWarm(); });
+    } else { _localWarm(); }
   }catch(e){ window._auditWarming=false; }
 }
 // v329 — in training mode (body.training-on) turn every titled element on the
@@ -15326,15 +15355,19 @@ function signalReportCard(){
   if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd){ return _renderReportCard(window._auditCache.A); }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
-  try{
-    _auditChunk(function(A){
-      try{ if(A&&A.M)window._auditCache={d:_dd,A:A}; }catch(e){}
-      var m=document.getElementById('appModal');
-      if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
-        try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
-      }
-    });
-  }catch(e){ setTimeout(function(){ try{ _renderReportCard(_auditCached()); }catch(_){} },30); }
+  var _show=function(A){
+    try{ if(A&&A.M)window._auditCache={d:_dd,A:A}; }catch(e){}
+    var m=document.getElementById('appModal');
+    if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
+      try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
+    }
+  };
+  // v374b: grade on the SERVER first; fall back to the local engine if unreachable.
+  var _localFB=function(){ try{ _auditChunk(function(A){ _show(A); }); }catch(e){ setTimeout(function(){ try{ _renderReportCard(_auditCached()); }catch(_){} },30); } };
+  if(typeof DATA_PROXY==='string' && DATA_PROXY){
+    var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).map(function(s){return {ticker:s.ticker,series:s.series};});
+    _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ _show(A); } else { _localFB(); } }).catch(function(){ _localFB(); });
+  } else { _localFB(); }
 }
 function _renderReportCard(A){
   try{
