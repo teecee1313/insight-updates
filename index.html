@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-372-open';
+const APP_VERSION='2026.07.22-373-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6182,10 +6182,26 @@ async function checkLimitOrders(acct){
           }
         }catch(e){}
       }
-      // Fallback: last close at/below limit fills.
+      // Fallback (no live history, or it came back stale/blocked): use the day's
+      // quote the market load ALREADY fetched — s._q carries {o,h,l,c} for the
+      // latest session — so an intraday touch of the limit STILL fills without a
+      // per-order download. v373: this is what rescues fills when the free relays
+      // are slow and the per-order fetch fails (the price hit the numbers but the
+      // close was higher, so the old close-only fallback missed it).
       if(!hit){const s=allData.find(x=>x.ticker===o.ticker);
-        if(s&&o.market&&s.price>0){const qd=(s._q&&s._q.d)||todayL;if(qd>o.placedDate||(qd===o.placedDate&&o.preOpen))hit={date:qd,fill:s.price};}
-        else if(s&&!o.market&&s.price>0&&s.price<=o.limit&&(todayL>o.placedDate||o.preOpen))hit={date:todayL,fill:Math.min(o.limit,s.price)};} // v366: s.price>0 guard — a suspended share's zero quote minted free shares
+        if(s&&s.price>0){
+          const qd=(s._q&&s._q.d)||todayL;
+          const dayOk=(qd>o.placedDate)||(qd===o.placedDate&&o.preOpen);   // realistic-fill rule: not the placement day unless pre-open
+          const dOpen=(s._q&&isFinite(s._q.o)&&s._q.o>0)?s._q.o:null;       // today's OPEN (already loaded)
+          const dLow =(s._q&&isFinite(s._q.l)&&s._q.l>0)?s._q.l:null;       // today's intraday LOW (already loaded)
+          if(o.market){
+            if(dayOk)hit={date:qd,fill:(dOpen!=null?dOpen:s.price)};        // market → the day's open (close only if open absent)
+          }else if(dayOk){
+            if(dOpen!=null&&dOpen<=o.limit)hit={date:qd,fill:dOpen};        // gapped below the limit → fill at the open
+            else if(dLow!=null&&dLow<=o.limit)hit={date:qd,fill:o.limit};   // dipped to the limit intraday → fill at the limit
+            else if(s.price<=o.limit)hit={date:qd,fill:Math.min(o.limit,s.price)}; // last close at/below the limit
+          }
+        }} // v366: s.price>0 guard — a suspended share's zero quote minted free shares
       if(hit){
         changed=true;
         const qtyF=o.market?Math.floor((o.amount||o.reserved)/hit.fill):o.qty;
