@@ -430,7 +430,7 @@ tr:hover td{background:var(--bg3);}
 .tblwrap th:nth-child(3),.tblwrap td:nth-child(3){position:sticky;left:0;z-index:3;background:var(--bg2);border-right:1px solid var(--border2);}
 .tblwrap thead th:nth-child(3){z-index:11;background:var(--bg2);}
 .tblwrap tbody tr:hover td:nth-child(3){background:var(--bg3);}
-body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child(3){box-shadow:2px 0 6px rgba(0,0,0,.12);}
+body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child(3){border-right:1px solid rgba(0,0,0,.18);} /* v368: was a box-shadow — repainted the sticky column every h-scroll frame; a 1px border is the same seam with no per-frame paint. */
 .tick-wrap{display:flex;flex-direction:column;gap:1px;}
 .tick-code{font-family:var(--mono);font-weight:700;font-size:13px;}
 .tick-link{display:inline-flex;align-items:center;gap:3px;color:var(--gold);text-decoration:none;}
@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-367-open';
+const APP_VERSION='2026.07.22-368-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5435,15 +5435,20 @@ function _autoPilotRun(manual){
     let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
     if(!dd)return {ran:false,why:'no date'};
     if(!manual&&localStorage.getItem(AP_RUN_KEY)===dd)return {ran:false,why:'already ran today'};
-    // v316: NEVER burn the daily slot before signals are prepared — the early
-    // auto-run was scanning an empty pool ("no shares matched") and refusing
-    // to retry. The background loop simply tries again in a few seconds.
+    // v316/v368: NEVER burn the daily slot before signals are prepared. v368 raises the bar
+    // from ~5% to ~60% of the universe AND requires prep to have FINISHED (_prepRunning off).
+    // The old 5% let the bot scan a thin, half-ready pool, find nothing, mark the day "done",
+    // and refuse to retry all day — the "autobuy never finds anything" bug.
     if(!manual){
+      const _uni=(allData||[]).length||1;
       const _prepped=(allData||[]).reduce((a,s)=>a+((s&&s.streakCalced&&s.volCalced)?1:0),0);
-      if(window._prepRunning||_prepped<Math.min(200,Math.ceil((allData.length||1)*0.05)))
+      const _need=Math.min(_uni,Math.max(200,Math.floor(_uni*0.6)));
+      if(window._prepRunning||_prepped<_need)
         return {ran:false,why:'signals still preparing'};
     }
-    try{ localStorage.setItem(AP_RUN_KEY,dd); }catch(e){}
+    // v368: do NOT mark the day done here. We set AP_RUN_KEY AFTER the scan (below), and only
+    // for the automatic run or a manual run that actually bought — so a manual "Run now" test,
+    // or an error mid-scan, can't silently consume the day's real automatic run.
     const maxN=r.maxPositions>0?r.maxPositions:8;
     const ent={d:dd,ts:Date.now(),src:r.apSource,buys:[],skips:[]};
     // Lane 1 — 🎯 My picks (your prices come first)
@@ -5485,6 +5490,10 @@ function _autoPilotRun(manual){
         ent.skips.push('📋 your card has no graded pairs yet — today the bot used the proven starter pairs (🚀+🏦 · 🚀+🔷 · 🚀+🥇 · 🕵️+🏦). It follows YOUR card automatically the day pairs grade.');
     }
     _apLogAdd(ent);
+    // v368: mark this data-day handled now that a real scan over a prepared pool completed.
+    // Auto runs always claim the day; a manual run claims it only if it actually bought, so
+    // testing with "▶ Run now" can't cancel the day's automatic run.
+    if(!manual||(ent.buys&&ent.buys.length>0)){ try{ localStorage.setItem(AP_RUN_KEY,dd); }catch(e){} }
     return {ran:true,entry:ent};
   }catch(e){ try{ _apLogAdd({d:'?',ts:Date.now(),err:String(e).slice(0,80)}); }catch(_){ } return {ran:false,why:'error'}; }
 
@@ -5586,7 +5595,10 @@ function undoSale(sellDate,ticker,buyDate){
   // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
   // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
   // viewed account then the other account, matching exact first, then by ticker + buy-date.
-  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(i<0)i=H.findIndex(t=>t.ticker===ticker&&t.buyDate===buyDate); return i; };
+  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+    if(i<0){ // v368: no exact sell-date (it can drift); among same ticker+buy-date trades pick the CLOSEST sell-date so a part-sold lot can't match the wrong day
+      let _b=-1,_bd=Infinity; for(let k=0;k<H.length;k++){ const t=H[k]; if(t&&t.ticker===ticker&&t.buyDate===buyDate){ const _d=Math.abs(new Date(t.sellDate||0)-new Date(sellDate||0)); if(_d<_bd){_bd=_d;_b=k;} } } i=_b;
+    } return i; };
   let _acct=window._pfCtx||'main';
   let p=_paper(_acct);
   let idx=_fT(p);
@@ -6346,11 +6358,11 @@ function paperAdjust(id){
       <div id="divPrev" style="font-size:9px;color:var(--muted);margin-top:5px;min-height:11px;"></div>
     </div>
 
-    <div style="border:1px solid var(--red);border-radius:8px;padding:10px 11px;">
+    ${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?`<div style="border:1px solid var(--red);border-radius:8px;padding:10px 11px;">
       <div style="font-size:11px;font-weight:700;color:#ff9caa;margin-bottom:3px;">🗑 Delete this holding</div>
       <div style="font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Removes ${tk} from your portfolio completely, as if the buy never happened. The cash you spent (${fmtP(totInv,cur)}) is returned to your balance. This does <strong>not</strong> record a sale or any profit/loss — use it to undo a mistaken buy or clear a broken holding. Can't be undone.</div>
       <button onclick="paperDeleteHolding('${id}')" style="width:100%;padding:9px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 12px var(--sans);cursor:pointer;">Delete holding &amp; refund cash</button>
-    </div>
+    </div>`:''}
     <div style="font-size:9px;color:var(--orange);margin-top:10px;">Paper trading only — practice, not advice.</div>
   `);
   setTimeout(()=>{_adjPrev(id);const dv=document.getElementById('divPerShare');if(dv)dv.oninput=()=>{const n=parseFloat(dv.value)||0;const el=document.getElementById('divPrev');if(el)el.textContent=n>0?(totQty.toLocaleString()+' \u00d7 '+n+' = '+fmtP(totQty*n,cur)+' added to cash'):'';};},80);
@@ -6482,7 +6494,10 @@ function paperDeleteTrade(sellDate,ticker,buyDate){
   // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
   // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
   // viewed account then the other account, matching exact first, then by ticker + buy-date.
-  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate); if(i<0)i=H.findIndex(t=>t.ticker===ticker&&t.buyDate===buyDate); return i; };
+  const _fT=(pp)=>{ const H=pp.history||[]; let i=H.findIndex(t=>t.sellDate===sellDate&&t.ticker===ticker&&t.buyDate===buyDate);
+    if(i<0){ // v368: no exact sell-date (it can drift); among same ticker+buy-date trades pick the CLOSEST sell-date so a part-sold lot can't match the wrong day
+      let _b=-1,_bd=Infinity; for(let k=0;k<H.length;k++){ const t=H[k]; if(t&&t.ticker===ticker&&t.buyDate===buyDate){ const _d=Math.abs(new Date(t.sellDate||0)-new Date(sellDate||0)); if(_d<_bd){_bd=_d;_b=k;} } } i=_b;
+    } return i; };
   let _acct=window._pfCtx||'main';
   let p=_paper(_acct);
   let idx=_fT(p);
@@ -15224,7 +15239,7 @@ function _cardHideTip(){ if(_cardTipEl){ try{_cardTipEl.remove();}catch(e){} _ca
 function _cardScore10(m){
   if(!m||!m.n)return 0;
   const e=(m.dirNeg?-m.edge:m.edge);              // edge in the flag's own direction; >0 = working
-  if(!(e>0))return Math.max(0,+(2+e*0.5).toFixed(1)); // not working → 0–2
+  if(!(e>0))return Math.max(0,+(0.5+e*0.5).toFixed(1)); // v368: not working → 0–0.5, CONTINUOUS with the working band's 0.5 floor (removes the old dip where a hair of edge scored below a zero edge)
   const band=(m.tier==='solid')?[7,10]:(m.tier==='promising')?[4,7]:[0.5,4];
   const frac=Math.min(1,e/3);                     // a ~3% market-beating edge over the window tops the band
   return +(band[0]+(band[1]-band[0])*frac).toFixed(1);
