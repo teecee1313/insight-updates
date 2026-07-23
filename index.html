@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-379-open';
+const APP_VERSION='2026.07.22-380-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2122,6 +2122,91 @@ function _safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u.rep
 // (set it to '' to turn the server off and use the old relays).
 let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
 try{ const _dp=localStorage.getItem('asxScreener.dataProxy.v1'); if(_dp!=null) DATA_PROXY=String(_dp).trim(); }catch(e){}
+// ═══ v380 — ACCESS GATE (client side) ══════════════════════════════════════
+// A shared "tester password" that the Worker enforces server-side (it refuses to
+// send any data or grades without it). This page only (1) remembers the key, (2)
+// attaches it to every Worker request, and (3) shows a lock screen when the server
+// says a password is required. The key is stored under a NON-namespaced name so a
+// single unlock covers BOTH the customer and beta copies (same origin, same Worker).
+// This client code is NOT the security — the server withholding the data is.
+const _GATE_STORE='insightGate.v1';
+function _gateKey(){ try{ return localStorage.getItem(_GATE_STORE)||''; }catch(e){ return ''; } }
+function _gateSet(k){ try{ if(k) localStorage.setItem(_GATE_STORE,String(k)); else localStorage.removeItem(_GATE_STORE); }catch(e){} }
+function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PROXY.replace(/\/+$/,''):''; }
+// Attach the tester key to every Worker request, and raise the lock on any 401.
+(function(){
+  if(typeof window==='undefined'||!window.fetch||window._gateFetchWrapped)return;
+  const _raw=window.fetch.bind(window);
+  window._gateFetchWrapped=true;
+  window.fetch=function(input,init){
+    let url=''; try{ url=(typeof input==='string')?input:((input&&input.url)||''); }catch(e){}
+    const b=_gateBase();
+    const isWorker=b&&url&&url.indexOf(b)===0;
+    if(!isWorker)return _raw(input,init);
+    init=init||{};
+    const k=_gateKey();
+    if(k){ try{ const h=new Headers((init&&init.headers)||{}); h.set('X-Insight-Access',k); init.headers=h; }catch(e){} }
+    return _raw(input,init).then(function(r){ try{ if(r&&r.status===401)_gateLock(); }catch(e){} return r; });
+  };
+})();
+let _gatePromise=null;
+function _gateCheck(){
+  // Ask the server whether a password is required (memoised — one probe per load).
+  if(_gatePromise)return _gatePromise;
+  _gatePromise=(async function(){
+    try{
+      const b=_gateBase(); if(!b)return {locked:false};
+      const ctl=('AbortController' in window)?new AbortController():null;
+      const to=setTimeout(function(){ try{ ctl&&ctl.abort(); }catch(e){} },7000);
+      let r=null;
+      try{ r=await window.fetch(b+'/gate',ctl?{signal:ctl.signal}:{}); }finally{ clearTimeout(to); }
+      return { locked: !!(r&&r.status===401) };
+    }catch(e){ return {locked:false}; } // unreachable → don't lock anyone out (offline-friendly)
+  })();
+  return _gatePromise;
+}
+function _gateTry(){
+  const inp=document.getElementById('_gateInput'), msg=document.getElementById('_gateMsg'), btn=document.getElementById('_gateBtn');
+  const key=((inp&&inp.value)||'').trim();
+  const say=function(t,c){ if(msg){ msg.style.color=c||'#ff9caa'; msg.textContent=t; } };
+  if(!key){ say('Please enter the password.'); return; }
+  say('Checking…','var(--muted)'); if(btn)btn.disabled=true;
+  const b=_gateBase();
+  window.fetch(b+'/gate',{headers:{'X-Insight-Access':key}}).then(function(r){
+    if(r&&r.ok){ _gateSet(key); say('Unlocked ✓','var(--green)'); setTimeout(function(){ try{ location.reload(); }catch(e){} },250); return; }
+    say('That password didn’t work. Try again.'); if(btn)btn.disabled=false;
+  }).catch(function(){ say('Couldn’t reach the server. Check your connection and try again.'); if(btn)btn.disabled=false; });
+}
+function _gateLock(){
+  if(typeof document==='undefined')return;
+  if(!document.body){ document.addEventListener('DOMContentLoaded',_gateLock,{once:true}); return; }
+  if(document.getElementById('_gateOverlay'))return; // already showing
+  const ver=(typeof APP_VERSION==='string')?APP_VERSION:'';
+  const beta=ver.indexOf('-beta')>=0;
+  const o=document.createElement('div');
+  o.id='_gateOverlay';
+  o.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg,#0b0e13);font-family:var(--sans,system-ui,-apple-system,sans-serif);';
+  o.innerHTML='<div style="max-width:380px;width:100%;text-align:center;">'
+    +'<div style="font-size:42px;margin-bottom:10px;">🔒</div>'
+    +'<div style="font:800 20px var(--sans,sans-serif);color:var(--text,#e8eef7);margin-bottom:6px;">Insight Trading'+(beta?' <span style="font-size:12px;color:var(--gold,#ffd200);">🧪 BETA</span>':'')+'</div>'
+    +'<div style="font-size:13px;color:var(--muted,#93a1b5);line-height:1.6;margin-bottom:18px;">This preview is private. Enter the tester password to continue.</div>'
+    +'<input id="_gateInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Password" style="width:100%;box-sizing:border-box;padding:13px 14px;font-size:15px;border:1px solid var(--border,#26303c);border-radius:10px;background:var(--bg2,#12171f);color:var(--text,#e8eef7);text-align:center;letter-spacing:1px;outline:none;">'
+    +'<div id="_gateMsg" style="min-height:18px;font-size:12px;color:#ff9caa;margin:10px 0 4px;"></div>'
+    +'<button id="_gateBtn" type="button" style="width:100%;padding:13px;font:700 14px var(--sans,sans-serif);border:none;border-radius:10px;background:var(--gold,#ffd200);color:#1a1205;cursor:pointer;">Unlock</button>'
+    +'<div style="font-size:11px;color:var(--dim,#5f6b7a);margin-top:16px;line-height:1.5;">Don’t have the password? Ask the person who invited you.</div>'
+    +'</div>';
+  document.body.appendChild(o);
+  const inp=document.getElementById('_gateInput'), btn=document.getElementById('_gateBtn');
+  if(btn)btn.addEventListener('click',_gateTry);
+  if(inp){ inp.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.keyCode===13)_gateTry(); }); setTimeout(function(){ try{ inp.focus(); }catch(e){} },60); }
+}
+// At startup, ask the server whether a password is required; if so, lock now.
+(function(){
+  function _probe(){ try{ _gateCheck().then(function(g){ if(g&&g.locked)_gateLock(); }); }catch(e){} }
+  if(typeof document==='undefined')return;
+  if(document.readyState!=='loading')_probe(); else document.addEventListener('DOMContentLoaded',_probe);
+})();
+// ═══════════════════════════════════════════════════════════════════════════
 function _eodProxy(u){
   // Rewrite a direct EODData URL to go through our Worker, DROPPING the apiKey
   // (the Worker injects its own). Only symbol/list and quote/list are proxied —
@@ -13956,6 +14041,8 @@ function setAutoLoad(on){
   // Later runs → load + prepare straight from disk (instant, no API cost).
   // Falls back to a live load if there's an API key but no disk data yet.
   (async function autoStartup(){
+    // v380 — access gate: don't run automated data loads while the preview is locked.
+    try{ const _g=await _gateCheck(); if(_g&&_g.locked){ _gateLock(); return; } }catch(e){}
     const ls=document.getElementById('loadStatus');
     const phase=document.getElementById('loadPhase');
     const setPhase=(t)=>{ if(phase){phase.style.display='block';phase.textContent=t;} };
