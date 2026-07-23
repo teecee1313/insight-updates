@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-371-open';
+const APP_VERSION='2026.07.22-372-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2090,6 +2090,11 @@ function _sanShare(s){
 }
 function _sanPaper(p){
   try{ (p.holdings||[]).concat(p.history||[]).forEach(h=>{ if(h&&typeof h==='object'){ _sanShare(h); if(h.note!=null)h.note=_sanText(h.note,140)||null; } }); }catch(e){}
+  // v372 SECURITY: orders + dividends were NOT cleaned — a hostile order in a SHARED/PASTED backup
+  // could inject markup into the ⏳ Pending panel (stored XSS that could read the API key on import).
+  // Sanitise them at the boundary too, the same way holdings/history are, so every render is safe.
+  try{ (p.orders||[]).forEach(o=>{ if(o&&typeof o==='object'){ _sanShare(o); if(o.note!=null)o.note=_sanText(o.note,140)||null; if(o.expiry!=null)o.expiry=_sanText(o.expiry,24); if(o.id!=null)o.id=_sanText(o.id,40); } }); }catch(e){}
+  try{ (p.dividends||[]).forEach(d=>{ if(d&&typeof d==='object'){ _sanShare(d); if(d.note!=null)d.note=_sanText(d.note,140)||null; } }); }catch(e){}
   return p;
 }
 function _sanResearch(){
@@ -2567,7 +2572,7 @@ function showUpdateToast(info){
   d.style.cssText='position:fixed;left:14px;bottom:14px;z-index:9000;background:#0d1b33;border:1px solid #FFD200;border-radius:10px;padding:12px 30px 12px 14px;max-width:300px;box-shadow:0 8px 26px rgba(0,0,0,.45);font:600 11px system-ui,sans-serif;color:#eef3fb;';
   d.innerHTML='🔄 <b style="color:#FFD200">Update available</b> — version '+_updEsc(info.version)
     +'<div style="font-weight:400;color:#8fa6c9;font-size:10px;margin:4px 0 8px;line-height:1.4;">'+_updEsc((info.notes||'').slice(0,140))+'</div>'
-    +(info.url?('<a href="'+_updEsc(info.url)+'" target="_blank" style="display:inline-block;padding:6px 12px;border:1px solid #FFD200;border-radius:6px;color:#FFD200;text-decoration:none;">⬇ Get the new version</a>'):'<span style="font-weight:400;color:#8fa6c9;">Contact your seller for the new file.</span>')
+    +(info.url?('<a href="'+_safeUrl(info.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:6px 12px;border:1px solid #FFD200;border-radius:6px;color:#FFD200;text-decoration:none;">⬇ Get the new version</a>'):'<span style="font-weight:400;color:#8fa6c9;">Contact your seller for the new file.</span>')
     +'<span id="updToastX" style="position:absolute;top:6px;right:9px;cursor:pointer;color:#8fa6c9;font-size:13px;">✕</span>';
   document.body.appendChild(d);
   const x=document.getElementById('updToastX');
@@ -8629,8 +8634,12 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   }
   let got=null;
   if(window._goodHistProxy==null){
-    // Race every route — fastest valid answer wins and becomes the route.
-    try{ got=await Promise.any([_tryProxy(2),_tryProxy(0),_tryProxy(1),_tryProxy(3)]); }catch(e){/* all failed */}
+    // v372 SECURITY: try DIRECT (route 2) FIRST so your EODData API key is not handed to public
+    // CORS relays whenever the browser can reach EODData directly (it usually can). Only if direct
+    // is CORS-blocked do we fall back to racing the relays — the key leaves your browser only when
+    // there is no other way. Direct then becomes the remembered route, so later fetches stay private.
+    try{ got=await _tryProxy(2); }catch(e){/* direct blocked — fall through to the relays */}
+    if(!got){ try{ got=await Promise.any([_tryProxy(0),_tryProxy(1),_tryProxy(3)]); }catch(e){/* all relays failed */} }
   }else{
     const order=[window._goodHistProxy,0,1,2,3].filter((v,i,a)=>a.indexOf(v)===i);
     for(const pi of order){ try{ got=await _tryProxy(pi); break; }catch(e){/* next */} }
