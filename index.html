@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-385-open';
+const APP_VERSION='2026.07.22-386-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7304,7 +7304,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td class="pf-pl" style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
-      <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event)" title="Actions — target, stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:800 15px var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
+      <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event)" title="Actions — target, stop, trailing stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:800 15px var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
     </tr>`;
   }).join('');
   // Mobile stacked-card version of the same holdings (CSS shows this on phones,
@@ -7332,6 +7332,7 @@ function showPortfolio(exSel){
       <div class="pf-card-actions">
         ${btn('paperSetTarget',h.id,'Set / change auto-sell price target','🎯 Target',`padding:5px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSetStop',h.id,'Set / change stop-loss','🛑 Stop',`padding:5px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
+        ${btn('paperTrail',h.id,'Set / change a 🪤 trailing stop for this holding — it rises with the price and never falls. Leave blank to remove.',(+h.trail>0)?('🪤 '+h.trail+'%'):'🪤 Trail',`padding:5px;border-radius:5px;border:1px solid ${(+h.trail>0)?'var(--green)':'var(--border)'};background:${(+h.trail>0)?'rgba(63,185,80,.12)':'var(--bg3)'};color:${(+h.trail>0)?'var(--green)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSetNote',h.id,'Add / edit the trade note','📝 Note',`padding:5px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSellMarket',h.id,'Sell the whole holding now at the last close','💵 Sell @ mkt',`padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSell',h.id,'Sell part or all — choose quantity','Part…',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
