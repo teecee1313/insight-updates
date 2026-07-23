@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-376-open';
+const APP_VERSION='2026.07.22-377-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2146,14 +2146,20 @@ async function _serverGrades(shares, dataDate, exch){
   try{
     if(!DATA_PROXY)return null;
     const base=DATA_PROXY.replace(/\/+$/,'')+'/grades';
+    // v376b: key the server's daily cache by data-day + gradeable-share COUNT, so a
+    // fuller market load RE-GRADES rather than being served a part-loaded grade from
+    // earlier in the day (the "numbers look stuck / changed" case). Same-size reloads
+    // still hit the cache and stay instant.
+    const n=(shares&&shares.length)||0;
+    const ck=(dataDate||'')+(n?('_n'+n):'');
     const _post=async(body)=>{
       const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)return null;
       const j=await r.json();
       return (j&&j.A&&j.A.M)?j.A:null;
     };
-    if(dataDate){ try{ const cached=await _post({exch:exch||'ASX',dataDate,shares:[]}); if(cached)return cached; }catch(e){} } // cache probe
-    if(shares&&shares.length){ try{ const fresh=await _post({exch:exch||'ASX',dataDate:dataDate||'',shares}); if(fresh)return fresh; }catch(e){} }
+    if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,shares:[]}); if(cached)return cached; }catch(e){} } // probe the count-specific cache
+    if(shares&&shares.length){ try{ const fresh=await _post({exch:exch||'ASX',dataDate:ck,shares}); if(fresh)return fresh; }catch(e){} }
     return null;
   }catch(e){ return null; }
 }
