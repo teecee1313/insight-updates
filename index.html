@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-378-open';
+const APP_VERSION='2026.07.22-379-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5624,7 +5624,7 @@ function updatePaperPrices(acct){
       byEx[h.exchange].val+=hv;
     });
     const upsert=(arr,snap)=>{const ex=arr.findIndex(x=>x.d===snap.d);if(ex>=0)arr[ex]=snap;else arr.push(snap);return arr.filter(x=>x.d>=cutoff);};
-    p.valueHistory=upsert(p.valueHistory||[],{d:today,inv:+inv.toFixed(2),val:+val.toFixed(2),eq:+((p.cash||0)+val).toFixed(2)});
+    p.valueHistory=upsert(p.valueHistory||[],{d:today,inv:+inv.toFixed(2),val:+val.toFixed(2),eq:+((p.cash||0)+_reservedSum(p)+val).toFixed(2)}); // v379: eq = FULL account value (cash + reserved-in-pending-orders + holdings), so the day-by-day chart matches the account total — was dropping money reserved in pending orders
     p.vhByEx=p.vhByEx||{};
     Object.keys(byEx).forEach(ex=>{
       p.vhByEx[ex]=upsert(p.vhByEx[ex]||[],{d:today,inv:+byEx[ex].inv.toFixed(2),val:+byEx[ex].val.toFixed(2)});
