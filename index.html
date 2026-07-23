@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-373-open';
+const APP_VERSION='2026.07.22-374-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2113,6 +2113,30 @@ function _sanResearch(){
 function _escHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 // Links from third-party feeds may only be web links — never javascript: etc.
 function _safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u.replace(/"/g,'%22'):'#';}
+// ── v373b: DATA SERVER (Phase 1) ────────────────────────────────────────────
+// Route market data through our own Cloudflare Worker: fast, edge-cached, and the
+// EODData API key is held SERVER-SIDE (never shipped to the browser, never handed
+// to public relays). If the Worker is ever unreachable the app falls back to the
+// existing direct + free-relay routes, so an outage can't dark the app.
+// Override or disable at runtime via localStorage 'asxScreener.dataProxy.v1'
+// (set it to '' to turn the server off and use the old relays).
+let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
+try{ const _dp=localStorage.getItem('asxScreener.dataProxy.v1'); if(_dp!=null) DATA_PROXY=String(_dp).trim(); }catch(e){}
+function _eodProxy(u){
+  // Rewrite a direct EODData URL to go through our Worker, DROPPING the apiKey
+  // (the Worker injects its own). Only symbol/list and quote/list are proxied —
+  // anything else is returned unchanged so the direct/relay path handles it.
+  try{
+    if(!DATA_PROXY)return u;
+    const m=String(u).match(/^https?:\/\/api\.eoddata\.com\/(.+)$/i);
+    if(!m)return u;
+    let rest=m[1];
+    if(!/^(symbol|quote)\/list\//i.test(rest))return u;
+    const qi=rest.indexOf('?');
+    if(qi>=0){ const path=rest.slice(0,qi); const kept=rest.slice(qi+1).split('&').filter(kv=>kv&&!/^apikey=/i.test(kv)); rest=path+(kept.length?('?'+kept.join('&')):''); }
+    return DATA_PROXY.replace(/\/+$/,'')+'/eod/'+rest;
+  }catch(e){return u;}
+}
 function loadWatchlists(){
   try{
     const raw=localStorage.getItem(WL_KEY);
@@ -8624,6 +8648,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u=>u, // direct (in case CORS is allowed)
     u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+    u=>_eodProxy(u), // 4: OUR Cloudflare Worker — fast, edge-cached, key held server-side (preferred)
   ];
   // FASTEST-ROUTE RACING: on the first fetch, try ALL routes at once and keep
   // whichever answers fastest; every later fetch uses that route directly.
@@ -8641,6 +8666,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       const txt=await r.text();
       if(!(txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{')))throw new Error('bad body');
       const data=JSON.parse(txt);
+      if(data&&!Array.isArray(data)&&data.error)throw new Error('upstream '+data.error); // Worker/relay error body → treat as failure so we fall through to the next route
       const out=Array.isArray(data)?data:(data.quotes||data.data||data.Quotes||data.result||data.results||[]);
       const ms=((performance&&performance.now)?performance.now():Date.now())-t0;
       // Track how slow the chosen route is running so we can re-race if it degrades.
@@ -8649,15 +8675,17 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     }finally{ clearTimeout(timer); }
   }
   let got=null;
+  const _WPI=4, _haveWorker=(typeof DATA_PROXY==='string'&&!!DATA_PROXY); // 4 = our Worker route
   if(window._goodHistProxy==null){
-    // v372 SECURITY: try DIRECT (route 2) FIRST so your EODData API key is not handed to public
-    // CORS relays whenever the browser can reach EODData directly (it usually can). Only if direct
-    // is CORS-blocked do we fall back to racing the relays — the key leaves your browser only when
-    // there is no other way. Direct then becomes the remembered route, so later fetches stay private.
-    try{ got=await _tryProxy(2); }catch(e){/* direct blocked — fall through to the relays */}
+    // v373b: prefer OUR Worker (fast, edge-cached, key held server-side). If it's
+    // unreachable, try DIRECT (key stays with EODData only), then race the public
+    // relays as a last resort — the key leaves your browser only when there is no
+    // other way. The winning route is remembered so later fetches reuse it.
+    if(_haveWorker){ try{ got=await _tryProxy(_WPI); }catch(e){/* worker down — fall through */} }
+    if(!got){ try{ got=await _tryProxy(2); }catch(e){/* direct blocked — fall through to the relays */} }
     if(!got){ try{ got=await Promise.any([_tryProxy(0),_tryProxy(1),_tryProxy(3)]); }catch(e){/* all relays failed */} }
   }else{
-    const order=[window._goodHistProxy,0,1,2,3].filter((v,i,a)=>a.indexOf(v)===i);
+    const order=[window._goodHistProxy,(_haveWorker?_WPI:2),2,0,1,3].filter((v,i,a)=>a.indexOf(v)===i);
     for(const pi of order){ try{ got=await _tryProxy(pi); break; }catch(e){/* next */} }
     // If the chosen route answered but was SLOW (>3.5s), forget it so the next
     // fetch re-races and can find a faster proxy. A slow proxy never "fails",
@@ -12418,16 +12446,37 @@ async function loadData(userClick){
     throw new Error('No JSON found in response');
   }
 
+  // ---- Attempt 0 (v373b): OUR Cloudflare Worker — fast, edge-cached, API key held
+  // server-side. Preferred route; everything below is the fallback if it's down. ----
+  if(!rows && typeof DATA_PROXY==='string' && DATA_PROXY){
+    statusEl.textContent=`Fetching the share list from your server…`;
+    progFill.style.width='16%';
+    const _wtry=async(u)=>{ try{
+      const r=await _fetchTO(_eodProxy(u),{headers:{'Accept':'application/json'}},20000);
+      if(!r.ok)return null;
+      const txt=await r.text();
+      if(!(txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{')))return null;
+      const p=parseLoose(txt);
+      if(p&&!Array.isArray(p)&&p.error)return null; // Worker error body → fall through
+      const arr=Array.isArray(p)?p:((p&&(p.symbols||p.quotes||p.data||p.Quotes||p.result||p.results))||[]);
+      return arr.length?arr:null;
+    }catch(e){ return null; } };
+    let g=await _wtry(symbolListUrl); if(g){ rows=g; via='server'; }
+    if(!rows){ g=await _wtry(quoteListUrl); if(g){ rows=g; via='server-q'; } }
+  }
+
   // ---- Attempt 1: direct browser fetch ----
   // Your key works in-browser, so this often succeeds outright.
-  statusEl.textContent=`Calling /symbol/list/${exch}…`;
-  progFill.style.width='20%';
   let confirmed401=false;
-  try{
-    const r=await _fetchTO(symbolListUrl,{headers:{'Accept':'application/json'}},20000);
-    if(r.status===401){confirmed401=true;}
-    else if(r.ok){rows=parseLoose(await r.text());via='direct';}
-  }catch(e){/* CORS/network — fall through to proxies */}
+  if(!rows){
+    statusEl.textContent=`Calling /symbol/list/${exch}…`;
+    progFill.style.width='20%';
+    try{
+      const r=await _fetchTO(symbolListUrl,{headers:{'Accept':'application/json'}},20000);
+      if(r.status===401){confirmed401=true;}
+      else if(r.ok){rows=parseLoose(await r.text());via='direct';}
+    }catch(e){/* CORS/network — fall through to proxies */}
+  }
 
   // Only a REAL 401 from EODData itself stops us here.
   if(confirmed401&&!rows){
