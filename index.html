@@ -1502,7 +1502,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-368-open';
+const APP_VERSION='2026.07.22-369-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15323,15 +15323,16 @@ function _renderReportCard(A){
       else { verdict='two-way — split below'; vcol='var(--muted)'; vtip='This flag fires in both directions, so it is graded separately for price-UP days (bullish) and price-DOWN days (a warning) — shown just below.'; }
       const _sc10=_cardScore10(m), _scCol10=_sc10>=7?'var(--green)':_sc10>=4?'var(--gold)':'#ff9caa';
       rows+=`<div style="padding:9px 4px;border-bottom:1px solid var(--border);">
-        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;"><span title="${_flagTip[k]||''}" style="cursor:help;font-weight:700">${d.name}</span><span title="Strength /10 — how strong AND how proven this flag is (see 📖 How to read this card)" style="cursor:help;font-family:var(--mono);font-weight:800;color:${_scCol10};font-size:12px;margin-right:6px;">${_sc10}/10</span><span title="${vtip}" style="cursor:help;color:${vcol};font-weight:700;font-size:11px;">${verdict}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;"><span title="${_flagTip[k]||''}" style="cursor:help;font-weight:700">${d.name}</span>${d.dir!==0?`<span title="Strength /10 — how strong AND how proven this flag is (see 📖 How to read this card)" style="cursor:help;font-family:var(--mono);font-weight:800;color:${_scCol10};font-size:12px;margin-right:6px;">${_sc10}/10</span>`:`<span title="This flag fires BOTH ways, so a single pooled score would be misleading — it's scored separately for up-days and down-days just below (and on the 🪜 ladder)." style="cursor:help;font-size:9px;color:var(--dim);margin-right:6px;white-space:nowrap;">↓ scored up/down</span>`}<span title="${vtip}" style="cursor:help;color:${vcol};font-weight:700;font-size:11px;">${verdict}</span></div>
         ${statLine(k,m)}
         ${(()=>{ if(d.dir!==0)return '';
           const segs=[];
           for(const sk of [k+'+',k+'-']){ const sm=A.M[sk]; if(!sm||!sm.n){ segs.push(`<span style="color:var(--dim)">${sk.endsWith('+')?'🟢 price-up':'🔴 price-down'} 0</span>`); continue; }
             const good=sm.dirNeg?sm.edge<0:sm.edge>0;
+            const _ss=_cardScore10(sm), _ssCol=_ss>=7?'var(--green)':_ss>=4?'var(--gold)':'#ff9caa'; // v369: /10 on the up/down splits too
             const vtxt=sm.dirNeg?(good?'worked as a warning':'did NOT warn'):(good?'beat the market':'did NOT beat');
             const hitTxt=sm.dirNeg?`${100-pct(sm.up,sm.n)}% lower`:`${pct(sm.up,sm.n)}% higher`;
-            segs.push(`<span>${sk.endsWith('+')?'🟢 price-up':'🔴 price-down'} <b style="color:var(--text)">${sm.n.toLocaleString()}</b>: ${hitTxt} · edge <b style="color:${good?'var(--green)':'#ff9caa'}">${f1(sm.edge)}</b> ${chip(sm)} — <span style="color:${good?'var(--green)':'#ff9caa'};font-weight:700">${vtxt}</span>${track(sk)}</span>`); }
+            segs.push(`<span>${sk.endsWith('+')?'🟢 price-up':'🔴 price-down'} <b style="color:var(--text)">${sm.n.toLocaleString()}</b>: ${hitTxt} · edge <b style="color:${good?'var(--green)':'#ff9caa'}">${f1(sm.edge)}</b> · <b style="font-family:var(--mono);color:${_ssCol}">${_ss}/10</b> ${chip(sm)} — <span style="color:${good?'var(--green)':'#ff9caa'};font-weight:700">${vtxt}</span>${track(sk)}</span>`); }
           return `<div style="font-size:10px;color:var(--muted);margin-top:3px;">${segs.join(' &nbsp;·&nbsp; ')}</div>`; })()}
         ${(()=>{const na=A.ann&&A.ann[k];if(!na||!(na.news.n+na.quiet.n))return '';
           const seg=(g,ico,lbl,col)=>g.n?`<span style="color:${col}">${ico} ${lbl} <b>${g.n}</b>: ${pct(g.up,g.n)}% higher · avg ${f1(g.sum/g.n)}</span>`:`<span style="color:var(--dim)">${ico} ${lbl} 0</span>`;
@@ -15345,10 +15346,14 @@ function _renderReportCard(A){
     const MINC=10;
     const secRow=(it)=>{ const {k,m}=it;
       const good=m.dirNeg?m.edge<0:m.edge>0;
+      const _sc=_cardScore10(m), _scCol=_sc>=7?'var(--green)':_sc>=4?'var(--gold)':'#ff9caa'; // v369: show the Strength /10 on combos & sequences too
       return `<div style="padding:7px 4px;border-bottom:1px solid var(--border);">
-        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;align-items:baseline;">
           <span style="font-weight:700">${nameOf(k)}</span>
-          <span style="color:${good?'var(--green)':'#ff9caa'};font-weight:700;font-size:10.5px;">${good?'beat the market':'did NOT beat'}</span>
+          <span style="display:flex;gap:8px;align-items:baseline;white-space:nowrap;flex:0 0 auto;">
+            <span title="Strength /10 — how strong AND how proven this combo is (same score as the single flags and the 🪜 ladder)" style="cursor:help;font-family:var(--mono);font-weight:800;font-size:11px;color:${_scCol};">${_sc}/10</span>
+            <span style="color:${good?'var(--green)':'#ff9caa'};font-weight:700;font-size:10.5px;">${good?'beat the market':'did NOT beat'}</span>
+          </span>
         </div>
         ${(()=>{ if(k.indexOf('+')<0||k.indexOf('>')>0)return '';
           const solo=k.split('+').map(x=>A.M[x]&&A.M[x].n?f1(A.M[x].edge):'—').join(' / ');
@@ -15367,7 +15372,7 @@ function _renderReportCard(A){
       comboSec=`<div style="margin-top:14px;">
         <div title="Combinations = two or three flags firing on the SAME share, the SAME day — does agreement beat any one flag alone? Counted only at ≥10 fires." style="cursor:help;font-size:12.5px;font-weight:700;color:var(--text);">🧩 Combinations — do flags agreeing beat flags alone?</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 6px;line-height:1.5;">Counted only when the flags fired on the <b>same share, the same day</b>. Ranked by confidence tier, then edge. Shown at ≥${MINC} fires${hiddenC>0?` (${hiddenC} rarer combos hidden)`:''}. 📉 Dist? excluded. A strong combo is a lead to keep watching across cards — the 📜 track record is the real test.</div>
-        ${best?`<div style="font-size:10.5px;color:var(--gold);margin-bottom:4px;">Strongest this period: <b>${nameOf(best.k)}</b> — edge ${f1(best.m.edge)} (n=${best.m.n}, ${TIER[best.m.tier][0]}).</div>`:''}
+        ${best?`<div style="font-size:10.5px;color:var(--gold);margin-bottom:4px;">Strongest this period: <b>${nameOf(best.k)}</b> — <b>${_cardScore10(best.m)}/10</b> · edge ${f1(best.m.edge)} (n=${best.m.n}, ${TIER[best.m.tier][0]}).</div>`:''}
         ${pairs.map(secRow).join('')}
         ${triples.length?`<div style="font-size:10.5px;font-weight:700;color:var(--muted);margin-top:7px;">Three flags together</div>${triples.map(secRow).join('')}`:''}
       </div>`;
