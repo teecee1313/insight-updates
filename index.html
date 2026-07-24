@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-398-open';
+const APP_VERSION='2026.07.22-399-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15523,7 +15523,12 @@ function _rcAltOpen(dd,hold){
   window._auditCacheAlt=window._auditCacheAlt||{};
   var key=hold+'_'+dd;
   var hit=window._auditCacheAlt[key];
-  if(hit&&hit.M){ return _renderReportCard(hit); }
+  // v399: only trust a cached answer that MATCHES the window asked for. (Before the
+  // server update lands, it answers with the 5d card — caching that under the 10d
+  // slot made every later 10d tap silently re-render the same card: the "button
+  // does nothing" bug. Now a wrong-window answer is never cached, and the card
+  // shows a plain warning instead of silence.)
+  if(hit&&hit.M&&((hit.hold||5)===hold)){ return _renderReportCard(hit); }
   var _fail=function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not grade the '+hold+'-day view just now.</b><br>Longer windows are computed fresh on your server — give it a moment and try again, or switch back to 5d.</div>','📋 Signal report card'); }catch(e){} } };
   var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;});
   if(!(typeof DATA_PROXY==='string'&&DATA_PROXY)||_sh.length<3){ _fail(); return; }
@@ -15531,7 +15536,8 @@ function _rcAltOpen(dd,hold){
   var _tok=(window._rcTok=(window._rcTok||0)+1);
   var payload=_sh.map(function(s){return {ticker:s.ticker,series:s.series};});
   _serverGrades(payload,dd,currentExch,hold).then(function(A){
-    if(A&&A.M){ try{ window._auditCacheAlt[key]=A; }catch(e){} }
+    var right=(A&&A.M&&((A.hold||5)===hold));
+    if(right){ try{ window._auditCacheAlt[key]=A; }catch(e){} }   // v399: cache ONLY a matching-window answer
     var m=document.getElementById('appModal');
     if(window._rcTok===_tok&&m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){
       if(A&&A.M){ try{ _renderReportCard(A); }catch(e){ _fail(); } } else { _fail(); }
@@ -15765,12 +15771,18 @@ function _renderReportCard(A){
     // v398: outcome-window switch. 5d is the standard the 🤖 bot trades on; 10d/30d
     // are research views computed fresh on the server ("does the edge last?").
     var _holdChip=function(n,lbl){ var on=(_h===n); return '<button onclick="setCardHold('+n+')" title="'+(n===5?'The standard window — outcomes measured 5 trading days after each fire. This is the card the 🤖 auto-pilot&#39;s gate reads.':'Research view — re-grades every signal measuring outcomes '+n+' trading days after each fire. Does the edge last, or fade? (The 🤖 bot keeps using the 5-day card regardless.)')+'" style="padding:4px 10px;border-radius:6px;border:1px solid '+(on?'var(--gold)':'var(--border2)')+';background:'+(on?'rgba(255,210,0,.14)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';font:700 10.5px var(--sans);cursor:pointer;">'+lbl+'</button>'; };
+    // v399: if the SELECTED window and the RENDERED window disagree, the server
+    // answered with a different card than asked (it's still on the old version) —
+    // say so plainly instead of looking like a dead button.
+    var _selHold=(function(){try{return _cardHold();}catch(e){return _h;}})();
+    var _staleSrv=(_selHold!==_h);
     var _rcBar='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:-2px 0 8px;">'
       +'<span style="display:inline-flex;align-items:center;gap:5px;"><span title="How many trading days after each fire the outcome is measured. 5d is the standard (and what the 🤖 bot uses); 10d and 30d answer &#39;does the edge last?&#39;" style="cursor:help;font-size:10px;color:var(--muted);">Outcome window:</span>'
       +_holdChip(5,'5d')+_holdChip(10,'10d')+_holdChip(30,'30d')
       +(_h!==5?'<span style="font-size:9px;color:var(--gold);">research view — the 🤖 bot still uses 5d</span>':'')
       +'</span>'
-      +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>';
+      +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>'
+      +(_staleSrv?'<div style="border:1px solid var(--gold);background:rgba(255,210,0,.10);border-radius:8px;padding:7px 11px;margin:0 0 10px;font-size:10.5px;color:var(--gold);line-height:1.5;">⚠ You asked for the <b>'+_selHold+'d</b> view but your server answered with the '+_h+'-day card — <b>the server hasn\'t got the 10d/30d update yet.</b> Re-paste the latest worker code in Cloudflare (Edit code → Ctrl+A, Ctrl+V → Deploy), then tap '+_selHold+'d again.</div>':'');
     showModal(_rcBar+_cardInner,'📋 Signal report card');
     setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
