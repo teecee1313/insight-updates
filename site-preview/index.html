@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script>document.documentElement.classList.add('js');</script>
+<!-- BEFORE GOING LIVE - swap these placeholders:
+  1. DOMAIN   : replace every "insight-trading.com.au" (canonical, og:url, Email us) with your real domain.
+  2. TRIAL CTA: wire the "Download free trial" button to a real download link or checkout
+                (Stripe/Gumroad/Lemon Squeezy). It currently shows a friendly "coming soon" toast - see comingSoon().
+  3. ANALYTICS: uncomment ONE snippet below and add your token.
+  4. EMAIL    : uncomment the "Notify me" form near the final CTA and paste your Formspree/Mailchimp endpoint.
+  5. OG IMAGE : upload og-image.png to your domain root so shared links preview nicely.
+-->
+<link rel="canonical" href="https://teecee1313.github.io/insight-updates/site-preview/">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0d1b33">
+<meta property="og:title" content="Insight Trading - End-of-Day Share Screener">
+<meta property="og:description" content="Spot unusual volume, buying streaks and accumulation across the ASX and 20+ global exchanges. A research tool, not financial advice.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://teecee1313.github.io/insight-updates/site-preview/">
+<meta property="og:image" content="https://teecee1313.github.io/insight-updates/site-preview/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Insight Trading - End-of-Day Share Screener">
+<meta name="twitter:description" content="See what the market is quietly doing - unusual volume, streaks and accumulation across the ASX and 20+ exchanges.">
+<meta name="twitter:image" content="https://teecee1313.github.io/insight-updates/site-preview/og-image.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%230d1b33%27/%3E%3Crect%20x%3D%275.4%27%20y%3D%2719%27%20width%3D%273.5%27%20height%3D%277.6%27%20rx%3D%271%27%20fill%3D%27%23FFD200%27/%3E%3Crect%20x%3D%2710.8%27%20y%3D%2712.5%27%20width%3D%273.5%27%20height%3D%2714.1%27%20rx%3D%271%27%20fill%3D%27%23FFD200%27/%3E%3Crect%20x%3D%2716.2%27%20y%3D%2715.5%27%20width%3D%273.5%27%20height%3D%2711.1%27%20rx%3D%271%27%20fill%3D%27%23FFD200%27/%3E%3Crect%20x%3D%2721.6%27%20y%3D%279.5%27%20width%3D%273.5%27%20height%3D%2717.1%27%20rx%3D%271%27%20fill%3D%27%23FFD200%27/%3E%3Ccircle%20cx%3D%2723.35%27%20cy%3D%276%27%20r%3D%271.7%27%20fill%3D%27%23FFD200%27/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<!-- ANALYTICS (inert - pick ONE, add your token/domain, then uncomment):
+  Cloudflare Web Analytics (free, no cookie banner):
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"YOUR_TOKEN"}'></script>
+  Plausible:
+  <script defer data-domain="insight-trading.com.au" src="https://plausible.io/js/script.js"></script>
+-->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Insight Trading","applicationCategory":"FinanceApplication","operatingSystem":"Windows, macOS","description":"End-of-day share market screener for self-directed investors. Scans the ASX and 20+ global exchanges for unusual volume, buying streaks and accumulation. A research tool, not financial advice.","offers":{"@type":"Offer","price":"99","priceCurrency":"AUD","description":"Monthly subscription after a free 30-day trial"},"url":"https://teecee1313.github.io/insight-updates/site-preview/"}
+</script>
+<title>Insight Trading — End-of-Day Share Screener</title>
+<meta name="description" content="Insight Trading is an end-of-day share market screener for self-directed investors. Spot unusual volume, streaks, and accumulation across the ASX and global exchanges. A research tool, not financial advice.">
+<!-- © 2026 Insight Trading™. All rights reserved. The Insight Trading name and logo are trademarks of the business operating under ABN 49 691 811 293. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0d1b33; --navy2:#002B5C; --navy3:#071426;
+  --gold:#FFD200; --gold-dim:#C9A100; --red:#E21937;
+  --slate:#8fa6c9; --dim:#5c7297; --ink:#eef3fb; --line:rgba(143,166,201,.16);
+  --sans:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--navy3);color:var(--ink);font-family:var(--body);line-height:1.6;overflow-x:hidden;}
+a{color:inherit;text-decoration:none;}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px;}
+h1,h2,h3{font-family:var(--sans);font-weight:700;line-height:1.05;letter-spacing:-.02em;}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:500;}
+
+/* ── nav ── */
+nav{position:sticky;top:0;z-index:50;background:rgba(7,20,38,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--sans);font-weight:700;font-size:17px;}
+.brand .gold{color:var(--gold);}
+.navlinks{display:flex;gap:30px;align-items:center;font-size:14px;color:var(--slate);}
+.navlinks a:hover{color:var(--ink);}
+.btn{font-family:var(--sans);font-weight:600;font-size:14px;padding:10px 20px;border-radius:9px;border:1px solid transparent;cursor:pointer;transition:.18s;display:inline-block;white-space:nowrap;}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.btn-gold:hover{background:#ffdb33;transform:translateY(-1px);}
+.btn-ghost{border-color:var(--line);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.navtoggle{display:none;background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;font-size:20px;line-height:1;padding:5px 11px;cursor:pointer;}
+@media(max-width:720px){
+  .navtoggle{display:inline-block;}
+  .navlinks{position:absolute;top:64px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:rgba(7,20,38,.98);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 24px 18px;display:none;}
+  .navlinks.open{display:flex;}
+  .navlinks a:not(.btn){display:block;padding:13px 2px;border-bottom:1px solid var(--line);color:var(--ink);}
+  .navlinks a.btn{margin-top:12px;text-align:center;}
+}
+
+/* ── hero ── */
+.hero{position:relative;padding:96px 0 80px;overflow:hidden;}
+.hero-bars{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:2.4vw;opacity:.13;pointer-events:none;z-index:0;}
+.hero-bars .bar{width:5vw;background:linear-gradient(180deg,var(--gold),transparent);border-radius:8px 8px 0 0;animation:rise 3.4s ease-in-out infinite;}
+@keyframes rise{0%,100%{transform:scaleY(.55);}50%{transform:scaleY(1);}}
+.hero .wrap{position:relative;z-index:1;}
+.hero h1{font-size:clamp(38px,7vw,76px);max-width:15ch;margin:22px 0;}
+.hero h1 .g{color:var(--gold);}
+.hero p.lead{font-size:clamp(17px,2.2vw,21px);color:var(--slate);max-width:52ch;margin-bottom:34px;}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+.hero-note{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:20px;}
+.star{fill:var(--gold);} .starL{fill:var(--red);font-family:var(--sans);font-weight:700;}
+
+/* logo mark */
+.mark{flex:none;}
+.mark .brc{fill:var(--gold);}
+
+/* ── strip ── */
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--navy);}
+.strip .wrap{display:flex;flex-wrap:wrap;gap:36px;justify-content:space-between;padding:26px 24px;font-family:var(--mono);font-size:13px;color:var(--slate);}
+.strip b{color:var(--gold);font-weight:700;}
+
+/* ── sections ── */
+section.blk{padding:88px 0;}
+.sec-head{max-width:60ch;margin-bottom:52px;}
+.sec-head h2{font-size:clamp(28px,4.4vw,44px);margin:14px 0 16px;}
+.sec-head p{color:var(--slate);font-size:17px;}
+
+/* feature grid */
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+@media(max-width:860px){.feat{grid-template-columns:1fr;}}
+.card{background:linear-gradient(160deg,var(--navy),var(--navy3));border:1px solid var(--line);border-radius:16px;padding:26px;transition:.2s;}
+.card:hover{border-color:rgba(255,210,0,.4);transform:translateY(-3px);}
+.card .ic{font-size:24px;margin-bottom:14px;display:block;}
+.card h3{font-size:19px;margin-bottom:9px;}
+.card p{color:var(--slate);font-size:14.5px;}
+.card .tag{font-family:var(--mono);font-size:11px;color:var(--slate);letter-spacing:.05em;margin-top:12px;display:block;}
+
+/* how it works */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;counter-reset:s;}
+@media(max-width:860px){.steps{grid-template-columns:1fr;}}
+.step{position:relative;padding-top:20px;}
+.step .n{font-family:var(--mono);font-size:13px;color:var(--gold);border:1px solid var(--gold);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+.step h3{font-size:18px;margin-bottom:8px;}
+.step p{color:var(--slate);font-size:14.5px;}
+
+/* screenshot-ish showcase */
+.showcase{background:var(--navy);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:8px;}
+.showcase .top{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);}
+.dot{width:11px;height:11px;border-radius:50%;}
+.showcase .body{padding:0;display:grid;grid-template-columns:1.1fr 1fr;}
+@media(max-width:760px){.showcase .body{grid-template-columns:1fr;}}
+.mock-table{padding:18px;font-family:var(--mono);font-size:12px;}
+.mock-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);color:var(--slate);}
+.mock-row .tk{color:var(--ink);font-weight:700;}
+.mock-row .up{color:#3fb950;} .mock-row .dn{color:#ff6b6b;}
+.mock-row .sig{color:var(--gold);}
+.mock-side{padding:26px;border-left:1px solid var(--line);background:linear-gradient(180deg,rgba(255,210,0,.04),transparent);}
+.mock-side h3{font-size:17px;margin-bottom:10px;}
+.mock-side p{color:var(--slate);font-size:14px;}
+
+/* pricing */
+.price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+@media(max-width:860px){.price{grid-template-columns:1fr;}}
+.plan{background:linear-gradient(160deg,var(--navy),var(--navy3));border:1px solid var(--line);border-radius:16px;padding:30px 26px;display:flex;flex-direction:column;}
+.plan.feat-plan{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 20px 60px -30px rgba(255,210,0,.5);}
+.plan .pl-name{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);}
+.plan .pl-price{font-family:var(--sans);font-size:40px;font-weight:700;margin:12px 0 4px;}
+.plan .pl-price small{font-size:15px;color:var(--slate);font-weight:400;}
+.plan ul{list-style:none;margin:20px 0 26px;flex:1;}
+.plan li{font-size:14.5px;color:var(--slate);padding:8px 0 8px 26px;position:relative;}
+.plan li::before{content:"→";position:absolute;left:0;color:var(--gold);}
+.plan .btn{text-align:center;width:100%;}
+
+/* disclaimer band */
+.disc{background:var(--navy);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.disc .wrap{padding:40px 24px;display:flex;gap:18px;align-items:flex-start;}
+.disc .warn{font-size:26px;flex:none;}
+.disc p{color:var(--slate);font-size:14px;max-width:80ch;}
+.disc b{color:var(--ink);}
+
+/* CTA */
+.cta-final{padding:96px 0;text-align:center;}
+.cta-final h2{font-size:clamp(30px,5vw,52px);max-width:18ch;margin:0 auto 18px;}
+.cta-final p{color:var(--slate);font-size:18px;max-width:46ch;margin:0 auto 32px;}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:44px 0;background:var(--navy3);}
+footer .wrap{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center;}
+footer .fcol{font-size:13px;color:var(--dim);}
+footer a{color:var(--slate);} footer a:hover{color:var(--gold);}
+.footlinks{display:flex;gap:22px;font-size:14px;}
+.js .reveal{opacity:0;transform:translateY(24px);transition:.7s cubic-bezier(.2,.7,.2,1);}
+.js .reveal.in{opacity:1;transform:none;}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}.reveal{opacity:1!important;transform:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- reusable logo mark -->
+<svg width="0" height="0" style="position:absolute"><defs>
+<g id="itmark">
+  <rect x="1" y="15" width="3.6" height="6.5" rx=".8" class="brc"/>
+  <rect x="6.2" y="4.5" width="3.6" height="17" rx=".8" class="brc"/>
+  <rect x="11.4" y="8" width="3.6" height="13.5" rx=".8" class="brc"/>
+  <rect x="16.6" y="12.4" width="3.6" height="9.1" rx=".8" class="brc"/>
+  <rect x="21.8" y="8" width="3.6" height="13.5" rx=".8" class="brc"/>
+  <polygon points="15.6,1.1 16.7,2.7 18.3,3.4 16.7,4.1 15.6,5.9 14.5,4.1 12.9,3.4 14.5,2.7" class="star"/>
+  <polygon points="20.2,-1 21.4,.7 23.2,1.5 21.4,2.3 20.2,4.2 19,2.3 17.2,1.5 19,.7" class="star"/>
+</g>
+</defs></svg>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg class="mark" width="30" height="26" viewBox="0 0 26.4 22"><use href="#itmark"/></svg>
+      Insight <span class="gold">Trading</span><sup style="font-size:.5em;font-weight:600;color:var(--slate);vertical-align:super;margin-left:1px">™</sup>
+    </a>
+    <button class="navtoggle" aria-label="Open menu" aria-expanded="false" aria-controls="navlinks" onclick="toggleNav()">☰</button>
+    <div class="navlinks" id="navlinks">
+      <a href="#features" onclick="closeNav()">What it does</a>
+      <a href="#challenge" onclick="closeNav()">Challenge</a>
+      <a href="#how" onclick="closeNav()">How it works</a>
+      <a href="#pricing" onclick="closeNav()">Pricing</a>
+      <a href="#download" class="btn btn-gold">Start free trial</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-bars" aria-hidden="true">
+    <div class="bar" style="height:38%;animation-delay:0s"></div>
+    <div class="bar" style="height:72%;animation-delay:.4s"></div>
+    <div class="bar" style="height:54%;animation-delay:.8s"></div>
+    <div class="bar" style="height:88%;animation-delay:.2s"></div>
+    <div class="bar" style="height:46%;animation-delay:.6s"></div>
+    <div class="bar" style="height:66%;animation-delay:1s"></div>
+    <div class="bar" style="height:34%;animation-delay:.3s"></div>
+  </div>
+  <div class="wrap">
+    <span class="eyebrow">End-of-day market screener</span>
+    <h1>See what the <span class="g">market</span> is quietly doing.</h1>
+    <p class="lead">Insight Trading scans the ASX and global exchanges at the end of each day for unusual volume, buying streaks, and accumulation — so the signals worth a second look find you, instead of the other way around.</p>
+    <div class="hero-cta">
+      <a href="#download" class="btn btn-gold">Start your free trial</a>
+      <a href="#challenge" class="btn btn-ghost">Take the $50k Challenge →</a>
+    </div>
+    <p class="hero-note">// Research tool, not financial advice · works on your own computer · ASX + 20 global exchanges</p>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="wrap">
+    <span><b>20+</b> exchanges incl. ASX, NYSE, NASDAQ, LSE</span>
+    <span><b>7</b> one-click signal scans &amp; reports</span>
+    <span><b>$50k</b> paper-trading challenge — play free</span>
+    <span><b>0</b> data sent anywhere — runs locally</span>
+  </div>
+</div>
+
+<section class="blk" id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">What it does</span>
+      <h2>Seven scans, plus news and a practice portfolio.</h2>
+      <p>Every scan works from end-of-day price and volume — the same data the professionals watch — and ranks the whole market so the interesting names rise to the top. Nothing here is a recommendation; it's a faster way to decide what to research.</p>
+    </div>
+    <div class="feat">
+      <div class="card reveal"><span class="ic">🎯</span><h3>Smart Money Scan</h3><p>Surfaces shares showing sustained buying — multiple up-days paired with volume well above their own average.</p></div>
+      <div class="card reveal"><span class="ic">🚨</span><h3>Sharp Mover Detector</h3><p>Flags moves that are abnormal <em>for that specific share</em>, not just big in absolute terms.</p></div>
+      <div class="card reveal"><span class="ic">🔍</span><h3>Unusual Activity Radar</h3><p>Weighs five behaviours together — volume spikes, price streaks, quiet accumulation, range breaks and momentum — into one score that pinpoints shares trading unlike their normal selves.</p></div>
+      <div class="card reveal"><span class="ic">🔥</span><h3>Accumulation</h3><p>Detects quiet, persistent buying building up over days — the pattern that often precedes a move.</p></div>
+      <div class="card reveal"><span class="ic">🏆</span><h3>Top 20 to Watch</h3><p>A single ranked shortlist, scored out of 10, blending every signal into one daily watchlist.</p></div>
+      <div class="card reveal"><span class="ic">🧩</span><h3>All Signals Scan</h3><p>Runs everything together and ranks by how many signals each share is firing at once.</p></div>
+    </div>
+    <div class="feat" style="margin-top:18px;">
+      <div class="card reveal"><span class="ic">🌋</span><h3>Volume Surge Report</h3><p>Ranks every share by how far today's volume beats its own average — tagged <span style="color:#3fb950">🟢 buying</span> or <span style="color:#ff6b6b">🔴 selling</span> so a heavy-volume fall never masquerades as a bullish signal. Filter by heat level or direction.</p><span class="tag">NEW</span></div>
+      <div class="card reveal"><span class="ic">📰</span><h3>News on any share</h3><p>One click on any share opens its latest news and official exchange announcements — the fastest way to answer "why did this move?"</p><span class="tag">NEW</span></div>
+      <div class="card reveal"><span class="ic">💼</span><h3>Paper-trading portfolio</h3><p>Practice with a virtual account: percentage take-profit &amp; stop-loss, combined lots at an average price, win-rate stats and a benchmark line — all with no real money.</p><span class="tag">NEW</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="showcase" style="padding-top:0">
+  <div class="wrap">
+    <div class="showcase reveal">
+      <div class="top">
+        <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-left:8px">insight-trading · ASX · end of day</span>
+      </div>
+      <div class="body">
+        <div class="mock-table">
+          <div class="mock-row"><span class="tk">BHP</span><span class="up">+2.4%</span><span>4.1× vol</span><span class="sig">⭐ 8/10</span></div>
+          <div class="mock-row"><span class="tk">CBA</span><span class="dn">−0.6%</span><span>1.1× vol</span><span>3/10</span></div>
+          <div class="mock-row"><span class="tk">FMG</span><span class="up">+3.8%</span><span>6.2× vol</span><span class="sig">🚨 sharp</span></div>
+          <div class="mock-row"><span class="tk">PLS</span><span class="up">+1.9%</span><span>2.7× vol</span><span class="sig">🔥 accum</span></div>
+          <div class="mock-row"><span class="tk">WDS</span><span class="up">+0.8%</span><span>1.9× vol</span><span>5/10</span></div>
+          <div class="mock-row"><span class="tk">XYZ</span><span class="up">+11.2%</span><span>18× vol</span><span class="sig">⭐ 9/10</span></div>
+        </div>
+        <div class="mock-side">
+          <h3>The whole market, ranked.</h3>
+          <p>Load a day's data and every share is scored and sorted in seconds. Sort any column, drill into a share's history, or send a name straight to your watchlist or paper portfolio. Turn on <span style="color:var(--gold)">Private mode</span> and the methodology stays hidden.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="challenge" style="border-top:1px solid var(--line);">
+  <div class="wrap">
+    <div class="sec-head reveal" style="max-width:70ch;">
+      <span class="eyebrow">Free challenge · no sign-up</span>
+      <h2>Take the <span style="color:var(--gold)">$50k Challenge.</span></h2>
+      <p>Get a virtual $50,000 and one trading week. Buy shares at Monday's close, see how they actually moved by Friday, and find out if you can beat the <b style="color:var(--gold)">$55,000 target</b> — a 10% week. It's a taste of how Insight Trading's signals help you spot the movers. No money, no sign-up, just play.</p>
+    </div>
+
+    <div id="challengeApp" class="showcase reveal" style="display:block;padding:0;">
+      <div class="top">
+        <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-left:8px">insight-trading · $50k challenge · practice only</span>
+        <span id="chWeek" style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--gold);"></span>
+      </div>
+      <div style="padding:22px 24px;">
+
+        <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+          <div style="flex:1;min-width:130px;background:var(--navy3);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;">Cash</div>
+            <div id="chCash" style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--ink);margin-top:3px;">$50,000</div>
+          </div>
+          <div style="flex:1;min-width:130px;background:var(--navy3);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;">Portfolio value</div>
+            <div id="chValue" style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--gold);margin-top:3px;">$50,000</div>
+          </div>
+          <div style="flex:1;min-width:130px;background:var(--navy3);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;">Target</div>
+            <div style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--slate);margin-top:3px;">$55,000</div>
+          </div>
+        </div>
+
+        <div style="height:8px;background:var(--navy3);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:6px;">
+          <div id="chBar" style="height:100%;width:0;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .5s;"></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:20px;"><span id="chPct">0.0%</span> toward the +10% target · <span id="chBank" style="color:var(--slate)"></span></div>
+
+        <div id="chBuyPhase">
+          <div style="font-family:var(--sans);font-weight:600;font-size:15px;margin-bottom:4px;">Monday's close — pick your shares</div>
+          <p style="color:var(--slate);font-size:13px;margin-bottom:16px;">Each card shows what Insight Trading flagged on Monday. Buy the ones you think will run. You won't see Friday's price until you lock in your trades.</p>
+          <div id="chShares" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px;">
+            <button id="chRunBtn" class="btn btn-gold" onclick="chRunWeek()">▶ Run the week &amp; see Friday</button>
+            <button class="btn btn-ghost" onclick="chReset()">↺ Reset</button>
+            <span id="chHoldNote" style="font-family:var(--mono);font-size:12px;color:var(--dim);"></span>
+          </div>
+        </div>
+
+        <div id="chResultPhase" style="display:none;">
+          <div id="chResultBanner" style="border-radius:12px;padding:18px 20px;margin-bottom:18px;text-align:center;"></div>
+          <div id="chResultTable" style="display:grid;gap:8px;margin-bottom:18px;"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+            <a href="#download" class="btn btn-gold">Get the real thing — free trial</a>
+            <button class="btn btn-ghost" onclick="chReset()">↺ Play again</button>
+            <button class="btn btn-ghost" onclick="chShare()">📋 Copy my result</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:16px;text-align:center;max-width:80ch;margin-left:auto;margin-right:auto;">A game for illustration only. Prices are simulated sample data, <b>not</b> real historical prices, and this is <b>not</b> financial advice, a prediction, or a promise of returns. Real markets carry real risk.</p>
+  </div>
+</section>
+
+<section class="blk" id="how" style="background:var(--navy)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">How it works</span>
+      <h2>Three steps. No spreadsheets.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="n">1</div><h3>Load a market</h3><p>Pick an exchange and pull the day's end-of-day data — or load a CSV file if you'd rather not use an API key.</p></div>
+      <div class="step reveal"><div class="n">2</div><h3>Run a scan</h3><p>One click runs any of the seven signal scans across every share and ranks the results instantly.</p></div>
+      <div class="step reveal"><div class="n">3</div><h3>Research &amp; track</h3><p>Star shares to a watchlist, paper-trade them in a $50k practice account, and print or export your shortlist.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="pricing">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Pricing</span>
+      <h2>Try it free. Subscribe when you're ready.</h2>
+      <p>Start with a free 30-day trial — no card required. Continue for a simple monthly subscription.</p>
+    </div>
+    <div class="price">
+      <div class="plan reveal">
+        <span class="pl-name">Trial</span>
+        <div class="pl-price">Free<small> / 30 days</small></div>
+        <ul>
+          <li>Every feature unlocked</li>
+          <li>All seven signal scans</li>
+          <li>Paper-trading account</li>
+          <li>No card required to start</li>
+        </ul>
+        <a href="#download" class="btn btn-ghost">Start free trial</a>
+      </div>
+      <div class="plan feat-plan reveal">
+        <span class="pl-name">Subscription</span>
+        <div class="pl-price">$99<small> / month</small></div>
+        <ul>
+          <li>Everything in the trial, ongoing</li>
+          <li>All 20+ exchanges</li>
+          <li>Watchlists &amp; paper portfolio saved</li>
+          <li>All updates included</li>
+          <li>Email support</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <a href="#download" class="btn btn-gold">Subscribe — $99/mo</a>
+      </div>
+      <div class="plan reveal">
+        <span class="pl-name">Questions?</span>
+        <div class="pl-price" style="font-size:26px;line-height:1.3">Talk to us</div>
+        <ul>
+          <li>Bulk / multi-seat pricing</li>
+          <li>Data-source guidance</li>
+          <li>Anything else</li>
+        </ul>
+        <a href="#contact" class="btn btn-ghost">Get in touch</a>
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:20px;text-align:center">Price in AUD. Cancel anytime. GST included where applicable.</p>
+  </div>
+</section>
+
+<div class="disc">
+  <div class="wrap reveal">
+    <span class="warn">⚠️</span>
+    <p><b>Research tool, not financial advice.</b> Insight Trading presents end-of-day data, estimates, and pattern scores for your own research only. Scores and signals are estimates inferred from price and volume — not recommendations, predictions, or confirmed announcements. Markets carry risk. Verify everything against official sources and do your own research, or consult a licensed adviser, before making any investment decision.</p>
+  </div>
+</div>
+
+<section class="cta-final" id="download">
+  <div class="wrap reveal">
+    <span class="eyebrow">Get started</span>
+    <h2>Start reading the market like the desk does.</h2>
+    <p>Download the free 30-day trial and run your first scan tonight.</p>
+    <div class="hero-cta" style="justify-content:center">
+      <a href="#" class="btn btn-gold" onclick="comingSoon();return false;">Download free trial</a><!-- GO-LIVE: point this at your real trial download or checkout, and replace comingSoon() with the real link. -->
+      <a href="#contact" class="btn btn-ghost">Contact us →</a>
+    </div>
+    <p class="hero-note">// Free 30-day trial · then $99/month · cancel anytime</p>
+    <!-- NOTIFY-ME email capture (inert stub - enable before launch to collect interest):
+         1) uncomment  2) paste your Formspree/Mailchimp URL into FORM_ENDPOINT
+    <form onsubmit="return notifyMe(this)" style="max-width:430px;margin:22px auto 0;display:flex;gap:10px;">
+      <input type="email" required placeholder="you@email.com" style="flex:1;padding:12px 14px;border-radius:9px;background:var(--navy3);border:1px solid var(--line);color:var(--ink);font-family:var(--body);">
+      <button class="btn btn-gold" type="submit">Notify me</button>
+    </form>
+    <script>var FORM_ENDPOINT="";function notifyMe(f){var e=f.querySelector("input").value;if(FORM_ENDPOINT){fetch(FORM_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({email:e,source:"insight-trading site"})});}alert("Thanks! We will let you know the moment it is ready.");f.reset();return false;}</script>
+    -->
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="fcol">
+      <a class="brand" href="#top" style="margin-bottom:10px">
+        <svg class="mark" width="26" height="22" viewBox="0 0 26.4 22"><use href="#itmark"/></svg>
+        Insight <span class="gold" style="color:var(--gold)">Trading</span><sup style="font-size:.5em;font-weight:600;color:var(--slate);vertical-align:super;margin-left:1px">™</sup>
+      </a><br>
+      © 2026 Insight Trading™. All rights reserved.<br>
+      The Insight Trading™ name and logo are trademarks of the business operating under ABN 49 691 811 293.<br>
+      A research tool, not financial advice.
+    </div>
+    <div class="footlinks">
+      <a href="#features">What it does</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="mailto:hello@insight-trading.com.au">Email us</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// scroll reveal
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+function toggleNav(){var n=document.getElementById('navlinks'),b=document.querySelector('.navtoggle');var o=n.classList.toggle('open');if(b)b.setAttribute('aria-expanded',o?'true':'false');}
+function closeNav(){var n=document.getElementById('navlinks');if(n)n.classList.remove('open');var b=document.querySelector('.navtoggle');if(b)b.setAttribute('aria-expanded','false');}
+function comingSoon(){var t=document.getElementById('csToast');if(!t){t=document.createElement('div');t.id='csToast';t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);z-index:300;background:#002B5C;border:1px solid #FFD200;color:#eef3fb;font-family:sans-serif;font-size:14px;line-height:1.5;padding:13px 18px;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.55);opacity:0;transition:.25s;max-width:90vw;text-align:center;';document.body.appendChild(t);}t.innerHTML='🚧 <b>Free trial opens soon.</b> We are putting the finishing touches on it — thanks for your patience!';requestAnimationFrame(function(){t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';});clearTimeout(window._csTid);window._csTid=setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(-50%) translateY(12px)';},3400);}
+
+/* ═══════════════════ $50k PAPER-TRADING CHALLENGE ═══════════════════
+   Fully self-contained, no server, no accounts. Each play deals a fresh set
+   of shares with a Monday price, an Insight-Trading-style signal, and a
+   pre-baked Friday outcome the player can't see until they lock in. Feels
+   competitive (beat $55k) but runs entirely in the browser. Sample data only. */
+const CH_START=50000, CH_TARGET=55000;
+// Pool of fictional shares. friday = Monday→Friday % move (hidden until run).
+// Signals mirror the real app; strong signals lean positive but NOT always —
+// so it teaches that signals are a reason to research, not a guarantee.
+const CH_POOL=[
+  {tk:'RGT',name:'Rocket Growth Tech',px:2.40,sig:'🌋 Extreme volume · buying',bias:0.9},
+  {tk:'PLS',name:'Pilbara Metals',px:3.85,sig:'🔥 Accumulation · 5 up-days',bias:0.7},
+  {tk:'AUR',name:'Aurora Mining',px:0.42,sig:'🚨 Sharp mover · +vol',bias:0.6},
+  {tk:'CBA',name:'Commonwealth Bank',px:112.0,sig:'😐 Normal · stable',bias:0.1},
+  {tk:'VUL',name:'Vulcan Energy',px:4.10,sig:'🌤 Warm volume · buying',bias:0.5},
+  {tk:'DMP',name:'Domino Foods',px:38.6,sig:'❄ Quiet · below average',bias:-0.2},
+  {tk:'CRq',name:'Crashdown Res',px:0.88,sig:'🔴 Intense volume · selling',bias:-0.7},
+  {tk:'BHP',name:'BHP Group',px:45.2,sig:'🔥 Hot volume · buying',bias:0.6},
+  {tk:'STK',name:'Stockland REIT',px:4.80,sig:'📈 3 up-days',bias:0.3},
+  {tk:'FALL',name:'Fallgate Ltd',px:3.80,sig:'🔴 Red-hot · heavy selling',bias:-0.8},
+  {tk:'ZIP',name:'Zipline Pay',px:1.55,sig:'🚨 Sharp mover · likely news',bias:0.4},
+  {tk:'WDS',name:'Woodside Energy',px:28.4,sig:'🌡 Mild volume',bias:0.2}
+];
+let CH={}; // live game state
+
+function chRnd(seed){ // deterministic-ish per deal
+  return Math.random();
+}
+function chDeal(){
+  // pick 6 shares, assign a Friday move influenced by bias + randomness
+  const pool=[...CH_POOL].sort(()=>Math.random()-0.5).slice(0,6);
+  pool.forEach(s=>{
+    // base move: bias pulls direction, noise makes it uncertain
+    const noise=(Math.random()-0.45)*0.18;          // ±~9%
+    const biasMove=s.bias*0.14;                       // strong signal → up to +12.6%
+    let mv=biasMove+noise;
+    // occasional surprise: a strong signal that disappoints, or a dog that pops
+    if(Math.random()<0.18) mv=-mv*0.8;
+    s.friday=+(s.px*(1+mv)).toFixed(s.px<1?4:2);
+    s.movePct=+(((s.friday-s.px)/s.px)*100).toFixed(1);
+    s.qty=0;
+  });
+  CH={shares:pool,cash:CH_START,phase:'buy'};
+}
+function chMoney(n){return '$'+Math.round(n).toLocaleString();}
+function chInvested(){return CH.shares.reduce((a,s)=>a+s.qty*s.px,0);}
+function chRender(){
+  const wrap=document.getElementById('chShares'); if(!wrap)return;
+  wrap.innerHTML=CH.shares.map((s,i)=>`
+    <div style="background:var(--navy3);border:1px solid var(--line);border-radius:12px;padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span style="font-family:var(--sans);font-weight:700;font-size:15px;color:var(--ink);">${s.tk}</span>
+        <span style="font-family:var(--mono);font-size:13px;color:var(--gold);">$${s.px}</span>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin:2px 0 8px;">${s.name}</div>
+      <div style="font-size:11px;color:var(--slate);min-height:30px;">${s.sig}</div>
+      <div style="display:flex;gap:6px;margin-top:10px;align-items:center;">
+        <button onclick="chBuy(${i},-1)" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:var(--navy);color:var(--ink);cursor:pointer;font-size:15px;">−</button>
+        <input id="chQ${i}" value="${s.qty}" readonly style="flex:1;text-align:center;background:var(--navy);border:1px solid var(--line);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:5px 0;">
+        <button onclick="chBuy(${i},1)" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);cursor:pointer;font-size:15px;">+</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:6px;text-align:center;">${s.qty>0?chMoney(s.qty*s.px)+' invested':'—'}</div>
+    </div>`).join('');
+  chUpdateBoard();
+}
+function chBuy(i,dir){
+  const s=CH.shares[i];
+  const step=Math.max(1,Math.round((CH_START*0.05)/s.px)); // ~$2.5k chunks
+  if(dir>0){
+    if(CH.cash < step*s.px){ // can't afford a full step — buy what's left
+      const aff=Math.floor(CH.cash/s.px); if(aff<=0){flashNote('Out of cash — sell or run the week.');return;} s.qty+=aff; CH.cash-=aff*s.px;
+    } else { s.qty+=step; CH.cash-=step*s.px; }
+  } else {
+    const dec=Math.min(step,s.qty); s.qty-=dec; CH.cash+=dec*s.px;
+  }
+  CH.cash=+CH.cash.toFixed(2);
+  chRender();
+}
+function flashNote(t){const n=document.getElementById('chHoldNote');if(n){n.textContent=t;setTimeout(()=>{if(n.textContent===t)n.textContent='';},2500);}}
+function chUpdateBoard(){
+  const inv=chInvested();
+  const val=CH.phase==='buy'? CH.cash+inv : CH.cash+CH.shares.reduce((a,s)=>a+s.qty*s.friday,0);
+  document.getElementById('chCash').textContent=chMoney(CH.cash);
+  document.getElementById('chValue').textContent=chMoney(val);
+  const pct=((val-CH_START)/CH_START)*100;
+  const toward=Math.max(0,Math.min(100,(pct/10)*100));
+  document.getElementById('chBar').style.width=toward+'%';
+  document.getElementById('chPct').textContent=(pct>=0?'+':'')+pct.toFixed(1)+'%';
+  document.getElementById('chBank').textContent=CH.phase==='buy'?(inv>0?chMoney(inv)+' invested · '+chMoney(CH.cash)+' cash left':'nothing bought yet'):'';
+}
+function chRunWeek(){
+  if(chInvested()<=0){flashNote('Buy at least one share first!');return;}
+  CH.phase='result';
+  document.getElementById('chBuyPhase').style.display='none';
+  document.getElementById('chResultPhase').style.display='block';
+  document.getElementById('chWeek').textContent='FRIDAY CLOSE';
+  const finalVal=CH.cash+CH.shares.reduce((a,s)=>a+s.qty*s.friday,0);
+  const pl=finalVal-CH_START, plp=(pl/CH_START)*100;
+  const won=finalVal>=CH_TARGET;
+  const beat=pl>0;
+  const banner=document.getElementById('chResultBanner');
+  banner.style.background=won?'rgba(63,185,80,.14)':beat?'rgba(255,210,0,.12)':'rgba(226,25,55,.12)';
+  banner.style.border='1px solid '+(won?'#3fb950':beat?'var(--gold)':'var(--red)');
+  banner.innerHTML=`<div style="font-family:var(--sans);font-weight:700;font-size:24px;color:${won?'#3fb950':beat?'var(--gold)':'#ff6b6b'};">${won?'🏆 Target smashed!':beat?'📈 In profit!':'📉 Tough week'}</div>
+    <div style="font-family:var(--sans);font-size:30px;font-weight:700;margin:6px 0;">${chMoney(finalVal)}</div>
+    <div style="font-family:var(--mono);font-size:13px;color:var(--slate);">${pl>=0?'+':''}${chMoney(pl)} (${plp>=0?'+':''}${plp.toFixed(1)}%) this week · target was ${chMoney(CH_TARGET)}</div>`;
+  document.getElementById('chResultTable').innerHTML=CH.shares.filter(s=>s.qty>0).map(s=>{
+    const up=s.friday>=s.px;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--navy3);border:1px solid var(--line);border-radius:9px;padding:10px 14px;font-size:13px;">
+      <span><b style="color:var(--ink)">${s.tk}</b> <span style="color:var(--dim)">×${s.qty}</span></span>
+      <span style="font-family:var(--mono);color:var(--slate)">$${s.px} → $${s.friday}</span>
+      <span style="font-family:var(--mono);font-weight:700;color:${up?'#3fb950':'#ff6b6b'}">${s.movePct>=0?'+':''}${s.movePct}%</span>
+    </div>`;}).join('');
+  CH._final=finalVal; CH._plp=plp;
+  chUpdateBoard();
+  document.getElementById('chValue').textContent=chMoney(finalVal);
+}
+function chShare(){
+  const t=`I took the Insight Trading $50k Challenge and finished on ${chMoney(CH._final)} (${CH._plp>=0?'+':''}${CH._plp.toFixed(1)}%)! Can you beat the $55k target? ${location.href.split('#')[0]}#challenge`;
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(()=>flashResult('Copied — paste it anywhere to challenge a friend!'));}
+  else flashResult(t);
+}
+function flashResult(t){const b=document.getElementById('chResultBanner');if(b){const o=b.innerHTML;b.insertAdjacentHTML('beforeend','<div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-top:8px;">'+t+'</div>');}}
+function chReset(){
+  chDeal();
+  document.getElementById('chBuyPhase').style.display='block';
+  document.getElementById('chResultPhase').style.display='none';
+  document.getElementById('chWeek').textContent='MONDAY CLOSE';
+  chRender();
+}
+// init when the section scrolls into view (or immediately if already visible)
+chReset();
+
+/* ═══════════════════ FAQ ASSISTANT BOT ═══════════════════
+   A searchable, preloaded Q&A helper — feels like a chatbot, gives only
+   correct answers, needs no server or API. Matches the user's question to the
+   closest FAQ by keyword overlap. */
+const FAQ=[
+  {q:"what is insight trading",k:"what is about insight trading product tool",a:"Insight Trading is an end-of-day share market screener for self-directed investors. It scans the ASX and 20+ global exchanges for unusual volume, buying streaks, and accumulation, and ranks the whole market so the shares worth researching rise to the top. It's a research tool — not financial advice."},
+  {q:"how much does it cost",k:"cost price pricing subscription how much pay money fee",a:"There's a free 30-day trial with every feature unlocked and no card required. After that it's $99/month (AUD), with all exchanges, saved watchlists and portfolio, all updates, and email support. Cancel anytime."},
+  {q:"is there a free trial",k:"free trial try test demo cost start",a:"Yes — a free 30-day trial with every feature unlocked and no credit card required to start. You can run your first scan the night you download it."},
+  {q:"what exchanges does it cover",k:"exchanges markets asx nyse nasdaq lse countries which stocks",a:"20+ exchanges including the ASX, NYSE, NASDAQ and LSE. It works on end-of-day data from these markets."},
+  {q:"is it financial advice",k:"advice financial recommendation safe legal risk disclaimer",a:"No. Insight Trading is a research tool only. Every score and signal is an estimate inferred from price and volume — not a recommendation, prediction, or confirmed announcement. Always verify against official sources and do your own research, or consult a licensed adviser, before making any investment decision."},
+  {q:"what are the scans",k:"scans signals features smart money sharp mover unusual accumulation top 20",a:"There are several one-click scans: Smart Money (sustained buying), Sharp Mover Detector (abnormal moves for that share), Unusual Activity Radar (five behaviours combined), Accumulation, Top 20 to Watch (a ranked shortlist), All Signals Scan, plus the Volume Surge Report. Each ranks the whole market from end-of-day data."},
+  {q:"what is the volume surge report",k:"volume surge report hot warm ratings direction buying selling",a:"It ranks every share by how far today's volume is above its own average — hottest first. Each is tagged 🟢 buying (price up) or 🔴 selling (price down), so a heavy-volume fall never looks bullish. You can filter by heat level or by direction, with one-click news links on every row."},
+  {q:"does it give news",k:"news announcements why moved information",a:"Yes — every share has one-click links to its latest news and official exchange announcements, so you can quickly check why something moved. The app also flags shares that likely had recent news, though that flag is an estimate — the links give you the real, accurate source."},
+  {q:"is there paper trading",k:"paper trading practice portfolio virtual demo account buy sell",a:"Yes — a built-in paper-trading portfolio lets you practice with virtual money (no real funds). It supports percentage take-profit and stop-loss, combines multiple buys of the same share into one line at the average price, and tracks your win rate, profit/loss and a benchmark line."},
+  {q:"do i need an api key",k:"api key data eoddata setup account required how get data",a:"The app needs end-of-day market data, which it gets via a data provider's API key (such as EODData), or you can load a CSV file instead. The website's free challenge and the in-app training/demo mode work with no key at all."},
+  {q:"does my data get sent anywhere",k:"privacy data safe local server cloud secure sent",a:"No. The app runs entirely on your own computer — your data isn't sent anywhere. It's a single file you run locally."},
+  {q:"how do i get it",k:"download get install buy start where how obtain",a:"Click any 'Start free trial' or 'Download' button on this page. You'll get the app file to run on your own computer, plus your trial details."},
+  {q:"how does the challenge work",k:"challenge game 50k competition how play win target beat",a:"The $50k Challenge on this page gives you virtual $50,000 and one trading week. Buy shares at Monday's close based on the signals shown, then run the week to see Friday's prices and whether you beat the $55,000 target. It's a free browser game with no sign-up — sample data, not real prices, and not financial advice."},
+  {q:"is there a competition with prizes",k:"competition prize leaderboard win money compete others multiplayer",a:"The $50k Challenge here is a solo game you play in your own browser — a fun taster, not a multiplayer competition with a shared leaderboard or prizes. It's designed to show how the app's signals help you spot movers."},
+  {q:"can i cancel",k:"cancel refund stop subscription end quit",a:"Yes — the subscription can be cancelled anytime. The trial needs no card, so nothing is charged unless you choose to continue."},
+  {q:"who is it for",k:"who for beginner experienced suitable retail investor trader",a:"It's built for self-directed retail investors who want to research the market faster — spotting unusual activity across thousands of shares that would take hours to scan by hand. It includes a training mode with tooltips on every control, so beginners can learn as they go."}
+];
+function botToggle(){const p=document.getElementById('botPanel');p.classList.toggle('open');if(p.classList.contains('open'))setTimeout(()=>{const i=document.getElementById('botInput');if(i)i.focus();},100);}
+function botAsk(preset){
+  const inp=document.getElementById('botInput');
+  const q=(preset||inp.value||'').toLowerCase().trim();
+  if(!q)return;
+  const log=document.getElementById('botLog');
+  log.insertAdjacentHTML('beforeend','<div style="text-align:right;margin:8px 0;"><span style="display:inline-block;background:var(--gold);color:var(--navy);border-radius:12px 12px 3px 12px;padding:8px 12px;font-size:13px;max-width:80%;">'+(preset||inp.value)+'</span></div>');
+  // score each FAQ by keyword overlap
+  const words=q.split(/\W+/).filter(w=>w.length>2);
+  let best=null,bestScore=0;
+  FAQ.forEach(f=>{
+    const hay=(f.k+' '+f.q).toLowerCase();
+    let sc=0; words.forEach(w=>{if(hay.includes(w))sc++;});
+    if(sc>bestScore){bestScore=sc;best=f;}
+  });
+  let ans;
+  if(best&&bestScore>0) ans=best.a;
+  else ans="I'm not sure about that one — but I can help with pricing, the scans, the free trial, paper trading, data/API keys, privacy, or the $50k Challenge. Try one of the buttons below, or email us and a human will reply.";
+  setTimeout(()=>{
+    log.insertAdjacentHTML('beforeend','<div style="margin:8px 0;"><span style="display:inline-block;background:var(--navy3);border:1px solid var(--line);border-radius:12px 12px 12px 3px;padding:9px 13px;font-size:13px;color:var(--ink);max-width:88%;line-height:1.5;">'+ans+'</span></div>');
+    log.scrollTop=log.scrollHeight;
+  },220);
+  if(inp)inp.value='';
+  log.scrollTop=log.scrollHeight;
+}
+function botKey(e){if(e.key==='Enter')botAsk();}
+</script>
+<!-- ═══ FAQ ASSISTANT BOT ═══ -->
+<style>
+#botFab{position:fixed;right:22px;bottom:22px;z-index:200;background:var(--gold);color:var(--navy);border:none;border-radius:30px;padding:13px 20px;font-family:var(--sans);font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 8px 30px rgba(255,210,0,.4);display:flex;align-items:center;gap:8px;transition:.2s;}
+#botFab:hover{transform:translateY(-2px);}
+#botPanel{position:fixed;right:22px;bottom:82px;z-index:200;width:min(370px,calc(100vw - 44px));height:520px;max-height:calc(100vh - 120px);background:var(--navy3);border:1px solid var(--gold);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;transform:translateY(20px) scale(.96);opacity:0;pointer-events:none;transition:.22s cubic-bezier(.2,.7,.2,1);transform-origin:bottom right;}
+#botPanel.open{transform:none;opacity:1;pointer-events:auto;}
+#botPanel .bhead{background:linear-gradient(135deg,var(--navy2),var(--navy));padding:16px 18px;border-bottom:1px solid var(--line);}
+#botPanel .bhead h4{font-family:var(--sans);font-size:15px;color:var(--ink);margin:0;display:flex;align-items:center;gap:8px;}
+#botPanel .bhead p{font-size:11px;color:var(--slate);margin:3px 0 0;}
+#botLog{flex:1;overflow-y:auto;padding:14px 16px;}
+#botChips{padding:8px 12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px;}
+#botChips button{background:var(--navy);border:1px solid var(--line);color:var(--slate);border-radius:14px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:var(--body);}
+#botChips button:hover{border-color:var(--gold);color:var(--gold);}
+#botForm{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);}
+#botInput{flex:1;background:var(--navy);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:10px 12px;font-family:var(--body);font-size:13px;}
+#botInput:focus{outline:none;border-color:var(--gold);}
+#botForm button{background:var(--gold);color:var(--navy);border:none;border-radius:9px;padding:0 16px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+</style>
+<button id="botFab" onclick="botToggle()">💬 Ask a question</button>
+<div id="botPanel">
+  <div class="bhead">
+    <h4>💬 Insight Trading Assistant</h4>
+    <p>Answers about the product, pricing &amp; the challenge. Not financial advice.</p>
+  </div>
+  <div id="botLog">
+    <div style="margin:8px 0;"><span style="display:inline-block;background:var(--navy3);border:1px solid var(--line);border-radius:12px 12px 12px 3px;padding:9px 13px;font-size:13px;color:var(--ink);max-width:88%;line-height:1.5;">Hi! 👋 Ask me anything about Insight Trading — pricing, the scans, the free trial, paper trading, or the $50k Challenge. Tap a suggestion below to start.</span></div>
+  </div>
+  <div id="botChips">
+    <button onclick="botAsk('How much does it cost?')">Pricing</button>
+    <button onclick="botAsk('Is there a free trial?')">Free trial</button>
+    <button onclick="botAsk('What are the scans?')">The scans</button>
+    <button onclick="botAsk('How does the challenge work?')">The challenge</button>
+    <button onclick="botAsk('Is it financial advice?')">Is it advice?</button>
+    <button onclick="botAsk('Do I need an API key?')">Data / API key</button>
+  </div>
+  <div id="botForm">
+    <input id="botInput" placeholder="Type your question…" onkeydown="botKey(event)">
+    <button onclick="botAsk()">Send</button>
+  </div>
+</div>
+
+</body>
+</html>
