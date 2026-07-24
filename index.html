@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-386-open';
+const APP_VERSION='2026.07.22-387-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7336,6 +7336,7 @@ function showPortfolio(exSel){
         ${btn('paperSetNote',h.id,'Add / edit the trade note','📝 Note',`padding:5px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSellMarket',h.id,'Sell the whole holding now at the last close','💵 Sell @ mkt',`padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSell',h.id,'Sell part or all — choose quantity','Part…',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
+        ${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?btn('paperDeleteHolding',h.id,'Delete this holding WITHOUT recording a sale — for clearing a wrong or corrupted position; the cash you paid is returned. Can’t be undone.','🗑 Delete',`padding:5px;border-radius:5px;border:1px dashed var(--red);background:var(--bg3);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`):''}
       </div>
     </div>`;
   }).join('');
