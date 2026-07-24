@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-391-open';
+const APP_VERSION='2026.07.22-392-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6422,6 +6422,29 @@ function paperCancelOrder(id){
   p.orders=p.orders.filter(x=>x.id!==id);
   _paperSave(p);showPortfolio();
 }
+// v392: change the limit (buy) price of a PENDING limit order without cancelling.
+// Keeps the same share quantity and re-reserves cash for the new price — raising
+// the price reserves more (needs the cash), lowering it refunds the difference.
+// The trade ledger stays balanced (cash and reserved move by equal, opposite amounts).
+function paperEditOrderLimit(id){
+  const p=_paper();const o=(p.orders||[]).find(x=>x.id===id);if(!o)return;
+  if(o.market){ alert('This is a market order — it fills at the next day’s open, so there’s no limit price to change. Cancel it and place a limit order if you want to set a price.'); return; }
+  const cur=+o.limit||0;
+  const v=prompt('✎ New limit (buy) price for '+o.qty+' '+o.ticker+'\n\nThe order fills only if the price falls to this. Current: '+fmtP(cur,o.currency)+'.\nSame number of shares — the reserved cash adjusts to the new price.\n\nEnter a new price (blank to keep).', cur?String(cur):'');
+  if(v===null)return;
+  const t=String(v).trim(); if(t==='')return;
+  const np=parseFloat(t);
+  if(!(isFinite(np)&&np>0)){ alert('Enter a price greater than 0.'); return; }
+  if(Math.abs(np-cur)<1e-9)return; // unchanged
+  const newCost=+(o.qty*np).toFixed(2);
+  const delta=+(newCost-(o.reserved||0)).toFixed(2); // >0 needs more reserved; <0 refunds
+  if(delta>0 && delta>(p.cash||0)+0.005){ alert('Raising the limit needs '+fmtP(delta,o.currency)+' more reserved, but you only have '+fmtP(p.cash||0,o.currency)+' cash. Lower the price, reduce the order, or add cash.'); return; }
+  p.cash=+((p.cash||0)-delta).toFixed(2);   // delta>0 subtracts; delta<0 adds the refund back
+  o.limit=np; o.reserved=newCost; o.checkedDate=_todayLocal();
+  _paperSave(p);
+  const ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--green)">✎ '+o.ticker+' limit updated to '+fmtP(np,o.currency)+' — '+fmtP(newCost,o.currency)+' reserved'+(delta<0?' ('+fmtP(-delta,o.currency)+' returned to cash)':delta>0?' ('+fmtP(delta,o.currency)+' more reserved)':'')+'.</span>';
+  showPortfolio();
+}
 // Set, change or clear a holding's auto-sell price target.
 function paperSetTarget(id){
   const p=_paper();
@@ -7435,7 +7458,7 @@ function showPortfolio(exSel){
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
         <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br>${!o.market?`<a href="#" onclick="paperEditOrderLimit('${o.id}');return false;" style="font-size:9px;color:var(--gold);margin-right:9px;">✎ price</a>`:''}<a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
