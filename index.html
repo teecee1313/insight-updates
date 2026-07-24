@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-395-open';
+const APP_VERSION='2026.07.22-396-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5118,7 +5118,7 @@ function _apLogHtml(){
   return '<div style="font:700 9px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">Decision diary</div>'+l.map(e=>{
     const b=(e.buys||[]).map(x=>'🤖 '+(x.limit?('pick: limit buy '+x.tk+' — '+x.qty+' @ $'+(+x.px).toFixed(3)):('bought '+x.tk+' — '+x.qty+' @ ~$'+(+x.px).toFixed(3)))+(x.cycle>1?' · 🔁 cycle '+x.cycle:'')+(x.trim?' · trimmed by 📦':'')+(x.score!=null?' · score '+x.score+'/10':'')).join('<br>');
     const s=(e.skips||[]).slice(0,4).map(x=>'· '+String(x).replace(/</g,'&lt;')).join('<br>');
-    return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+'</div>';
+    return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+(e.q?'<br><span style="color:var(--dim)">📤 sent to the auto-trade bridge queue (dry-run preview only)</span>':'')+'</div>';
   }).join('');
 }
 // ── v395: read-only "did the bot run today?" status ─────────────────────────
@@ -5658,6 +5658,48 @@ function _apRunPicks(r,ent,maxN){
   }
   if(changed)_apPicksSave(picks);
 }
+// ── v396: hand the day's practice buys to the auto-trade bridge queue ───────
+// A fire-and-forget mirror of what the bot just bought in PRACTICE, POSTed to
+// the Worker's /bridge/push so the desktop bridge can DRY-RUN preview the same
+// orders against the real-money safety caps. Honest boundaries:
+//  · practice data OUT only — nothing here places, or can place, a real trade
+//  · CUSTOMER builds only (the beta's test account must not feed the queue)
+//  · silent + non-blocking — offline, no Worker, or a locked gate changes nothing
+//  · the server dedupes by order id (day-TICKER-n), so re-runs can't duplicate
+function _apQueuePush(ent,r){
+  try{
+    if(APP_VERSION.indexOf('-beta')>=0)return;                    // customer only
+    if(!(ent&&Array.isArray(ent.buys)&&ent.buys.length))return;
+    if(!(typeof DATA_PROXY==='string'&&DATA_PROXY))return;
+    const day=String(ent.d||''); if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return;
+    const ex=currentExch||'ASX';
+    const orders=ent.buys.slice(0,24).map((b,i)=>{
+      const px=+b.px, qty=Math.floor(+b.qty);
+      if(!(px>0&&qty>0))return null;
+      let tgt=0, stp=0;
+      try{ if(r&&r.targetPct>0)tgt=_tickRound(px*(1+r.targetPct/100),ex); }catch(e){}
+      try{ if(r&&r.stopPct>0)stp=_tickRound(px*(1-r.stopPct/100),ex); }catch(e){}
+      return { id:day+'-'+String(b.tk||'').toUpperCase()+'-'+(i+1),
+        action:'BUY', ticker:String(b.tk||'').toUpperCase(), exchange:ex,
+        qty:qty, order_type:'LIMIT', limit:px,
+        target:(tgt>0?tgt:null), stop:(stp>0?stp:null),
+        note:(b.limit?'auto-pilot pick':'auto-pilot scanner')+(b.score!=null?' · score '+b.score+'/10':'') };
+    }).filter(Boolean);
+    if(!orders.length)return;
+    fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:day,orders:orders})})
+      .then(res=>{
+        if(!(res&&res.ok))return;
+        // Mark the STORED diary entry as queued only after the server said yes —
+        // the log keeps a snapshot, so update it in place and refresh the box.
+        try{
+          const l=_apLog(); const e2=l.find(x=>x&&x.ts===ent.ts);
+          if(e2&&!e2.q){ e2.q=1; localStorage.setItem(AP_LOG_KEY,JSON.stringify(l));
+            const box=document.getElementById('apLogBox'); if(box)box.innerHTML=_apLogHtml(); }
+        }catch(e){}
+      })
+      .catch(()=>{});
+  }catch(e){}
+}
 function _autoPilotRun(manual){
   const _pfc=window._pfCtx; window._pfCtx='auto'; try{
   try{
@@ -5724,6 +5766,7 @@ function _autoPilotRun(manual){
         ent.skips.push('📋 your card has no graded pairs yet — today the bot used the proven starter pairs (🚀+🏦 · 🚀+🔷 · 🚀+🥇 · 🕵️+🏦). It follows YOUR card automatically the day pairs grade.');
     }
     _apLogAdd(ent);
+    _apQueuePush(ent,r); // v396: mirror the day's practice buys to the bridge queue (customer builds only, silent)
     // v368: mark this data-day handled now that a real scan over a prepared pool completed.
     // Auto runs always claim the day; a manual run claims it only if it actually bought, so
     // testing with "▶ Run now" can't cancel the day's automatic run.
