@@ -1321,7 +1321,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="drag-row" draggable="true" data-dragid="scan-trend"><span class="drag-h">⠿</span><button id="trendBtn" onclick="trendScan()" class="scan-alt" style="border-color:#5ad0a6;color:#5ad0a6;background:rgba(90,208,166,.10);" title="Finds shares in the strongest possible up-trend structure — price above the 20-day average, which is above the 50-day, which is above the 200-day (a full ‘stack’). Ranked by trend quality: steady slope, not overstretched, quiet accumulation. Needs longer stored history for the 200-day line. A data summary, not advice."><span>🧱 Strong Trends</span> <span class="scan-tag">price &gt; 20 &gt; 50 &gt; 200-day · full stack</span></button></div>
     </div>
 
-    <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) five trading days after it fired — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
+    <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) in the days after it fired — measured over your choice of 5, 10 or 30 trading days — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" id="myChangesBtn" onclick="showMyChanges(false)" title="Checks YOUR practice holdings and watchlist against the latest day's data: targets and stops hit or near, big moves, confirmed price-sensitive news, volume surges and trend crosses. Opens by itself once per fresh data day — only when there's something to say."><span>🔔 What's changed for me <span style="font-weight:400;color:var(--dim);font-size:10px;">your shares, today</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="showRules()" title="Write your own trading rules — take-profit %, stop-loss %, max size per share, max open positions, and your own checklist. Your 🎯/🛑 auto-fill practice buys and going over your limits flags gently in the 🔔 briefing. Your plan, not advice."><span>📋 My trading rules <span style="font-weight:400;color:var(--dim);font-size:10px;">your plan</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="openOverlay('morescans')"><span>🔎 More scans &amp; presets</span><span class="mb-chev">▶</span></button>
@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-397-open';
+const APP_VERSION='2026.07.22-398-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2229,7 +2229,7 @@ function _eodProxy(u){
 // the grade isn't cached for this data-day does it upload the day's price series.
 // Returns the audit object A, or null if the server can't be reached (caller then
 // falls back to the in-browser engine so the card/bot never go dark).
-async function _serverGrades(shares, dataDate, exch){
+async function _serverGrades(shares, dataDate, exch, hold){
   try{
     if(!DATA_PROXY)return null;
     const base=DATA_PROXY.replace(/\/+$/,'')+'/grades';
@@ -2237,16 +2237,19 @@ async function _serverGrades(shares, dataDate, exch){
     // fuller market load RE-GRADES rather than being served a part-loaded grade from
     // earlier in the day (the "numbers look stuck / changed" case). Same-size reloads
     // still hit the cache and stay instant.
+    // v398: selectable outcome window — 5 (default) / 10 / 30 trading days. The hold
+    // rides in the body AND the cache key, so each window caches separately.
+    const h=(hold===10||hold===30)?hold:5;
     const n=(shares&&shares.length)||0;
-    const ck=(dataDate||'')+(n?('_n'+n):'');
+    const ck=(dataDate||'')+(n?('_n'+n):'')+(h!==5?('_h'+h):'');
     const _post=async(body)=>{
       const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)return null;
       const j=await r.json();
       return (j&&j.A&&j.A.M)?j.A:null;
     };
-    if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,shares:[]}); if(cached)return cached; }catch(e){} } // probe the count-specific cache
-    if(shares&&shares.length){ try{ const fresh=await _post({exch:exch||'ASX',dataDate:ck,shares}); if(fresh)return fresh; }catch(e){} }
+    if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:[]}); if(cached)return cached; }catch(e){} } // probe the window-specific cache
+    if(shares&&shares.length){ try{ const fresh=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares}); if(fresh)return fresh; }catch(e){} }
     return null;
   }catch(e){ return null; }
 }
@@ -15509,11 +15512,39 @@ function _cardScore10(m){
   const frac=Math.min(1,e/3);                     // a ~3% market-beating edge over the window tops the band
   return +(band[0]+(band[1]-band[0])*frac).toFixed(1);
 }
+// ── v398: selectable outcome window for the report card ─────────────────────
+// 5 trading days is the standard the 🤖 bot's gate is built on; 10 and 30 are
+// RESEARCH views ("does the edge last?"). The bot ALWAYS reads the 5-day card
+// (window._auditCache) no matter what you are viewing — flipping this switch
+// can never silently change what the bot trades.
+function _cardHold(){ try{ var v=+localStorage.getItem('asxScreener.cardHold.v1'); return (v===10||v===30)?v:5; }catch(e){ return 5; } }
+function setCardHold(n){ try{ localStorage.setItem('asxScreener.cardHold.v1',String((n===10||n===30)?n:5)); }catch(e){} try{ signalReportCard(); }catch(e){} }
+function _rcAltOpen(dd,hold){
+  window._auditCacheAlt=window._auditCacheAlt||{};
+  var key=hold+'_'+dd;
+  var hit=window._auditCacheAlt[key];
+  if(hit&&hit.M){ return _renderReportCard(hit); }
+  var _fail=function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not grade the '+hold+'-day view just now.</b><br>Longer windows are computed fresh on your server — give it a moment and try again, or switch back to 5d.</div>','📋 Signal report card'); }catch(e){} } };
+  var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;});
+  if(!(typeof DATA_PROXY==='string'&&DATA_PROXY)||_sh.length<3){ _fail(); return; }
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal over '+hold+' trading days…</b><br>the '+hold+'d view is computed fresh on your server — one moment.</div>','📋 Signal report card'); }catch(e){}
+  var _tok=(window._rcTok=(window._rcTok||0)+1);
+  var payload=_sh.map(function(s){return {ticker:s.ticker,series:s.series};});
+  _serverGrades(payload,dd,currentExch,hold).then(function(A){
+    if(A&&A.M){ try{ window._auditCacheAlt[key]=A; }catch(e){} }
+    var m=document.getElementById('appModal');
+    if(window._rcTok===_tok&&m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){
+      if(A&&A.M){ try{ _renderReportCard(A); }catch(e){ _fail(); } } else { _fail(); }
+    }
+  }).catch(function(){ if(window._rcTok===_tok)_fail(); });
+}
 function signalReportCard(){
   // v321/v332: grading the whole exchange is ~1s+ of maths. v332 runs it in
   // non-blocking ≤35ms slices (_auditChunk) so the click never freezes, and
   // _auditWarmIdle usually has it pre-computed already — so the card is instant.
   var _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
+  var _hw=_cardHold();
+  if(_hw!==5){ _rcAltOpen(_dd,_hw); return; }   // v398: research windows take their own path — the bot's 5d cache below is never touched by them
   if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd){ return _renderReportCard(window._auditCache.A); }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
@@ -15553,7 +15584,10 @@ function _renderReportCard(A){
       return k.split('+').map(x=>A.defs[x]?A.defs[x].name:x).join(' <span style="color:var(--dim)">+</span> ');
     };
     // ── Stage 4: persistence ledger (one snapshot per data-date, capped 26) ──
-    const LKEY='asxScreener.cardLedger.v1';
+    // v398: one ledger PER outcome window, so 10d/30d research views can never
+    // overwrite or pollute the 5-day track record the bot's history is built on.
+    const _h=(A.hold===10||A.hold===30)?A.hold:5;
+    const LKEY=(_h!==5)?('asxScreener.cardLedger.h'+_h+'.v1'):'asxScreener.cardLedger.v1';
     let ledger=[]; try{ ledger=JSON.parse(localStorage.getItem(LKEY)||'[]')||[]; }catch(e){ ledger=[]; }
     const dd=A.to||'';
     if(dd){
@@ -15570,7 +15604,7 @@ function _renderReportCard(A){
     const tape=m=>(m.ron.n||m.roff.n)?` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work." style="cursor:help;">tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})</span>`:'';
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
-      return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?'How often price was LOWER 5 trading days later — for a warning, lower is the whole point.':'How often price was HIGHER 5 trading days later.'}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${A.hold}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
+      return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}</div>`;
     };
     const _flagTip={
@@ -15728,7 +15762,15 @@ function _renderReportCard(A){
     window._modalBig=false;
     var _cardInner=deepDive+head+rows+comboSec+seqSec+annSec+ladderSec+foot;
     try{ window._lastCardHTML=_cardInner; window._lastCardA=A; }catch(e){}
-    var _rcBar='<div style="display:flex;justify-content:flex-end;margin:-2px 0 8px;"><button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>';
+    // v398: outcome-window switch. 5d is the standard the 🤖 bot trades on; 10d/30d
+    // are research views computed fresh on the server ("does the edge last?").
+    var _holdChip=function(n,lbl){ var on=(_h===n); return '<button onclick="setCardHold('+n+')" title="'+(n===5?'The standard window — outcomes measured 5 trading days after each fire. This is the card the 🤖 auto-pilot&#39;s gate reads.':'Research view — re-grades every signal measuring outcomes '+n+' trading days after each fire. Does the edge last, or fade? (The 🤖 bot keeps using the 5-day card regardless.)')+'" style="padding:4px 10px;border-radius:6px;border:1px solid '+(on?'var(--gold)':'var(--border2)')+';background:'+(on?'rgba(255,210,0,.14)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';font:700 10.5px var(--sans);cursor:pointer;">'+lbl+'</button>'; };
+    var _rcBar='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:-2px 0 8px;">'
+      +'<span style="display:inline-flex;align-items:center;gap:5px;"><span title="How many trading days after each fire the outcome is measured. 5d is the standard (and what the 🤖 bot uses); 10d and 30d answer &#39;does the edge last?&#39;" style="cursor:help;font-size:10px;color:var(--muted);">Outcome window:</span>'
+      +_holdChip(5,'5d')+_holdChip(10,'10d')+_holdChip(30,'30d')
+      +(_h!==5?'<span style="font-size:9px;color:var(--gold);">research view — the 🤖 bot still uses 5d</span>':'')
+      +'</span>'
+      +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>';
     showModal(_rcBar+_cardInner,'📋 Signal report card');
     setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
