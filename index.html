@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-394-open';
+const APP_VERSION='2026.07.22-395-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5121,6 +5121,77 @@ function _apLogHtml(){
     return '<div style="font-size:9.5px;color:var(--muted);padding:4px 0;border-top:1px solid var(--border2);line-height:1.5;"><b style="color:var(--text)">'+e.d+'</b>'+(e.err?' <span style="color:#ff9caa">error: '+e.err+'</span>':'')+(b?'<br>'+b:'')+(s?'<br><span style="color:var(--dim)">'+s+'</span>':'')+((!b&&!s&&!e.err)?' — nothing to do':'')+'</div>';
   }).join('');
 }
+// ── v395: read-only "did the bot run today?" status ─────────────────────────
+// Mirrors the EXACT gates inside _autoPilotRun (bot on, rules active, data date
+// vs the AP_RUN_KEY day-stamp, data loaded, engines free, and the 60%-prepared
+// signal bar) but with ZERO side effects — it never buys, logs, or marks the
+// day. This powers the 🤖 last-ran banner so you can verify it fires every day.
+function _apStatus(){
+  try{
+    const r=_rules();
+    const log=_apLog();
+    const last=(log&&log.length)?log[0]:null;
+    let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
+    let lr=null; try{ lr=localStorage.getItem(AP_RUN_KEY); }catch(e){}
+    if(!r.apOn) return {state:'off', why:'the bot is switched off', dd:dd, lastRun:lr, last:last};
+    if(!r.enabled) return {state:'off', why:'your rules are paused — press 💾 Save my rules to re-arm', dd:dd, lastRun:lr, last:last};
+    if(dd&&lr===dd){
+      const e=log.find(x=>x&&x.d===dd)||last;
+      const nb=(e&&Array.isArray(e.buys))?e.buys.length:0;
+      return {state:'ran', dd:dd, buys:nb, last:e};
+    }
+    if(!Array.isArray(allData)||!allData.length) return {state:'waiting', why:'no market data is loaded yet', dd:dd, lastRun:lr, last:last};
+    if(window._bulkRunning) return {state:'waiting', why:'a full data download is running — it scans right after', dd:dd, lastRun:lr, last:last};
+    if(window._tgtChecking||window._ordChecking) return {state:'waiting', why:'finishing order checks — it scans in a moment', dd:dd, lastRun:lr, last:last};
+    if(!dd) return {state:'waiting', why:'waiting for today\'s market date', dd:dd, lastRun:lr, last:last};
+    const _uni=(allData||[]).length||1;
+    const _prepped=(allData||[]).reduce((a,s)=>a+((s&&s.streakCalced&&s.volCalced)?1:0),0);
+    const _need=Math.min(_uni,Math.max(200,Math.floor(_uni*0.6)));
+    if(window._prepRunning||_prepped<_need)
+      return {state:'preparing', why:'today\'s signals are still preparing ('+_prepped.toLocaleString()+' of ~'+_need.toLocaleString()+' shares ready)', pct:Math.max(0,Math.min(100,Math.round(_prepped/_need*100))), dd:dd, lastRun:lr, last:last};
+    return {state:'armed', why:'armed — it scans and buys within seconds', dd:dd, lastRun:lr, last:last};
+  }catch(e){ return {state:'err', why:String(e).slice(0,60)}; }
+}
+function _apStatusBanner(){
+  try{
+    const esc=v=>String(v==null?'':v).replace(/[<>"'`]/g,'');
+    const s=_apStatus();
+    const le=s.last;
+    let decision='';
+    if(le){
+      if(Array.isArray(le.buys)&&le.buys.length)
+        decision='<b style="color:var(--green)">bought '+le.buys.length+' share'+(le.buys.length>1?'s':'')+'</b> — '+le.buys.map(x=>esc(String(x.tk||''))).join(', ')+' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+      else if(le.err)
+        decision='<span style="color:#ff9caa">error: '+esc(String(le.err))+'</span> <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+      else if(Array.isArray(le.skips)&&le.skips.length)
+        decision='nothing qualified — '+esc(String(le.skips[0]).slice(0,150))+' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+      else decision='nothing to do <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+    }
+    let bg,bd,icon,head;
+    if(s.state==='ran'){
+      bg='rgba(63,185,80,.09)'; bd='var(--green)'; icon='✅';
+      head='<b>Ran today ('+esc(String(s.dd||''))+') ✓</b> — it '+(s.buys>0?('bought <b>'+s.buys+'</b> share'+(s.buys>1?'s':'')):'scanned and bought nothing (nothing met your rules — that is discipline, not a fault)')+'. It runs itself again when tomorrow\'s data loads. <b>Nothing to press.</b>';
+    } else if(s.state==='off'){
+      bg='var(--bg4)'; bd='var(--border2)'; icon='🤖';
+      head='<b>Auto-pilot is off</b> — '+esc(String(s.why||''))+'.';
+    } else if(s.state==='err'){
+      bg='var(--bg4)'; bd='var(--border2)'; icon='🤖';
+      head='<b>Status unavailable</b>'+(s.why?' ('+esc(String(s.why))+')':'')+'. Check the 📜 diary in ⚙ advanced.';
+    } else {
+      bg='rgba(255,210,0,.08)'; bd='var(--gold)'; icon='⏳';
+      head='<b>Hasn\'t run yet today</b> — '+esc(String(s.why||''))+'.'+(s.pct!=null?' <span style="color:var(--gold)">'+s.pct+'% ready</span>':'')+' It fires by itself the moment it\'s ready — nothing to press.';
+    }
+    const decisionLine=decision?'<div style="margin-top:5px;font-size:9.5px;color:var(--muted);">Its last decision: '+decision+'</div>':'';
+    const lastRunLine=(s.state!=='ran'&&s.state!=='off')
+      ? '<div style="margin-top:3px;font-size:9px;color:var(--dim);">Last completed run: '+(s.lastRun?'<b style="color:var(--muted)">'+esc(String(s.lastRun))+'</b>':'none recorded yet')+'.</div>'
+      : '';
+    return '<div style="border:1px solid '+bd+';background:'+bg+';border-radius:9px;padding:9px 12px;margin-bottom:10px;">'
+      +'<div style="font-size:11px;color:var(--text);line-height:1.55;">'+icon+' '+head+'</div>'
+      +decisionLine+lastRunLine
+      +'<div style="margin-top:5px;font-size:8.5px;color:var(--dim);">Every scan is logged with its date in the 📜 decision diary (⚙ advanced). This line refreshes each time you open 💼 Portfolio.</div>'
+      +'</div>';
+  }catch(e){ return ''; }
+}
 // v366 🌏 — is the market risk-ON? true / false, or null when no index ETF is
 // loaded to judge from. Index close vs its own 50-day MA, computed from the
 // ETF's stored series (prepared) or _history; cached per data day.
@@ -7453,7 +7524,7 @@ function showPortfolio(exSel){
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper Trading Portfolio <span style="font-size:8px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
-    ${acctTabs}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
+    ${acctTabs}${_isAuto?_apStatusBanner():''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
     ${keyStrip}
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
       <button onclick="_setPfView('holdings')" id="pfTab_holdings" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='holdings'?'var(--gold)':'var(--border)'};background:${pv==='holdings'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='holdings'?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">📊 Holdings (${hold.length})</button>
