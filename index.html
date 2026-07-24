@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-388-open';
+const APP_VERSION='2026.07.22-389-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6561,11 +6561,6 @@ function paperAdjust(id){
       <div id="divPrev" style="font-size:9px;color:var(--muted);margin-top:5px;min-height:11px;"></div>
     </div>
 
-    ${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?`<div style="border:1px solid var(--red);border-radius:8px;padding:10px 11px;">
-      <div style="font-size:11px;font-weight:700;color:#ff9caa;margin-bottom:3px;">🗑 Delete this holding</div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Removes ${tk} from your portfolio completely, as if the buy never happened. The cash you spent (${fmtP(totInv,cur)}) is returned to your balance. This does <strong>not</strong> record a sale or any profit/loss — use it to undo a mistaken buy or clear a broken holding. Can't be undone.</div>
-      <button onclick="paperDeleteHolding('${id}')" style="width:100%;padding:9px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 12px var(--sans);cursor:pointer;">Delete holding &amp; refund cash</button>
-    </div>`:''}
     <div style="font-size:9px;color:var(--orange);margin-top:10px;">Paper trading only — practice, not advice.</div>
   `);
   setTimeout(()=>{_adjPrev(id);const dv=document.getElementById('divPerShare');if(dv)dv.oninput=()=>{const n=parseFloat(dv.value)||0;const el=document.getElementById('divPrev');if(el)el.textContent=n>0?(totQty.toLocaleString()+' \u00d7 '+n+' = '+fmtP(totQty*n,cur)+' added to cash'):'';};},80);
@@ -7252,7 +7247,7 @@ function _pfRowMenu(id,ev){
   const m=document.createElement('div');
   m.id='pfRowMenu';
   m.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:190px;';
-  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)')+((typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?item('paperDeleteHolding','🗑 Delete holding (no sale)','#ff9caa'):'');
+  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
   document.body.appendChild(m);
   try{ const r=m.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
     m.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
@@ -7336,7 +7331,6 @@ function showPortfolio(exSel){
         ${btn('paperSetNote',h.id,'Add / edit the trade note','📝 Note',`padding:5px;border-radius:5px;border:1px solid ${h.note?'var(--blue)':'var(--border)'};background:${h.note?'rgba(88,166,255,.10)':'var(--bg3)'};color:${h.note?'var(--blue)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSellMarket',h.id,'Sell the whole holding now at the last close','💵 Sell @ mkt',`padding:5px;border-radius:5px;border:1px solid var(--red);background:rgba(226,25,55,.18);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSell',h.id,'Sell part or all — choose quantity','Part…',`padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;`)}
-        ${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?btn('paperDeleteHolding',h.id,'Delete this holding WITHOUT recording a sale — for clearing a wrong or corrupted position; the cash you paid is returned. Can’t be undone.','🗑 Delete',`padding:5px;border-radius:5px;border:1px dashed var(--red);background:var(--bg3);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;`):''}
       </div>
     </div>`;
   }).join('');
@@ -7370,7 +7364,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?` <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="margin-top:3px;margin-left:4px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:#ff9caa;font:600 9px var(--sans);cursor:pointer;">🗑 Delete</button>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button></td>
     </tr>`;
   }).join('');
   // v388: mobile card version of each closed trade — the wide history TABLE is
@@ -7394,7 +7388,6 @@ function showPortfolio(exSel){
       </div>${t.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-bottom:4px;">📝 ${String(t.note).slice(0,60)}${t.note.length>60?'…':''}</div>`:''}
       <div class="pf-card-actions">
         <button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">↩ Undo</button>
-        ${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?`<button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="padding:5px;border-radius:5px;border:1px dashed var(--red);background:var(--bg3);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">🗑 Delete</button>`:''}
       </div>
     </div>`;
   }).join('');
