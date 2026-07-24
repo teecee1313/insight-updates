@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-392-open';
+const APP_VERSION='2026.07.22-393-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4757,6 +4757,14 @@ function realFillsOn(){return true;} /* v261: realistic fills LOCKED on — mark
 function setRealFills(on){try{localStorage.setItem(REALFILL_STORE,on?'1':'0');}catch(e){}showPortfolio();}
 function _slipBuy(px){const s=slippagePct();return s>0?+(px*(1+s/100)).toFixed(px<1?4:3):px;}
 function _slipSell(px){const s=slippagePct();return s>0?+(px*(1-s/100)).toFixed(px<1?4:3):px;}
+// v393: ASX price steps (tick sizes) — orders can only be placed at these increments:
+//   under 10c → 0.1c (0.001) · 10c to $2 → 0.5c (0.005) · $2 and over → 1c (0.01).
+// Snap computed buy prices (dips, picks) to the nearest valid step so they're real,
+// placeable "retail" prices. Non-ASX markets: cents (≥$1) / 0.1c (<$1) as a sane default.
+function _asxTick(px){ return px<0.10?0.001:(px<2?0.005:0.01); }
+function _priceStep(px,exch){ return ((exch||'ASX')==='ASX')?_asxTick(px):(px<1?0.001:0.01); }
+function _tickRound(px,exch){ if(!(px>0))return px; const t=_priceStep(px,exch); return +(Math.round(px/t)*t).toFixed(4); }
+function _tickFloor(px,exch){ if(!(px>0))return px; const t=_priceStep(px,exch); return +(Math.floor(px/t)*t).toFixed(4); }
 function _todayLocal(){
   try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney'}).format(new Date());}
   catch(e){return new Date().toISOString().slice(0,10);}
@@ -5405,7 +5413,7 @@ function _apBuy(s,r){
   if(r.apEntry==='dip'&&r.apDipPct>0){
     // 🎣 v313 patient entry — practice LIMIT buy under the last close (same
     // shape + cash handling as a 🎯 pick order; fills only if the day dips).
-    const lim=+(px*(1-r.apDipPct/100)).toFixed(px<1?4:3);
+    const lim=_tickRound(px*(1-r.apDipPct/100),s.exchange); // v393: snap the dip to a valid ASX tick
     if(!(lim>0))return {ok:false,why:'🎣 dip % too deep — the limit price came out at zero; check the 🎣 setting'}; // v366: apDipPct=100 made lim 0 → Infinity÷NaN poisoned the cash balance
     const dq=Math.floor(amt/lim); const dcost=+(dq*lim).toFixed(2);
     if(dq<1||dcost<500)return {ok:false,why:'dip parcel under $500'};
@@ -5540,7 +5548,7 @@ function _apPlacePick(s,r,k){
   if(_want>_cap){ _want=_cap; _trim=true; }   // 📦 guardrail
   const amt=Math.min(_want,(p.cash||0)-fee);
   if(!(amt>0))return {ok:false,why:'no practice cash left'};
-  const lim=+k.buyAt; const qty=Math.floor(amt/lim);
+  const lim=_tickRound(+k.buyAt,s.exchange); const qty=Math.floor(amt/lim); // v393: snap pick buy price to a valid ASX tick
   const cost=+(qty*lim).toFixed(2);
   if(qty<1||cost<500)return {ok:false,why:'size under the $500 minimum parcel'};
   if(cost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
@@ -6328,6 +6336,20 @@ async function checkLimitOrders(acct){
   let changed=false; // v366: only save when something actually changed — an unconditional save was clobbering concurrent writes
   const todayL=_todayLocal();
   try{
+    // v393: normalise every pending limit to a valid ASX price step (retail tick)
+    // before checking fills — keeps the shares, adjusts the reserved cash to match,
+    // and never overspends (if rounding UP can't be afforded, it rounds DOWN a tick).
+    // Cash and reserved move by equal, opposite amounts, so the ledger stays balanced.
+    for(const o of orders){
+      if(o.market||!(o.limit>0))continue;
+      const old=+o.limit;
+      let snap=_tickRound(old,o.exchange);
+      if(Math.abs(snap-old)<1e-9)continue;
+      let newCost=+(o.qty*snap).toFixed(2), delta=+(newCost-(o.reserved||0)).toFixed(2);
+      if(delta>0.005 && delta>(p.cash||0)+0.005){ snap=_tickFloor(old,o.exchange); newCost=+(o.qty*snap).toFixed(2); delta=+(newCost-(o.reserved||0)).toFixed(2); }
+      if(!(snap>0)||Math.abs(snap-old)<1e-9)continue;
+      p.cash=+((p.cash||0)-delta).toFixed(2); o.limit=snap; o.reserved=newCost; changed=true;
+    }
     const key=((document.getElementById('apiKey')||{}).value||'').trim();
     for(const o of orders.slice()){
       if(o.expiry&&todayL>o.expiry){
@@ -6433,8 +6455,9 @@ function paperEditOrderLimit(id){
   const v=prompt('✎ New limit (buy) price for '+o.qty+' '+o.ticker+'\n\nThe order fills only if the price falls to this. Current: '+fmtP(cur,o.currency)+'.\nSame number of shares — the reserved cash adjusts to the new price.\n\nEnter a new price (blank to keep).', cur?String(cur):'');
   if(v===null)return;
   const t=String(v).trim(); if(t==='')return;
-  const np=parseFloat(t);
+  let np=parseFloat(t);
   if(!(isFinite(np)&&np>0)){ alert('Enter a price greater than 0.'); return; }
+  np=_tickRound(np,o.exchange); // v393: snap to a valid ASX tick
   if(Math.abs(np-cur)<1e-9)return; // unchanged
   const newCost=+(o.qty*np).toFixed(2);
   const delta=+(newCost-(o.reserved||0)).toFixed(2); // >0 needs more reserved; <0 refunds
