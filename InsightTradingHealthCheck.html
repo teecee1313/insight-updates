@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insight Trading — Health Check v2</title>
+<style>
+  :root{--navy:#0d1b33;--gold:#FFD200;--green:#3fb950;--red:#E21937;--blue:#58a6ff;--muted:#8fa6c9;--bg2:#12203a;--border:#243657;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:system-ui,-apple-system,Arial,sans-serif;background:var(--navy);color:#e8eef7;padding:18px;max-width:760px;margin:0 auto;}
+  h1{font-size:19px;margin:0 0 2px;display:flex;align-items:center;gap:8px;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:16px;}
+  .pill{display:inline-block;font-size:9px;font-weight:800;color:var(--navy);background:var(--gold);border-radius:10px;padding:1px 8px;vertical-align:middle;}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .card h2{font-size:13px;margin:0 0 8px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;}
+  button{background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;width:100%;margin-bottom:12px;}
+  button:disabled{opacity:.5;cursor:default;}
+  .row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+  .row:last-child{border-bottom:none;}
+  .ico{flex-shrink:0;width:18px;text-align:center;font-size:14px;}
+  .nm{flex:1;}
+  .nm small{display:block;color:var(--muted);font-size:10px;margin-top:2px;word-break:break-word;}
+  .ok{color:var(--green);} .bad{color:var(--red);} .warn{color:var(--gold);} .dim{color:var(--muted);}
+  .big{font-size:15px;font-weight:800;padding:10px;border-radius:8px;text-align:center;margin-bottom:12px;}
+  .big.ok{background:rgba(63,185,80,.15);color:var(--green);}
+  .big.warn{background:rgba(255,210,0,.12);color:var(--gold);}
+  .big.bad{background:rgba(226,25,55,.15);color:#ff9caa;}
+  .big.run{background:rgba(88,166,255,.12);color:var(--blue);}
+  code{background:#0a1526;padding:1px 5px;border-radius:4px;font-size:11px;color:var(--gold);}
+  .note{font-size:10px;color:var(--muted);line-height:1.6;margin-top:6px;}
+  a{color:var(--blue);}
+</style>
+</head>
+<body>
+  <h1>🩺 Insight Trading — Health Check <span class="pill">v2</span></h1>
+  <div class="sub">One tap checks both app channels AND the server. Run it any time — especially after an update goes out.</div>
+
+  <div class="card">
+    <h2>What this checks</h2>
+    <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+      1. The <strong>customer app</strong> and the <strong>🧪 beta app</strong> both load, report their versions, and their code parses with no JavaScript errors.<br>
+      2. Each live version <strong>matches its <code>update.json</code></strong> (catches the "still says the old version" cache problem).<br>
+      3. The deep-audit <strong>integrity markers</strong> (🌏×7 · 🎲×5 · 🧊×3) are intact in both builds — a fingerprint that the full, untampered file deployed.<br>
+      4. The <strong>server</strong> (data + grading Worker) is up, and reports its features: market-data grades, 🔒 password lock, 📚 history store, and the 🤖 auto-trade <strong>bridge queue</strong>.
+    </div>
+  </div>
+
+  <button id="run" onclick="runAll()">▶ Run health check now</button>
+  <div id="overall"></div>
+  <div id="results"></div>
+
+  <div class="card">
+    <h2>Notes</h2>
+    <div class="note">
+      • This checks that the <strong>published files and the server are healthy</strong>. It can't see one phone's data-loading (that can be a network moment, not a fault) — so a "bad data day" on one device won't show here.<br>
+      • If a live version lags after an upload, it's usually GitHub's cache — wait 1–2 minutes and re-run, or hard-refresh.<br>
+      • The <strong>server row needs this page to be on your site</strong> (teecee1313.github.io) to work — opened straight from your computer, browsers block that one call; everything else still runs.<br>
+      • Read-only. No passwords or keys live in this page, and nothing is sent anywhere.
+    </div>
+  </div>
+
+<script>
+const CHANNELS=[
+  {name:'Customer app',   base:'https://teecee1313.github.io/insight-updates/'},
+  {name:'🧪 Beta app',    base:'https://teecee1313.github.io/insight-beta/'},
+];
+const WORKER='https://insight-data.tonycotton13.workers.dev';
+const MARKERS=[['🌏',7],['🎲',5],['🧊',3]];   // deep-audit integrity fingerprint
+
+function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;}
+function verOf(html){const m=html.match(/APP_VERSION='([^']*)'/)||html.match(/LATEST_APP_VERSION='([^']*)'/);return m?m[1]:null;}
+// Channel builds carry a suffix (-open / -beta; older eras -family etc.) that
+// update.json versions don't — strip it before comparing.
+function baseVer(v){return String(v||'').replace(/-(open|beta|family|customer|training)$/,'');}
+
+function parseCheck(html){
+  const blocks=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
+  for(let i=0;i<blocks.length;i++){
+    const b=blocks[i];
+    if(!b.trim())continue;
+    try{ new Function(b); }
+    catch(e){ return {ok:false, error:'script block '+(i+1)+': '+e.message}; }
+  }
+  return {ok:true};
+}
+function markerCheck(html){
+  const off=[];
+  for(const [emo,want] of MARKERS){
+    const got=(html.match(new RegExp(emo,'g'))||[]).length;
+    if(got!==want)off.push(emo+' ×'+got+' (want '+want+')');
+  }
+  return {ok:off.length===0, detail:off.join(' · ')};
+}
+async function fetchText(url){
+  const bust=url+(url.includes('?')?'&':'?')+'_cb='+Date.now();
+  const r=await fetch(bust,{cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return await r.text();
+}
+function addRow(container,ico,cls,name,detail){
+  const r=el('div','row');
+  r.appendChild(el('div','ico '+cls,ico));
+  r.appendChild(el('div','nm','<span class="'+cls+'">'+name+'</span>'+(detail?'<small>'+detail+'</small>':'')));
+  container.appendChild(r);
+}
+
+let problems=0, warns=0, checks=0;
+
+async function checkChannel(ch,res){
+  const card=el('div','card'); card.appendChild(el('h2',null,ch.name));
+  res.appendChild(card);
+  let liveVer=null, jsonVer=null;
+  try{
+    const html=await fetchText(ch.base);
+    liveVer=verOf(html); checks++;
+    if(liveVer) addRow(card,'✅','ok','App loads','version '+liveVer);
+    else { addRow(card,'⚠️','warn','App loaded but no version found','the page may be an error page'); warns++; }
+    const pc=parseCheck(html); checks++;
+    if(pc.ok) addRow(card,'✅','ok','Code parses (no JavaScript errors)');
+    else { addRow(card,'❌','bad','JavaScript error in the live file',pc.error); problems++; }
+    const mk=markerCheck(html); checks++;
+    if(mk.ok) addRow(card,'✅','ok','Integrity markers intact','🌏×7 · 🎲×5 · 🧊×3');
+    else { addRow(card,'❌','bad','Integrity markers OFF','got '+mk.detail+' — the deployed file may be truncated or stale'); problems++; }
+  }catch(e){ addRow(card,'❌','bad','Could not load the app',e.message+' — check your connection or the URL'); problems++; checks++; }
+  try{
+    const j=JSON.parse(await fetchText(ch.base+'update.json'));
+    jsonVer=j.version; checks++;
+    addRow(card,'✅','ok','update.json loads','says version '+jsonVer);
+  }catch(e){ addRow(card,'❌','bad','Could not load update.json',e.message); problems++; checks++; }
+  checks++;
+  if(liveVer&&jsonVer){
+    if(baseVer(liveVer)===baseVer(jsonVer)) addRow(card,'✅','ok','Live version matches update.json','both '+baseVer(jsonVer));
+    else { addRow(card,'❌','bad','Version MISMATCH','app is '+liveVer+' but update.json says '+jsonVer+' — usually a cache: wait 1–2 min and re-run'); problems++; }
+  } else { addRow(card,'⚠️','warn','Couldn\'t compare versions','one of the files didn\'t load'); warns++; }
+  return {liveVer,jsonVer};
+}
+
+async function runAll(){
+  const btn=document.getElementById('run'); btn.disabled=true;
+  const res=document.getElementById('results'); res.innerHTML='';
+  const ov=document.getElementById('overall');
+  ov.className='big run'; ov.textContent='Running checks…';
+  problems=0; warns=0; checks=0;
+
+  // ── 1+2. BOTH APP CHANNELS ──
+  const vers=[];
+  for(const ch of CHANNELS){ vers.push(await checkChannel(ch,res)); }
+
+  // channels aligned? (info only — they can briefly differ mid-rollout)
+  const alignCard=el('div','card'); alignCard.appendChild(el('h2',null,'Channels'));
+  res.appendChild(alignCard); checks++;
+  if(vers[0].jsonVer&&vers[1].jsonVer){
+    if(baseVer(vers[0].jsonVer)===baseVer(vers[1].jsonVer)) addRow(alignCard,'✅','ok','Customer and beta on the same version',baseVer(vers[0].jsonVer));
+    else { addRow(alignCard,'⚠️','warn','Channels on different versions','customer '+vers[0].jsonVer+' vs beta '+vers[1].jsonVer+' — fine if an update is mid-rollout'); warns++; }
+  } else addRow(alignCard,'⚠️','dim','Couldn\'t compare channels','a version was missing above');
+
+  // ── 3. SERVER (Worker) ──
+  const sc=el('div','card'); sc.appendChild(el('h2',null,'Server (data + grading + bridge queue)'));
+  res.appendChild(sc);
+  try{
+    const j=JSON.parse(await fetchText(WORKER+'/health'));
+    checks++;
+    if(j&&j.ok===true&&j.service==='insight-data'){
+      addRow(sc,'✅','ok','Server is up','insight-data · phase '+(j.phase!=null?j.phase:'?'));
+      checks++; if(j.grades) addRow(sc,'✅','ok','Server-side grading available');
+      else { addRow(sc,'⚠️','warn','Server grading OFF','the app falls back to in-browser grading'); warns++; }
+      checks++; if(j.gated) addRow(sc,'✅','ok','🔒 Password lock armed','data and grades need the access password');
+      else { addRow(sc,'⚠️','warn','🔓 No password lock','anyone with the URL can pull data through your server'); warns++; }
+      checks++; if(j.history) addRow(sc,'✅','ok','📚 Market-history store connected','nightly EOD ingest into the database');
+      else { addRow(sc,'⚠️','warn','📚 History store not connected','the app rebuilds history itself'); warns++; }
+      checks++; if(j.bridge) addRow(sc,'✅','ok','🤖 Auto-trade bridge queue armed','locked to the BRIDGE_KEY holder · dry-run previews only');
+      else { addRow(sc,'⚠️','warn','🤖 Bridge queue not armed','the BRIDGE_KEY secret is missing on the Worker'); warns++; }
+    } else { addRow(sc,'❌','bad','Server answered strangely',JSON.stringify(j).slice(0,120)); problems++; checks++; }
+  }catch(e){
+    checks++;
+    const hosted=location.hostname.endsWith('github.io');
+    if(hosted){ addRow(sc,'❌','bad','Could not reach the server',e.message); problems++; }
+    else { addRow(sc,'⚠️','dim','Server check skipped from here','browsers only allow this call when the page runs on your site — upload this file to the site folder and open it there for the full check. Everything above still stands.'); }
+  }
+
+  // ── overall ──
+  if(problems===0&&warns===0){ ov.className='big ok'; ov.textContent='✅ All good — '+checks+' checks passed'; }
+  else if(problems===0){ ov.className='big warn'; ov.textContent='✅ Healthy — '+checks+' checks, '+warns+' note'+(warns>1?'s':'')+' (gold items below)'; }
+  else { ov.className='big bad'; ov.textContent='❌ '+problems+' problem'+(problems>1?'s':'')+' found (see red items below)'; }
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
