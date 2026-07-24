@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-393-open';
+const APP_VERSION='2026.07.22-394-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5407,8 +5407,8 @@ function _apBuy(s,r){
   const cost=+(qty*px).toFixed(2);
   if(qty<1||cost<500)return {ok:false,why:'size under the $500 minimum parcel'};
   if(cost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
-  const tgt=r.targetPct>0?+(px*(1+r.targetPct/100)).toFixed(4):0;
-  const stop=r.stopPct>0?+(px*(1-r.stopPct/100)).toFixed(4):0;
+  const tgt=r.targetPct>0?_tickRound(px*(1+r.targetPct/100),s.exchange):0; // v394: snap target to a valid tick
+  const stop=r.stopPct>0?_tickRound(px*(1-r.stopPct/100),s.exchange):0;     // v394: snap stop to a valid tick
   const note='🤖 Auto-pilot (practice)';
   if(r.apEntry==='dip'&&r.apDipPct>0){
     // 🎣 v313 patient entry — practice LIMIT buy under the last close (same
@@ -5418,8 +5418,8 @@ function _apBuy(s,r){
     const dq=Math.floor(amt/lim); const dcost=+(dq*lim).toFixed(2);
     if(dq<1||dcost<500)return {ok:false,why:'dip parcel under $500'};
     if(dcost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
-    const dtgt=(r.targetPct>0)?+(lim*(1+r.targetPct/100)).toFixed(lim<1?4:3):0;
-    const dstop=(r.stopPct>0)?+(lim*(1-r.stopPct/100)).toFixed(lim<1?4:3):0;
+    const dtgt=(r.targetPct>0)?_tickRound(lim*(1+r.targetPct/100),s.exchange):0; // v394: snap
+    const dstop=(r.stopPct>0)?_tickRound(lim*(1-r.stopPct/100),s.exchange):0;     // v394: snap
     p.cash=+(p.cash-dcost).toFixed(2); _chargeFee(p); p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now()+'d'+Math.floor(Math.random()*1000),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
       limit:lim,qty:dq,reserved:dcost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
@@ -5552,8 +5552,8 @@ function _apPlacePick(s,r,k){
   const cost=+(qty*lim).toFixed(2);
   if(qty<1||cost<500)return {ok:false,why:'size under the $500 minimum parcel'};
   if(cost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
-  const tgt=k.sellAt>0?+k.sellAt:(r.targetPct>0?+(lim*(1+r.targetPct/100)).toFixed(4):0);
-  const stop=k.stopAt>0?+k.stopAt:(r.stopPct>0?+(lim*(1-r.stopPct/100)).toFixed(4):0);
+  const tgt=_tickRound(k.sellAt>0?+k.sellAt:(r.targetPct>0?lim*(1+r.targetPct/100):0),s.exchange); // v394: snap
+  const stop=_tickRound(k.stopAt>0?+k.stopAt:(r.stopPct>0?lim*(1-r.stopPct/100):0),s.exchange);     // v394: snap
   p.cash=+(p.cash-cost).toFixed(2); _chargeFee(p); p.orders=p.orders||[];
   p.orders.push({id:'o'+Date.now()+'p'+Math.floor(Math.random()*1000),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
     limit:lim,qty:qty,reserved:cost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
@@ -6113,13 +6113,14 @@ function _lotsFor(p,id){
 function _paperPctSync(which){
   const px=parseFloat((document.getElementById('paperBuyPx')||{}).value)||0;
   if(px<=0)return;
+  const _ex=(((document.getElementById('paperBuyPx')||{}).dataset)||{}).exch||'ASX'; // v394: snap preview to this share's tick
   const dp=px<1?4:2;
   const g=id=>document.getElementById(id);
   const tgtPct=g('paperTgtPct'),tgt=g('paperTgt'),tgtHint=g('paperTgtHint');
   const stopPct=g('paperStopPct'),stop=g('paperStop'),stopHint=g('paperStopHint');
   if(which==='tgt'){                    // % typed → price
     const p=parseFloat(tgtPct.value);
-    if(isFinite(p)&&p>0){const price=px*(1+p/100);tgt.value=price.toFixed(dp);if(tgtHint)tgtHint.textContent='+'+(price-px).toFixed(dp);}
+    if(isFinite(p)&&p>0){const price=_tickRound(px*(1+p/100),_ex);tgt.value=String(price);if(tgtHint)tgtHint.textContent='+'+(price-px).toFixed(dp);}
     else{tgt.value='';if(tgtHint)tgtHint.textContent='';}
   }else if(which==='tgtPrice'){         // price typed → %
     const price=parseFloat(tgt.value);
@@ -6127,7 +6128,7 @@ function _paperPctSync(which){
     else{tgtPct.value='';if(tgtHint)tgtHint.textContent='';}
   }else if(which==='stop'){             // % typed → price (below buy)
     const p=parseFloat(stopPct.value);
-    if(isFinite(p)&&p>0){const price=px*(1-p/100);stop.value=price.toFixed(dp);if(stopHint)stopHint.textContent='-'+(px-price).toFixed(dp);}
+    if(isFinite(p)&&p>0){const price=_tickRound(px*(1-p/100),_ex);stop.value=String(price);if(stopHint)stopHint.textContent='-'+(px-price).toFixed(dp);}
     else{stop.value='';if(stopHint)stopHint.textContent='';}
   }else if(which==='stopPrice'){        // price typed → %
     const price=parseFloat(stop.value);
@@ -6215,7 +6216,7 @@ function paperBuy(ticker){
       </div>
       <span style="font-size:9px;color:var(--dim);flex:1;line-height:1.4;">The stop only ever RISES with the price — locks in gains as it climbs, never loosens. Works alongside your 🛑 stop &amp; 🎯 target. Leave blank for none.</span>
     </div>
-    <input type="hidden" id="paperBuyPx" value="${s.price}">
+    <input type="hidden" id="paperBuyPx" value="${s.price}" data-exch="${s.exchange}">
 
     <label style="display:block;font-size:10px;color:var(--muted);margin:10px 0 4px;">📝 Why this trade? — a note to your future self (optional, shows in the ledger)</label>
     <input type="text" id="paperNote" maxlength="140" placeholder="e.g. 5-day volume streak + broke above range" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;box-sizing:border-box;">
@@ -6251,8 +6252,8 @@ function paperBuyConfirm(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s)return;
   const amt=parseFloat((document.getElementById('paperAmt')||{}).value)||0;
-  const tgt=parseFloat((document.getElementById('paperTgt')||{}).value)||0;
-  const stop=parseFloat((document.getElementById('paperStop')||{}).value)||0;
+  const tgt=_tickRound(parseFloat((document.getElementById('paperTgt')||{}).value)||0,s.exchange); // v394: snap target to a valid tick
+  const stop=_tickRound(parseFloat((document.getElementById('paperStop')||{}).value)||0,s.exchange); // v394: snap stop to a valid tick
   const trail=parseFloat((document.getElementById('paperTrailPct')||{}).value)||0;
   const _trV=(trail>0?trail:null); // v385: 🪤 trailing stop chosen at buy time
   const isLimit=(window._buyType==='limit');
@@ -6481,7 +6482,8 @@ function paperSetTarget(id){
   const many=lots.length>1?`\n(applies to all ${lots.length} lots · average buy ${avg.toFixed(avg<1?4:2)})`:'';
   const v=prompt(`🎯 Take-profit target for ${lots[0].ticker}${curPct}${many}\n\nSells the position if the price rises to this during a day (intraday high).\n\nEnter a PERCENT with a % sign (e.g. 15%) — from the average buy of ${avg.toFixed(avg<1?4:2)} — OR an exact price (e.g. ${(avg*1.15).toFixed(avg<1?3:2)}).\nLeave blank to remove the target.`,cur?String(cur):'15%');
   if(v===null)return;
-  const price=_parsePriceOrPct(v,avg,'up');
+  let price=_parsePriceOrPct(v,avg,'up');
+  if(price!==null)price=_tickRound(price,lots[0].exchange); // v394: snap target to a valid tick
   if(v.trim()!==''&&price===null){alert('Enter a percent like 15% or a price like '+(avg*1.15).toFixed(2)+'.');return;}
   if(price!==null&&price<=(lots[0].lastPrice||avg)){
     if(!confirm('That target is at or below the current price — it will sell on the next check. Set it anyway?'))return;
@@ -6502,7 +6504,7 @@ function _parsePriceOrPct(v,base,dir){
     const pct=parseFloat(m[1]);
     if(!(isFinite(pct)&&pct>0))return null;
     const price=dir==='down'?base*(1-pct/100):base*(1+pct/100);
-    return price>0?+price.toFixed(base<1?4:2):null;
+    return price>0?price:null; // v394: caller tick-rounds to the nearest valid step
   }
   const n=parseFloat(s.replace(/[,$\s]/g,''));
   return (isFinite(n)&&n>0)?n:null;
@@ -6520,7 +6522,8 @@ function paperSetStop(id){
   const many=lots.length>1?`\n(applies to all ${lots.length} lots · average buy ${avg.toFixed(avg<1?4:2)})`:'';
   const v=prompt(`🛑 Stop-loss for ${lots[0].ticker}${curPct}${many}\n\nSells the position if the price falls to this during a day (intraday low) — caps a loss.\n\nEnter a PERCENT with a % sign (e.g. 10%) — below the average buy of ${avg.toFixed(avg<1?4:2)} — OR an exact price (e.g. ${(avg*0.9).toFixed(avg<1?3:2)}).\nLeave blank to remove the stop.`,cur?String(cur):'10%');
   if(v===null)return;
-  const price=_parsePriceOrPct(v,avg,'down');
+  let price=_parsePriceOrPct(v,avg,'down');
+  if(price!==null)price=_tickRound(price,lots[0].exchange); // v394: snap stop to a valid tick
   if(v.trim()!==''&&price===null){alert('Enter a percent like 10% or a price like '+(avg*0.9).toFixed(2)+'.');return;}
   if(price!==null&&price>=(lots[0].lastPrice||avg)){
     if(!confirm('That stop is at or above the current price — it will sell immediately on the next check. Set it anyway?'))return;
