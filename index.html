@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-390-open';
+const APP_VERSION='2026.07.22-391-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5059,6 +5059,7 @@ function showRules(){
           <label title="Repeat: after it sells at your 🎯 (a win), buy again at your buy point — cycles until you remove it. If a cycle ends on the 🛑 stop, the repeat pauses instead of churning." style="font-size:9px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:2px;">🔁<input type="checkbox" id="apPkR" style="width:14px;height:14px;"></label>
           <button onclick="addApPickFromForm()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 10px var(--sans);cursor:pointer;">+ Add</button>
         </div>
+        <div id="apPickMsg" style="display:none;font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.4;"></div>
         <div id="apPicksBox" style="margin-top:6px;">${_apPicksHtml()}</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
@@ -5497,7 +5498,10 @@ function addApPickFromForm(){
   const sellAt=parseFloat(g('apPkS'))||0; const stopAt=parseFloat(g('apPkX'))||0;
   const amt=parseFloat(g('apPkA'))||0;
   const rpt=((document.getElementById('apPkR')||{}).checked===true);
-  const m=document.getElementById('rulesMsg');
+  // v391: mirror feedback to an INLINE box at the picks form — the old #rulesMsg
+  // sits at the top of the panel, off-screen on a phone when you're down at the
+  // picks section, so a rejected/added pick looked like a dead "+ Add" button.
+  const m=(function(){var mi=document.getElementById('apPickMsg');return {set textContent(t){var e=document.getElementById('rulesMsg');if(e)e.textContent=t;if(mi){mi.textContent=t;mi.style.display='block';mi.style.color=(String(t).charAt(0)==='✓')?'var(--green)':'var(--red)';}}};})();
   if(!tk||!(buyAt>0)){ if(m)m.textContent='Enter a share code and a buy price.'; return; }
   if(!Array.isArray(allData)||!allData.length){ if(m)m.textContent='Load your market data first, then add picks.'; return; }
   const s=allData.find(x=>x.ticker===tk);
