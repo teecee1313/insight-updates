@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-387-open';
+const APP_VERSION='2026.07.22-388-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7373,6 +7373,31 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:8px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?` <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="margin-top:3px;margin-left:4px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:#ff9caa;font:600 9px var(--sans);cursor:pointer;">🗑 Delete</button>`:''}</td>
     </tr>`;
   }).join('');
+  // v388: mobile card version of each closed trade — the wide history TABLE is
+  // display:none on phones (like holdings), but history had no .pf-cards fallback,
+  // so the whole trade history was unreachable on mobile. These cards fix that.
+  const histCards=hist.map(t=>{
+    const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
+    const trig=(t.trigger==='trail'?'🪤 trail stop':t.trigger==='time'?'⏱ time stop':t.trigger==='stop'?'🛑 stop-loss':t.trigger==='target'?'🎯 target':(t.auto?'🎯 auto':'sold at market'));
+    const held=tradingDaysHeld(t.buyDate,t.sellDate);
+    return `<div class="pf-card">
+      <div class="pf-card-top">
+        <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${t.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${t.ticker} 🖨</a></strong>
+        <span style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)</span>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${t.exchange} · ${trig}${t.partial?' · partial':''} · ${t.buyDate} → ${t.sellDate} · ${held} trading days</div>
+      <div class="pf-card-grid">
+        <div><span>Qty</span> <b>${t.qty.toLocaleString()}</b></div>
+        <div><span>Buy</span> <b>${fmtP(t.buyPrice,t.currency)}</b></div>
+        <div><span>Sell</span> <b>${fmtP(t.sellPrice,t.currency)}</b></div>
+        <div><span>Fees</span> <b>${t.fees>0?fmtP(t.fees,t.currency):'—'}</b></div>
+      </div>${t.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-bottom:4px;">📝 ${String(t.note).slice(0,60)}${t.note.length>60?'…':''}</div>`:''}
+      <div class="pf-card-actions">
+        <button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">↩ Undo</button>
+        ${(typeof APP_VERSION==='string'&&APP_VERSION.indexOf('-beta')<0)?`<button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from your history and reconcile the balance — for clearing a wrong or duplicate trade." style="padding:5px;border-radius:5px;border:1px dashed var(--red);background:var(--bg3);color:#ff9caa;font:600 10px var(--sans);cursor:pointer;">🗑 Delete</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
   const _autoN=((p.history||[]).filter(t=>t&&t.auto)).length; // v338: auto-sold positions available to restore
   const pv=window._pfView||'holdings';       // v263: which portfolio page is showing
@@ -7527,6 +7552,7 @@ function showPortfolio(exSel){
         <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:4px 6px;">Share</th><th style="text-align:right;padding:4px 6px;">Held</th><th style="text-align:right;padding:4px 6px;">Qty</th><th style="text-align:right;padding:4px 6px;">Buy → Sell</th><th style="text-align:right;padding:4px 6px;">P/L</th></tr></thead>
         <tbody>${histRows}</tbody>
       </table></div>
+      <div class="pf-cards">${histCards}</div>
       <div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:right;">Closed P/L (12 mo): <strong style="color:${closedPl>0.005?'var(--green)':closedPl<-0.005?'var(--red)':'var(--muted)'}">${closedPl>=0?'+':''}${closedPl.toFixed(2)}</strong></div>`
     :'<div style="font-size:10px;color:var(--muted);padding:8px;text-align:center;">No closed trades yet.</div>'}
     </div>
