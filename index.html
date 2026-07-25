@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-434-open';
+const APP_VERSION='2026.07.27-435-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4892,7 +4892,7 @@ function _rules(){
   return { enabled:(r.enabled!==false), targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
     trailPct:num(r.trailPct,fresh?8:0), bePct:num(r.bePct,fresh?5:0), maxHoldDays:Math.round(num(r.maxHoldDays,fresh?10:0)),
-    apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
+    apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':(r.apSource==='best'?'best':'smart')), apProvenOnly:(r.apProvenOnly===true),
     apMinScore:num(r.apMinScore,0), apMinPrice:num(r.apMinPrice,0), apMaxPrice:num(r.apMaxPrice,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(num(r.apMaxBuys,1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,num(r.apDipPct,0)),
@@ -4906,7 +4906,7 @@ function _rulesSave(r){
   const clean={ enabled:(r.enabled!==false), targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
     trailPct:+r.trailPct||0, bePct:+r.bePct||0, maxHoldDays:Math.max(0,Math.round(+r.maxHoldDays||0)),
-    apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':'smart'),
+    apOn:(r.apOn===true), apSource:(r.apSource==='top20'?'top20':(r.apSource==='best'?'best':'smart')), apProvenOnly:(r.apProvenOnly===true),
     apMinScore:+r.apMinScore||0, apMinPrice:+r.apMinPrice||0, apMaxPrice:+r.apMaxPrice||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(+r.apMaxBuys||1))),
     apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,Math.max(0,+r.apDipPct||0)),
@@ -5041,10 +5041,11 @@ function showRules(){
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option></select></label>
+        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option><option value="best" ${r.apSource==='best'?'selected':''}>🧪 Best proven scan (auto)</option></select><span style="font-size:9px;color:var(--dim)">🧪 = let the report card choose</span></label>
         <label style="font-size:10px;color:var(--muted);">Buys per day (max)<select id="rApMax" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option ${r.apMaxBuys===1?'selected':''}>1</option><option ${r.apMaxBuys===2?'selected':''}>2</option><option ${r.apMaxBuys===3?'selected':''}>3</option><option ${r.apMaxBuys===4?'selected':''}>4</option><option ${r.apMaxBuys===5?'selected':''}>5</option><option ${r.apMaxBuys===6?'selected':''}>6</option></select></label>
         <label style="font-size:10px;color:var(--muted);">Min Watch Score<input type="number" id="rApScore" min="0" max="10" step="1" value="${r.apMinScore||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
+        <label title="Before buying, check the 🧪 All scans report card: if the scan the bot is using has NOT been beating the market lately (or has not fired enough times to judge), it buys nothing that day and says so in its diary. Standing aside is a decision too." style="cursor:help;grid-column:1 / -1;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px;"><input type="checkbox" id="rApProven" ${r.apProvenOnly?'checked':''} style="width:15px;height:15px;">🧪 only buy while the scan is proving itself <span style="color:var(--dim);font-size:9px;">(evidence gate — no buys on a losing scan)</span></label>
         <label style="font-size:10px;color:var(--muted);">💵 $ per buy<input type="number" id="rApAmt" min="0" step="any" value="${r.apAmt||''}" placeholder="blank = 📦 % rule" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)">min $500 · capped by 📦</span></label>
       </div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 10px;font-size:9.5px;color:var(--muted);align-items:center;">
@@ -5138,7 +5139,7 @@ function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
-    apSource:g('rApSrc')||_rules().apSource, apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
+    apSource:g('rApSrc')||_rules().apSource, apProvenOnly:(document.getElementById('rApProven')?chk('rApProven'):_rules().apProvenOnly), apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
     apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr','blk'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder),
     apRegime:(document.getElementById('rApRegime')?chk('rApRegime'):_rules().apRegime), apRiskPct:(document.getElementById('rApRisk')?g('rApRisk'):_rules().apRiskPct),
     scaleOut:(document.getElementById('rScaleOut')?chk('rScaleOut'):_rules().scaleOut), scaleOutPct:(document.getElementById('rScalePct')?g('rScalePct'):_rules().scaleOutPct) };
@@ -5495,7 +5496,30 @@ function _apCandidates(r){
   }
   if(+r.apMinPrice>0)pool=_T('≥$'+r.apMinPrice,pool.filter(s=>s.price>=+r.apMinPrice)); // v355: price band
   if(+r.apMaxPrice>0)pool=_T('≤$'+r.apMaxPrice,pool.filter(s=>s.price<=+r.apMaxPrice));
-  if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
+  // v435: 🧪 evidence-led source. 'best' asks the all-scans grading which scan is
+  // currently working; the evidence gate can veto ANY source that is losing.
+  let _evKey=null, _evNote='';
+  try{
+    const _G=_apGrades();
+    if(r.apSource==='best'){
+      if(!_G){ _evNote='🧪 no grading saved yet — open the 🧪 All scans report card once, then the bot can follow it'; }
+      else{
+        const _b=_apBestScan(_G,'5');
+        if(_b){ _evKey=_b.key; _evNote='🧪 following '+_b.name+' — edge '+((_b.edge>=0?'+':'')+_b.edge.toFixed(2))+'% over '+_b.fires+' fires'; }
+        else{ _evKey='__none__'; _evNote='🧪 no scan is currently beating the market with enough evidence — standing aside today'; }
+      }
+    }else if(r.apProvenOnly){
+      const _row=_G?_apGradeRow(_G,_apSrcKey(r.apSource),'5'):null;
+      if(!_G){ _evNote='🧪 evidence gate: no grading saved yet — open the 🧪 All scans card once to arm it'; }
+      else if(!_row||!_row.solid){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan has not fired enough times to judge — standing aside'; }
+      else if(!(_row.edge>0)){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan is losing to the market ('+_row.edge.toFixed(2)+'% edge over '+_row.fires+' fires) — standing aside'; }
+      else { _evNote='🧪 evidence gate passed — edge +'+_row.edge.toFixed(2)+'% over '+_row.fires+' fires'; }
+    }
+  }catch(e){}
+  window._apEvidenceNote=_evNote;   // the run loop copies this into the diary
+  if(_evKey==='__none__'){ pool=_T('🧪 evidence gate',[]); }
+  else if(_evKey){ pool=_T('🧪 '+_evKey,_apRuleFilter(pool,_evKey)); }
+  else if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
   else{ pool=_T('smart list',pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50)); }
   if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,pool.filter(s=>(s.watchScore||0)>=r.apMinScore));
   if(r.apQuietOnly)pool=_T('🔇quiet',pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}}));
@@ -5799,6 +5823,7 @@ function _autoPilotRun(manual){
     else{
       const want=Math.min(r.apMaxBuys,maxN-openN);
       const cands=_apCandidates(r);
+      try{ if(window._apEvidenceNote)ent.skips.push(window._apEvidenceNote); }catch(e){}
       if(!cands.length){
         let _msg='no shares matched your entry rules today';
         try{ const _dg=window._apLastDiag;
@@ -16185,6 +16210,59 @@ async function _t20Replay(){
 // its average, and a 2+ day streak (up-days, or up-days on heavy volume).
 // Split by streak depth — the 3/4/5-day buttons are stricter, so they get
 // their own rows. Same calendar + honesty floors as the 🏆 Top 20 card.
+// ═══ v435 — evidence-led Auto-pilot ═══
+// The 🧪 all-scans card already measures which scan is working. These helpers
+// let the bot ACT on that: pick the best-graded scan, or refuse to buy when the
+// scan it was told to use is currently losing to the market. Same grading, same
+// 💧 floor, no second opinion.
+var _AP_MIN_FIRES=200;               // matches the card's SOLID tier
+function _apGrades(){
+  try{
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    var c=window._scCache;
+    if(c&&c.R&&c.ex===currentExch&&c.d===dd&&c.liq===_cardLiqKey())return c.R;
+  }catch(e){}
+  return null;
+}
+function _apGradeRow(R,key,win){
+  win=String(win||'5');
+  try{
+    var g=R.G[key]; if(!g)return null;
+    var m=g[win]; if(!m||!m.n)return null;
+    var b=R.G.all[win], bavg=b.n?b.sum/b.n:0;
+    return {key:key,edge:(m.sum/m.n)-bavg,fires:m.n,solid:m.n>=_AP_MIN_FIRES};
+  }catch(e){ return null; }
+}
+// the bot's own source names → the card's rule keys
+function _apSrcKey(src){ return src==='top20'?'top20':'smart'; }
+function _apBestScan(R,win){
+  var best=null;
+  var keys=_SCAN_RULES.map(function(x){return x.k;}).concat(['top20']);
+  for(var i=0;i<keys.length;i++){
+    var row=_apGradeRow(R,keys[i],win);
+    if(!row||!row.solid||!(row.edge>0))continue;
+    if(!best||row.edge>best.edge)best=row;
+  }
+  if(best){ var r=_SCAN_RULES.filter(function(x){return x.k===best.key;})[0];
+    best.name=r?r.n:'🏆 Top 20 by Watch Score'; }
+  return best;
+}
+// Apply a graded rule to TODAY, using exactly the maths the card graded with,
+// so what the bot buys is what the card measured.
+function _apRuleFilter(pool,key){
+  if(key==='top20'){ return pool.filter(function(s){return s.watchScore!=null;})
+    .sort(function(a,b){return (b.watchScore||0)-(a.watchScore||0);}).slice(0,20); }
+  var rule=_SCAN_RULES.filter(function(x){return x.k===key;})[0];
+  if(!rule)return pool;
+  return pool.filter(function(s){
+    try{
+      if(!Array.isArray(s.series)||s.series.length<30)return false;
+      if(!s._scPf||s._scPfLen!==s.series.length){ s._scPf=_scPrep(s.series); s._scPfLen=s.series.length; }
+      var st=_scStats(s.series,s._scPf,s.series.length-1);
+      return st?!!rule.t(st):false;
+    }catch(e){ return false; }
+  });
+}
 // ═══ v434 — 💧 tradeability floor, adjustable inside every report card ═══
 // Micro-caps whose whole daily turnover is a few thousand dollars produce
 // "returns" that are mostly bid-ask noise. They distort the scans AND the
