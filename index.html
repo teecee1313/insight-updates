@@ -1488,7 +1488,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.26-415-open';
+const APP_VERSION='2026.07.26-416-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9070,10 +9070,92 @@ async function _fetchTO(url,opts,ms){
 // Incremental update: if we already have recent saved history, fetch only a
 // SHORT recent window and merge the new days on — instead of re-pulling months.
 // Falls back to a full fetch when there's nothing saved or the gap is large.
+// ═══ v416 STAGE-2 FAST LOADS — whole DAYS from the pantry in one gulp ═══════
+// Instead of 3,000+ per-share fetches, ask the server store which days it has
+// that this device hasn't merged yet, pull each day ONCE (~4,300 bars a call),
+// and slot the bars into every share's saved history. Shares brought fully up
+// to date are stamped fresh, so the per-share download loop skips them all.
+// Careful bits:
+//  · a share whose saved history is older than the fetched window would be left
+//    with a HOLE — those shares are skipped here and rescued by the normal
+//    per-share incremental path instead.
+//  · every step degrades silently: any server hiccup and the old path still runs.
+async function _srvDaySync(exch,say){
+  const out={days:0,merged:0,skippedGap:0};
+  try{
+    if(typeof _serverData!=='function'||!_serverData())return out;
+    const today=new Date().toISOString().slice(0,10);
+    const jf=async(u)=>{ const c=new AbortController(); const t=setTimeout(()=>c.abort(),8000);
+      try{ const r=await fetch(DATA_PROXY+u,{signal:c.signal}); if(!r.ok)return null; return await r.json(); } finally{ clearTimeout(t); } };
+    const latest=await jf('/history/latest?exch='+encodeURIComponent(exch)).catch(()=>null);
+    const latestD=latest&&latest.ok&&latest.date?String(latest.date).slice(0,10):null;
+    if(!latestD)return out;
+    const skey='asxScreener.srvDaySync.v1.'+exch;
+    let lastSync=null; try{ lastSync=localStorage.getItem(skey); }catch(e){}
+    if(lastSync&&lastSync>=latestD)return out;              // nothing new in the pantry
+    // Collect the missing days, newest→oldest, stopping at what we've merged,
+    // an empty pantry day, or the cap.
+    const MAXD=14;
+    const days=[]; const d=new Date(latestD+'T12:00:00Z');
+    for(let i=0;i<40&&days.length<MAXD;i++){
+      const ds=d.toISOString().slice(0,10);
+      if(lastSync&&ds<=lastSync)break;
+      const dow=d.getUTCDay();
+      if(dow!==0&&dow!==6){
+        if(say)say('🫙 Fetching '+ds+' from your server store…');
+        const day=await jf('/history/day/'+ds+'?exch='+encodeURIComponent(exch)).catch(()=>null);
+        if(!day||!day.ok||!Array.isArray(day.rows))break;    // server trouble → stop, fall back
+        if(!day.rows.length){ if(days.length)break; }        // pantry ends here
+        else days.push({d:ds,rows:day.rows});
+      }
+      d.setUTCDate(d.getUTCDate()-1);
+    }
+    if(!days.length)return out;
+    days.reverse();                                          // oldest → newest
+    const oldestFetched=days[0].d;
+    // Group bars per ticker (ascending by construction).
+    const per=new Map();
+    for(const day of days){ for(const r of day.rows){
+      const t=String(r.t||'').toUpperCase(); if(!t)continue;
+      let a=per.get(t); if(!a){a=[];per.set(t,a);}
+      a.push({dateStamp:day.d,open:r.o!=null?r.o:r.c,high:r.h!=null?r.h:r.c,low:r.l!=null?r.l:r.c,close:r.c,volume:r.v||0});
+    } }
+    out.days=days.length;
+    // Merge into the saved histories, a slice at a time so the page stays lively.
+    const ticks=[...per.keys()]; let done=0;
+    const dOf=r=>String((r&&(r.dateStamp||r.date||r.Date))||'').slice(0,10);
+    for(let i=0;i<ticks.length;i+=200){
+      const slice=ticks.slice(i,i+200);
+      await Promise.all(slice.map(async t=>{
+        try{
+          const stored=await histGet(exch,t);
+          if(!stored||!Array.isArray(stored.rows)||!stored.rows.length)return; // never seed a share from thin day-slices
+          let lastD=''; for(const r of stored.rows){ const x=dOf(r); if(x>lastD)lastD=x; }
+          if(lastD>=latestD){ if(stored.saved!==today)await histPut(exch,t,stored.rows,today); out.merged++; return; }
+          // HOLE GUARD: our window must reach back to (or past) the share's last saved
+          // day — allow a long-weekend-sized step, otherwise leave it to the per-share path.
+          const gapMs=new Date(oldestFetched)-new Date(lastD);
+          if(!(lastD>=oldestFetched||gapMs<=5*86400000)){ out.skippedGap++; return; }
+          const add=per.get(t).filter(b=>b.dateStamp>lastD);
+          if(!add.length){ if(stored.saved!==today)await histPut(exch,t,stored.rows,today); out.merged++; return; }
+          await histPut(exch,t,stored.rows.concat(add),today);
+          out.merged++;
+        }catch(e){}
+      }));
+      done+=slice.length;
+      if(say&&ticks.length>400)say('🫙 Merging your server store… '+Math.min(done,ticks.length).toLocaleString()+' / '+ticks.length.toLocaleString());
+    }
+    try{ localStorage.setItem(skey,latestD); }catch(e){}
+  }catch(e){}
+  return out;
+}
 async function fetchHistoryUpdate(exch,ticker,apiKey,fullDays){
   try{
     const stored=await histGet(exch,ticker);
     if(stored&&Array.isArray(stored.rows)&&stored.rows.length){
+      // v416: anything stamped TODAY is already as fresh as a download can make it —
+      // the 🫙 server day-sync stamps merged shares, so the whole loop below becomes instant.
+      if(stored.saved===new Date().toISOString().slice(0,10))return stored.rows;
       const sorted=_sortedCloses(stored.rows);
       const lastD=sorted.length?sorted[sorted.length-1].d:null;
       if(lastD){
@@ -12251,6 +12333,14 @@ async function downloadEverything(){
     return;
   }
   if(lbl0)lbl0.innerHTML='<span style="color:var(--green)">✓ Connection OK.</span> Ready to download…';
+  // v416 STAGE-2: pull any days the pantry has that this device hasn't, ONCE per
+  // day instead of once per share — shares brought current are skipped below.
+  if(!window._forceFullDownload){
+    try{
+      const sy=await _srvDaySync(currentExch,m=>{ if(lbl0)lbl0.innerHTML=m; });
+      if(sy&&sy.merged>0&&lbl0)lbl0.innerHTML=`<span style="color:var(--green)">🫙 ${sy.merged.toLocaleString()} shares brought up to date from your own server store (${sy.days} day${sy.days>1?'s':''} in ${sy.days} request${sy.days>1?'s':''}) — they'll skip ahead instantly.</span>`;
+    }catch(e){}
+  }
   const mins=Math.ceil(n/6*0.9/60);
   const _typeNames={'Ordinary':'Shares','ETF':'ETFs','LIC':'LICs','REIT':'REITs','Option':'Options','Preference':'Pref','Bond':'Bonds','Speculative':'Spec'};
   const _typeLabel='all types'; // v249: fixed a crash — this line referenced a variable removed when type-filtering moved to live loads, which broke the whole Download all button at the confirm step
