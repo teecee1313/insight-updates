@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-438-open';
+const APP_VERSION='2026.07.27-439-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16299,6 +16299,10 @@ function _cardLiqSet(k,fn){
   try{ window._scCache=null; window._t20Cache=null; window._smCache=null; window._auditCache=null; window._auditCacheAlt={}; }catch(e){}
   try{ if(typeof window[fn]==='function')window[fn](); }catch(e){}
 }
+function _sigNews(v){
+  window._sigNewsMode=v;
+  try{ if(typeof signalReportCard==='function')signalReportCard(); }catch(e){}
+}
 function _sigView(v){
   window._sigViewMode=v;
   try{ if(typeof signalReportCard==='function')signalReportCard(); }catch(e){}
@@ -16391,6 +16395,16 @@ function _scStats(ser,pf,end){
   st.d5=(end>=5&&ser[end-5].c>0)?((c-ser[end-5].c)/ser[end-5].c)*100:null;
   st.d2=(end>=2&&ser[end-2].c>0)?((c-ser[end-2].c)/ser[end-2].c)*100:null;
   st.lowPx=(c<0.20);
+  // v439: the app's own newsProxy test, computed as of THIS day — a sharp
+  // single-day move or a volume spike in the recent window suggests something
+  // was announced. An estimate, exactly as it is on the live table.
+  var nsy=false, lo5=Math.max(1,end-4), bv=baseAcc;
+  for(i=end;i>=lo5;i--){
+    var pc2=ser[i-1].c;
+    if(pc2>0&&Math.abs((ser[i].c-pc2)/pc2)*100>=8){ nsy=true; break; }
+    if(bv>0&&ser[i].v>0&&(ser[i].v/bv)>=3){ nsy=true; break; }
+  }
+  st.newsy=nsy;
   return st;
 }
 var _SCAN_RULES=[
@@ -16473,25 +16487,30 @@ async function _scReplay(){
   // two different periods. A deterministic reservoir keeps a fair spread.
   var CAP=40000, _seed=20260727;
   var _rnd=function(){ _seed=(_seed*1103515245+12345)&0x7fffffff; return _seed/0x7fffffff; };
-  var add=function(g,fwd){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
-    c.n++; c.sum+=fwd[wi];
-    if(fwd[wi]>0){ c.up++; c.wsum=(c.wsum||0)+fwd[wi]; }
-    else { c.dsum=(c.dsum||0)+fwd[wi]; c.dn=(c.dn||0)+1; }
+  var bump=function(o,x){ o.n++; o.sum+=x;
+    if(x>0){ o.up++; o.wsum=(o.wsum||0)+x; }
+    else { o.dn=(o.dn||0)+1; o.dsum=(o.dsum||0)+x; } };
+  var add=function(g,fwd,newsy){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
+    bump(c,fwd[wi]);
+    // v439: the same tallies again, split by whether the fire day looked
+    // news-driven — so 📢 and 🔇 can be graded against their own market
+    if(!c.nq)c.nq={news:{n:0,sum:0,up:0},quiet:{n:0,sum:0,up:0}};
+    bump(c.nq[newsy?'news':'quiet'],fwd[wi]);
     if(!c.s)c.s=[];
     if(c.s.length<CAP)c.s.push(fwd[wi]);
     else { var j=Math.floor(_rnd()*c.n); if(j<CAP)c.s[j]=fwd[wi]; } } };
     for(var ri=0;ri<rows.length;ri++){
-      add(G.all,rows[ri].fwd);
+      add(G.all,rows[ri].fwd,rows[ri].st.newsy);
       var hits=[];
       for(var ru=0;ru<NR;ru++){
         var R=_SCAN_RULES[ru];
         var hit=false; try{ hit=!!R.t(rows[ri].st); }catch(e){}
-        if(hit){ add(G[R.k],rows[ri].fwd); fires[R.k]++; hits.push(ru); }
+        if(hit){ add(G[R.k],rows[ri].fwd,rows[ri].st.newsy); fires[R.k]++; hits.push(ru); }
       }
       rows[ri].hits=hits;
     }
     var ranked=rows.filter(function(x){return x.st.score>0;}).sort(function(a,b){return (b.st.score-a.st.score)||(b.st.acc-a.st.acc);}).slice(0,20);
-    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd); fires.top20++; ranked[t2].hits.push(NR); }
+    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd,ranked[t2].st.newsy); fires.top20++; ranked[t2].hits.push(NR); }
     for(var pi=0;pi<rows.length;pi++){
       var hs=rows[pi].hits; if(hs.length<2)continue;
       for(var a1=0;a1<hs.length-1;a1++)for(var b1=a1+1;b1<hs.length;b1++)cAdd(hs[a1],hs[b1],rows[pi].fwd);
@@ -16518,9 +16537,11 @@ function allScansCard(){
 function _renderSCCard(R,win){
   win=String(win||window._scWin||'5'); window._scWin=win;
   var view=String(window._scViewMode||'all');   // must be set BEFORE the rows are built
+  var news=String(window._scNewsMode||'all');   // 📢 / 🔇 subset — same rule
+  var pick=function(m){ if(news==='all')return m; var q=m&&m.nq&&m.nq[news]; return q||{n:0,sum:0,up:0}; };
   var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
   var base=R.G.all;
-  var bavg=function(w){ var b=base[w]; return b.n?b.sum/b.n:0; };
+  var bavg=function(w){ var b=(String(window._scNewsMode||'all')==='all')?base[w]:((base[w].nq&&base[w].nq[String(window._scNewsMode)])||{n:0,sum:0}); return b.n?b.sum/b.n:0; };
   var med=function(c){ if(!c||!c.s||!c.s.length)return null;
     if(c._m==null){ var a=c.s.slice().sort(function(x,y){return x-y;}); var h=a.length>>1;
       c._m=(a.length%2)?a[h]:(a[h-1]+a[h])/2; }
@@ -16533,8 +16554,8 @@ function _renderSCCard(R,win){
   var TIP={SOLID:'SOLID — 200+ fires. Enough experiments that the edge is unlikely to be luck.','PROMISING':'PROMISING — 50+ fires. Worth watching; not yet proven.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the edge looks like, it cannot be told apart from luck yet, so this row is ranked last no matter how good it looks.'};
   var list=[{k:'top20',n:'🏆 Top 20 by Watch Score'}].concat(_SCAN_RULES.map(function(x){return {k:x.k,n:x.n};}));
   list.forEach(function(x){
-    x.e={}; ['5','10','20'].forEach(function(w){ var m=R.G[x.k][w]; x.e[w]=m.n?(m.sum/m.n)-bavg(w):null; });
-    x.fires=R.G[x.k][win].n;
+    x.e={}; ['5','10','20'].forEach(function(w){ var m=pick(R.G[x.k][w]); x.e[w]=m.n?(m.sum/m.n)-bavg(w):null; });
+    x.fires=pick(R.G[x.k][win]).n;
     x.tier=TIER(x.fires)[0];
     x.edge=x.e[win];
     x.solid=x.fires>=MIN_OK;
@@ -16549,7 +16570,7 @@ function _renderSCCard(R,win){
   for(var ci=0;ci<list.length;ci++){ if(list[ci].solid&&list[ci].edge!==null){ champ=list[ci]; break; } }
   var body=list.map(function(x){
     var cells=['5','10','20'].map(function(w){
-      var m=R.G[x.k][w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
+      var m=pick(R.G[x.k][w]); if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
       var sel=(w===win)?'background:rgba(255,210,0,.06);':'';
       if(view!=='all'){
         var isUp=(view==='up'), cnt=isUp?m.up:(m.dn||0), tot=isUp?(m.wsum||0):(m.dsum||0);
@@ -16563,7 +16584,7 @@ function _renderSCCard(R,win){
       var avg=m.sum/m.n, beat=avg>bavg(w), ed=x.e[w];
       return '<td style="text-align:center;'+sel+'"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span>'
         +'<br><span title="Edge — how far this scan beat the AVERAGE share over the same '+w+' days." style="cursor:help;font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+((ed!==null&&ed>0)?'var(--green)':'#ff9caa')+'">edge '+(ed===null?'—':f1(ed))+'</span>'
-        +(function(){ var mm=med(m), bm=bmed(w); if(mm===null||bm===null)return '';
+        +(function(){ if(news!=='all')return ''; var mm=med(m), bm=bmed(w); if(mm===null||bm===null)return '';
             var mb=mm-bm;
             return '<br><span title="MIDDLE outcome — half the flagged shares did better, half worse. The market average is pulled up by a few explosive shares, so a scan can beat the TYPICAL share (green here) while still losing on the average. This line tells you which is happening." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:'+(mb>0?'var(--green)':'#ff9caa')+'">mid '+f1(mm)+' ('+f1(mb)+' vs mkt)</span>'; })()
         +'<br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% · '+m.n+' fires</span></td>';
@@ -16573,11 +16594,11 @@ function _renderSCCard(R,win){
     var dim=x.solid?'':'opacity:.62;';
     return '<tr style="'+dim+'"><td style="padding:7px 6px;font-weight:700;">'+rank+x.n+chip+'</td>'+cells+'</tr>';
   }).join('');
-  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
+  var baseCells=['5','10','20'].map(function(w){ var m=pick(base[w]); if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
     if(view!=='all'){ var isUp=(view==='up'), cnt=isUp?m.up:(m.dn||0), tot=isUp?(m.wsum||0):(m.dsum||0);
       if(!cnt)return '<td style="text-align:center;color:var(--dim)">—</td>';
       return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(tot/cnt)+'</span><br><span style="font-size:9.5px;color:var(--dim)">'+Math.round((cnt/m.n)*100)+'% of shares</span></td>'; }
-    var bm=med(m); return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim)">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+    var bm=(news==='all')?med(m):null; return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim)">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
   var vsw=[['all','everything'],['up','📈 gainers only'],['down','📉 fallers only']].map(function(x){
     return '<button onclick="_scView(\''+x[0]+'\')" title="'+(x[0]==='up'?'Show only the flagged shares that ROSE — how big the wins were, and how often they happened.':x[0]==='down'?'Show only the flagged shares that FELL — how deep the losses were, and how often. Read it next to the gainers view: a scan can win often and still lose money.':'The average across every flagged share, winners and losers together.')+'" style="border:1px solid '+(x[0]===view?'var(--gold)':'var(--border2)')+';color:'+(x[0]===view?'var(--gold)':'var(--muted)')+';background:'+(x[0]===view?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
   }).join('');
@@ -16596,6 +16617,14 @@ function _renderSCCard(R,win){
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b> (tradeability floor: <b>'+_cardLiqLabel()+'</b>). <b>Edge</b> = how far the scan beat that market <b>average</b>; <b>mid</b> = the middle outcome, against the market&#8217;s middle. Read both: the average is lifted by a few explosive shares that most scans deliberately avoid, so a scan can be red on edge yet green on mid — that means it beat the <b>typical</b> share and only lost to the tail. Rows with too few fires to trust are dimmed and ranked last, whatever their numbers look like.</div>'
     +_cardLiqBar('allScansCard')
     +'<div style="margin:0 0 6px;">'+vsw+'</div>'
+    +'<div style="margin:0 0 6px;">'+[['all','all fires'],['news','📢 news-driven'],['quiet','🔇 quiet']].map(function(x){
+        return '<button onclick="_scNews(\''+x[0]+'\')" title="'+(x[0]==='news'?'Only fires where the share had a sharp move or a volume spike in the days around it — the footprint of an announcement. An estimate from price and volume, the same test the table uses.':x[0]==='quiet'?'Only fires with no such footprint — the scan spotted something while nothing obvious was in the news.':'Every fire, news-driven or not.')+'" style="border:1px solid '+(x[0]===news?'var(--gold)':'var(--border2)')+';color:'+(x[0]===news?'var(--gold)':'var(--muted)')+';background:'+(x[0]===news?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
+      }).join('')+'</div>'
+    +(news==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);line-height:1.5;">'
+       +(news==='news'
+         ? '📢 <b>News-driven fires only</b> — the share had a sharp move or a volume spike around that day, so something was probably announced. The market row is the same subset, so the comparison stays fair. If a scan only works here, it is really reacting to news rather than finding anything.'
+         : '🔇 <b>Quiet fires only</b> — no announcement footprint. This is where a scan earns its keep: spotting something while nothing obvious is happening. Compare it with the 📢 view to see which half carries the edge.')
+       +' Middle-outcome figures are hidden in these views — they are only computed for the full set.</div>')
     +(view==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);">'+(view==='up'?'📈 <b>Gainers only</b> — the average rise of the flagged shares that went UP, and what share of fires that was. Compare the % with the market row: a scan that turns 40% of fires into gains where the market managed 39% is barely picking better, however big those gains look.':'📉 <b>Fallers only</b> — the average fall of the flagged shares that went DOWN. Read it beside the gainers view: if the falls are deeper than the rises, a scan can win more often and still lose money.')+'</div>')
     +'<div style="margin:0 0 8px;">'+sw+'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
@@ -16604,7 +16633,7 @@ function _renderSCCard(R,win){
     +'<tr><td style="padding:7px 6px;color:var(--muted);">📊 Market (all shares)</td>'+baseCells+'</tr>'
     +'</table>'
     +verdict
-    +(view==='all'?_scCombos(R,win,base):'')
+    +((view==='all'&&news==='all')?_scCombos(R,win,base):'')
     +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. A scan can lose over 5 days and win over 20 (or the reverse) — that is a statement about how fast it works, so switch the ranking above and read all three. Rules re-create each scan’s live test from stored closes and volumes. Known limits, stated plainly: 🕳 Gap Report is absent (it needs opening prices, which the offline store does not keep); rows named for a threshold (📈 Volume 2× normal, ⭐ Watch Score N+, 💎 Heavy Accumulation) measure that threshold rather than a button; the 20-day column necessarily covers fewer recent days than the 5-day column; and delisted shares are missing from stored history, which flatters every row a little. Evidence, not prophecy. Rebuilt automatically each fresh data day.</div>'
     +'</div>';
   try{ showModal(html,'🧪 All scans — which ones actually work?'); }catch(e){}
@@ -16612,7 +16641,7 @@ function _renderSCCard(R,win){
 function _scCombos(R,win,base){
   if(!R.C)return '';
   var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
-  var bavg=function(w){ var b=base[w]; return b.n?b.sum/b.n:0; };
+  var bavg=function(w){ var b=(String(window._scNewsMode||'all')==='all')?base[w]:((base[w].nq&&base[w].nq[String(window._scNewsMode)])||{n:0,sum:0}); return b.n?b.sum/b.n:0; };
   var NR=_SCAN_RULES.length;
   var nameOf=function(i){ return (i>=NR)?'🏆 Top 20':_SCAN_RULES[i].n; };
   var soloEdge=function(i,w){ var k=(i>=NR)?'top20':_SCAN_RULES[i].k; var m=R.G[k][w]; return m.n?(m.sum/m.n)-bavg(w):null; };
@@ -16646,6 +16675,7 @@ function _scCombos(R,win,base){
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">pair</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +rows+'</table></div>';
 }
+function _scNews(v){ window._scNewsMode=v; try{ if(window._scCache&&window._scCache.R)_renderSCCard(window._scCache.R,window._scWin||'5'); }catch(e){} }
 function _scView(v){ window._scViewMode=v; try{ if(window._scCache&&window._scCache.R)_renderSCCard(window._scCache.R,window._scWin||'5'); }catch(e){} }
 function _scSort(w){ try{ if(window._scCache&&window._scCache.R)_renderSCCard(window._scCache.R,w); }catch(e){} }
 
@@ -16741,7 +16771,7 @@ function _renderSMCard(R){
     }).join('');
     return '<tr title="'+tip+'" style="cursor:help;"><td style="padding:7px 6px;font-weight:700;">'+name+'</td>'+cells+'</tr>';
   };
-  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var baseCells=['5','10','20'].map(function(w){ var m=pick(base[w]); if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
   var q5=R.G.q['5'], b5=base['5'], verdict='';
   if(q5.n&&b5.n){
     var e=(q5.sum/q5.n)-(b5.sum/b5.n);
@@ -16793,7 +16823,7 @@ function _renderT20Card(R){
     return '<tr title="'+tip+'" style="cursor:help;"><td style="padding:7px 6px;font-weight:700;">'+name+'</td>'+cells+'</tr>';
   };
   var base=R.G.all;
-  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var baseCells=['5','10','20'].map(function(w){ var m=pick(base[w]); if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
   var g5=R.G.t5||{'5':{n:0,sum:0,up:0},'10':{n:0,sum:0,up:0},'20':{n:0,sum:0,up:0}}, g10=R.G.t10, g20=R.G.t20, w5=g10['5'], b5=base['5'];
   var verdict='';
   if(w5.n&&b5.n){
@@ -16856,6 +16886,15 @@ function _renderReportCard(A){
     // already grades each flag's winning and losing fires separately, so this
     // is a change of view, not a re-grade.
     const _sview=String(window._sigViewMode||'all');
+    const _snews=String(window._sigNewsMode||'all');   // 📢 / 🔇 — CONFIRMED filings, from the server
+    const _snewsBar='<div style="margin:0 0 8px;">'+[['all','all fires'],['news','📢 news-driven'],['quiet','🔇 quiet']].map(function(x){
+      return '<button onclick="_sigNews(\''+x[0]+'\')" title="'+(x[0]==='news'?'Only fires that had a CONFIRMED price-sensitive announcement on the day or the two days before.':x[0]==='quiet'?'Only fires with no confirmed announcement around them — the flag spotted something on its own.':'Every fire, announcement or not.')+'" style="border:1px solid '+(x[0]===_snews?'var(--gold)':'var(--border2)')+';color:'+(x[0]===_snews?'var(--gold)':'var(--muted)')+';background:'+(x[0]===_snews?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
+    }).join('')+'</div>'
+      +(_snews==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);line-height:1.5;">'
+        +(_snews==='news'
+          ? '📢 <b>News-driven fires only</b> — a confirmed price-sensitive announcement landed on the fire day or the two days before. A flag that only works here is following the news, not finding anything.'
+          : '🔇 <b>Quiet fires only</b> — no confirmed announcement nearby. This is the half worth trusting: the flag saw something before, or without, any public reason.')
+        +' Each line also shows what the other half averaged, so you can see which side carries the result.</div>');
     const _sviewBar='<div style="margin:0 0 8px;">'+[['all','everything'],['up','📈 gainers only'],['down','📉 fallers only']].map(function(x){
       return '<button onclick="_sigView(\''+x[0]+'\')" title="'+(x[0]==='up'?'For each flag: how many of its fires ended HIGHER, and how big those wins were on average.':x[0]==='down'?'For each flag: how many of its fires ended LOWER, and how deep those falls were on average.':'The full grading — edge against the market, median, tiers and track record.')+'" style="border:1px solid '+(x[0]===_sview?'var(--gold)':'var(--border2)')+';color:'+(x[0]===_sview?'var(--gold)':'var(--muted)')+';background:'+(x[0]===_sview?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
     }).join('')+'</div>'
@@ -16898,6 +16937,15 @@ function _renderReportCard(A){
     const tape=m=>(m.ron.n||m.roff.n)?` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work." style="cursor:help;">tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})</span>`:'';
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
+      if(_snews!=='all'){
+        const na=A.ann&&A.ann[k];
+        const g=na&&(_snews==='news'?na.news:na.quiet);
+        if(!g||!g.n)return `<div style="font-size:11px;color:var(--dim);margin-top:2px;">no ${_snews==='news'?'news-driven':'quiet'} fires recorded for this flag</div>`;
+        const other=na&&(_snews==='news'?na.quiet:na.news);
+        const oAvg=(other&&other.n)?f1(other.sum/other.n):'—';
+        return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${_snews==='news'?'📢':'🔇'} <b style="color:var(--text)">${g.n.toLocaleString()}</b> ${_snews==='news'?'news-driven':'quiet'} fires · <b title="How often price went the flag's way after these fires." style="cursor:help;color:var(--text)">${pct(g.up,g.n)}% higher</b> · average <b style="color:${(g.sum/g.n)>0?'var(--green)':'#ff9caa'}">${f1(g.sum/g.n)}</b> ${chip(m)} <span style="color:var(--dim)">· the other half averaged ${oAvg}</span></div>
+      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}</div>`;
+      }
       if(_sview!=='all'){
         const isUp=(_sview==='up');
         const cnt=isUp?m.up:(m.n-m.up);
@@ -17080,7 +17128,7 @@ function _renderReportCard(A){
       +'</span>'
       +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>'
       +(_staleSrv?'<div style="border:1px solid var(--gold);background:rgba(255,210,0,.10);border-radius:8px;padding:7px 11px;margin:0 0 10px;font-size:10.5px;color:var(--gold);line-height:1.5;">⚠ You asked for the <b>'+_selHold+'d</b> view but your server answered with the '+_h+'-day card — <b>the server hasn\'t got the 10d/30d update yet.</b> Re-paste the latest worker code in Cloudflare (Edit code → Ctrl+A, Ctrl+V → Deploy), then tap '+_selHold+'d again.</div>':'');
-    showModal(_rcBar+_liqBar+_sviewBar+_cardInner,'📋 Signal report card');
+    showModal(_rcBar+_liqBar+_snewsBar+_sviewBar+_cardInner,'📋 Signal report card');
     setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
 }
