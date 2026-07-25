@@ -1493,7 +1493,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-427-open';
+const APP_VERSION='2026.07.27-428-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15085,7 +15085,7 @@ body.training-min{padding-top:30px;}
 .tt-pop b{color:#c88bff;font-family:'Space Grotesk';display:block;margin-bottom:4px;font-size:12.5px;}
 body.training-on [data-train]{position:relative;outline:1px dashed rgba(147,51,234,.35);outline-offset:1px;}
 #helpPanel{position:fixed;right:0;top:34px;bottom:0;width:320px;background:#0a1526;border-left:2px solid #9333ea;z-index:390;overflow-y:auto;padding:18px 18px 40px;transform:translateX(340px);transition:transform .25s;box-shadow:-8px 0 30px rgba(0,0,0,.4);}
-#helpPanel.open{transform:translateX(0);}#helpPanel.fs{width:100vw!important;max-width:100vw!important;left:0!important;top:0!important;right:0!important;bottom:0!important;transform:none!important;transition:none;border-left:none;padding:26px clamp(16px,10vw,220px) 60px;z-index:100002;}#helpPanel .hp-fs{position:absolute;top:12px;right:44px;background:none;border:none;color:#8fa6c9;font-size:15px;cursor:pointer;}#helpPanel .hp-fs:hover{color:#FFD200;}#hpSearch{width:100%;padding:8px 10px;margin:0 0 8px;border-radius:8px;border:1px solid rgba(147,51,234,.45);background:rgba(0,0,0,.3);color:#e8eef7;font:400 12px Inter;}#hpSearch:focus{outline:none;border-color:#FFD200;}#hpToc{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px;}.hp-chip{font:600 9px Inter;color:#c9d6ea;background:rgba(147,51,234,.15);border:1px solid rgba(147,51,234,.4);border-radius:20px;padding:3px 9px;cursor:pointer;}.hp-chip:hover{border-color:#FFD200;color:#FFD200;}#hpMatch{font:600 9px Inter;color:#FFD200;margin:0 0 6px;min-height:11px;}#helpPanel .hp-chap{font:700 11px 'Space Grotesk';color:#c084fc;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px;border-bottom:1px solid rgba(192,132,252,.3);padding-bottom:4px;}
+#helpPanel.open{transform:translateX(0);}#helpPanel.fs{width:100vw!important;max-width:100vw!important;left:0!important;top:0!important;right:0!important;bottom:0!important;transform:none!important;transition:none;border-left:none;padding:26px clamp(16px,10vw,220px) 60px;z-index:100002;}#helpPanel .hp-fs{position:absolute;top:12px;right:44px;background:none;border:none;color:#8fa6c9;font-size:15px;cursor:pointer;}#helpPanel .hp-fs:hover{color:#FFD200;}#hpSearch{width:100%;padding:8px 10px;margin:0 0 8px;border-radius:8px;border:1px solid rgba(147,51,234,.45);background:rgba(0,0,0,.3);color:#e8eef7;font:400 12px Inter;}#hpSearch:focus{outline:none;border-color:#FFD200;}#hpToc{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px;}.hp-chip{font:600 9px Inter;color:#c9d6ea;background:rgba(147,51,234,.15);border:1px solid rgba(147,51,234,.4);border-radius:20px;padding:3px 9px;cursor:pointer;}.hp-chip:hover{border-color:#FFD200;color:#FFD200;}#hpMatch{font:600 9px Inter;color:#FFD200;margin:0 0 6px;min-height:11px;}.hp-ans{border:1px solid rgba(96,165,250,.45);border-radius:9px;margin:0 0 7px;background:rgba(96,165,250,.06);}.hp-ans summary{cursor:pointer;padding:7px 10px;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline;}.hp-ans summary::-webkit-details-marker{display:none;}.hp-ans-t{font:700 11px 'Space Grotesk';color:#93c5fd;}.hp-ans-src{font:600 8.5px Inter;color:#8fa0c9;white-space:nowrap;}.hp-ans-b{padding:0 10px 9px;}.hp-ans-b h4{font:700 10px 'Space Grotesk';color:#FFD200;margin:0 0 5px;text-transform:uppercase;letter-spacing:.4px;}.hp-ans-b p{font:400 12px Inter;color:#c9d6ea;line-height:1.55;margin:0;}#helpPanel .hp-chap{font:700 11px 'Space Grotesk';color:#c084fc;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px;border-bottom:1px solid rgba(192,132,252,.3);padding-bottom:4px;}
 .panel-drag{cursor:grab;user-select:none;font:600 10px monospace;color:#8fa6c9;background:rgba(147,51,234,.12);border:1px dashed rgba(147,51,234,.4);border-radius:6px;padding:5px 8px;margin:-4px 0 10px;text-align:center;letter-spacing:1px;}
 .panel-drag:active{cursor:grabbing;}
 #helpPanel.dragged{transition:none;}
@@ -15502,6 +15502,7 @@ function _attachOne(el,info){
   el.addEventListener('mouseenter',()=>_showTT(el,info));
   el.addEventListener('mouseleave',_hideTT);
 }
+window._TIPS=(function(){try{return Object.assign({},TRAIN_HELP,ONCLICK_HELP);}catch(e){return {};}})();
 function attachTraining(){
   const seen=new Set();
   Object.keys(TRAIN_HELP).forEach(id=>{ const el=document.getElementById(id); if(el){_attachOne(el,TRAIN_HELP[id]);seen.add('id:'+id);} });
@@ -15550,9 +15551,9 @@ window.toggleHelpPanel=function(){
   if(opening){ _makePanelDraggable('helpPanel','helpDrag'); }
   if(p.classList.contains('open')&&!document.getElementById('helpContent').innerHTML){
     const chaps=[]; HELP_SECTIONS.forEach(s=>{ if(chaps.indexOf(s.c)<0)chaps.push(s.c); });
-    let html='<input id="hpSearch" type="search" placeholder="Search the guide\u2026 (e.g. stop, cancel, update)" oninput="_helpFilter(this.value)">';
+    let html='<input id="hpSearch" type="search" placeholder="Ask anything… e.g. explain edge, cancel an order, what is expectancy" oninput="_helpFilter(this.value)">';
     html+='<div id="hpToc">'+chaps.map(c=>'<button class="hp-chip" onclick="_helpJump(\''+c.replace(/'/g,'')+'\')">'+c+'</button>').join('')+'<button class="hp-chip" onclick="_helpJump(\'Ratings\')">\ud83d\udd22 Ratings</button></div>';
-    html+='<div id="hpMatch"></div>';
+    html+='<div id="hpMatch"></div><div id="hpAnswers"></div>';
     let cur='';
     HELP_SECTIONS.forEach(s=>{
       if(s.c!==cur){ cur=s.c; html+='<h3 class="hp-chap" data-chap="'+cur+'">'+cur+'</h3>'; }
@@ -15576,8 +15577,48 @@ window.helpFs=function(){
     else if(document.fullscreenElement){ document.exitFullscreen().catch(function(){}); }
   }catch(e){}
 };
+window._hpIndexBuild=function(){
+  if(window._hpIndex)return window._hpIndex;
+  var ix=[];
+  var strip=function(h){var d=document.createElement('div');d.innerHTML=h;return (d.textContent||'').replace(/\s+/g,' ');};
+  try{ HELP_SECTIONS.forEach(function(s){ ix.push({t:strip(s.h),src:'\ud83d\udcd6 Guide \u00b7 '+s.c,html:'<h4>'+s.h+'</h4><p>'+s.p+'</p>',body:strip(s.p).toLowerCase()}); }); }catch(e){}
+  try{ if(typeof RATINGS_HELP!=='undefined')Object.keys(RATINGS_HELP).forEach(function(k){ var v=RATINGS_HELP[k]; ix.push({t:strip(v.t),src:'\ud83d\udd22 Ratings formula',html:'<h4>'+v.t+'</h4><p>'+v.d+'</p>',body:strip(v.d).toLowerCase()}); }); }catch(e){}
+  try{ (window.LESSONS||[]).forEach(function(L,li){ (L.steps||[]).forEach(function(st){ ix.push({t:String(st[0]||''),src:'\ud83c\udf93 Lesson '+(li+1)+' \u00b7 '+(L.title||L.id),html:'<h4>'+st[0]+'</h4><p>'+st[1]+'</p>',body:strip(st[1]).toLowerCase()}); }); }); }catch(e){}
+  try{ var T=window._TIPS||{}; Object.keys(T).forEach(function(k){ var v=T[k]; if(v&&v.t&&v.d)ix.push({t:String(v.t),src:'\ud83d\udca1 Control tip',html:'<h4>'+v.t+'</h4><p>'+v.d+'</p>',body:String(v.d).toLowerCase()}); }); }catch(e){}
+  window._hpIndex=ix; return ix;
+};
+window._hpAnswer=function(q){
+  var box=document.getElementById('hpAnswers'); if(!box)return;
+  var STOP={explain:1,what:1,is:1,are:1,the:1,a:1,an:1,how:1,do:1,does:1,i:1,me:1,my:1,to:1,of:1,in:1,on:1,for:1,mean:1,means:1,meaning:1,tell:1,about:1,show:1,work:1,works:1,app:1,this:1,it:1,and:1,or:1,why:1,when:1,where:1,can:1,we:1,you:1,define:1,definition:1,help:1,'with':1,please:1,'was':1,whats:1};
+  var SYN={edge:['beat','extra'],stop:['stop-loss'],target:['take-profit'],order:['pending','limit'],cancel:['pending'],wallet:['account','cash'],money:['cash'],robot:['auto-pilot','bot'],bot:['auto-pilot','robot'],autopilot:['auto-pilot'],trail:['trailing'],trailing:['trail'],breakeven:['break-even'],score:['watch'],undo:['reverse'],picks:['pick'],news:['announcement'],chart:['candle','candlestick'],graph:['chart'],password:['lock','access'],update:['version','refresh'],install:['home','screen'],certificate:['certificate','lessons'],volume:['volume'],dividend:['dividends']};
+  var words=String(q||'').toLowerCase().replace(/[^a-z0-9%$ ]+/g,' ').split(/\s+/).filter(function(w){return w&&!STOP[w];});
+  if(!words.length){ box.innerHTML=''; return; }
+  var ix=window._hpIndexBuild();
+  var scored=[];
+  for(var e=0;e<ix.length;e++){
+    var it=ix[e], tl=it.t.toLowerCase(), sc=0, hit=0;
+    for(var w=0;w<words.length;w++){
+      var wd=words[w], ws=0;
+      if((' '+tl+' ').indexOf(' '+wd+' ')>=0)ws=6; else if(tl.indexOf(wd)>=0)ws=4;
+      var bc=0,p=it.body.indexOf(wd); while(p>=0&&bc<3){bc++;p=it.body.indexOf(wd,p+wd.length);}
+      ws+=bc;
+      if(!ws&&SYN[wd]){ for(var s2=0;s2<SYN[wd].length;s2++){ var sy=SYN[wd][s2]; if(tl.indexOf(sy)>=0){ws=3;break;} if(it.body.indexOf(sy)>=0){ws=1;break;} } }
+      if(ws>0)hit++;
+      sc+=ws;
+    }
+    if(hit===words.length&&words.length>1)sc+=4;
+    if(hit>0&&sc>1)scored.push({sc:sc,it:it});
+  }
+  scored.sort(function(a,b){return b.sc-a.sc;});
+  var top=scored.slice(0,4);
+  if(!top.length){ box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:6px 2px;">No direct answer found \u2014 the matching sections below may help, or try another word (e.g. \u2018edge\u2019, \u2018stop\u2019, \u2018expectancy\u2019).</div>'; return; }
+  box.innerHTML='<div style="font:700 9px Inter;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:2px 0 4px;">Best answers</div>'+top.map(function(x,n){
+    return '<details class="hp-ans"'+(n===0?' open':'')+'><summary><span class="hp-ans-t">'+x.it.t+'</span><span class="hp-ans-src">'+x.it.src+'</span></summary><div class="hp-ans-b">'+x.it.html+'</div></details>';
+  }).join('');
+};
 window._helpFilter=function(q){
   q=(q||'').trim().toLowerCase();
+  try{ window._hpAnswer(q); }catch(e){}
   let n=0;
   document.querySelectorAll('#helpContent .hp-sec').forEach(el=>{
     const hit=!q||el.textContent.toLowerCase().indexOf(q)>=0;
