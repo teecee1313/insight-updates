@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-431-open';
+const APP_VERSION='2026.07.27-432-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16216,11 +16216,17 @@ function _scStats(ser,pf,end){
   var du=0,dv=0,i;
   for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c)du++; else break; }
   for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*avgV30)dv++; else break; }
-  st.du=du; st.streak=Math.max(du,dv);
-  var acc=0, s0=Math.max(1,end-9);
-  for(i=s0;i<=end;i++){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*avgV30)acc++; }
+  // baseline for "heavy volume" comes from BEFORE the 10-day window — same as the
+  // app's accumDays() — so a run of heavy days cannot raise its own bar (v432 fix)
+  var s0=Math.max(1,end-9), pre=s0, baseAcc=(pre>=5)?(pf.V[pre]/pre):avgV30;
+  if(!(baseAcc>0))baseAcc=avgV30;
+  var dvb=0; for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*baseAcc)dvb++; else break; }
+  dv=Math.max(dv,dvb);
+  st.du=du; st.streak=Math.max(du,dv); st.baseAcc=baseAcc;
+  var acc=0;
+  for(i=s0;i<=end;i++){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*baseAcc)acc++; }
   st.acc=acc;
-  st.score=Math.round(Math.min(10,Math.min(7,acc*0.7)+Math.min(1.5,du*0.4)+Math.min(1,st.streak>du?0:0)+Math.min(1,(function(){var vr=0;for(i=end;i>=0;i--){if(ser[i].v>avgV30)vr++;else break;}return vr;})()*0.3)+(st.chg>0?Math.min(0.5,st.chg/10):0))*10)/10;
+  st.score=Math.round(Math.min(10,Math.min(7,acc*0.7)+Math.min(1.5,du*0.4)+Math.min(1,(function(){var vr=0;for(i=end;i>=0;i--){if(ser[i].v>avgV30)vr++;else break;}return vr;})()*0.3)+(st.chg>0?Math.min(0.5,st.chg/10):0))*10)/10;
   st.d10=(end>=10&&ser[end-10].c>0)?((c-ser[end-10].c)/ser[end-10].c)*100:null;
   st.d2=(end>=2&&ser[end-2].c>0)?((c-ser[end-2].c)/ser[end-2].c)*100:null;
   return st;
@@ -16235,7 +16241,9 @@ var _SCAN_RULES=[
   {k:'pull',  n:'🪜 Pullback in Uptrend', t:function(s){ return s.ma20!=null&&s.ma50!=null&&s.c>s.ma50&&s.ma20>s.ma50&&s.c<=s.ma20*1.03&&s.c>=s.ma20*0.94&&s.rsi<60; }},
   {k:'strong',n:'🧱 Strong Trends', t:function(s){ return s.ma200!=null&&s.c>s.ma20&&s.ma20>s.ma50&&s.ma50>s.ma200; }},
   {k:'accum', n:'💎 Heavy Accumulation (6+/10)', t:function(s){ return s.acc>=6; }},
-  {k:'hiscore',n:'⭐ Watch Score 7+', t:function(s){ return s.score>=7; }}
+  {k:'hiscore',n:'⭐ Watch Score 7+', t:function(s){ return s.score>=7; }},
+  {k:'score6', n:'⭐ Watch Score 6+', t:function(s){ return s.score>=6; }},
+  {k:'score5', n:'⭐ Watch Score 5+', t:function(s){ return s.score>=5; }}
 ];
 async function _scReplay(){
   var shares=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=30;});
@@ -16301,7 +16309,7 @@ function allScansCard(){
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
   if(window._scCache&&window._scCache.ex===currentExch&&window._scCache.d===dd&&window._scCache.R){ return _renderSCCard(window._scCache.R); }
   if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — this report replays your <b>saved history</b>.</div>','🧪 All scans — which ones actually work?'); }catch(e){} return; }
-  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every scan…</b><br>re-running all eleven scan rules over every stored day and following each qualifier forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🧪 All scans — which ones actually work?'); }catch(e){}
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every scan…</b><br>re-running every scan rule over every stored day and following each qualifier forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🧪 All scans — which ones actually work?'); }catch(e){}
   _scReplay().then(function(R){
     if(R){ window._scCache={ex:currentExch,d:dd,R:R}; }
     var m=document.getElementById('appModal');
