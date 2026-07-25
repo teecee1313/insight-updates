@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.26-411-open';
+const APP_VERSION='2026.07.26-412-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7576,6 +7576,8 @@ function _pfRowMenu(id,ev,hex){
 function showPortfolio(exSel){
   try{document.body.classList.toggle('pf-hideprofit',_pfHideProfit());}catch(e){}
   if(exSel)window._pfExSel=exSel;
+  else if(window._pfExSel==null&&currentExch)window._pfExSel=String(currentExch).toUpperCase(); // v412: first open lands on the exchange you're trading — its own separate account
+  try{_pfStraySweep();}catch(e){} // v412: rehome any items stuck in the wrong exchange's account
   updatePaperPrices();
   // v364: while the bulk "download everything" run is going, DON'T also kick the
   // per-holding target/limit engines — their per-share live fetches queue behind
@@ -7752,7 +7754,7 @@ function showPortfolio(exSel){
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
         <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br>${o.exchange&&o.exchange!==(currentExch||'ASX')?`<span style="font-size:8px;color:var(--dim);" title="Each exchange has its own practice account — load ${o.exchange} (top selector) to change or cancel this order.">load ${o.exchange} to manage</span>`:`${!o.market?`<a href="#" onclick="paperEditOrderLimit('${o.id}');return false;" style="font-size:9px;color:var(--gold);margin-right:9px;">✎ price</a>`:''}<a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a>`}</div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:8px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;">✕ cancel</button></div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
@@ -15245,6 +15247,46 @@ window.toggleLessons=function(){
   // v411: keep ✕ and ⛶ glued to the visible top corner while the lesson scrolls
   if(opening&&!p._pinInit){ p._pinInit=1; p.addEventListener('scroll',_lsnPinSync); }
   _lsnPinSync();
+};
+// v412: pre-split builds (and stale cached phones) wrote NYSE items into the shared
+// base store. The one-shot v408 migration only ran once, so anything written after
+// it stayed stranded — THE "ASX and NYSE crossed over" confusion. This sweep is
+// cheap and idempotent: every portfolio open, move any foreign-exchange items out
+// of the base store into their own exchange's account, then rebuild both cash
+// balances from their own ledgers so each account stays self-consistent.
+window._pfStraySweep=function(){
+  ['main','auto'].forEach(function(acct){
+    try{
+      var baseKey=_pfKey(acct,'ASX');
+      var raw=localStorage.getItem(baseKey); if(!raw)return;
+      var L=JSON.parse(raw); if(!L||typeof L!=='object')return;
+      var foreign={};
+      ['holdings','orders','history','dividends'].forEach(function(list){
+        (L[list]||[]).forEach(function(x){ var e=x&&x.exchange; if(e&&e!=='ASX')(foreign[e]=foreign[e]||{})[list]=1; });
+      });
+      var exs=Object.keys(foreign); if(!exs.length)return;
+      exs.forEach(function(ex){
+        var N=_paper(acct,ex);
+        var moved=false;
+        ['holdings','orders','history','dividends'].forEach(function(list){
+          var keep=[],mv=[];
+          (L[list]||[]).forEach(function(x){ if(x&&x.exchange===ex)mv.push(x); else keep.push(x); });
+          if(!mv.length)return;
+          moved=true; L[list]=keep;
+          N[list]=N[list]||[];
+          var seen={};
+          N[list].forEach(function(x){ if(x&&x.id)seen[x.id]=1; });
+          mv.forEach(function(x){
+            if(x&&x.id&&seen[x.id])return; // already there
+            if(list==='history'&&N.history.some(function(t){return t.ticker===x.ticker&&t.sellDate===x.sellDate&&t.buyDate===x.buyDate&&t.qty===x.qty;}))return;
+            N[list].push(x);
+          });
+        });
+        if(moved){ delete N.cash; _ensureCash(N); _paperSave(N,acct,ex); }
+      });
+      delete L.cash; _ensureCash(L); _paperSave(L,acct,'ASX');
+    }catch(e){}
+  });
 };
 window._lsnPinSync=function(){ try{ var p=document.getElementById('lessonPanel'); if(!p)return; var t=(p.scrollTop+10)+'px'; p.querySelectorAll('.hp-close,.hp-fs').forEach(function(b){ b.style.top=t; }); }catch(e){} };
 // v409: ⛶ full-screen lessons — the panel takes the whole window (and asks the
