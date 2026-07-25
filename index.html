@@ -326,6 +326,17 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
 .radar-label{display:flex;align-items:center;gap:5px;font:800 11px var(--sans);color:var(--gold);letter-spacing:.3px;white-space:nowrap;cursor:default;}
 .radar-label .rl-sub{font-weight:500;font-size:8px;color:var(--dim);letter-spacing:0;}
+.hbadge.ex-ASX{border-color:#FFD200;color:#FFD200;}
+.hbadge.ex-NYSE{border-color:#58a6ff;color:#58a6ff;}
+.hbadge.ex-NASDAQ{border-color:#58a6ff;color:#58a6ff;}
+#radarMoreBtn{margin-left:8px;padding:2px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;}
+.radar-grp{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:9px;padding:3px 8px 3px 4px;margin:3px 6px 3px 0;background:rgba(255,255,255,.015);vertical-align:middle;}
+.radar-grp .rg-l{writing-mode:vertical-rl;transform:rotate(180deg);font:700 8px var(--sans);letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-right:2px;}
+.radar-grp .rg-t{display:flex;flex-wrap:wrap;align-items:center;}
+.stats.r-less .radar-grp.rg-more{display:none;}
+.stats.r-less #radarMoreBtn{color:var(--gold);border-color:var(--gold);}
+.row-more{padding:2px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;line-height:1.3;}
+.row-more:hover{border-color:var(--gold);color:var(--gold);}
 body.stat-over-modal .stats{z-index:2100;}
 body.stat-over-modal #appModal{align-items:flex-start!important;}
 body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-height:calc(96vh - var(--soModalTop,150px))!important;}
@@ -1341,48 +1352,11 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 
 <div class="right">
   <div class="stats" id="statsBar" style="display:none">
-    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column. A data summary, not advice."><div class="sv gold" id="sS7">0</div><div class="sl">Score 7+</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('floor')" title="In the bottom 10% of its trading-range window — near its floor. A floor can hold or break: research, not a buy signal."><div class="sv" id="sFloor">0</div><div class="sl">Near Floor</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div>
-    <div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover (volume over 30k and at least 1.5× its average). An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div>
-    <div class="sdiv"></div>
-    <div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div>
+    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button></div>
+    <div class="radar-grp"><div class="rg-l">Market</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div><div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div><div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div><div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column. A data summary, not advice."><div class="sv gold" id="sS7">0</div><div class="sl">Score 7+</div></div></div></div>
+    <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div></div></div>
+    <div class="radar-grp rg-more"><div class="rg-l">Trend</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div><div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div><div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div><div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div><div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div><div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div><div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover (volume over 30k and at least 1.5× its average). An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div><div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div></div></div>
+    <div class="radar-grp rg-more"><div class="rg-l">⚠ Caution</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div><div class="stat statclick" onclick="statFilter('floor')" title="In the bottom 10% of its trading-range window — near its floor. A floor can hold or break: research, not a buy signal."><div class="sv" id="sFloor">0</div><div class="sl">Near Floor</div></div><div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div></div></div>
   </div>
 
   <div id="activeScanBanner"></div>
@@ -1411,10 +1385,10 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <button id="watchToggle" onclick="toggleWatchView()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(210,153,34,.12);color:var(--gold);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">★ Watchlist (0)</button>
     <button onclick="openWatchManager()" title="Manage watchlists" style="padding:7px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(210,153,34,.06);color:var(--gold);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">⚙ Lists</button>
     <button id="newsFilterBtn" data-assetgroup onclick="cycleNewsFilter()" title="Filter the report by likely price-sensitive news in the last 5 days (estimate from price/volume action — verify via the ↗ links)" style="padding:7px 12px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.1);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">📰 Filter by news (5d)</button>
-    <button id="rateSelBtn" onclick="rateSelected()" title="Score the selected shares out of 10 — the same accumulation-weighted watch score as Top 20 and the ⭐ Score column. A data summary, not advice." style="padding:7px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.1);color:var(--gold);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">⭐ Rate selected (0)</button>
+    <button id="rateSelBtn" onclick="rateSelected()" title="Score the selected shares out of 10 — the same accumulation-weighted watch score as Top 20 and the ⭐ Score column. A data summary, not advice." style="display:none;padding:7px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.1);color:var(--gold);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">⭐ Rate selected (0)</button>
     <button id="clearSelBtn" onclick="clearSelections()" title="Clear all ticked selections" style="display:none;padding:7px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">✕ Clear (0)</button>
-    <button id="verifySelBtn" onclick="verifySelected()" title="Open the official announcements page for every share you've ticked — confirm the real filings" style="padding:7px 12px;border-radius:6px;border:1px solid var(--purple);background:rgba(188,140,255,.12);color:var(--purple);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">📄 Verify selected (0)</button>
-    <button id="printSelBtn" onclick="printPDF('selected')" style="padding:7px 12px;border-radius:6px;border:1px solid var(--blue);background:rgba(56,139,253,.12);color:var(--blue);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">🖨 Print selected (0)</button>
+    <button id="verifySelBtn" onclick="verifySelected()" title="Open the official announcements page for every share you've ticked — confirm the real filings" style="display:none;padding:7px 12px;border-radius:6px;border:1px solid var(--purple);background:rgba(188,140,255,.12);color:var(--purple);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">📄 Verify selected (0)</button>
+    <button id="printSelBtn" onclick="printPDF('selected')" style="display:none;padding:7px 12px;border-radius:6px;border:1px solid var(--blue);background:rgba(56,139,253,.12);color:var(--blue);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">🖨 Print selected (0)</button>
     <button onclick="printPDF('all')" style="padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">🖨 Print all shown</button>
     <button onclick="exportOfflineData()" title="Export this device's saved market data to a file — a quick backup, to move it to another device, or to send for analysis. On desktop it saves straight to your Downloads." style="padding:7px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:600 11px var(--sans);cursor:pointer;white-space:nowrap;">⬆ Export data</button>
     <div style="position:relative;display:inline-block;">
@@ -1503,7 +1477,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.26-412-open';
+const APP_VERSION='2026.07.26-413-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2705,6 +2679,10 @@ const LICENCE_ENABLED=true;   // master switch in code (leave true; use dev togg
 const UPDATE_CHECK_URL='https://teecee1313.github.io/insight-updates/update.json'; // teecee1313's GitHub Pages
 function _verNum(v){const m=String(v||'').match(/(\d{4})\.(\d{2})\.(\d{2})-(\d+)/);return m?((+m[1])*1e8+(+m[2])*1e6+(+m[3])*1e4+(+m[4])):0;}
 function _updEsc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+// v413: one tap = fetch the fresh copy past every cache and reload — ends the
+// stale-phone problem (devices quietly showing last week's app).
+window._updApply=function(){ try{ location.replace(location.pathname+'?u='+Date.now()); }catch(e){ location.reload(); } };
+(function(){ try{ if(/(^|[?&])u=\d/.test(location.search))history.replaceState(null,'',location.pathname); }catch(e){} })();
 function showUpdateToast(info){
   if(document.getElementById('updToast'))return;
   const d=document.createElement('div');
@@ -2712,7 +2690,7 @@ function showUpdateToast(info){
   d.style.cssText='position:fixed;left:14px;bottom:14px;z-index:9000;background:#0d1b33;border:1px solid #FFD200;border-radius:10px;padding:12px 30px 12px 14px;max-width:300px;box-shadow:0 8px 26px rgba(0,0,0,.45);font:600 11px system-ui,sans-serif;color:#eef3fb;';
   d.innerHTML='🔄 <b style="color:#FFD200">Update available</b> — version '+_updEsc(info.version)
     +'<div style="font-weight:400;color:#8fa6c9;font-size:10px;margin:4px 0 8px;line-height:1.4;">'+_updEsc((info.notes||'').slice(0,140))+'</div>'
-    +(info.url?('<a href="'+_safeUrl(info.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:6px 12px;border:1px solid #FFD200;border-radius:6px;color:#FFD200;text-decoration:none;">⬇ Get the new version</a>'):'<span style="font-weight:400;color:#8fa6c9;">Contact your seller for the new file.</span>')
+    +'<button onclick="_updApply()" style="display:inline-block;padding:7px 14px;border:1px solid #FFD200;border-radius:6px;background:rgba(255,210,0,.12);color:#FFD200;font:700 11px system-ui,sans-serif;cursor:pointer;">⟳ Update now</button>'
     +'<span id="updToastX" style="position:absolute;top:6px;right:9px;cursor:pointer;color:#8fa6c9;font-size:13px;">✕</span>';
   document.body.appendChild(d);
   const x=document.getElementById('updToastX');
@@ -4242,7 +4220,7 @@ function renderRows(rows){
 <td><div class="tick-wrap">
   <a href="${tu}" target="_blank" class="tick-link"><span class="tick-code">${s.ticker}</span><span style="font-size:9px;color:var(--dim)">↗</span></a>
   <span class="tick-name" title="${s.name}">${s.name}</span>
-  <div class="tick-links"><a href="#" onclick="deepDive('${s.ticker}');return false;" style="color:#c88bff;font-weight:600;" title="Everything about ${s.ticker} — signals, technicals, news & announcements in one panel">🔬 Deep dive</a><a href="#" onclick="showChart('${s.ticker}');return false;" style="color:var(--gold);">📈 Chart</a><a href="#" onclick="showShareDetail('${s.ticker}');return false;" style="color:var(--gold);">📊 History</a><a href="${nu}" target="_blank">📢 Announcements ↗</a><a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:#e0a0ff;" title="One-page printable report for ${s.ticker}">🖨 Report</a><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);">💼 Buy</a><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
+  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a><button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
@@ -7246,9 +7224,10 @@ function refreshPortfolioBtn(){
   const pl=acct+(p.wdProfit||0)-SC, plp=(pl/SC)*100; // v366: profit you withdrew still counts as profit you made
   const bad=paperBalanceInconsistent();
   const c=bad?'var(--orange)':pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
+  const _cs=(typeof EXCH_CUR!=='undefined'&&EXCH_CUR[String(currentExch||'ASX').toUpperCase()]==='USD')?'US$':'A$'; // v413: say WHICH account the number is
   b.innerHTML=bad
-    ?`💼 ${acct>=1000?(acct/1000).toFixed(1)+'k':acct.toFixed(0)} <span style="color:var(--orange)" title="Return % unreliable — open the portfolio and click Fix balance">⚠ fix %</span>`
-    :`💼 ${acct>=1000?(acct/1000).toFixed(1)+'k':acct.toFixed(0)} <span style="color:${c}">${plp>=0?'+':''}${plp.toFixed(1)}%</span>`;
+    ?`💼 ${_cs}${acct>=1000?(acct/1000).toFixed(1)+'k':acct.toFixed(0)} <span style="color:var(--orange)" title="Return % unreliable — open the portfolio and click Fix balance">⚠ fix %</span>`
+    :`💼 ${_cs}${acct>=1000?(acct/1000).toFixed(1)+'k':acct.toFixed(0)} <span style="color:${c}">${plp>=0?'+':''}${plp.toFixed(1)}%</span>`;
   b.style.borderColor=c;
 }
 
@@ -7929,6 +7908,8 @@ function updateSelBtn(){
   const rt=document.getElementById('rateSelBtn');
   if(rt)rt.innerHTML=`⭐ Rate selected (${selected.size})`;
   const cl=document.getElementById('clearSelBtn');
+  // v413: selection actions appear only while something is ticked — a whole row of chrome disappears when idle
+  try{ const _sd=selected.size?'inline-block':'none'; ['rateSelBtn','verifySelBtn','printSelBtn'].forEach(function(id){ const el=document.getElementById(id); if(el)el.style.display=_sd; }); }catch(e){}
   if(cl){cl.innerHTML=`✕ Clear (${selected.size})`;cl.style.display=selected.size?'inline-block':'none';}
 }
 // Clear all ticked selections at once.
@@ -8941,6 +8922,38 @@ function _isBearish(s){
   const nearLow=(s.chgPct<0 && s.rangePos!=null && s.rangePos<=10); // sinking near its floor
   return downVol||distribution||downRun||nearLow;
 }
+// v413: one ⋯ menu per row instead of five repeated links — same actions, calmer rows.
+window._rowMenu=function(t,ev){
+  try{ev.preventDefault();ev.stopPropagation();}catch(e){}
+  var old=document.getElementById('rowMenuPop'); var was=old&&old.dataset.t===t; if(old)old.remove(); if(was)return;
+  var s=(allData||[]).find(function(x){return x.ticker===t;}); if(!s)return;
+  var nu=''; try{ nu=newsUrlFor(s.ticker,s.exchange); }catch(e){}
+  var m=document.createElement('div'); m.id='rowMenuPop'; m.dataset.t=t;
+  m.style.cssText='position:fixed;z-index:9500;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:190px;overflow:hidden;';
+  function it(html,fn,last){var b=document.createElement('button');b.style.cssText='display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font:600 12px var(--sans);cursor:pointer;'+(last?'':'border-bottom:1px solid var(--border);');b.innerHTML=html;b.onclick=function(){m.remove();fn();};m.appendChild(b);}
+  it('🔬 Deep dive <span style="font-weight:400;color:var(--dim);font-size:9px;">everything about '+t+'</span>',function(){deepDive(t);});
+  it('📈 Chart',function(){showChart(t);});
+  it('📊 History',function(){showShareDetail(t);});
+  if(nu)it('📢 Announcements ↗',function(){window.open(nu,'_blank','noopener');});
+  it('🖨 Report',function(){printShareReport(t);},true);
+  document.body.appendChild(m);
+  var r=m.getBoundingClientRect(), x=Math.min((ev.clientX||60),innerWidth-r.width-8), y=Math.min((ev.clientY||60),innerHeight-r.height-8);
+  m.style.left=Math.max(6,x)+'px'; m.style.top=Math.max(6,y)+'px';
+  setTimeout(function(){document.addEventListener('click',function(){var mm=document.getElementById('rowMenuPop'); if(mm)mm.remove();},{once:true});},0);
+};
+// v413: radar detail toggle — the four headline numbers always show; the detail
+// groups fold away (remembered per device; starts folded on small screens).
+window._radarMore=function(){
+  var el=document.getElementById('statsBar'); if(!el)return;
+  var less=el.classList.toggle('r-less');
+  try{ localStorage.setItem('asxScreener.radarLess.v1',less?'1':'0'); }catch(e){}
+  var b=document.getElementById('radarMoreBtn'); if(b)b.textContent=less?'▸ details':'▾ details';
+};
+(function(){ try{
+  var pref=localStorage.getItem('asxScreener.radarLess.v1');
+  var less=(pref==null)?(innerWidth<760):(pref==='1');
+  if(less){ var el=document.getElementById('statsBar'); if(el){ el.classList.add('r-less'); var b=document.getElementById('radarMoreBtn'); if(b)b.textContent='▸ details'; } }
+}catch(e){} })();
 function statsBar(){
   const d=watchViewOn?(window._watchShown||Object.values(curWL())):filtered;
   // v295: one pass over the list instead of ~15 separate sweeps — identical numbers.
@@ -13205,7 +13218,9 @@ Output the complete array. Start with [`;
   {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · <span title="End-of-day closing prices from the last completed trading session — NOT real-time. Fetched just now from the internet (not your saved data).">${via==='ai-proxy'?'<span style="color:var(--orange)">end-of-day · AI relay</span>':(via==='quote-list'?'end-of-day · quote list':'end-of-day')}</span>${(window._dlTypeDropped>0)?` · <span style="color:var(--dim)" title="Your load-type chips (Setup ▸ What to load from the API) are skipping these security types — tick more chips there to load everything">${window._dlTypeDropped.toLocaleString()} skipped by type</span>`:''}`; _n.style.display='inline-block';}}
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
-  document.getElementById('exchBadge').textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
+  const _eb=document.getElementById('exchBadge');
+  _eb.textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
+  _eb.className='hbadge ex-'+String(exch).toUpperCase(); // v413: each exchange wears its own colour everywhere
   btn.disabled=false;spEl.style.display='none';lbl.textContent='⚡ Refresh';
   statusEl.textContent=`✓ ${results.length.toLocaleString()} stocks loaded from ${exch}`;
   setTimeout(()=>{ try{ // v239: watchdog — if nothing prepared and nothing is running 25s after a load, kick preparation (any dropped-ball path lands here)
