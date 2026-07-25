@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.25-410-open';
+const APP_VERSION='2026.07.26-411-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7595,8 +7595,11 @@ function showPortfolio(exSel){
     <button onclick="_pfSwitch('auto')" style="padding:6px 12px;border-radius:6px;border:1px solid ${_isAuto?'var(--gold)':'var(--border)'};background:${_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${_isAuto?'var(--gold)':'var(--muted)'};font:700 11px var(--sans);cursor:pointer;">🤖 Auto-pilot · $50k test</button>
     ${_isAuto?`<span style="font-size:9px;color:var(--dim);line-height:1.4;">the bot trades THIS account — sells/undo here act on it; buys from the table still go to 👤. The 📊 Scoreboard grades this account.</span>`:''}
   </div>`;
-  // Exchange tabs from whatever exchanges appear in holdings/history.
-  const exs=[...new Set([...(p.holdings||[]),...(p.history||[])].map(x=>x.exchange).filter(Boolean))].sort();
+  // Exchange tabs: every exchange with its own account (registered stores), PLUS
+  // the exchange currently loaded in the screener — so the moment you load NYSE
+  // you can open its separate account (fresh US practice cash), even before the
+  // first trade — plus anything present in the rows being shown. (v411)
+  const exs=[...new Set([].concat(typeof _pfExchsKnown==='function'?_pfExchsKnown():['ASX']).concat(currentExch?[String(currentExch).toUpperCase()]:[]).concat([...(p.holdings||[]),...(p.history||[])].map(x=>x.exchange).filter(Boolean)))].sort();
   const tabs=['ALL',...exs].map(e=>`<button onclick="showPortfolio('${e}')" style="padding:4px 10px;border-radius:5px;border:1px solid ${e===ex?'var(--gold)':'var(--border)'};background:${e===ex?'rgba(255,210,0,.15)':'var(--bg3)'};color:${e===ex?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;">${e==='ALL'?'All':e}</button>`).join('');
   // v348: sort holdings per the user's pick (default: biggest % gain first)
   const _pfSort=window._pfSort||'plpct';
@@ -14924,11 +14927,11 @@ body.training-on [data-train]{position:relative;outline:1px dashed rgba(147,51,2
 #helpPanel.dragged{transition:none;}
 #lessonPanel{position:fixed;right:0;top:34px;bottom:0;width:360px;max-width:92vw;background:#0a1526;border-left:2px solid #FFD200;z-index:392;overflow-y:auto;padding:18px 18px 40px;transform:translateX(380px);transition:transform .25s;box-shadow:-8px 0 30px rgba(0,0,0,.4);}
 #lessonPanel.open{transform:translateX(0);}
-#lessonPanel.fs{width:100vw!important;max-width:100vw!important;left:0!important;top:0!important;right:0!important;bottom:0!important;transform:none!important;transition:none;border-left:none;padding:26px clamp(16px,8vw,140px) 60px;z-index:399;}
-#lessonPanel .hp-fs{position:absolute;top:12px;right:44px;background:none;border:none;color:#8fa6c9;font-size:16px;cursor:pointer;}
+#lessonPanel.fs{width:100vw!important;max-width:100vw!important;left:0!important;top:0!important;right:0!important;bottom:0!important;transform:none!important;transition:none;border-left:none;padding:26px clamp(16px,8vw,140px) 60px;z-index:100002;} /* v411: above the training banner so ✕/⛶ stay clickable */
+#lessonPanel .hp-fs{position:absolute;top:10px;right:48px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#0d1b33;border:1px solid #2a3b5c;border-radius:7px;color:#8fa6c9;font-size:15px;cursor:pointer;z-index:5;} /* v411 */
 #lessonPanel .hp-fs:hover{color:#FFD200;}
 #lessonPanel h3{font:700 15px 'Space Grotesk';color:#FFD200;margin:0 0 10px;}
-#lessonPanel .hp-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#8fa6c9;font-size:18px;cursor:pointer;}
+#lessonPanel .hp-close{position:absolute;top:10px;right:12px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#0d1b33;border:1px solid #2a3b5c;border-radius:7px;color:#8fa6c9;font-size:16px;cursor:pointer;z-index:5;} /* v411: fixed-in-panel — never scrolls out of reach */
 #lessonToggle{position:fixed;top:34px;right:132px;z-index:391;background:#0d1b33;border:1px solid #FFD200;color:#FFD200;border-radius:0 0 8px 8px;padding:5px 10px;font:600 11px 'Space Grotesk';cursor:pointer;display:none;}
 body.training-on #lessonToggle{display:block;}
 #lessonNav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
@@ -14939,7 +14942,7 @@ body.training-on #lessonToggle{display:block;}
 .lsn-prog-t b{color:#FFD200;}
 .lsn-tab.done{border-color:#3fb950;color:#3fb950;}
 .lsn-cert-btn{display:block;width:100%;margin:6px 0 2px;padding:8px;border-radius:8px;border:1px solid #FFD200;background:rgba(246,201,21,.12);color:#FFD200;font:700 12px 'Space Grotesk';cursor:pointer;}
-#certOverlay{position:fixed;inset:0;z-index:9999;background:rgba(4,10,20,.92);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;}
+#certOverlay{position:fixed;inset:0;z-index:100003;background:rgba(4,10,20,.92);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;}
 .cert-sheet{background:#fffdf5;color:#1a2438;max-width:760px;width:100%;border:10px double #c9a50a;border-radius:6px;padding:44px 50px;text-align:center;font-family:Georgia,'Times New Roman',serif;box-shadow:0 20px 60px rgba(0,0,0,.5);}
 .cert-sheet .c-app{font:700 13px 'Space Grotesk',sans-serif;letter-spacing:3px;color:#c9a50a;text-transform:uppercase;}
 .cert-sheet h1{font-size:30px;margin:10px 0 2px;color:#1a2438;}
@@ -15239,7 +15242,11 @@ window.toggleLessons=function(){
   p.classList.toggle('open');
   if(!opening){ try{ p.classList.remove('fs'); if(document.fullscreenElement)document.exitFullscreen().catch(function(){}); }catch(e){} } // v409: closing the panel always leaves full-screen
   if(opening){ _makePanelDraggable('lessonPanel','lessonDrag'); renderLesson(_curLesson); }
+  // v411: keep ✕ and ⛶ glued to the visible top corner while the lesson scrolls
+  if(opening&&!p._pinInit){ p._pinInit=1; p.addEventListener('scroll',_lsnPinSync); }
+  _lsnPinSync();
 };
+window._lsnPinSync=function(){ try{ var p=document.getElementById('lessonPanel'); if(!p)return; var t=(p.scrollTop+10)+'px'; p.querySelectorAll('.hp-close,.hp-fs').forEach(function(b){ b.style.top=t; }); }catch(e){} };
 // v409: ⛶ full-screen lessons — the panel takes the whole window (and asks the
 // browser for true full-screen where allowed). Press ⛶ again, Esc, or close to shrink back.
 window.lessonFs=function(){
@@ -15250,6 +15257,7 @@ window.lessonFs=function(){
     if(on){ if(p.requestFullscreen)p.requestFullscreen().catch(function(){}); }
     else if(document.fullscreenElement){ document.exitFullscreen().catch(function(){}); }
   }catch(e){}
+  try{ _lsnPinSync(); }catch(e){} // v411: the mode switch reflows + clamps scroll without a scroll event
 };
 document.addEventListener('fullscreenchange',function(){ // Esc out of native full-screen → shrink the panel too
   try{ if(!document.fullscreenElement){ const p=document.getElementById('lessonPanel'); if(p)p.classList.remove('fs'); } }catch(e){}
@@ -15270,6 +15278,7 @@ window.renderLesson=function(i){
   body+='</div>';
   document.getElementById('lessonBody').innerHTML=body;
   document.getElementById('lessonBody').scrollTop=0;
+  try{ var _pp=document.getElementById('lessonPanel'); if(_pp)_pp.scrollTop=0; _lsnPinSync&&_lsnPinSync(); }catch(e){} // v411: new lesson starts at the top with pinned buttons
 };
 
 window.toggleTrainTips=function(){
