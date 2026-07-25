@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.25-408-open';
+const APP_VERSION='2026.07.25-409-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4762,6 +4762,23 @@ function _pfExchRegister(ex){
     const a=Array.isArray(l)?l:[]; if(a.indexOf(ex)<0){ a.push(ex); localStorage.setItem(PF_EXCHS_KEY,JSON.stringify(a)); }
   }catch(e){}
 }
+// v409: the portfolio tabs read PER-EXCHANGE accounts, but _paper() alone
+// defaults to the exchange whose market data is loaded — so a row shown in the
+// portfolio can live in a DIFFERENT store than _paper() returns. Every action
+// on an existing row (undo, sell, target, delete, cancel…) must therefore first
+// find the store its item actually lives in: viewed trading account first, then
+// the other, across ASX + every registered exchange.
+function _pfFindStore(test){
+  const a0=(window._pfCtx==='auto')?'auto':'main';
+  const accts=[a0,(a0==='auto')?'main':'auto'];
+  const exchs=_pfExchsKnown();
+  for(const a of accts){ for(const ex of exchs){
+    let pp=null,r=null;
+    try{ pp=_paper(a,ex); r=test(pp); }catch(e){}
+    if(r) return {p:pp,acct:a,exch:ex,hit:r};
+  } }
+  return null;
+}
 function _pfKey(acct,exch){
   const base=((acct||window._pfCtx)==='auto')?PAPER_STORE_AUTO:PAPER_STORE;
   const ex=_pfExch(exch);
@@ -4835,7 +4852,7 @@ function _paperRiskPrev(){
   el.innerHTML=html;
 }
 function paperAddDividend(id){
-  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p,lots=_fs.hit; // v409: act on the store this holding lives in
   const per=parseFloat((document.getElementById('divPerShare')||{}).value)||0;
   if(!(per>0)){alert('Enter the dividend amount per share (e.g. 0.055).');return;}
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
@@ -4845,7 +4862,7 @@ function paperAddDividend(id){
   p.cash=+((p.cash||0)+total).toFixed(2);
   p.dividends=p.dividends||[];
   p.dividends.unshift({ticker:tk,exchange:lots[0].exchange,currency:cur,date:_todayLocal(),perShare:per,qty:totQty,total});
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   closeModal();showPortfolio();
 }
 function brokerageFee(){try{const v=parseFloat(localStorage.getItem(BROKERAGE_STORE));return (isFinite(v)&&v>0)?v:0;}catch(e){return 0;}}
@@ -5957,11 +5974,10 @@ function undoSale(sellDate,ticker,buyDate){
     if(i<0){ // v368: no exact sell-date (it can drift); among same ticker+buy-date trades pick the CLOSEST sell-date so a part-sold lot can't match the wrong day
       let _b=-1,_bd=Infinity; for(let k=0;k<H.length;k++){ const t=H[k]; if(t&&t.ticker===ticker&&t.buyDate===buyDate){ const _d=Math.abs(new Date(t.sellDate||0)-new Date(sellDate||0)); if(_d<_bd){_bd=_d;_b=k;} } } i=_b;
     } return i; };
-  let _acct=window._pfCtx||'main';
-  let p=_paper(_acct);
-  let idx=_fT(p);
-  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=_fT(_pa); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
-  if(idx<0){alert('Could not find that trade to undo.');return;}
+  // v409: the trade can live in ANY exchange's account — search them all.
+  const _fs=_pfFindStore(pp=>{const i=_fT(pp);return i>=0?{i:i}:null});
+  if(!_fs){alert('Could not find that trade to undo.');return;}
+  const p=_fs.p; const idx=_fs.hit.i;
   const t=p.history[idx];
   // v363: SAFE undo. You can only take the sale's money back OUT of cash if it's still
   // there. If the proceeds were already reinvested, undoing would drive cash negative (the
@@ -6004,7 +6020,7 @@ function undoSale(sellDate,ticker,buyDate){
   }
   // remove the history entry
   p.history.splice(idx,1);
-  _paperSave(_paperPrune(p),_acct);
+  _paperSave(_paperPrune(p),_fs.acct,_fs.exch);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Undone — ${t.ticker} restored to your holdings and cash reversed.</span> Auto-sell is paused on it so a rule can't sell it straight back; set a 🎯 or 🛑 on it to hand it back to your rules.`;
   showPortfolio();
@@ -6013,24 +6029,30 @@ function undoSale(sellDate,ticker,buyDate){
 // confirm). Same per-trade restore as undoSale (return shares, reverse cash, clear
 // the holding's stop + guard it from re-firing today). Rules are left untouched.
 function _undoAllAutoSells(){
-  const p=_paper();
-  const autos=(p.history||[]).map((t,i)=>({t,i})).filter(x=>x.t&&x.t.auto);
-  if(!autos.length){ alert('There are no auto-sold trades to restore in this account.'); return; }
-  const total=autos.reduce((a,x)=>a+(x.t.proceeds||0),0);
-  const cur=(autos[0].t.currency)||'AUD';
-  if(!confirm(`Restore all ${autos.length} auto-sold position${autos.length>1?'s':''}?\n\nThis returns every auto-sold holding to your portfolio and reverses ${fmtP(total,cur)} of sale proceeds back out of your cash. Auto-sell is then PAUSED on each restored position so a rule can't sell it straight back — it stays put until you set a 🎯 target or 🛑 stop on it (which hands that one back to your rules). Your global rules are unchanged.`))return;
-  autos.sort((a,b)=>b.i-a.i); // splice highest index first so earlier indexes stay valid
+  // v409: auto-sold trades can sit in EVERY exchange's account — gather and restore across all of them.
+  const stores=_pfExchsKnown().map(function(ex){ const q=_paper(undefined,ex);
+    return {ex:ex,p:q,autos:(q.history||[]).map(function(t,i){return {t:t,i:i};}).filter(function(x){return x.t&&x.t.auto;})};
+  }).filter(function(s){return s.autos.length>0;});
+  if(!stores.length){ alert('There are no auto-sold trades to restore in this account.'); return; }
+  const nAll=stores.reduce(function(a,s){return a+s.autos.length;},0);
+  const total=stores.reduce(function(a,s){return a+s.autos.reduce(function(b,x){return b+(x.t.proceeds||0);},0);},0);
+  const cur=(stores[0].autos[0].t.currency)||'AUD';
+  if(!confirm(`Restore all ${nAll} auto-sold position${nAll>1?'s':''}?\n\nThis returns every auto-sold holding to your portfolio and reverses ${fmtP(total,cur)} of sale proceeds back out of your cash. Auto-sell is then PAUSED on each restored position so a rule can't sell it straight back — it stays put until you set a 🎯 target or 🛑 stop on it (which hands that one back to your rules). Your global rules are unchanged.`))return;
   let n=0;
-  autos.forEach(({t,i})=>{
-    p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
-    if(t.sellFee>0){ p.cash=+(p.cash+t.sellFee).toFixed(2); p.feesPaid=+(Math.max(0,(p.feesPaid||0)-t.sellFee)).toFixed(2); } // v366: refund the sell-side fee the undone sale charged
-    p.holdings=p.holdings||[];
-    const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
-    if(existing){ existing.invested=+(existing.invested+t.invested).toFixed(2); existing.qty=existing.qty+t.qty; existing.noAuto=true; existing.stop=0; }
-    else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,buyFee:(t.buyFee||0),lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,noAuto:true,tgtChecked:_todayLocal()}); }
-    p.history.splice(i,1); n++;
+  stores.forEach(function(s){
+    const p=s.p;
+    s.autos.sort(function(a,b){return b.i-a.i;}); // splice highest index first so earlier indexes stay valid
+    s.autos.forEach(function(x){ const t=x.t, i=x.i;
+      p.cash=+((p.cash||0)-(t.proceeds||0)).toFixed(2);
+      if(t.sellFee>0){ p.cash=+(p.cash+t.sellFee).toFixed(2); p.feesPaid=+(Math.max(0,(p.feesPaid||0)-t.sellFee)).toFixed(2); } // v366: refund the sell-side fee the undone sale charged
+      p.holdings=p.holdings||[];
+      const existing=p.holdings.find(h=>h.ticker===t.ticker&&h.exchange===t.exchange&&h.buyDate===t.buyDate&&h.buyPrice===t.buyPrice);
+      if(existing){ existing.invested=+(existing.invested+t.invested).toFixed(2); existing.qty=existing.qty+t.qty; existing.noAuto=true; existing.stop=0; }
+      else { p.holdings.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),ticker:t.ticker,exchange:t.exchange,name:t.name,currency:t.currency,qty:t.qty,buyPrice:t.buyPrice,buyDate:t.buyDate,invested:t.invested,buyFee:(t.buyFee||0),lastPrice:t.buyPrice,lastDate:t.buyDate,target:t.target||0,stop:0,note:t.note||null,noAuto:true,tgtChecked:_todayLocal()}); }
+      p.history.splice(i,1); n++;
+    });
+    _paperSave(_paperPrune(p),undefined,s.ex);
   });
-  _paperSave(_paperPrune(p));
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">↩ Restored ${n} auto-sold position${n>1?'s':''}; cash reversed.</span> Auto-sell is paused on each so a rule can't sell them straight back — set a 🎯/🛑 on one to hand it back to your rules.`;
   showPortfolio();
@@ -6666,19 +6688,19 @@ async function checkLimitOrders(acct){
 }
 // Cancel a pending limit order and refund the reserved cash.
 function paperCancelOrder(id){
-  const p=_paper();const o=(p.orders||[]).find(x=>x.id===id);if(!o)return;
+  const _fs=_pfFindStore(pp=>((pp.orders||[]).find(x=>x.id===id))||null);if(!_fs)return;const p=_fs.p,o=_fs.hit; // v409: act on the store this order lives in
   if(!confirm(`Cancel ${o.market?'market':'limit'} buy order: ${o.market?fmtP(o.amount||o.reserved,o.currency)+' of '+o.ticker+' at next open':o.qty+' '+o.ticker+' @ '+fmtP(o.limit,o.currency)}?\nThe reserved ${fmtP(o.reserved,o.currency)}${o.fee>0?' (and the $'+o.fee.toFixed(2)+' brokerage)':''} returns to cash.`))return;
   p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
   if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
   p.orders=p.orders.filter(x=>x.id!==id);
-  _paperSave(p);showPortfolio();
+  _paperSave(p,_fs.acct,_fs.exch);showPortfolio();
 }
 // v392: change the limit (buy) price of a PENDING limit order without cancelling.
 // Keeps the same share quantity and re-reserves cash for the new price — raising
 // the price reserves more (needs the cash), lowering it refunds the difference.
 // The trade ledger stays balanced (cash and reserved move by equal, opposite amounts).
 function paperEditOrderLimit(id){
-  const p=_paper();const o=(p.orders||[]).find(x=>x.id===id);if(!o)return;
+  const _fs=_pfFindStore(pp=>((pp.orders||[]).find(x=>x.id===id))||null);if(!_fs)return;const p=_fs.p,o=_fs.hit; // v409: act on the store this order lives in
   if(o.market){ alert('This is a market order — it fills at the next day’s open, so there’s no limit price to change. Cancel it and place a limit order if you want to set a price.'); return; }
   const cur=+o.limit||0;
   const v=prompt('✎ New limit (buy) price for '+o.qty+' '+o.ticker+'\n\nThe order fills only if the price falls to this. Current: '+fmtP(cur,o.currency)+'.\nSame number of shares — the reserved cash adjusts to the new price.\n\nEnter a new price (blank to keep).', cur?String(cur):'');
@@ -6693,13 +6715,13 @@ function paperEditOrderLimit(id){
   if(delta>0 && delta>(p.cash||0)+0.005){ alert('Raising the limit needs '+fmtP(delta,o.currency)+' more reserved, but you only have '+fmtP(p.cash||0,o.currency)+' cash. Lower the price, reduce the order, or add cash.'); return; }
   p.cash=+((p.cash||0)-delta).toFixed(2);   // delta>0 subtracts; delta<0 adds the refund back
   o.limit=np; o.reserved=newCost; o.checkedDate=_todayLocal();
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   const ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--green)">✎ '+o.ticker+' limit updated to '+fmtP(np,o.currency)+' — '+fmtP(newCost,o.currency)+' reserved'+(delta<0?' ('+fmtP(-delta,o.currency)+' returned to cash)':delta>0?' ('+fmtP(delta,o.currency)+' more reserved)':'')+'.</span>';
   showPortfolio();
 }
 // Set, change or clear a holding's auto-sell price target.
 function paperSetTarget(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
@@ -6717,7 +6739,7 @@ function paperSetTarget(id){
     if(!confirm('That target is at or below the current price — it will sell on the next check. Set it anyway?'))return;
   }
   lots.forEach(l=>{_logExit(l,'tgt',l.target!=null?l.target:null,price);l.target=price;delete l.noAuto;});
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 // Parse a value that may be a percent ("15%", "15 %") or an exact price.
@@ -6739,7 +6761,7 @@ function _parsePriceOrPct(v,base,dir){
 }
 // Set, change or clear a holding's stop-loss (intraday low check, like the target).
 function paperSetStop(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
@@ -6758,13 +6780,13 @@ function paperSetStop(id){
   }
   lots.forEach(l=>{_logExit(l,'stop',l.stop!=null?l.stop:null,price);l.stop=price;delete l.noAuto;
     if(price!=null&&price>0){ l.stopManual=true; l.stopSrc='manual'; delete l.trail; } else { delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; }}); // v352: a fixed stop clears any trailing stop // v351: a stop set here overrides the rules; clearing it hands the holding back to the rules
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 // v352: give ONE holding a trailing stop (opt-in). Your other shares are never auto-sold
 // unless you add a stop, a target, or a trailing stop like this.
 function paperTrail(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const cur=(lots.length===1&&+lots[0].trail>0)?+lots[0].trail:null;
@@ -6773,16 +6795,16 @@ function paperTrail(id){
   const v=prompt(`🪤 Trailing stop for ${lots[0].ticker}${cur?` — now ${cur}%`:''}${many}\n\nSells this holding if it falls this % below its highest close from here on — the stop only ever rises, never falls. Applies to THIS holding only; your other shares aren\u2019t auto-sold unless you add one.\n\nEnter a percent (e.g. 8). Leave blank to remove.`, def);
   if(v===null)return;
   const t=String(v).trim();
-  if(t===''){ lots.forEach(l=>{ delete l.trail; if(l.stopSrc==='trail'){ l.stop=0; delete l.stopSrc; delete l.peakClose; } }); _paperSave(p); showPortfolio(); return; }
+  if(t===''){ lots.forEach(l=>{ delete l.trail; if(l.stopSrc==='trail'){ l.stop=0; delete l.stopSrc; delete l.peakClose; } }); _paperSave(p,_fs.acct,_fs.exch); showPortfolio(); return; }
   const pct=parseFloat(t.replace('%',''));
   if(!(isFinite(pct)&&pct>0&&pct<90)){ alert('Enter a percent between 0 and 90 — for example 8.'); return; }
   lots.forEach(l=>{ l.trail=+pct; delete l.noAuto; delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; if(!(+l.peakClose>0))l.peakClose=Math.max(+l.buyPrice||0,+l.lastPrice||0); });
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 // Add, edit or clear the "why this trade" note on a holding.
 function paperSetNote(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const many=lots.length>1?` (applies to all ${lots.length} lots)`:'';
@@ -6791,7 +6813,7 @@ function paperSetNote(id){
   if(v===null)return;
   const note=_sanText(v,140)||null;
   lots.forEach(l=>{l.note=note;});
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 // ── Corporate-action / cleanup tool for a holding ────────────────────────────
@@ -6803,7 +6825,7 @@ function paperSetNote(id){
 //     basis) is preserved and P/L reads correctly again, OR
 //   • delete the holding completely (a clean way to reverse a buy you don't want).
 function paperAdjust(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const tk=lots[0].ticker, cur=lots[0].currency;
@@ -6848,7 +6870,7 @@ function paperAdjust(id){
 }
 // Live preview of what the ratio will do.
 function _adjPrev(id){
-  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p,lots=_fs.hit; // v409: act on the store this holding lives in
   const cur=lots[0].currency;
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
   const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
@@ -6865,7 +6887,7 @@ function _adjPrev(id){
 }
 // Apply the consolidation/split to every lot in the holding.
 function paperApplyRatio(id){
-  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p,lots=_fs.hit; // v409: act on the store this holding lives in
   const oldN=parseFloat((document.getElementById('adjOld')||{}).value)||0;
   const newN=parseFloat((document.getElementById('adjNew')||{}).value)||0;
   if(oldN<=0||newN<=0){alert('Enter a valid ratio — both sides must be 1 or more.');return;}
@@ -6891,12 +6913,12 @@ function paperApplyRatio(id){
     l.consolidatedAt=_todayLocal();
     l.note=((l.note?l.note+' · ':'')+`${oldN}→${newN} ${kind} applied`).slice(0,140);
   }
-  _paperSave(p);
+  _paperSave(p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 // Delete a holding entirely and refund the invested cash (reverse a buy).
 function paperDeleteHolding(id){
-  const p=_paper();const lots=_lotsFor(p,id);if(!lots.length)return;
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p,lots=_fs.hit; // v409: act on the store this holding lives in
   const tk=lots[0].ticker, cur=lots[0].currency;
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
   const totInv=lots.reduce((a,l)=>a+(l.invested!=null?l.invested:l.qty*l.buyPrice),0);
@@ -6904,12 +6926,12 @@ function paperDeleteHolding(id){
   const ids=new Set(lots.map(l=>l.id));
   p.holdings=(p.holdings||[]).filter(x=>!ids.has(x.id));
   p.cash=+((p.cash||0)+totInv).toFixed(2);     // refund the money that was tied up
-  _paperSave(_paperPrune?_paperPrune(p):p);
+  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 // One-click: sell the ENTIRE holding at the last close, no dialog.
 function paperSellMarket(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const tk=lots[0].ticker, cur=lots[0].currency, exch=lots[0].exchange, nm=lots[0].name;
@@ -6941,7 +6963,7 @@ function paperSellMarket(id){
   _chargeFee(p);
   const ids=new Set(lots.map(l=>l.id));
   p.holdings=p.holdings.filter(x=>!ids.has(x.id));
-  _paperSave(_paperPrune?_paperPrune(p):p);
+  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
   showPortfolio();
 }
 
@@ -6949,11 +6971,10 @@ function paperSellMarket(id){
 // ledger consistent and act ONLY on the account you're viewing — the 🤖 auto-pilot ($50k)
 // account is a separate store and is never touched.
 function paperDeleteHolding(id){
-  let _acct=window._pfCtx||'main';
-  let p=_paper(_acct);
-  let lots=_lotsFor(p,id);
-  if(!lots.length){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _la=_lotsFor(_pa,id); if(_la.length){ _acct=_alt; p=_pa; lots=_la; } }
-  if(!lots.length)return;
+  // v409: search every exchange's account for this holding.
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});
+  if(!_fs)return;
+  const p=_fs.p, lots=_fs.hit;
   const tk=lots[0].ticker, cur=lots[0].currency;
   const totQty=lots.reduce((a,l)=>a+(+l.qty||0),0);
   const totInv=lots.reduce((a,l)=>a+(l.invested!=null?+l.invested:(+l.qty||0)*(+l.buyPrice||0)),0);
@@ -6964,7 +6985,7 @@ function paperDeleteHolding(id){
   if(totBuyFee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-totBuyFee)).toFixed(2);
   const ids=new Set(lots.map(l=>l.id));
   p.holdings=(p.holdings||[]).filter(x=>!ids.has(x.id));
-  _paperSave(_paperPrune?_paperPrune(p):p,_acct);
+  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${tk} removed from holdings — ${fmtP(back,cur)} returned to cash, no sale recorded.</span>`;
   showPortfolio();
@@ -6977,17 +6998,16 @@ function paperDeleteTrade(sellDate,ticker,buyDate){
     if(i<0){ // v368: no exact sell-date (it can drift); among same ticker+buy-date trades pick the CLOSEST sell-date so a part-sold lot can't match the wrong day
       let _b=-1,_bd=Infinity; for(let k=0;k<H.length;k++){ const t=H[k]; if(t&&t.ticker===ticker&&t.buyDate===buyDate){ const _d=Math.abs(new Date(t.sellDate||0)-new Date(sellDate||0)); if(_d<_bd){_bd=_d;_b=k;} } } i=_b;
     } return i; };
-  let _acct=window._pfCtx||'main';
-  let p=_paper(_acct);
-  let idx=_fT(p);
-  if(idx<0){ const _alt=(_acct==='auto')?'main':'auto'; const _pa=_paper(_alt); const _ia=_fT(_pa); if(_ia>=0){ _acct=_alt; p=_pa; idx=_ia; } }
-  if(idx<0){alert('Could not find that trade to delete.');return;}
+  // v409: search every exchange's account for this trade.
+  const _fs=_pfFindStore(pp=>{const i=_fT(pp);return i>=0?{i:i}:null});
+  if(!_fs){alert('Could not find that trade to delete.');return;}
+  const p=_fs.p, idx=_fs.hit.i;
   const t=p.history[idx];
   if(!confirm(`🗑 Delete this closed ${t.ticker} trade from your history?\n\nSold ${(+t.qty||0).toLocaleString()} @ ${fmtP(t.sellPrice,t.currency)} on ${t.sellDate} · recorded P/L ${(+t.plAbs||0)>=0?'+':''}${(+t.plAbs||0).toFixed(2)}.\n\nRemoves the record and reverses that ${((+t.plAbs||0)>=0)?'profit':'loss'} from your cash so the balance stays consistent — for clearing a wrong or duplicate trade. Your 🤖 auto-pilot account is NOT affected.`))return;
   p.cash=+((p.cash||0)-(+t.plAbs||0)).toFixed(2);
   if(+t.fees>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-(+t.fees||0))).toFixed(2);
   p.history.splice(idx,1);
-  _paperSave(_paperPrune?_paperPrune(p):p,_acct);
+  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${t.ticker} trade deleted and the balance reconciled.</span>`;
   showPortfolio();
@@ -6996,7 +7016,7 @@ function paperDeleteTrade(sellDate,ticker,buyDate){
 // the lot: cost basis moves with the shares sold (qty × buy price), and the
 // remainder stays in the portfolio at the same buy price.
 function paperSell(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
   const tk=lots[0].ticker, cur=lots[0].currency;
@@ -7030,7 +7050,7 @@ function paperSell(id){
   },80);
 }
 function paperSellConfirm(id){
-  const p=_paper();
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);        // oldest-first; one lot for a plain id, all for a group
   if(!lots.length)return;
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
@@ -7067,7 +7087,7 @@ function paperSellConfirm(id){
   _chargeFee(p);
   const dropIds=new Set(lots.filter(l=>l._sellAll).map(l=>l.id));
   p.holdings=p.holdings.filter(x=>!dropIds.has(x.id));
-  _paperSave(_paperPrune(p));
+  _paperSave(_paperPrune(p),_fs.acct,_fs.exch);
   showPortfolio();
 }
 // Share the portfolio & trade history as plain text (clipboard or email).
@@ -14904,6 +14924,9 @@ body.training-on [data-train]{position:relative;outline:1px dashed rgba(147,51,2
 #helpPanel.dragged{transition:none;}
 #lessonPanel{position:fixed;right:0;top:34px;bottom:0;width:360px;max-width:92vw;background:#0a1526;border-left:2px solid #FFD200;z-index:392;overflow-y:auto;padding:18px 18px 40px;transform:translateX(380px);transition:transform .25s;box-shadow:-8px 0 30px rgba(0,0,0,.4);}
 #lessonPanel.open{transform:translateX(0);}
+#lessonPanel.fs{width:100vw!important;max-width:100vw!important;left:0!important;top:0!important;right:0!important;bottom:0!important;transform:none!important;transition:none;border-left:none;padding:26px clamp(16px,8vw,140px) 60px;z-index:399;}
+#lessonPanel .hp-fs{position:absolute;top:12px;right:44px;background:none;border:none;color:#8fa6c9;font-size:16px;cursor:pointer;}
+#lessonPanel .hp-fs:hover{color:#FFD200;}
 #lessonPanel h3{font:700 15px 'Space Grotesk';color:#FFD200;margin:0 0 10px;}
 #lessonPanel .hp-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#8fa6c9;font-size:18px;cursor:pointer;}
 #lessonToggle{position:fixed;top:34px;right:132px;z-index:391;background:#0d1b33;border:1px solid #FFD200;color:#FFD200;border-radius:0 0 8px 8px;padding:5px 10px;font:600 11px 'Space Grotesk';cursor:pointer;display:none;}
@@ -14952,6 +14975,7 @@ body.training-on #trainCoverage{display:block;}
 <div id="lessonPanel">
   <div class="panel-drag" id="lessonDrag" title="Drag to move this panel">⣿ drag to move</div>
   <button class="hp-close" onclick="toggleLessons()">✕</button>
+  <button class="hp-fs" onclick="lessonFs()" title="Full screen — give the lesson the whole window (press again or Esc to shrink back)">⛶</button>
   <h3>🎓 Insight Trading — Learn the app</h3>
   <div id="lessonNav"></div>
   <div id="lessonBody"></div>
@@ -15189,8 +15213,23 @@ window.toggleLessons=function(){
   const opening=!p.classList.contains('open');
   if(opening){ _redockPanel('lessonPanel'); }
   p.classList.toggle('open');
+  if(!opening){ try{ p.classList.remove('fs'); if(document.fullscreenElement)document.exitFullscreen().catch(function(){}); }catch(e){} } // v409: closing the panel always leaves full-screen
   if(opening){ _makePanelDraggable('lessonPanel','lessonDrag'); renderLesson(_curLesson); }
 };
+// v409: ⛶ full-screen lessons — the panel takes the whole window (and asks the
+// browser for true full-screen where allowed). Press ⛶ again, Esc, or close to shrink back.
+window.lessonFs=function(){
+  const p=document.getElementById('lessonPanel'); if(!p)return;
+  const on=!p.classList.contains('fs');
+  p.classList.toggle('fs',on);
+  try{
+    if(on){ if(p.requestFullscreen)p.requestFullscreen().catch(function(){}); }
+    else if(document.fullscreenElement){ document.exitFullscreen().catch(function(){}); }
+  }catch(e){}
+};
+document.addEventListener('fullscreenchange',function(){ // Esc out of native full-screen → shrink the panel too
+  try{ if(!document.fullscreenElement){ const p=document.getElementById('lessonPanel'); if(p)p.classList.remove('fs'); } }catch(e){}
+});
 window.renderLesson=function(i){
   _curLesson=i;
   const nav=document.getElementById('lessonNav');
