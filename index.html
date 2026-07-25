@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-407-open';
+const APP_VERSION='2026.07.25-408-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3081,7 +3081,18 @@ async function changeAppPassword(){
 // update, or under storage pressure), which would wipe the saved API key,
 // portfolio and watchlists. To prevent that, we mirror those critical values
 // into IndexedDB (much stickier) and auto-restore them if localStorage is empty.
-const _CRIT_KEYS=['asxScreener.apiKey','asxScreener.newsApiKey.v1','asxScreener.paperTrades.v1','asxScreener.paperTrades.auto.v1','asxScreener.watchlists.v1','asxScreener.brokerage.v1'];
+const _CRIT_BASE=['asxScreener.apiKey','asxScreener.newsApiKey.v1','asxScreener.paperTrades.v1','asxScreener.paperTrades.auto.v1','asxScreener.watchlists.v1','asxScreener.brokerage.v1'];
+// v408: each exchange's own practice accounts are critical too — include them
+// (and the exchange registry itself) so the IndexedDB safety mirror covers them.
+function _CRIT_KEYS_ALL(){
+  const out=_CRIT_BASE.slice();
+  try{ out.push('asxScreener.paperExchs.v1');
+    (JSON.parse(localStorage.getItem('asxScreener.paperExchs.v1')||'[]')||[]).forEach(ex=>{
+      if(ex&&ex!=='ASX'){ out.push('asxScreener.paperTrades.v1.'+ex); out.push('asxScreener.paperTrades.auto.v1.'+ex); }
+    });
+  }catch(e){}
+  return out;
+}
 function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
 // Does a stored JSON string hold ANY real content? An empty object {}, empty
 // array [], the default one-empty-list watchlist, or a holdings-less paper store
@@ -3108,7 +3119,7 @@ async function _readBackup(db,k){
 }
 async function _backupCritical(){
   try{const db=await _backupDB();if(!db)return;
-    for(const k of _CRIT_KEYS){
+    for(const k of _CRIT_KEYS_ALL()){
       try{
         const v=localStorage.getItem(k);
         if(v==null)continue;
@@ -3125,7 +3136,7 @@ async function _backupCritical(){
 }
 async function _restoreCriticalIfMissing(){
   try{const db=await _backupDB();if(!db)return false;let restored=false;
-    for(const k of _CRIT_KEYS){
+    for(const k of _CRIT_KEYS_ALL()){
       let cur=null;try{cur=localStorage.getItem(k);}catch(e){}
       // Restore when the current value is missing OR empty while the backup has
       // real content (the "empty watchlist reappears" recovery).
@@ -3144,7 +3155,7 @@ async function restoreFromBackup(){
     const db=await _backupDB();
     if(!db){alert('No backup store is available on this device.');return;}
     let msg=[];
-    for(const k of _CRIT_KEYS){
+    for(const k of _CRIT_KEYS_ALL()){
       const v=await _readBackup(db,k);
       const cur=localStorage.getItem(k);
       if(v!=null&&_critHasContent(k,v)&&!_critHasContent(k,cur)){
@@ -3170,7 +3181,7 @@ async function restoreFromBackup(){
 (function(){try{
   if(window._critWrapped)return; window._critWrapped=true;
   const _origSet=localStorage.setItem.bind(localStorage);
-  localStorage.setItem=function(k,v){ _origSet(k,v); if(_CRIT_KEYS.indexOf(k)>=0){ setTimeout(_backupCritical,50); } };
+  localStorage.setItem=function(k,v){ _origSet(k,v); if(_CRIT_KEYS_ALL().indexOf(k)>=0){ setTimeout(_backupCritical,50); } };
 }catch(e){}})();
 
 function initKeyLock(){
@@ -4734,7 +4745,28 @@ const PAPER_STORE='asxScreener.paperTrades.v1';
 const PAPER_STORE_AUTO='asxScreener.paperTrades.auto.v1';
 const AP_START_CASH=50000;
 window._pfCtx=window._pfCtx||'main'; // which account the UI is looking at
-function _pfKey(acct){ return ((acct||window._pfCtx)==='auto')?PAPER_STORE_AUTO:PAPER_STORE; }
+// v408: ONE practice account PER EXCHANGE. ASX keeps the original storage keys
+// (nobody's existing account moves); every other exchange gets its own store —
+// its own cash, its own history — so a NYSE buy (USD) can never draw from the
+// ASX (AUD) pot. First open of a non-ASX exchange migrates that exchange's old
+// records out of the shared store (see _pfSplitMigrate).
+const PF_EXCHS_KEY='asxScreener.paperExchs.v1';
+function _pfExch(exch){ const e=String(exch||currentExch||'ASX').toUpperCase(); return e||'ASX'; }
+function _pfExchsKnown(){
+  try{ const l=JSON.parse(localStorage.getItem(PF_EXCHS_KEY)||'[]');
+    const s=['ASX']; (Array.isArray(l)?l:[]).forEach(e=>{ if(e&&s.indexOf(e)<0)s.push(e); }); return s;
+  }catch(e){ return ['ASX']; }
+}
+function _pfExchRegister(ex){
+  try{ if(!ex||ex==='ASX')return; const l=JSON.parse(localStorage.getItem(PF_EXCHS_KEY)||'[]');
+    const a=Array.isArray(l)?l:[]; if(a.indexOf(ex)<0){ a.push(ex); localStorage.setItem(PF_EXCHS_KEY,JSON.stringify(a)); }
+  }catch(e){}
+}
+function _pfKey(acct,exch){
+  const base=((acct||window._pfCtx)==='auto')?PAPER_STORE_AUTO:PAPER_STORE;
+  const ex=_pfExch(exch);
+  return ex==='ASX'?base:base+'.'+ex;
+}
 window._pfSwitch=function(k){ window._pfCtx=(k==='auto')?'auto':'main'; try{updatePaperPrices();}catch(e){} try{showPortfolio(window._pfExSel||'ALL');}catch(e){} };
 // Run an account-aware engine for BOTH accounts, sequentially, without ever
 // flipping the global view context (async-safe: a user click mid-engine can
@@ -4968,7 +5000,7 @@ function showRules(){
         <button onclick="toggleAutoPilot()" title="Auto-pilot makes PRACTICE buys only, by the entry rules below. Off by default." style="padding:5px 14px;border-radius:16px;border:1px solid ${r.apOn?'var(--gold)':'var(--border2)'};background:${r.apOn?'rgba(255,210,0,.16)':'var(--bg4)'};color:${r.apOn?'var(--gold)':'var(--muted)'};font:800 11px var(--sans);cursor:pointer;min-width:56px;">${r.apOn?'ON':'OFF'}</button>
       </div>
       ${(()=>{try{
-        const _lr=localStorage.getItem(AP_RUN_KEY);
+        const _lr=localStorage.getItem(_apRunKey());
         const _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _pfMktDate==='function'?_pfMktDate(currentExch):null);
         const ranToday=!!(_lr&&_dd&&_lr===_dd);
         const _e=ranToday?_apLog().find(x=>x&&x.d===_lr):null;
@@ -4978,7 +5010,7 @@ function showRules(){
         let head='';
         if(!r.apOn){ head='🤖 <b>The bot is OFF.</b> Three taps and it runs itself every day:'; }
         else if(ranToday){ head='✅ <b>Done for today</b> — it bought <b>'+nb+'</b> share'+(nb===1?'':'s')+(nb===0?' (nothing met your rules today — that\'s discipline, not a fault)':'')+'. It runs again by itself when tomorrow\'s data loads. <b>Nothing to press.</b>'; }
-        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'+(window._prepRunning?' <span style="color:var(--gold)">(today\'s signals are still preparing — it runs the moment they\'re ready)</span>':'')+((r.apCombo==='card-good'&&window._auditCache&&window._auditCache.A&&!_cardHasGradedPairs('card-good'))?' <span style="color:var(--gold)">(your 📋 report card hasn\'t graded any pairs yet — the bot uses the proven starter pairs until it does)</span>':''); }
+        else { head='⏳ <b>ON and armed</b> — the moment today\'s data finishes loading it will scan, choose by your rules and buy in its $50k account. <b>Nothing to press.</b>'+(window._prepRunning?' <span style="color:var(--gold)">(today\'s signals are still preparing — it runs the moment they\'re ready)</span>':'')+((r.apCombo==='card-good'&&window._auditCache&&window._auditCache.A&&window._auditCache.ex===currentExch&&!_cardHasGradedPairs('card-good'))?' <span style="color:var(--gold)">(your 📋 report card hasn\'t graded any pairs yet — the bot uses the proven starter pairs until it does)</span>':''); }
         return `<div style="margin:8px 0 4px;padding:9px 11px;border:1px solid ${r.apOn?'var(--green)':'var(--border2)'};border-radius:8px;background:${r.apOn?'rgba(63,185,80,.07)':'var(--bg4)'};font-size:10.5px;color:var(--text);line-height:1.55;">
           <div>${head}</div>
           <div style="margin-top:5px;font-size:10px;color:var(--muted);">${tick(savedOk)} 1. Tap 🏆 below, then press 💾 Save my rules &nbsp;·&nbsp; ${tick(r.apOn)} 2. Switch 🤖 ON (top right of this box) &nbsp;·&nbsp; ${tick(ranToday)} 3. Open the app once a day — it does the rest</div>
@@ -5006,7 +5038,7 @@ function showRules(){
       </div>
       <div style="margin-top:10px;padding:8px 10px;border:1px solid var(--gold);border-radius:8px;background:rgba(255,210,0,.05);">
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);font-weight:700;cursor:pointer;"><input type="checkbox" id="rApLadder" ${r.apLadder?'checked':''} style="width:15px;height:15px;">🪜 Auto-follow my report-card ladder</label>
-        <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5;">On = the bot ignores the manual ticks below and each day buys only shares firing the <b>top-rated PROVEN signals</b> on your 📋 report card (SOLID/PROMISING with a positive edge — never an unproven TOO-EARLY one), and its 🧩 combo gate follows the card's best pairs too. It re-reads the ladder every data day, so as flags prove or fade the bot follows — no re-ticking. ${(function(){ try{ var A=(window._auditCache&&window._auditCache.A)||null; var t=(window._apLadderNow&&window._apLadderNow.length)?window._apLadderNow:(A?_ladderTopSignals(A):null); var nm={bo:'🚀 Breakout',inf:'🕵️ Informed?',inst:'🏦 Inst?',cx:'⤴ MA cross',vr:'🥇 Vol record'}; if(t&&t.length)return '<b style="color:var(--gold)">Now leading: '+t.map(function(k){return nm[k]||k;}).join(', ')+'</b>'; if(!A)return '<span style="color:var(--dim)">Open your 📋 report card once today, then today’s leaders show here.</span>'; return '<span style="color:var(--dim)">No single flag is proven enough yet — until one is it leans on the combo gate starter pairs.</span>'; }catch(e){ return ''; } })()}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5;">On = the bot ignores the manual ticks below and each day buys only shares firing the <b>top-rated PROVEN signals</b> on your 📋 report card (SOLID/PROMISING with a positive edge — never an unproven TOO-EARLY one), and its 🧩 combo gate follows the card's best pairs too. It re-reads the ladder every data day, so as flags prove or fade the bot follows — no re-ticking. ${(function(){ try{ var A=(window._auditCache&&window._auditCache.A&&(!window._auditCache.ex||window._auditCache.ex===currentExch))?window._auditCache.A:null; var t=(window._apLadderNow&&window._apLadderNow.length)?window._apLadderNow:(A?_ladderTopSignals(A):null); var nm={bo:'🚀 Breakout',inf:'🕵️ Informed?',inst:'🏦 Inst?',cx:'⤴ MA cross',vr:'🥇 Vol record'}; if(t&&t.length)return '<b style="color:var(--gold)">Now leading: '+t.map(function(k){return nm[k]||k;}).join(', ')+'</b>'; if(!A)return '<span style="color:var(--dim)">Open your 📋 report card once today, then today’s leaders show here.</span>'; return '<span style="color:var(--dim)">No single flag is proven enough yet — until one is it leans on the combo gate starter pairs.</span>'; }catch(e){ return ''; } })()}</div>
       </div>
       <div style="margin-top:8px;">
         <div style="font-size:9.5px;color:var(--muted);margin-bottom:4px;">Only buy when showing <b>at least one</b> ticked signal <span style="color:var(--dim)">(scanner lane · none ticked = off · ignored while 🪜 auto-follow is on)</span>:</div>
@@ -5113,6 +5145,12 @@ function toggleAutoPilot(){
 
 // ═══ v297 — 🤖 Auto-pilot (PRACTICE): rule-based paper entries ═══
 const AP_LOG_KEY='asxScreener.autoPilot.log.v1', AP_RUN_KEY='asxScreener.autoPilot.lastRun.v1';
+// v408: the once-per-day lock is PER EXCHANGE (ASX keeps the original key).
+// One shared key meant: run ASX, switch to NYSE (different data date), run —
+// the key was overwritten, so switching back to ASX the same day could re-run
+// and double-buy; and when the two data dates happened to match, the second
+// exchange was silently blocked all day.
+function _apRunKey(exch){ const ex=String(exch||currentExch||'ASX').toUpperCase(); return ex==='ASX'?AP_RUN_KEY:AP_RUN_KEY+'.'+ex; }
 function _apLog(){ try{ return JSON.parse(localStorage.getItem(AP_LOG_KEY)||'[]')||[]; }catch(e){ return []; } }
 function _apLogAdd(e){ const l=_apLog(); l.unshift(e); while(l.length>120)l.pop(); try{ localStorage.setItem(AP_LOG_KEY,JSON.stringify(l)); }catch(_){}}
 function _apLogHtml(){
@@ -5135,7 +5173,7 @@ function _apStatus(){
     const log=_apLog();
     const last=(log&&log.length)?log[0]:null;
     let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
-    let lr=null; try{ lr=localStorage.getItem(AP_RUN_KEY); }catch(e){}
+    let lr=null; try{ lr=localStorage.getItem(_apRunKey()); }catch(e){}
     if(!r.apOn) return {state:'off', why:'the bot is switched off', dd:dd, lastRun:lr, last:last};
     if(!r.enabled) return {state:'off', why:'your rules are paused — press 💾 Save my rules to re-arm', dd:dd, lastRun:lr, last:last};
     if(dd&&lr===dd){
@@ -5254,7 +5292,10 @@ function _liveFired(s){
 function _auditCached(){
   try{
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||_todayLocal();
-    if(window._auditCache&&window._auditCache.d===dd)return window._auditCache.A;
+    // v408: the cache must belong to the LOADED exchange, not just share a data
+    // date — ASX and NYSE dates often coincide, and the bot's gate must never
+    // consult one exchange's report card for the other's candidates.
+    if(window._auditCache&&window._auditCache.d===dd&&window._auditCache.ex===currentExch)return window._auditCache.A;
     return null; // v378: grading is server-side; the warm/report-card paths fetch it. Bot waits if not warm yet.
   }catch(e){ return null; }
 }
@@ -5321,7 +5362,7 @@ function _apComboOk(s,mode){
 // call from the banner; _apComboOk always warms the cache first via _auditCached.
 function _cardHasGradedPairs(mode){
   try{
-    const A=(window._auditCache&&window._auditCache.A)||null; if(!A||!A.M)return false;
+    const A=(window._auditCache&&window._auditCache.A&&(!window._auditCache.ex||window._auditCache.ex===currentExch))?window._auditCache.A:null; if(!A||!A.M)return false;
     const S=['bo','inf','inst','cx','vr','blk'];
     for(let x=0;x<S.length;x++)for(let y=x+1;y<S.length;y++){
       const m=A.M[S[x]+'+'+S[y]];
@@ -5672,6 +5713,7 @@ function _apRunPicks(r,ent,maxN){
 function _apQueuePush(ent,r){
   try{
     if(APP_VERSION.indexOf('-beta')>=0)return;                    // customer only
+    if((currentExch||'ASX')!=='ASX')return;                       // v408: ASX only — the bridge's safety gates (market hours, holidays, Stake-AU caps) are built for the ASX clock; other exchanges must not feed the real-money queue until the bridge is exchange-aware
     if(!(ent&&Array.isArray(ent.buys)&&ent.buys.length))return;
     if(!(typeof DATA_PROXY==='string'&&DATA_PROXY))return;
     const day=String(ent.d||''); if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return;
@@ -5713,7 +5755,7 @@ function _autoPilotRun(manual){
     if(window._bulkRunning)return {ran:false,why:'download running'}; // v366: don't size buys off mid-download prices
     let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
     if(!dd)return {ran:false,why:'no date'};
-    if(!manual&&localStorage.getItem(AP_RUN_KEY)===dd)return {ran:false,why:'already ran today'};
+    if(!manual&&localStorage.getItem(_apRunKey())===dd)return {ran:false,why:'already ran today'};
     // v316/v368: NEVER burn the daily slot before signals are prepared. v368 raises the bar
     // from ~5% to ~60% of the universe AND requires prep to have FINISHED (_prepRunning off).
     // The old 5% let the bot scan a thin, half-ready pool, find nothing, mark the day "done",
@@ -5773,7 +5815,7 @@ function _autoPilotRun(manual){
     // v368: mark this data-day handled now that a real scan over a prepared pool completed.
     // Auto runs always claim the day; a manual run claims it only if it actually bought, so
     // testing with "▶ Run now" can't cancel the day's automatic run.
-    if(!manual||(ent.buys&&ent.buys.length>0)){ try{ localStorage.setItem(AP_RUN_KEY,dd); }catch(e){} }
+    if(!manual||(ent.buys&&ent.buys.length>0)){ try{ localStorage.setItem(_apRunKey(),dd); }catch(e){} }
     return {ran:true,entry:ent};
   }catch(e){ try{ _apLogAdd({d:'?',ts:Date.now(),err:String(e).slice(0,80)}); }catch(_){ } return {ran:false,why:'error'}; }
 
@@ -5802,9 +5844,41 @@ function _ensureCash(p){
   return p;
 }
 function _pfFresh(acct){ return ((acct||window._pfCtx)==='auto')?{holdings:[],history:[],cash:AP_START_CASH,startCap:AP_START_CASH}:{holdings:[],history:[]}; }
+// v408: one-time split — when a non-ASX exchange's store is opened for the
+// first time, lift that exchange's holdings / pending orders / closed trades
+// out of the original shared store into the new per-exchange store, then let
+// _ensureCash rebuild BOTH cash balances with the app's own reconcile formula
+// (so each account's cash is exactly what it would be had it always been
+// separate). Runs once per account+exchange, guarded by a marker key.
+function _pfSplitMigrate(acct,ex){
+  try{
+    if(!ex||ex==='ASX')return;
+    const mk='asxScreener.pfSplit.v1.'+(((acct||window._pfCtx)==='auto')?'auto':'main')+'.'+ex;
+    if(localStorage.getItem(mk))return;
+    localStorage.setItem(mk,'1');
+    const legacyKey=_pfKey(acct,'ASX'), newKey=_pfKey(acct,ex);
+    if(localStorage.getItem(newKey))return; // already has its own store — nothing to move
+    const raw=localStorage.getItem(legacyKey); if(!raw)return;
+    const L=JSON.parse(raw); if(!L||typeof L!=='object')return;
+    const mine=x=>x&&x.exchange===ex, others=x=>!(x&&x.exchange===ex);
+    const mv={ holdings:(L.holdings||[]).filter(mine), orders:(L.orders||[]).filter(mine), history:(L.history||[]).filter(mine) };
+    if(!(mv.holdings.length||mv.orders.length||mv.history.length))return; // nothing of this exchange in the old shared store
+    const N=_pfFresh(acct);
+    N.holdings=mv.holdings; N.orders=mv.orders; N.history=mv.history;
+    delete N.cash; _ensureCash(N);              // rebuild the new account's cash from its own trades
+    L.holdings=(L.holdings||[]).filter(others); L.orders=(L.orders||[]).filter(others); L.history=(L.history||[]).filter(others);
+    delete L.cash; _ensureCash(L);              // rebuild the ASX account's cash without them
+    localStorage.setItem(newKey,JSON.stringify(N));
+    localStorage.setItem(legacyKey,JSON.stringify(L));
+    try{ delete _paperCache[legacyKey]; delete _paperCache[newKey]; }catch(e){}
+    _pfExchRegister(ex);
+  }catch(e){}
+}
 var _paperCache={}; // v334: parse+sanitise once per stored string; re-sanitising all history on every _paper() froze phones
-function _paper(acct){
-  const _k=_pfKey(acct);
+function _paper(acct,exch){
+  const _ex=_pfExch(exch);
+  if(_ex!=='ASX')_pfSplitMigrate(acct,_ex);
+  const _k=_pfKey(acct,exch);
   try{
     const raw=localStorage.getItem(_k);
     const c=_paperCache[_k];
@@ -5815,7 +5889,11 @@ function _paper(acct){
     return p;
   }catch(e){return _ensureCash(_pfFresh(acct));}
 }
-function _paperSave(p,acct){try{const _k=_pfKey(acct);localStorage.setItem(_k,JSON.stringify(p));try{delete _paperCache[_k];}catch(e){}}catch(e){}}
+function _paperSave(p,acct,exch){try{
+  if(p&&p._merged)return; // v408: the ALL-view aggregate is read-only — never write it back over a real store
+  const _k=_pfKey(acct,exch);localStorage.setItem(_k,JSON.stringify(p));
+  const _ex=_pfExch(exch); if(_ex!=='ASX')_pfExchRegister(_ex);
+  try{delete _paperCache[_k];}catch(e){}}catch(e){}}
 function _paperPrune(p){
   // Closed trades are a PERMANENT ledger — never deleted, so you can always
   // refer back (they're tiny). The panel just DISPLAYS the last 12 months;
@@ -6148,17 +6226,50 @@ async function checkAutoSellTargets(acct){
 // Current exchange filter for the portfolio views ('ALL' or an exchange code),
 // plus a helper that returns holdings/history/value-history scoped to it.
 function _pfEx(){const v=window._pfExSel;return (typeof v==='string'&&v)?v:'ALL';}
+// v408: merge the day-by-day value snapshots of several accounts (one per
+// exchange) into one combined series — dates are unioned, values summed.
+function _vhMergeAll(lists){
+  const by={};
+  (lists||[]).forEach(vh=>(vh||[]).forEach(s=>{
+    if(!s||!s.d)return;
+    const t=by[s.d]||(by[s.d]={d:s.d,inv:0,val:0,eq:0,_eq:false});
+    t.inv+=(+s.inv||0); t.val+=(+s.val||0);
+    if(typeof s.eq==='number'){ t.eq+=s.eq; t._eq=true; }
+  }));
+  return Object.values(by).map(s=>{ if(!s._eq)delete s.eq; delete s._eq;
+    s.inv=+s.inv.toFixed(2); s.val=+s.val.toFixed(2); if(typeof s.eq==='number')s.eq=+s.eq.toFixed(2); return s;
+  }).sort((a,b)=>a.d<b.d?-1:1);
+}
 function _paperFiltered(exd){
-  const p=_paperPrune(_paper());
   const ex=exd||_pfEx();
-  const f=x=>ex==='ALL'||x.exchange===ex;
-  const histAll=(p.history||[]).filter(f);
   const cutoff=new Date(Date.now()-365*86400000).toISOString().slice(0,10);
+  if(ex==='ALL'){
+    // v408: every exchange now has its OWN practice account (own cash pot).
+    // The All view is a read-only combined picture across those accounts.
+    const exchs=_pfExchsKnown();
+    const p={_merged:1,holdings:[],orders:[],history:[],dividends:[],cash:0,startCap:0,feesPaid:0,wdProfit:0};
+    const vhs=[];
+    exchs.forEach(e=>{
+      const q=_paperPrune(_paper(undefined,e));
+      p.holdings=p.holdings.concat(q.holdings||[]); p.orders=p.orders.concat(q.orders||[]);
+      p.history=p.history.concat(q.history||[]);    p.dividends=p.dividends.concat(q.dividends||[]);
+      p.cash+=(+q.cash||0); p.startCap+=_startCap(q); p.feesPaid+=(+q.feesPaid||0); p.wdProfit+=(+q.wdProfit||0);
+      vhs.push(q.valueHistory||[]);
+    });
+    p.cash=+p.cash.toFixed(2); p.startCap=+p.startCap.toFixed(2);
+    const histAll=p.history;
+    return {p,ex, hold:p.holdings, hist:histAll.filter(t=>t.sellDate>=cutoff), histAll, vh:_vhMergeAll(vhs)};
+  }
+  // A single exchange tab reads THAT exchange's own account (even while a
+  // different exchange is loaded in the screener).
+  const p=_paperPrune(_paper(undefined,ex));
+  const f=x=>x.exchange===ex;
+  const histAll=(p.history||[]).filter(f);
   return {p,ex,
     hold:(p.holdings||[]).filter(f),
     hist:histAll.filter(t=>t.sellDate>=cutoff),  // shown in the panel
     histAll,                                      // permanent ledger (CSV)
-    vh: ex==='ALL'?(p.valueHistory||[]):(((p.vhByEx||{})[ex])||[])};
+    vh: (((p.vhByEx||{})[ex])||p.valueHistory||[])};
 }
 // ── COMBINE LOTS ─────────────────────────────────────────────────────────
 // Real brokers show ONE line per share with an average buy price, not a
@@ -7410,9 +7521,26 @@ function _setPfView(v){
 }
 // v348: one ⋯ menu per holding row — keeps rows short. Actions reuse the existing paper* fns.
 function _pfCloseMenu(){ const m=document.getElementById('pfRowMenu'); if(m)m.remove(); }
-function _pfRowMenu(id,ev){
+function _pfRowMenu(id,ev,hex){
   try{ if(ev){ev.stopPropagation(); ev.preventDefault();} }catch(e){}
   _pfCloseMenu();
+  // v408: each exchange has its own practice account. Managing a holding needs
+  // that exchange's account AND its price data loaded — so from another
+  // exchange's view, offer the switch instead of a silent no-op.
+  if(hex&&hex!==(currentExch||'ASX')){
+    const m0=document.createElement('div');
+    m0.id='pfRowMenu';
+    m0.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:210px;';
+    m0.innerHTML='<div style="padding:10px 14px;font-size:10.5px;color:var(--muted);line-height:1.5;max-width:230px;">This share lives in your <b style="color:var(--text)">'+hex+'</b> account. Load '+hex+' to manage or sell it.</div>'+
+      '<button onclick="_pfCloseMenu();try{var s=document.getElementById(\'exchSel\');if(s){s.value=\''+hex+'\';onExchChange();}}catch(e){}" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--gold);font:700 12px var(--sans);cursor:pointer;">🌐 Switch to '+hex+' now</button>';
+    document.body.appendChild(m0);
+    try{ const r=m0.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
+      m0.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
+      m0.style.top=Math.max(6,Math.min(y, window.innerHeight-r.height-8))+'px';
+    }catch(e){}
+    setTimeout(()=>document.addEventListener('click',_pfCloseMenu,{once:true}),0);
+    return;
+  }
   const item=(fn,label,color)=>`<button onclick="_pfCloseMenu();${fn}('${id}')" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:${color||'var(--text)'};font:600 12px var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">${label}</button>`;
   const m=document.createElement('div');
   m.id='pfRowMenu';
@@ -7439,7 +7567,7 @@ function showPortfolio(exSel){
   }
   const {p,ex,hold:holdRaw,hist,histAll,vh}=_paperFiltered();
   const hold=_mergeHoldings(holdRaw); // one line per share, average buy price
-  _paperSave(p);
+  if(!p._merged)_paperSave(p,undefined,ex); // v408: save back to the store the view actually read (never the read-only All aggregate)
   // v312: account switch — 👤 your trading vs the bot's own $50k test account
   const _isAuto=(window._pfCtx==='auto');
   const acctTabs=`<div style="display:flex;gap:6px;margin:0 0 10px;align-items:center;flex-wrap:wrap;">
@@ -7469,7 +7597,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:8px;color:var(--dim)">${h.lastDate||''}</span></td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td class="pf-pl" style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
-      <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event)" title="Actions — target, stop, trailing stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:800 15px var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
+      <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event,'${h.exchange}')" title="Actions — target, stop, trailing stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:800 15px var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
     </tr>`;
   }).join('');
   // Mobile stacked-card version of the same holdings (CSS shows this on phones,
@@ -7601,7 +7729,7 @@ function showPortfolio(exSel){
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
         <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:8px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:8px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br>${!o.market?`<a href="#" onclick="paperEditOrderLimit('${o.id}');return false;" style="font-size:9px;color:var(--gold);margin-right:9px;">✎ price</a>`:''}<a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a></div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:8px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br>${o.exchange&&o.exchange!==(currentExch||'ASX')?`<span style="font-size:8px;color:var(--dim);" title="Each exchange has its own practice account — load ${o.exchange} (top selector) to change or cancel this order.">load ${o.exchange} to manage</span>`:`${!o.market?`<a href="#" onclick="paperEditOrderLimit('${o.id}');return false;" style="font-size:9px;color:var(--gold);margin-right:9px;">✎ price</a>`:''}<a href="#" onclick="paperCancelOrder('${o.id}');return false;" style="font-size:9px;color:#ff9caa;">cancel</a>`}</div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:8px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
@@ -7735,7 +7863,7 @@ function showPortfolio(exSel){
       <div style="font-size:8px;color:var(--dim);margin-top:4px;text-align:center;line-height:1.5;">Portfolio missing or empty? This recovers it from the backup kept automatically on this device. Backups are per-device — they don't move between phones. For the most durable saving, install the app to your home screen.</div>
     </div>
     <button onclick="showPasteRestore()" title="Move a portfolio from another version by pasting its data" style="width:100%;margin-top:6px;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;">📋 Paste portfolio from old version</button>
-    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}${_startCap(p).toLocaleString()}</strong> · use the exchange tabs for single-currency figures. <a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a> · <a href="#" onclick="paperRecomputeFees();return false;" style="color:var(--orange);" title="Recompute this account's Fees Paid from your actual trades and return any over-charged fees to cash — for an imported or old account whose fees don't belong here.">🧮 fix fees</a></div>
+    <div style="font-size:8px;color:var(--dim);margin-top:8px;">Starting balance <strong style="color:var(--muted)">${'$'}${_startCap(p).toLocaleString()}</strong>${p._merged?' (all accounts combined — each exchange has its own cash pot; the links below manage your loaded <strong style="color:var(--muted)">'+(currentExch||'ASX')+'</strong> account)':(ex!==(currentExch||'ASX')?' · this is your '+ex+' account — load '+ex+' (top selector) to manage it':'')} · use the exchange tabs for single-currency figures. ${(!p._merged&&ex!==(currentExch||'ASX'))?'':`<a href="#" onclick="paperResetAccount();return false;" style="color:var(--dim);">reset account</a> · <a href="#" onclick="paperRepairBalance();return false;" style="color:var(--gold);" title="Set the bankroll you started with — the % and cash are measured against it.">💰 set starting balance</a> · <a href="#" onclick="paperAddCash();return false;" style="color:var(--green);" title="Add more practice money the honest way — your starting balance rises with it, so your return % stays true.">➕ add cash</a> · <a href="#" onclick="paperRecomputeFees();return false;" style="color:var(--orange);" title="Recompute this account's Fees Paid from your actual trades and return any over-charged fees to cash — for an imported or old account whose fees don't belong here.">🧮 fix fees</a>`}</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">💸 Brokerage per trade (buy or sell): $<input type="number" min="0" step="any" value="${brokerageFee()||''}" placeholder="0" onchange="setBrokerage(this.value)" style="width:52px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;"> — 0 = off. Charged on every fill and included in each closed trade’s recorded P/L.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">📉 Slippage per side: <input type="number" min="0" max="10" step="any" value="${slippagePct()||''}" placeholder="0" onchange="setSlippage(this.value)" style="width:44px;padding:2px 4px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:9px;">% — simulates the bid–ask spread: market buys fill that much higher, market sells &amp; stop-outs that much lower. Small ASX shares often cost 1–3% to cross. 0 = off.</div>
     <div style="font-size:8px;color:var(--dim);margin-top:4px;">⏭ <strong style="color:var(--muted)">Realistic fills (locked on)</strong> — market buys queue and fill at the NEXT trading day’s open, so you can’t buy at a close you’ve already seen. Always on, so practice results stay honest.</div>
@@ -13912,7 +14040,7 @@ function myChangesData(){
     _apbuys.forEach(b=>{ const it={tk:b.tk,icon:'\ud83e\udd16',txt:(b.limit?('Auto-pilot placed your PRACTICE limit buy at $'+(+b.px).toFixed(3)+' — '+b.qty+' shares. Fills if the price touches it; \ud83c\udfaf/\ud83d\uded1 from your pick.'):('Auto-pilot queued a PRACTICE buy — '+b.qty+' shares (~$'+Math.round(b.cost)+'). Fills at the next open; \ud83c\udfaf/\ud83d\uded1 set from your rules.'))};
       out.items.unshift(it); out.holdItems.unshift(it); }); }catch(e){}
   // v312: 🤖 bot-ACCOUNT exits recorded today (separate $50k portfolio)
-  try{ const _apP=JSON.parse(localStorage.getItem(PAPER_STORE_AUTO)||'null');
+  try{ const _apP=JSON.parse(localStorage.getItem(_pfKey('auto'))||'null'); // v408: the loaded exchange's own bot account
     if(_apP&&Array.isArray(_apP.history)){
       _apP.history.filter(t=>t&&t.sellDate===out.dataDate).slice(-6).forEach(t=>{
         const _tr=t.trigger==='target'?'🎯 target':t.trigger==='trail'?'🪤 trailing stop':t.trigger==='time'?'⏱ time stop':t.trigger==='stop'?'🛑 stop':'sold';
@@ -15493,14 +15621,14 @@ function _auditWarmIdle(){
   try{
     if(window._prepRunning||window._auditWarming)return;
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
-    if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd)return;
+    if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd&&window._auditCache.ex===currentExch)return; // v408: re-warm when the exchange changed
     const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
     if(_sh.length<3)return;
     if(!(typeof DATA_PROXY==='string' && DATA_PROXY))return; // v378: grading is server-side — nothing to warm without the server
     window._auditWarming=true;
     const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
     _serverGrades(payload,dd,currentExch).then(function(A){
-      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,A:A}; window._gradeSrc='server'; }catch(e){} }
+      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,A:A}; window._gradeSrc='server'; }catch(e){} }
       window._auditWarming=false;
     }).catch(function(){ window._auditWarming=false; });
   }catch(e){ window._auditWarming=false; }
@@ -15557,7 +15685,7 @@ function _cardHold(){ try{ var v=+localStorage.getItem('asxScreener.cardHold.v1'
 function setCardHold(n){ try{ localStorage.setItem('asxScreener.cardHold.v1',String((n===10||n===30)?n:5)); }catch(e){} try{ signalReportCard(); }catch(e){} }
 function _rcAltOpen(dd,hold){
   window._auditCacheAlt=window._auditCacheAlt||{};
-  var key=hold+'_'+dd;
+  var key=hold+'_'+(currentExch||'ASX')+'_'+dd; // v408: research views cached per exchange too
   var hit=window._auditCacheAlt[key];
   // v399: only trust a cached answer that MATCHES the window asked for. (Before the
   // server update lands, it answers with the 5d card — caching that under the 10d
@@ -15587,11 +15715,11 @@ function signalReportCard(){
   var _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
   var _hw=_cardHold();
   if(_hw!==5){ _rcAltOpen(_dd,_hw); return; }   // v398: research windows take their own path — the bot's 5d cache below is never touched by them
-  if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd){ return _renderReportCard(window._auditCache.A); }
+  if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd&&window._auditCache.ex===currentExch){ return _renderReportCard(window._auditCache.A); }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
   var _show=function(A){
-    try{ if(A&&A.M)window._auditCache={d:_dd,A:A}; }catch(e){}
+    try{ if(A&&A.M)window._auditCache={d:_dd,ex:currentExch,A:A}; }catch(e){}
     var m=document.getElementById('appModal');
     if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
       try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
