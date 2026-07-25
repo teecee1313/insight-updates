@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-433-open';
+const APP_VERSION='2026.07.27-434-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16084,7 +16084,7 @@ function _cardHold(){ try{ var v=+localStorage.getItem('asxScreener.cardHold.v1'
 function setCardHold(n){ try{ localStorage.setItem('asxScreener.cardHold.v1',String((n===10||n===30)?n:5)); }catch(e){} try{ signalReportCard(); }catch(e){} }
 function _rcAltOpen(dd,hold){
   window._auditCacheAlt=window._auditCacheAlt||{};
-  var key=hold+'_'+(currentExch||'ASX')+'_'+dd; // v408: research views cached per exchange too
+  var key=hold+'_'+(currentExch||'ASX')+'_'+dd+'_'+_cardLiqKey(); // v408: per exchange · v434: per 💧 floor
   var hit=window._auditCacheAlt[key];
   // v399: only trust a cached answer that MATCHES the window asked for. (Before the
   // server update lands, it answers with the 5d card — caching that under the 10d
@@ -16093,7 +16093,7 @@ function _rcAltOpen(dd,hold){
   // shows a plain warning instead of silence.)
   if(hit&&hit.M&&((hit.hold||5)===hold)){ return _renderReportCard(hit); }
   var _fail=function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not grade the '+hold+'-day view just now.</b><br>Longer windows are computed fresh on your server — give it a moment and try again, or switch back to 5d.</div>','📋 Signal report card'); }catch(e){} } };
-  var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;});
+  var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_cardLiqPass);
   if(!(typeof DATA_PROXY==='string'&&DATA_PROXY)||_sh.length<3){ _fail(); return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal over '+hold+' trading days…</b><br>the '+hold+'d view is computed fresh on your server — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
@@ -16139,7 +16139,7 @@ async function _t20Replay(){
   var eligible=cal.slice(0,Math.max(0,cal.length-5));
   var days=eligible.slice(-120); // v426: backdate through the whole device store (cap 120 trading days ~ 6 months)
   if(!days.length)return null;
-  var need=(typeof F!=='undefined'&&F&&F.cap&&F.cap!=='any')?(F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0):0;
+  var need=_cardLiqNeed();   // v434: set inside the card itself
   var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
   var G={t5:{},t10:{},t20:{},all:{}}; ['5','10','20'].forEach(function(w){ ['t5','t10','t20','all'].forEach(function(g){ G[g][w]={n:0,sum:0,up:0}; }); });
   var W=[5,10,20], usedDays=0, sample=[];
@@ -16185,6 +16185,46 @@ async function _t20Replay(){
 // its average, and a 2+ day streak (up-days, or up-days on heavy volume).
 // Split by streak depth — the 3/4/5-day buttons are stricter, so they get
 // their own rows. Same calendar + honesty floors as the 🏆 Top 20 card.
+// ═══ v434 — 💧 tradeability floor, adjustable inside every report card ═══
+// Micro-caps whose whole daily turnover is a few thousand dollars produce
+// "returns" that are mostly bid-ask noise. They distort the scans AND the
+// market baseline, so every card lets you set the floor and re-run.
+var _CARD_LIQ=[['any','Any',0],['50k','$50k',5e4],['250k','$250k',2.5e5],['1m','$1m',1e6],['5m','$5m',5e6]];
+function _cardLiqKey(){
+  if(window._cardLiq)return window._cardLiq;
+  try{ var s=localStorage.getItem('asxScreener.cardLiq.v1'); if(s)return (window._cardLiq=s); }catch(e){}
+  // first run: inherit whatever the app's own 💧 filter is set to
+  try{ if(typeof F!=='undefined'&&F&&F.cap&&F.cap!=='any')return (window._cardLiq=(F.cap==='l50'?'50k':F.cap==='l250'?'250k':F.cap==='l1m'?'1m':'any')); }catch(e){}
+  return (window._cardLiq='any');
+}
+function _cardLiqNeed(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][2]; return 0; }
+function _cardLiqLabel(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][1]; return 'Any'; }
+function _cardLiqSet(k,fn){
+  window._cardLiq=k; try{ localStorage.setItem('asxScreener.cardLiq.v1',k); }catch(e){}
+  try{ window._scCache=null; window._t20Cache=null; window._smCache=null; window._auditCache=null; window._auditCacheAlt={}; }catch(e){}
+  try{ if(typeof window[fn]==='function')window[fn](); }catch(e){}
+}
+function _cardLiqPass(s){
+  var need=_cardLiqNeed(); if(!need)return true;
+  try{
+    var v=(s.avgVol>0?s.avgVol:0), p=(s.price>0?s.price:0);
+    if(!(v>0)&&Array.isArray(s.series)&&s.series.length){
+      var n=Math.min(30,s.series.length), sum=0, k;
+      for(k=s.series.length-n;k<s.series.length;k++)sum+=(s.series[k].v>0?s.series[k].v:0);
+      v=sum/n; if(!(p>0))p=s.series[s.series.length-1].c;
+    }
+    return (v*p)>=need;
+  }catch(e){ return true; }
+}
+function _cardLiqBar(fn){
+  var cur=_cardLiqKey();
+  return '<div style="margin:0 0 8px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'
+    +'<span title="Skip shares whose average daily turnover (volume × price) is below this. Applies to the scans AND the market they are measured against, so both sides are comparable. Thin shares move on tiny trades, which is noise rather than signal." style="cursor:help;font:700 9.5px var(--sans);color:var(--muted);margin-right:4px;">💧 tradeable shares only:</span>'
+    +_CARD_LIQ.map(function(x){
+      return '<button onclick="_cardLiqSet(\''+x[0]+'\',\''+fn+'\')" title="'+(x[2]?('at least $'+(x[2]>=1e6?(x[2]/1e6)+' million':(x[2]/1e3)+'k')+' traded on an average day'):'no floor — every share, including the thinnest')+'" style="border:1px solid '+(x[0]===cur?'var(--gold)':'var(--border2)')+';color:'+(x[0]===cur?'var(--gold)':'var(--muted)')+';background:'+(x[0]===cur?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 9px;font:700 9.5px var(--sans);cursor:pointer;">'+x[1]+'</button>';
+    }).join('')
+    +'<span style="font:400 9px var(--sans);color:var(--dim);margin-left:4px;">changing this re-runs the report</span></div>';
+}
 // ═══ v430 — 🧪 All-scans report card: which of my scans actually works? ═══
 // Every scan rule is re-tested AS IT STOOD on each past day (no look-ahead) and
 // its qualifiers followed forward against the market — same calendar and floors
@@ -16255,7 +16295,7 @@ async function _scReplay(){
   if(cal.length<12)return null;
   var days=cal.slice(0,Math.max(0,cal.length-5)).slice(-120);
   if(!days.length)return null;
-  var need=(typeof F!=='undefined'&&F&&F.cap&&F.cap!=='any')?(F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0):0;
+  var need=_cardLiqNeed();   // v434: set inside the card itself
   var pfs=shares.map(function(s){return _scPrep(s.series);});
   var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
   var W=[5,10,20], G={all:{}}, usedDays=0, fires={};
@@ -16311,11 +16351,11 @@ async function _scReplay(){
 function allScansCard(){
   if(APP_VERSION.indexOf('-beta')>=0)return;
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
-  if(window._scCache&&window._scCache.ex===currentExch&&window._scCache.d===dd&&window._scCache.R){ return _renderSCCard(window._scCache.R); }
+  if(window._scCache&&window._scCache.ex===currentExch&&window._scCache.d===dd&&window._scCache.liq===_cardLiqKey()&&window._scCache.R){ return _renderSCCard(window._scCache.R); }
   if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — this report replays your <b>saved history</b>.</div>','🧪 All scans — which ones actually work?'); }catch(e){} return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every scan…</b><br>re-running every scan rule over every stored day and following each qualifier forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🧪 All scans — which ones actually work?'); }catch(e){}
   _scReplay().then(function(R){
-    if(R){ window._scCache={ex:currentExch,d:dd,R:R}; }
+    if(R){ window._scCache={ex:currentExch,d:dd,liq:_cardLiqKey(),R:R}; }
     var m=document.getElementById('appModal');
     if(m&&m.style.display!=='none'&&window._curModalLabel==='🧪 All scans — which ones actually work?'){
       if(R)_renderSCCard(R);
@@ -16384,7 +16424,8 @@ function _renderSCCard(R,win){
       +'</div>';
   }
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
-    +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b>. <b>Edge</b> = how far the scan beat that market <b>average</b>; <b>mid</b> = the middle outcome, against the market&#8217;s middle. Read both: the average is lifted by a few explosive shares that most scans deliberately avoid, so a scan can be red on edge yet green on mid — that means it beat the <b>typical</b> share and only lost to the tail. Rows with too few fires to trust are dimmed and ranked last, whatever their numbers look like.</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b> (tradeability floor: <b>'+_cardLiqLabel()+'</b>). <b>Edge</b> = how far the scan beat that market <b>average</b>; <b>mid</b> = the middle outcome, against the market&#8217;s middle. Read both: the average is lifted by a few explosive shares that most scans deliberately avoid, so a scan can be red on edge yet green on mid — that means it beat the <b>typical</b> share and only lost to the tail. Rows with too few fires to trust are dimmed and ranked last, whatever their numbers look like.</div>'
+    +_cardLiqBar('allScansCard')
     +'<div style="margin:0 0 8px;">'+sw+'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">scan</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
@@ -16459,7 +16500,7 @@ async function _smReplay(){
   if(cal.length<12)return null;
   var days=cal.slice(0,Math.max(0,cal.length-5)).slice(-120);
   if(!days.length)return null;
-  var need=(typeof F!=='undefined'&&F&&F.cap&&F.cap!=='any')?(F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0):0;
+  var need=_cardLiqNeed();   // v434: set inside the card itself
   var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
   var G={s2:{},s3:{},s4:{},q:{},all:{}};
   ['5','10','20'].forEach(function(w){ ['s2','s3','s4','q','all'].forEach(function(g){ G[g][w]={n:0,sum:0,up:0}; }); });
@@ -16505,11 +16546,11 @@ async function _smReplay(){
 function smartAlumni(){
   if(APP_VERSION.indexOf('-beta')>=0)return;
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
-  if(window._smCache&&window._smCache.ex===currentExch&&window._smCache.d===dd&&window._smCache.R){ return _renderSMCard(window._smCache.R); }
+  if(window._smCache&&window._smCache.ex===currentExch&&window._smCache.d===dd&&window._smCache.liq===_cardLiqKey()&&window._smCache.R){ return _renderSMCard(window._smCache.R); }
   if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — this report replays your <b>saved history</b>.</div>','🕵️ Smart Money — how past qualifiers fared'); }catch(e){} return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Replaying your whole stored history…</b><br>finding every past day&#8217;s Smart Money qualifiers and following each one forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🕵️ Smart Money — how past qualifiers fared'); }catch(e){}
   _smReplay().then(function(R){
-    if(R){ window._smCache={ex:currentExch,d:dd,R:R}; }
+    if(R){ window._smCache={ex:currentExch,d:dd,liq:_cardLiqKey(),R:R}; }
     var m=document.getElementById('appModal');
     if(m&&m.style.display!=='none'&&window._curModalLabel==='🕵️ Smart Money — how past qualifiers fared'){
       if(R)_renderSMCard(R);
@@ -16539,6 +16580,7 @@ function _renderSMCard(R){
   var samp=(R.sample&&R.sample.length)?('<div style="margin-top:8px;font-size:10px;color:var(--dim);">Most recent replayed qualifier lists: '+R.sample.map(function(x){return '<b>'+x.d+'</b> — '+(x.picks.length?x.picks.join(', ')+'…':'(none that day)');}).join(' · ')+'</div>'):'';
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), every share meeting the <b>🕵️ Smart Money rule as it stood that day</b> — an UP day on volume 50%+ above its average, with a 2+ day streak — was followed forward <b>5, 10 and 20 trading days</b> (close to close). About <b>'+R.perDay+'</b> qualifiers per day. &#8216;Market&#8217; is every share with enough data over the same windows. Directly comparable with the 🏆 Top 20 card — same days, same yardstick.</div>'
+    +_cardLiqBar('smartAlumni')
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">group</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +row('🕵️ All qualifiers',R.G.q,'Every share that met the Smart Money rule that day.')
@@ -16556,11 +16598,11 @@ function _renderSMCard(R){
 function top20Alumni(){
   if(APP_VERSION.indexOf('-beta')>=0)return;
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
-  if(window._t20Cache&&window._t20Cache.ex===currentExch&&window._t20Cache.d===dd&&window._t20Cache.R){ return _renderT20Card(window._t20Cache.R); }
+  if(window._t20Cache&&window._t20Cache.ex===currentExch&&window._t20Cache.d===dd&&window._t20Cache.liq===_cardLiqKey()&&window._t20Cache.R){ return _renderT20Card(window._t20Cache.R); }
   if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — the alumni report replays your <b>saved history</b>.</div>','🏆 Top 20 — how past picks fared'); }catch(e){} return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Replaying your whole stored history…</b><br>rebuilding each day&#8217;s Top 20 exactly as it stood and following every pick forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🏆 Top 20 — how past picks fared'); }catch(e){}
   _t20Replay().then(function(R){
-    if(R){ window._t20Cache={ex:currentExch,d:dd,R:R}; }
+    if(R){ window._t20Cache={ex:currentExch,d:dd,liq:_cardLiqKey(),R:R}; }
     var m=document.getElementById('appModal');
     if(m&&m.style.display!=='none'&&window._curModalLabel==='🏆 Top 20 — how past picks fared'){
       if(R)_renderT20Card(R);
@@ -16591,6 +16633,7 @@ function _renderT20Card(R){
   var samp=(R.sample&&R.sample.length)?('<div style="margin-top:8px;font-size:10px;color:var(--dim);">Most recent replayed lists: '+R.sample.map(function(x){return '<b>'+x.d+'</b> — '+x.picks.join(', ')+'…';}).join(' · ')+'</div>'):'';
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), the day&#8217;s <b>🏆 Top 20 by Watch Score</b> was rebuilt exactly as it stood that day, then every pick was followed forward <b>5, 10 and 20 trading days</b> (close to close). &#8216;Market&#8217; is every scored share over the same windows.</div>'
+    +_cardLiqBar('top20Alumni')
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">group</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +row('⭐ Ranks 1–5',g5,base,'The very front of the list - if rank order carries signal, it should show here first.')+row('🥇 Ranks 1–10',g10,base,'The top half of each day&#8217;s list — where the signal should be strongest.')
@@ -16611,11 +16654,11 @@ function signalReportCard(){
   var _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
   var _hw=_cardHold();
   if(_hw!==5){ _rcAltOpen(_dd,_hw); return; }   // v398: research windows take their own path — the bot's 5d cache below is never touched by them
-  if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd&&window._auditCache.ex===currentExch){ return _renderReportCard(window._auditCache.A); }
+  if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd&&window._auditCache.ex===currentExch&&window._auditCache.liq===_cardLiqKey()){ return _renderReportCard(window._auditCache.A); }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
   var _show=function(A){
-    try{ if(A&&A.M)window._auditCache={d:_dd,ex:currentExch,A:A}; }catch(e){}
+    try{ if(A&&A.M)window._auditCache={d:_dd,ex:currentExch,liq:_cardLiqKey(),A:A}; }catch(e){}
     var m=document.getElementById('appModal');
     if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
       try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
@@ -16625,7 +16668,7 @@ function signalReportCard(){
   // say so plainly rather than grading here — the recipe is no longer in this page.
   var _fail=function(){ var m=document.getElementById('appModal'); if(window._rcTok===_tok && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not reach your grading server just now.</b><br>The report card is graded on your server — give it a moment and open it again. Your prices, signals and portfolio are unaffected.</div>','📋 Signal report card'); }catch(e){} } };
   if(typeof DATA_PROXY==='string' && DATA_PROXY){
-    var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).map(function(s){return {ticker:s.ticker,series:s.series};});
+    var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_cardLiqPass).map(function(s){return {ticker:s.ticker,series:s.series};});
     _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ window._gradeSrc='server'; _show(A); } else { _fail(); } }).catch(function(){ _fail(); });
   } else { _fail(); }
 }
@@ -16636,6 +16679,7 @@ function _renderReportCard(A){
       showModal('<div style="padding:14px;font-size:12px;line-height:1.5;color:var(--muted)">Not enough saved history yet to grade the signals'+(A.liqSkipped>0?' (the 💧 $'+Math.round(A.liqFloor/1000)+'k/day tradeability floor also excludes '+A.liqSkipped.toLocaleString()+' thin shares)':'')+'.<br><br>Load your market (signals prepared) and make sure you have a few months of downloaded data — then the report card can re-run every flag over the past weeks and score it honestly.</div>','📋 Signal report card');
       return;
     }
+    const _liqBar=(typeof _cardLiqBar==='function')?_cardLiqBar('signalReportCard'):'';
     const pct=(x,n)=>n?Math.round((x/n)*100):0;
     const f1=(x)=>((x>=0?'+':'')+x.toFixed(2))+'%';
     const baseAvg=A.base.sum/A.base.n, baseUp=pct(A.base.up,A.base.n);
@@ -16843,7 +16887,7 @@ function _renderReportCard(A){
       +'</span>'
       +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>'
       +(_staleSrv?'<div style="border:1px solid var(--gold);background:rgba(255,210,0,.10);border-radius:8px;padding:7px 11px;margin:0 0 10px;font-size:10.5px;color:var(--gold);line-height:1.5;">⚠ You asked for the <b>'+_selHold+'d</b> view but your server answered with the '+_h+'-day card — <b>the server hasn\'t got the 10d/30d update yet.</b> Re-paste the latest worker code in Cloudflare (Edit code → Ctrl+A, Ctrl+V → Deploy), then tap '+_selHold+'d again.</div>':'');
-    showModal(_rcBar+_cardInner,'📋 Signal report card');
+    showModal(_rcBar+_liqBar+_cardInner,'📋 Signal report card');
     setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
 }
