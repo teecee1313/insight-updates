@@ -1351,8 +1351,8 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
       <div class="sg-h" id="sgCardsH" style="cursor:pointer" title="Tap to show or hide the report cards — the app's honesty checks"><span>📋 Report cards<span class="sg-hint">honesty checks — do the signals actually work?</span></span><span class="sg-ch">▸</span></div>
       <div id="sgCardsBody" style="display:none;">
       <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) in the days after it fired — measured over your choice of 5, 10 or 30 trading days — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
-    <div id="cardCards"><button class="menu-btn" onclick="top20Alumni()" title="Replays each of the last few weeks' Top 20 lists exactly as they stood that day (from your saved history) and follows every pick forward 5, 10 and 20 trading days against the whole market — with the top 10 shown separately from ranks 11-20. The honesty check for the 🏆 Top 20 button. A data summary, not advice."><span>🏆 Top 20 report card <span style="font-weight:400;color:var(--dim);font-size:10px;">did past picks succeed?</span></span><span class="mb-chev">▶</span></button>
-    <button class="menu-btn" onclick="smartAlumni()" title="Replays every stored day's Smart Money qualifiers exactly as the rule stood that day (up day, volume 50%+ above average, 2+ day streak) and follows each one forward 5, 10 and 20 trading days against the whole market — split by streak depth so the stricter 3-day and 4+ day versions get their own verdicts. Same days and same yardstick as the Top 20 card, so the two are directly comparable. A data summary, not advice."><span>🕵️ Smart Money report card <span style="font-weight:400;color:var(--dim);font-size:10px;">did the accumulation signal pay?</span></span><span class="mb-chev">▶</span></button>
+    <div id="cardCards">
+    
     <button class="menu-btn" onclick="allScansCard()" title="Grades EVERY scan at once: each scan rule is re-tested exactly as it stood on each stored day, its qualifiers followed forward 5, 10 and 20 trading days against the whole market, and the scans ranked best-to-worst by edge. The one screen that answers which of your scans is actually working right now. A data summary, not advice."><span>🧪 All scans report card <span style="font-weight:400;color:var(--dim);font-size:10px;">which scans actually work?</span></span><span class="mb-chev">▶</span></button></div>
       </div>
     </div>
@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-435-open';
+const APP_VERSION='2026.07.27-437-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5314,7 +5314,7 @@ function _auditCached(){
     // v408: the cache must belong to the LOADED exchange, not just share a data
     // date — ASX and NYSE dates often coincide, and the bot's gate must never
     // consult one exchange's report card for the other's candidates.
-    if(window._auditCache&&window._auditCache.d===dd&&window._auditCache.ex===currentExch)return window._auditCache.A;
+    if(window._auditCache&&window._auditCache.d===dd&&window._auditCache.ex===currentExch&&window._auditCache.liq===_cardLiqKey())return window._auditCache.A;
     return null; // v378: grading is server-side; the warm/report-card paths fetch it. Bot waits if not warm yet.
   }catch(e){ return null; }
 }
@@ -5499,10 +5499,11 @@ function _apCandidates(r){
   // v435: 🧪 evidence-led source. 'best' asks the all-scans grading which scan is
   // currently working; the evidence gate can veto ANY source that is losing.
   let _evKey=null, _evNote='';
+  window._apEvidenceNote='';   // v436 (audit): never let a previous run's note be logged against this one
   try{
     const _G=_apGrades();
     if(r.apSource==='best'){
-      if(!_G){ _evNote='🧪 no grading saved yet — open the 🧪 All scans report card once, then the bot can follow it'; }
+      if(!_G){ _evKey='__none__'; _evNote='🧪 no grading available yet — standing aside today rather than guessing. (The report is being prepared in the background; it will follow it from the next run.)'; _apWarmGrades(); }
       else{
         const _b=_apBestScan(_G,'5');
         if(_b){ _evKey=_b.key; _evNote='🧪 following '+_b.name+' — edge '+((_b.edge>=0?'+':'')+_b.edge.toFixed(2))+'% over '+_b.fires+' fires'; }
@@ -5510,12 +5511,15 @@ function _apCandidates(r){
       }
     }else if(r.apProvenOnly){
       const _row=_G?_apGradeRow(_G,_apSrcKey(r.apSource),'5'):null;
-      if(!_G){ _evNote='🧪 evidence gate: no grading saved yet — open the 🧪 All scans card once to arm it'; }
-      else if(!_row||!_row.solid){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan has not fired enough times to judge — standing aside'; }
+      if(!_G){ _evKey='__none__'; _evNote='🧪 evidence gate: no grading available yet — standing aside (a gate that cannot check must not wave buys through). Preparing the report in the background.'; _apWarmGrades(); }
+      else if(!_row||!_row.solid){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan has fired '+((_row&&_row.fires)||0)+' times — the bot wants '+_AP_MIN_FIRES+'+ before it will act on a grade — standing aside'; }
       else if(!(_row.edge>0)){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan is losing to the market ('+_row.edge.toFixed(2)+'% edge over '+_row.fires+' fires) — standing aside'; }
       else { _evNote='🧪 evidence gate passed — edge +'+_row.edge.toFixed(2)+'% over '+_row.fires+' fires'; }
     }
-  }catch(e){}
+  }catch(e){
+    // v436 (audit): a safety check that throws must NOT fall through into buying
+    if(r.apSource==='best'||r.apProvenOnly){ _evKey='__none__'; _evNote='🧪 could not evaluate the evidence gate — standing aside for safety'; }
+  }
   window._apEvidenceNote=_evNote;   // the run loop copies this into the diary
   if(_evKey==='__none__'){ pool=_T('🧪 evidence gate',[]); }
   else if(_evKey){ pool=_T('🧪 '+_evKey,_apRuleFilter(pool,_evKey)); }
@@ -16046,13 +16050,13 @@ function _auditWarmIdle(){
     if(window._prepRunning||window._auditWarming)return;
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
     if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd&&window._auditCache.ex===currentExch)return; // v408: re-warm when the exchange changed
-    const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS);
+    const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS).filter(_cardLiqPass);
     if(_sh.length<3)return;
     if(!(typeof DATA_PROXY==='string' && DATA_PROXY))return; // v378: grading is server-side — nothing to warm without the server
     window._auditWarming=true;
     const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
     _serverGrades(payload,dd,currentExch).then(function(A){
-      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,A:A}; window._gradeSrc='server'; }catch(e){} }
+      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,liq:_cardLiqKey(),A:A}; /* v436: keyed like the card's own write */ window._gradeSrc='server'; }catch(e){} }
       window._auditWarming=false;
     }).catch(function(){ window._auditWarming=false; });
   }catch(e){ window._auditWarming=false; }
@@ -16216,6 +16220,17 @@ async function _t20Replay(){
 // scan it was told to use is currently losing to the market. Same grading, same
 // 💧 floor, no second opinion.
 var _AP_MIN_FIRES=200;               // matches the card's SOLID tier
+function _apWarmGrades(){
+  // Ask for a grading quietly, so a gate that had nothing to check today has
+  // something to check tomorrow. Never opens a window, never buys.
+  try{
+    if(window._apWarming)return; window._apWarming=true;
+    if(typeof _scReplay!=='function'){ window._apWarming=false; return; }
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    _scReplay().then(function(R){ if(R)window._scCache={ex:currentExch,d:dd,liq:_cardLiqKey(),R:R}; window._apWarming=false; })
+               .catch(function(){ window._apWarming=false; });
+  }catch(e){ window._apWarming=false; }
+}
 function _apGrades(){
   try{
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
@@ -16250,10 +16265,12 @@ function _apBestScan(R,win){
 // Apply a graded rule to TODAY, using exactly the maths the card graded with,
 // so what the bot buys is what the card measured.
 function _apRuleFilter(pool,key){
+  // v436 (audit): grade and buy from the SAME universe — apply the card's 💧 floor
+  try{ if(_cardLiqNeed()>0)pool=pool.filter(_cardLiqPass); }catch(e){}
   if(key==='top20'){ return pool.filter(function(s){return s.watchScore!=null;})
     .sort(function(a,b){return (b.watchScore||0)-(a.watchScore||0);}).slice(0,20); }
   var rule=_SCAN_RULES.filter(function(x){return x.k===key;})[0];
-  if(!rule)return pool;
+  if(!rule)return [];   // v436 (audit): a filter that cannot filter must select NOTHING
   return pool.filter(function(s){
     try{
       if(!Array.isArray(s.series)||s.series.length<30)return false;
@@ -16310,53 +16327,95 @@ function _cardLiqBar(fn){
 // Speed: per-share prefix sums make every moving average / RSI an O(1) lookup,
 // so a whole market × 120 days stays a few seconds of sliced work.
 function _scPrep(ser){
-  var n=ser.length, P=new Float64Array(n+1), V=new Float64Array(n+1), G=new Float64Array(n+1), L=new Float64Array(n+1), M=new Float64Array(n+1);
+  var n=ser.length, P=new Float64Array(n+1), V=new Float64Array(n+1), G=new Float64Array(n+1), L=new Float64Array(n+1), M=new Float64Array(n+1), VN=new Float64Array(n+1), R=new Float64Array(n);
   for(var i=0;i<n;i++){
-    P[i+1]=P[i]+ser[i].c; V[i+1]=V[i]+(ser[i].v>0?ser[i].v:0);
+    var vv=(ser[i].v>0?ser[i].v:0);
+    P[i+1]=P[i]+ser[i].c; V[i+1]=V[i]+vv; VN[i+1]=VN[i]+(vv>0?1:0);
     var d=i>0?(ser[i].c-ser[i-1].c):0, pc=(i>0&&ser[i-1].c>0)?ser[i-1].c:0;
     G[i+1]=G[i]+(d>0?d:0); L[i+1]=L[i]+(d<0?-d:0);
     M[i+1]=M[i]+(pc>0?Math.abs(d/pc)*100:0);
   }
-  return {P:P,V:V,G:G,L:L,M:M};
+  // v436: Wilder's RSI(14) — the same smoothing the app's _rsi() uses, computed
+  // once per share. (The old prefix-average version was Cutler's RSI, which the
+  // app deliberately stopped using because it disagreed with broker charts.)
+  var per=14;
+  for(i=0;i<n;i++)R[i]=NaN;
+  if(n>per){
+    var ag=(G[per+1]-G[1])/per, al=(L[per+1]-L[1])/per;
+    R[per]=(al>0)?(100-100/(1+ag/al)):(ag>0?100:50);
+    for(i=per+1;i<n;i++){
+      var dd=ser[i].c-ser[i-1].c;
+      ag=(ag*(per-1)+(dd>0?dd:0))/per; al=(al*(per-1)+(dd<0?-dd:0))/per;
+      R[i]=(al>0)?(100-100/(1+ag/al)):(ag>0?100:50);
+    }
+  }
+  return {P:P,V:V,G:G,L:L,M:M,VN:VN,R:R};
 }
 function _scStats(ser,pf,end){
-  if(end<25)return null;
-  var avg=function(A,w){ return (end+1-w<0)?null:(A[end+1]-A[end+1-w])/w; };
-  var ma=function(w){ return avg(pf.P,w); };
-  var avgV30=avg(pf.V,30); if(!(avgV30>0))return null;
+  if(end<29)return null;
+  var mean=function(A,w){ return (end+1-w<0)?null:(A[end+1]-A[end+1-w])/w; };
+  var ma=function(w){ return mean(pf.P,w); };
+  // v436 (audit): volume average matches the app's computeVolAvg — it EXCLUDES
+  // today's bar, spans ~90 calendar days, and only counts days that traded.
+  var VW=62, lo=Math.max(0,end-VW), vsum=pf.V[end]-pf.V[lo], vcnt=pf.VN[end]-pf.VN[lo];
+  var avgV=(vcnt>0)?(vsum/vcnt):0;
+  if(!(avgV>0))return null;
   var c=ser[end].c, p=ser[end-1].c;
   if(!(c>0)||!(p>0))return null;
-  var st={c:c,chg:((c-p)/p)*100,volPct:((ser[end].v-avgV30)/avgV30)*100,avgV:avgV30,
-          ma20:ma(20),ma50:ma(50),ma200:(end>=200?ma(200):null),
-          typ:avg(pf.M,20)};
-  var gp=avg(pf.G,14), lp=avg(pf.L,14);
-  st.rsi=(lp>0)?(100-100/(1+gp/lp)):(gp>0?100:50);
-  var du=0,dv=0,i;
+  var st={c:c,chg:((c-p)/p)*100,volPct:((ser[end].v-avgV)/avgV)*100,avgV:avgV,
+          ma20:ma(20),ma50:ma(50),ma200:(end>=199?ma(200):null),
+          typ:(end>=20?(pf.M[end+1]-pf.M[1])/end:mean(pf.M,20))};
+  st.volRatio=(avgV>0)?(ser[end].v/avgV):0;
+  st.rsi=(pf.R&&!isNaN(pf.R[end]))?pf.R[end]:null;
+  var du=0,i;
   for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c)du++; else break; }
-  for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*avgV30)dv++; else break; }
-  // baseline for "heavy volume" comes from BEFORE the 10-day window — same as the
-  // app's accumDays() — so a run of heavy days cannot raise its own bar (v432 fix)
-  var s0=Math.max(1,end-9), pre=s0, baseAcc=(pre>=5)?(pf.V[pre]/pre):avgV30;
-  if(!(baseAcc>0))baseAcc=avgV30;
-  var dvb=0; for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*baseAcc)dvb++; else break; }
-  dv=Math.max(dv,dvb);
-  st.du=du; st.streak=Math.max(du,dv); st.baseAcc=baseAcc;
+  st.du=du; st.streak=du;
+  // accumulation: baseline from BEFORE the 10-day window, divided by TRADED days
+  var s0=Math.max(1,end-9), preN=pf.VN[s0], baseAcc=(preN>=5)?(pf.V[s0]/preN):avgV;
+  if(!(baseAcc>0))baseAcc=avgV;
+  st.baseAcc=baseAcc;
   var acc=0;
   for(i=s0;i<=end;i++){ if(ser[i].c>ser[i-1].c&&ser[i].v>=1.5*baseAcc)acc++; }
   st.acc=acc;
-  st.score=Math.round(Math.min(10,Math.min(7,acc*0.7)+Math.min(1.5,du*0.4)+Math.min(1,(function(){var vr=0;for(i=end;i>=0;i--){if(ser[i].v>avgV30)vr++;else break;}return vr;})()*0.3)+(st.chg>0?Math.min(0.5,st.chg/10):0))*10)/10;
+  // volume streak: baseline is the whole history EXCLUDING the last 5 days,
+  // so a fresh volume ramp cannot raise its own bar (matches the live volDays)
+  var bEnd=Math.max(1,end-4), bs=pf.V[bEnd], bn=pf.VN[bEnd], baseVS=(bn>0?bs/bn:avgV);
+  var vr=0; if(baseVS>0){ for(i=end;i>=0;i--){ if(ser[i].v>0&&ser[i].v>baseVS)vr++; else break; } }
+  st.volDays=vr;
+  st.score=Math.round(Math.min(10,Math.min(7,acc*0.7)+Math.min(1.5,du*0.4)+Math.min(1,vr*0.3)+(st.chg>0?Math.min(0.5,st.chg/10):0))*10)/10;
   st.d10=(end>=10&&ser[end-10].c>0)?((c-ser[end-10].c)/ser[end-10].c)*100:null;
+  st.d5=(end>=5&&ser[end-5].c>0)?((c-ser[end-5].c)/ser[end-5].c)*100:null;
   st.d2=(end>=2&&ser[end-2].c>0)?((c-ser[end-2].c)/ser[end-2].c)*100:null;
+  st.lowPx=(c<0.20);
   return st;
 }
 var _SCAN_RULES=[
+  // v436 (audit): each rule now mirrors the LIVE scan's real test. Where a row
+  // measures a threshold rather than a button, it is labelled as the threshold.
   {k:'smart', n:'🎯 Smart Money', t:function(s){ return s.chg>0&&s.volPct>=50&&s.streak>=2; }},
-  {k:'vol',   n:'📈 Volume Surge', t:function(s){ return s.volPct>=100; }},
-  {k:'unus',  n:'🔥 Unusual Activity', t:function(s){ return s.volPct>=200; }},
-  {k:'sharp', n:'🚨 Sharp Mover', t:function(s){ return s.typ>0&&(Math.abs(s.chg)/s.typ)*(1+s.volPct/100)>=6; }},
-  {k:'recov', n:'↩️ Recovery Watch', t:function(s){ return s.d10!=null&&s.d10<=-8&&s.d2!=null&&s.d2>=-1&&s.volPct>=20; }},
-  {k:'quiet', n:'🫧 Quiet Movers', t:function(s){ return Math.abs(s.chg)<=2&&s.acc>=3&&s.volPct>=0; }},
-  {k:'pull',  n:'🪜 Pullback in Uptrend', t:function(s){ return s.ma20!=null&&s.ma50!=null&&s.c>s.ma50&&s.ma20>s.ma50&&s.c<=s.ma20*1.03&&s.c>=s.ma20*0.94&&s.rsi<60; }},
+  {k:'vol',   n:'📈 Volume 2× normal', t:function(s){ return s.volPct>=100; }},
+  {k:'unus',  n:'🔥 Unusual Activity', t:function(s){
+      // the live scoreUnusual patterns that stored closes+volumes can express
+      if(s.volRatio>=3&&Math.abs(s.chg)<2)return true;                 // spike on a FLAT day
+      if(s.streak>=3&&s.volDays>=3&&Math.abs(s.chg)<6)return true;     // quiet build-up
+      if(s.du>=3&&s.volRatio>=4)return true;                            // volume climax
+      if(s.lowPx&&Math.abs(s.chg)>=15&&s.volRatio>=3)return true;       // penny blow-off
+      return false; }},
+  {k:'sharp', n:'🚨 Sharp Mover', t:function(s){
+      var mv=Math.abs(s.chg);
+      return mv>=8 && s.typ>0 && (mv/s.typ)>=3 && s.volRatio>=2; }},
+  {k:'recov', n:'↩️ Recovery Watch', t:function(s){ return s.volPct>=100&&s.chg>=-1&&s.chg<=3; }},
+  {k:'quiet', n:'🫧 Quiet Movers', t:function(s){
+      if(!(s.chg>=-5&&s.chg<=5))return false;
+      var coiling=(s.d5!=null&&s.d5>=3)||s.streak>=2||s.acc>=4;
+      return coiling||s.volPct>=80; }},
+  {k:'pull',  n:'🪜 Pullback in Uptrend', t:function(s){
+      if(s.ma20==null||s.ma50==null)return false;
+      var up=(s.ma200!=null)?(s.c>s.ma200&&s.ma50>s.ma200):(s.c>s.ma50);
+      if(!up)return false;
+      if(!(s.rsi!=null&&s.rsi>=35&&s.rsi<=55))return false;
+      var d20=((s.c-s.ma20)/s.ma20)*100; if(!(d20>=-5&&d20<=8))return false;
+      var d50=((s.c-s.ma50)/s.ma50)*100; return !(d50<-7); }},
   {k:'strong',n:'🧱 Strong Trends', t:function(s){ return s.ma200!=null&&s.c>s.ma20&&s.ma20>s.ma50&&s.ma50>s.ma200; }},
   {k:'accum', n:'💎 Heavy Accumulation (6+/10)', t:function(s){ return s.acc>=6; }},
   {k:'hiscore',n:'⭐ Watch Score 7+', t:function(s){ return s.score>=7; }},
@@ -16385,8 +16444,10 @@ async function _scReplay(){
   // Rule index space: 0..N-1 = _SCAN_RULES, N = 🏆 Top 20 (ranked, added below).
   var NR=_SCAN_RULES.length, C={};
   var cAdd=function(a,b,fwd){ var k=a+'|'+b, g=C[k]; if(!g){ g=C[k]={}; ['5','10','20'].forEach(function(w){ g[w]={n:0,sum:0,up:0}; }); }
+    // combos only ever show mean/hit-rate, so no samples are kept (v436: this
+    // was allocating tens of megabytes that nothing read)
     for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
-      c.n++; c.sum+=fwd[wi]; if(fwd[wi]>0)c.up++; if(!c.s)c.s=[]; if(c.s.length<20000)c.s.push(fwd[wi]); } };
+      c.n++; c.sum+=fwd[wi]; if(fwd[wi]>0)c.up++; } };
   for(var di=0;di<days.length;di++){
     if(di>0)await new Promise(function(r){setTimeout(r,0);});
     if((di%5)===0){ try{ var _pm=document.getElementById('appModal'); var _pe=_pm?_pm.querySelector('.t20prog'):null; if(_pe)_pe.textContent='replaying day '+(di+1)+' of '+days.length+'…'; }catch(e){} }
@@ -16402,10 +16463,19 @@ async function _scReplay(){
     }
     if(rows.length<50)continue;
     usedDays++;
-    var CAP=60000;
+    // v436 (audit): reservoir sampling. The old code kept the FIRST 60k samples,
+  // so a big group's median described only the oldest days of the window while
+  // its average described all of them — the mid-vs-market column was comparing
+  // two different periods. A deterministic reservoir keeps a fair spread.
+  var CAP=40000, _seed=20260727;
+  var _rnd=function(){ _seed=(_seed*1103515245+12345)&0x7fffffff; return _seed/0x7fffffff; };
   var add=function(g,fwd){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
-    c.n++; c.sum+=fwd[wi]; if(fwd[wi]>0)c.up++;
-    if(!c.s)c.s=[]; if(c.s.length<CAP)c.s.push(fwd[wi]); } };
+    c.n++; c.sum+=fwd[wi];
+    if(fwd[wi]>0){ c.up++; c.wsum=(c.wsum||0)+fwd[wi]; }
+    else { c.dsum=(c.dsum||0)+fwd[wi]; c.dn=(c.dn||0)+1; }
+    if(!c.s)c.s=[];
+    if(c.s.length<CAP)c.s.push(fwd[wi]);
+    else { var j=Math.floor(_rnd()*c.n); if(j<CAP)c.s[j]=fwd[wi]; } } };
     for(var ri=0;ri<rows.length;ri++){
       add(G.all,rows[ri].fwd);
       var hits=[];
@@ -16443,6 +16513,7 @@ function allScansCard(){
 }
 function _renderSCCard(R,win){
   win=String(win||window._scWin||'5'); window._scWin=win;
+  var view=String(window._scViewMode||'all');   // must be set BEFORE the rows are built
   var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
   var base=R.G.all;
   var bavg=function(w){ var b=base[w]; return b.n?b.sum/b.n:0; };
@@ -16475,8 +16546,17 @@ function _renderSCCard(R,win){
   var body=list.map(function(x){
     var cells=['5','10','20'].map(function(w){
       var m=R.G[x.k][w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
-      var avg=m.sum/m.n, beat=avg>bavg(w), ed=x.e[w];
       var sel=(w===win)?'background:rgba(255,210,0,.06);':'';
+      if(view!=='all'){
+        var isUp=(view==='up'), cnt=isUp?m.up:(m.dn||0), tot=isUp?(m.wsum||0):(m.dsum||0);
+        if(!cnt)return '<td style="text-align:center;'+sel+'color:var(--dim)">—</td>';
+        var mAvg=tot/cnt, bm=base[w], bCnt=isUp?bm.up:(bm.dn||0), bTot=isUp?(bm.wsum||0):(bm.dsum||0), bAvg=bCnt?bTot/bCnt:0;
+        var better=isUp?(mAvg>bAvg):(mAvg>bAvg);
+        return '<td style="text-align:center;'+sel+'"><span title="Average move of the flagged shares that '+(isUp?'ROSE':'FELL')+' over '+w+' days. The market\'s own figure is in the bottom row." style="cursor:help;font-family:var(--mono);font-weight:800;color:'+(better?'var(--green)':'#ff9caa')+'">'+f1(mAvg)+'</span>'
+          +'<br><span style="font-size:9.5px;color:var(--muted)">'+Math.round((cnt/m.n)*100)+'% of fires</span>'
+          +'<br><span style="font-size:9px;color:var(--dim)">'+cnt+' of '+m.n+'</span></td>';
+      }
+      var avg=m.sum/m.n, beat=avg>bavg(w), ed=x.e[w];
       return '<td style="text-align:center;'+sel+'"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span>'
         +'<br><span title="Edge — how far this scan beat the AVERAGE share over the same '+w+' days." style="cursor:help;font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+((ed!==null&&ed>0)?'var(--green)':'#ff9caa')+'">edge '+(ed===null?'—':f1(ed))+'</span>'
         +(function(){ var mm=med(m), bm=bmed(w); if(mm===null||bm===null)return '';
@@ -16489,7 +16569,14 @@ function _renderSCCard(R,win){
     var dim=x.solid?'':'opacity:.62;';
     return '<tr style="'+dim+'"><td style="padding:7px 6px;font-weight:700;">'+rank+x.n+chip+'</td>'+cells+'</tr>';
   }).join('');
-  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; var bm=med(m); return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim)">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
+    if(view!=='all'){ var isUp=(view==='up'), cnt=isUp?m.up:(m.dn||0), tot=isUp?(m.wsum||0):(m.dsum||0);
+      if(!cnt)return '<td style="text-align:center;color:var(--dim)">—</td>';
+      return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(tot/cnt)+'</span><br><span style="font-size:9.5px;color:var(--dim)">'+Math.round((cnt/m.n)*100)+'% of shares</span></td>'; }
+    var bm=med(m); return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim)">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var vsw=[['all','everything'],['up','📈 gainers only'],['down','📉 fallers only']].map(function(x){
+    return '<button onclick="_scView(\''+x[0]+'\')" title="'+(x[0]==='up'?'Show only the flagged shares that ROSE — how big the wins were, and how often they happened.':x[0]==='down'?'Show only the flagged shares that FELL — how deep the losses were, and how often. Read it next to the gainers view: a scan can win often and still lose money.':'The average across every flagged share, winners and losers together.')+'" style="border:1px solid '+(x[0]===view?'var(--gold)':'var(--border2)')+';color:'+(x[0]===view?'var(--gold)':'var(--muted)')+';background:'+(x[0]===view?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
+  }).join('');
   var sw=['5','10','20'].map(function(w){
     return '<button onclick="_scSort(\''+w+'\')" style="border:1px solid '+(w===win?'var(--gold)':'var(--border2)')+';color:'+(w===win?'var(--gold)':'var(--muted)')+';background:'+(w===win?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">rank by '+w+'-day edge</button>';
   }).join('');
@@ -16504,6 +16591,8 @@ function _renderSCCard(R,win){
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b> (tradeability floor: <b>'+_cardLiqLabel()+'</b>). <b>Edge</b> = how far the scan beat that market <b>average</b>; <b>mid</b> = the middle outcome, against the market&#8217;s middle. Read both: the average is lifted by a few explosive shares that most scans deliberately avoid, so a scan can be red on edge yet green on mid — that means it beat the <b>typical</b> share and only lost to the tail. Rows with too few fires to trust are dimmed and ranked last, whatever their numbers look like.</div>'
     +_cardLiqBar('allScansCard')
+    +'<div style="margin:0 0 6px;">'+vsw+'</div>'
+    +(view==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);">'+(view==='up'?'📈 <b>Gainers only</b> — the average rise of the flagged shares that went UP, and what share of fires that was. Compare the % with the market row: a scan that turns 40% of fires into gains where the market managed 39% is barely picking better, however big those gains look.':'📉 <b>Fallers only</b> — the average fall of the flagged shares that went DOWN. Read it beside the gainers view: if the falls are deeper than the rises, a scan can win more often and still lose money.')+'</div>')
     +'<div style="margin:0 0 8px;">'+sw+'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">scan</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
@@ -16511,8 +16600,8 @@ function _renderSCCard(R,win){
     +'<tr><td style="padding:7px 6px;color:var(--muted);">📊 Market (all shares)</td>'+baseCells+'</tr>'
     +'</table>'
     +verdict
-    +_scCombos(R,win,base)
-    +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. A scan can lose over 5 days and win over 20 (or the reverse) — that is a statement about how fast it works, so switch the ranking above and read all three. Rules are faithful re-creations of each scan’s published test, computed from stored closes and volumes only — 🕳 Gap Report is absent because it needs opening prices, which the offline store does not keep. Evidence, not prophecy. Rebuilt automatically each fresh data day.</div>'
+    +(view==='all'?_scCombos(R,win,base):'')
+    +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. A scan can lose over 5 days and win over 20 (or the reverse) — that is a statement about how fast it works, so switch the ranking above and read all three. Rules re-create each scan’s live test from stored closes and volumes. Known limits, stated plainly: 🕳 Gap Report is absent (it needs opening prices, which the offline store does not keep); rows named for a threshold (📈 Volume 2× normal, ⭐ Watch Score N+, 💎 Heavy Accumulation) measure that threshold rather than a button; the 20-day column necessarily covers fewer recent days than the 5-day column; and delisted shares are missing from stored history, which flatters every row a little. Evidence, not prophecy. Rebuilt automatically each fresh data day.</div>'
     +'</div>';
   try{ showModal(html,'🧪 All scans — which ones actually work?'); }catch(e){}
 }
@@ -16553,6 +16642,7 @@ function _scCombos(R,win,base){
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">pair</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +rows+'</table></div>';
 }
+function _scView(v){ window._scViewMode=v; try{ if(window._scCache&&window._scCache.R)_renderSCCard(window._scCache.R,window._scWin||'5'); }catch(e){} }
 function _scSort(w){ try{ if(window._scCache&&window._scCache.R)_renderSCCard(window._scCache.R,w); }catch(e){} }
 
 function _smDayQual(ser,end){
