@@ -1493,7 +1493,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-425-open';
+const APP_VERSION='2026.07.27-426-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16073,7 +16073,7 @@ async function _t20Replay(){
   if(cal.length<12)return null;
   // replay days: must leave 5 calendar steps for the shortest window; last 30
   var eligible=cal.slice(0,Math.max(0,cal.length-5));
-  var days=eligible.slice(-30);
+  var days=eligible.slice(-120); // v426: backdate through the whole device store (cap 120 trading days ~ 6 months)
   if(!days.length)return null;
   var need=(typeof F!=='undefined'&&F&&F.cap&&F.cap!=='any')?(F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0):0;
   var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
@@ -16081,10 +16081,11 @@ async function _t20Replay(){
   var W=[5,10,20], usedDays=0, sample=[];
   for(var di=0;di<days.length;di++){
     if(di>0)await new Promise(function(r){setTimeout(r,0);});
+    if((di%10)===0){ try{ var _pm=document.getElementById('appModal'); var _pe=_pm?_pm.querySelector('.t20prog'):null; if(_pe)_pe.textContent='replaying day '+(di+1)+' of '+days.length+'\u2026'; }catch(e){} }
     var D=days[di], scored=[];
     for(var si=0;si<shares.length;si++){
       var s=shares[si], ix=idxmaps[si][D];
-      if(ix==null||ix<3)continue;
+      if(ix==null||ix<25)continue; // v426: only score a day with ~5 weeks of history behind it - thin-history scores would lie
       var r=_t20DayScore(s.series,ix);
       if(!r||!(r.score>0))continue;
       if(need&&r.liq<need)continue;
@@ -16118,7 +16119,7 @@ function top20Alumni(){
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
   if(window._t20Cache&&window._t20Cache.ex===currentExch&&window._t20Cache.d===dd&&window._t20Cache.R){ return _renderT20Card(window._t20Cache.R); }
   if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — the alumni report replays your <b>saved history</b>.</div>','🏆 Top 20 — how past picks fared'); }catch(e){} return; }
-  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Replaying the last few weeks…</b><br>rebuilding each day&#8217;s Top 20 from your saved history and following every pick forward.</div>','🏆 Top 20 — how past picks fared'); }catch(e){}
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Replaying your whole stored history…</b><br>rebuilding each day&#8217;s Top 20 exactly as it stood and following every pick forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🏆 Top 20 — how past picks fared'); }catch(e){}
   _t20Replay().then(function(R){
     if(R){ window._t20Cache={ex:currentExch,d:dd,R:R}; }
     var m=document.getElementById('appModal');
