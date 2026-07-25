@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-437-open';
+const APP_VERSION='2026.07.27-438-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16299,6 +16299,10 @@ function _cardLiqSet(k,fn){
   try{ window._scCache=null; window._t20Cache=null; window._smCache=null; window._auditCache=null; window._auditCacheAlt={}; }catch(e){}
   try{ if(typeof window[fn]==='function')window[fn](); }catch(e){}
 }
+function _sigView(v){
+  window._sigViewMode=v;
+  try{ if(typeof signalReportCard==='function')signalReportCard(); }catch(e){}
+}
 function _cardLiqPass(s){
   var need=_cardLiqNeed(); if(!need)return true;
   try{
@@ -16848,6 +16852,18 @@ function _renderReportCard(A){
       return;
     }
     const _liqBar=(typeof _cardLiqBar==='function')?_cardLiqBar('signalReportCard'):'';
+    // v438: same gainers / fallers lens as the 🧪 all-scans card. The server
+    // already grades each flag's winning and losing fires separately, so this
+    // is a change of view, not a re-grade.
+    const _sview=String(window._sigViewMode||'all');
+    const _sviewBar='<div style="margin:0 0 8px;">'+[['all','everything'],['up','📈 gainers only'],['down','📉 fallers only']].map(function(x){
+      return '<button onclick="_sigView(\''+x[0]+'\')" title="'+(x[0]==='up'?'For each flag: how many of its fires ended HIGHER, and how big those wins were on average.':x[0]==='down'?'For each flag: how many of its fires ended LOWER, and how deep those falls were on average.':'The full grading — edge against the market, median, tiers and track record.')+'" style="border:1px solid '+(x[0]===_sview?'var(--gold)':'var(--border2)')+';color:'+(x[0]===_sview?'var(--gold)':'var(--muted)')+';background:'+(x[0]===_sview?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
+    }).join('')+'</div>'
+      +(_sview==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);line-height:1.5;">'
+        +(_sview==='up'
+          ? '📈 <b>Gainers only</b> — of every fire this flag produced, how many ended higher and what the average winner made. Big wins mean little if they are rare: read the count first.'
+          : '📉 <b>Fallers only</b> — how many fires ended lower and how deep the average loser went. Put beside the gainers view this shows the payoff shape: a flag can be right more often than not and still lose money.')
+        +' The market comparison (edge) lives in the <b>everything</b> view — the server grades winners and losers per flag, but not for the market as a whole.</div>');
     const pct=(x,n)=>n?Math.round((x/n)*100):0;
     const f1=(x)=>((x>=0?'+':'')+x.toFixed(2))+'%';
     const baseAvg=A.base.sum/A.base.n, baseUp=pct(A.base.up,A.base.n);
@@ -16882,6 +16898,15 @@ function _renderReportCard(A){
     const tape=m=>(m.ron.n||m.roff.n)?` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work." style="cursor:help;">tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})</span>`:'';
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
+      if(_sview!=='all'){
+        const isUp=(_sview==='up');
+        const cnt=isUp?m.up:(m.n-m.up);
+        const avg=isUp?m.avgWin:m.avgLoss;
+        const share=pct(cnt,m.n);
+        if(!m.n||cnt==null||avg==null||!isFinite(avg))return `<div style="font-size:11px;color:var(--dim);margin-top:2px;">no ${isUp?'winning':'losing'} fires recorded</div>`;
+        return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b style="color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="How many of those fires ended ${isUp?'HIGHER':'LOWER'} ${_h} trading days later." style="cursor:help;color:${isUp?'var(--green)':'#ff9caa'}">${cnt.toLocaleString()} ${isUp?'up':'down'} (${share}%)</b> · <span title="The average size of those ${isUp?'winning':'losing'} fires — the payoff when it ${isUp?'works':'fails'}.">average ${isUp?'win':'loss'} <b style="color:${isUp?'var(--green)':'#ff9caa'}">${f1(avg)}</b></span> ${chip(m)}</div>
+      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}</div>`;
+      }
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}</div>`;
     };
@@ -17055,7 +17080,7 @@ function _renderReportCard(A){
       +'</span>'
       +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>'
       +(_staleSrv?'<div style="border:1px solid var(--gold);background:rgba(255,210,0,.10);border-radius:8px;padding:7px 11px;margin:0 0 10px;font-size:10.5px;color:var(--gold);line-height:1.5;">⚠ You asked for the <b>'+_selHold+'d</b> view but your server answered with the '+_h+'-day card — <b>the server hasn\'t got the 10d/30d update yet.</b> Re-paste the latest worker code in Cloudflare (Edit code → Ctrl+A, Ctrl+V → Deploy), then tap '+_selHold+'d again.</div>':'');
-    showModal(_rcBar+_liqBar+_cardInner,'📋 Signal report card');
+    showModal(_rcBar+_liqBar+_sviewBar+_cardInner,'📋 Signal report card');
     setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
 }
