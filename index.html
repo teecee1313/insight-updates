@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-432-open';
+const APP_VERSION='2026.07.27-433-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16267,7 +16267,8 @@ async function _scReplay(){
   // Rule index space: 0..N-1 = _SCAN_RULES, N = 🏆 Top 20 (ranked, added below).
   var NR=_SCAN_RULES.length, C={};
   var cAdd=function(a,b,fwd){ var k=a+'|'+b, g=C[k]; if(!g){ g=C[k]={}; ['5','10','20'].forEach(function(w){ g[w]={n:0,sum:0,up:0}; }); }
-    for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); g[key].n++; g[key].sum+=fwd[wi]; if(fwd[wi]>0)g[key].up++; } };
+    for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
+      c.n++; c.sum+=fwd[wi]; if(fwd[wi]>0)c.up++; if(!c.s)c.s=[]; if(c.s.length<20000)c.s.push(fwd[wi]); } };
   for(var di=0;di<days.length;di++){
     if(di>0)await new Promise(function(r){setTimeout(r,0);});
     if((di%5)===0){ try{ var _pm=document.getElementById('appModal'); var _pe=_pm?_pm.querySelector('.t20prog'):null; if(_pe)_pe.textContent='replaying day '+(di+1)+' of '+days.length+'…'; }catch(e){} }
@@ -16283,7 +16284,10 @@ async function _scReplay(){
     }
     if(rows.length<50)continue;
     usedDays++;
-    var add=function(g,fwd){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); g[key].n++; g[key].sum+=fwd[wi]; if(fwd[wi]>0)g[key].up++; } };
+    var CAP=60000;
+  var add=function(g,fwd){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
+    c.n++; c.sum+=fwd[wi]; if(fwd[wi]>0)c.up++;
+    if(!c.s)c.s=[]; if(c.s.length<CAP)c.s.push(fwd[wi]); } };
     for(var ri=0;ri<rows.length;ri++){
       add(G.all,rows[ri].fwd);
       var hits=[];
@@ -16324,6 +16328,11 @@ function _renderSCCard(R,win){
   var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
   var base=R.G.all;
   var bavg=function(w){ var b=base[w]; return b.n?b.sum/b.n:0; };
+  var med=function(c){ if(!c||!c.s||!c.s.length)return null;
+    if(c._m==null){ var a=c.s.slice().sort(function(x,y){return x-y;}); var h=a.length>>1;
+      c._m=(a.length%2)?a[h]:(a[h-1]+a[h])/2; }
+    return c._m; };
+  var bmed=function(w){ return med(base[w]); };
   // Evidence tiers — a handful of fires is a rumour, not a result. Same spirit
   // as the 📋 Signal report card's SOLID / PROMISING / TOO EARLY badges.
   var MIN_SOLID=200, MIN_OK=50;
@@ -16351,7 +16360,10 @@ function _renderSCCard(R,win){
       var avg=m.sum/m.n, beat=avg>bavg(w), ed=x.e[w];
       var sel=(w===win)?'background:rgba(255,210,0,.06);':'';
       return '<td style="text-align:center;'+sel+'"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span>'
-        +'<br><span title="Edge — how far this scan beat the average share over the same '+w+' days. The honest number." style="cursor:help;font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+((ed!==null&&ed>0)?'var(--green)':'#ff9caa')+'">edge '+(ed===null?'—':f1(ed))+'</span>'
+        +'<br><span title="Edge — how far this scan beat the AVERAGE share over the same '+w+' days." style="cursor:help;font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+((ed!==null&&ed>0)?'var(--green)':'#ff9caa')+'">edge '+(ed===null?'—':f1(ed))+'</span>'
+        +(function(){ var mm=med(m), bm=bmed(w); if(mm===null||bm===null)return '';
+            var mb=mm-bm;
+            return '<br><span title="MIDDLE outcome — half the flagged shares did better, half worse. The market average is pulled up by a few explosive shares, so a scan can beat the TYPICAL share (green here) while still losing on the average. This line tells you which is happening." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:'+(mb>0?'var(--green)':'#ff9caa')+'">mid '+f1(mm)+' ('+f1(mb)+' vs mkt)</span>'; })()
         +'<br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% · '+m.n+' fires</span></td>';
     }).join('');
     var t=TIER(x.fires), chip='<span title="'+TIP[t[0]]+'" style="cursor:help;border:1px solid '+t[1]+';color:'+t[1]+';border-radius:4px;padding:0 4px;font-size:8.5px;font-weight:800;letter-spacing:.4px;margin-left:6px;">'+t[0]+'</span>';
@@ -16359,7 +16371,7 @@ function _renderSCCard(R,win){
     var dim=x.solid?'':'opacity:.62;';
     return '<tr style="'+dim+'"><td style="padding:7px 6px;font-weight:700;">'+rank+x.n+chip+'</td>'+cells+'</tr>';
   }).join('');
-  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; var bm=med(m); return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim)">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
   var sw=['5','10','20'].map(function(w){
     return '<button onclick="_scSort(\''+w+'\')" style="border:1px solid '+(w===win?'var(--gold)':'var(--border2)')+';color:'+(w===win?'var(--gold)':'var(--muted)')+';background:'+(w===win?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">rank by '+w+'-day edge</button>';
   }).join('');
@@ -16372,7 +16384,7 @@ function _renderSCCard(R,win){
       +'</div>';
   }
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
-    +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b>. <b>Edge</b> = how far the scan beat that market average — the honest number, shown under each window. Rows with too few fires to trust are dimmed and ranked last, whatever their edge looks like.</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b>. <b>Edge</b> = how far the scan beat that market <b>average</b>; <b>mid</b> = the middle outcome, against the market&#8217;s middle. Read both: the average is lifted by a few explosive shares that most scans deliberately avoid, so a scan can be red on edge yet green on mid — that means it beat the <b>typical</b> share and only lost to the tail. Rows with too few fires to trust are dimmed and ranked last, whatever their numbers look like.</div>'
     +'<div style="margin:0 0 8px;">'+sw+'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">scan</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
