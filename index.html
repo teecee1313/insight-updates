@@ -1503,7 +1503,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.22-406-open';
+const APP_VERSION='2026.07.22-407-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8991,6 +8991,38 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       return null;
     }
   }catch(e){}
+  // ── v407: OUR SERVER STORE FIRST — the depth crawler's pantry (worker v385).
+  //    One indexed read instead of an EODData round-trip. Depth-guarded: a
+  //    shallow answer means "pantry still filling" and we quietly fall through
+  //    to the live routes below. forceNet skips it (the store has no intraday row).
+  if(!forceNet && typeof DATA_PROXY==='string' && DATA_PROXY){
+    try{
+      const _need=Math.min(250,Math.floor((lookback||365)*0.7));
+      const _ctl=('AbortController' in window)?new AbortController():null;
+      const _tm=setTimeout(function(){try{_ctl&&_ctl.abort();}catch(e){}},4000);
+      let _sr=null;
+      try{ _sr=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/history/series/'+encodeURIComponent(exch)+'/'+encodeURIComponent(ticker)+'?days='+(lookback||365),_ctl?{signal:_ctl.signal}:{}); }
+      finally{ clearTimeout(_tm); }
+      if(_sr&&_sr.ok){
+        const _sj=await _sr.json();
+        if(_sj&&_sj.ok===true&&Array.isArray(_sj.rows)&&_sj.rows.length>=_need){
+          const rows=_sj.rows;
+          _histCache.set(ckey,rows);
+          window._histOkCount=(window._histOkCount||0)+1;
+          window._srvSeriesHits=(window._srvSeriesHits||0)+1;
+          window._lastProxyMs=0; window._lastProxyName='your own server store';
+          try{ if(window._deadHist)window._deadHist.delete(exch+':'+ticker); }catch(e){}
+          if(rows.length>=2){ try{histPut(exch,ticker,rows);}catch(e){} }
+          try{
+            const srt=_sortedCloses(rows);
+            const nd=srt.length?srt[srt.length-1].d:null;
+            if(nd){window._exchDataDate=window._exchDataDate||{};if(!window._exchDataDate[exch]||nd>window._exchDataDate[exch])window._exchDataDate[exch]=nd;}
+          }catch(e){}
+          return rows;
+        }
+      }
+    }catch(e){/* pantry miss or offline — carry on to the live routes */}
+  }
   const to=new Date();
   const from=new Date(to.getTime()-lookback*86400000);
   const fmt=d=>d.toISOString().slice(0,10);
@@ -9023,6 +9055,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       const ms=((performance&&performance.now)?performance.now():Date.now())-t0;
       // Track how slow the chosen route is running so we can re-race if it degrades.
       window._lastProxyMs=ms;
+      window._lastProxyName=['free relay 1 (corsproxy)','free relay 2 (allorigins)','direct EODData','free relay 3 (thingproxy)','your Cloudflare server'][pi]||'data route';
       return {out,pi,ms};
     }finally{ clearTimeout(timer); }
   }
@@ -9827,7 +9860,7 @@ function _maybeSlowNetworkHint(){
     if((window._lastProxyMs||0)>3500){
       var h=document.getElementById('loadHint');
       if(h && h.style.display==='none'){
-        h.innerHTML='🐌 The free data proxy is running slow right now (this comes and goes through the day — it\u2019s the network, not the app). Loads will still finish. Tip: after a <b>Download all</b> for offline use, later loads read from your own computer and are instant.';
+        h.innerHTML='🐌 The '+(window._lastProxyName||'data route')+' is running slow right now (this comes and goes through the day — it\u2019s the network, not the app). Loads will still finish. Tip: after a <b>Download all</b> for offline use, later loads read from your own computer and are instant.';
         h.style.display='block';
       }
     }
