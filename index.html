@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-430-open';
+const APP_VERSION='2026.07.27-431-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16255,6 +16255,11 @@ async function _scReplay(){
   _SCAN_RULES.forEach(function(R){ G[R.k]={}; fires[R.k]=0; ['5','10','20'].forEach(function(w){ G[R.k][w]={n:0,sum:0,up:0}; }); });
   // 🏆 Top 20 needs a per-day ranking, so it is handled after the per-share pass
   G.top20={}; fires.top20=0; ['5','10','20'].forEach(function(w){ G.top20[w]={n:0,sum:0,up:0}; });
+  // v431: 🧩 combos — every PAIR of rules that fired on the same share, same day.
+  // Rule index space: 0..N-1 = _SCAN_RULES, N = 🏆 Top 20 (ranked, added below).
+  var NR=_SCAN_RULES.length, C={};
+  var cAdd=function(a,b,fwd){ var k=a+'|'+b, g=C[k]; if(!g){ g=C[k]={}; ['5','10','20'].forEach(function(w){ g[w]={n:0,sum:0,up:0}; }); }
+    for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); g[key].n++; g[key].sum+=fwd[wi]; if(fwd[wi]>0)g[key].up++; } };
   for(var di=0;di<days.length;di++){
     if(di>0)await new Promise(function(r){setTimeout(r,0);});
     if((di%5)===0){ try{ var _pm=document.getElementById('appModal'); var _pe=_pm?_pm.querySelector('.t20prog'):null; if(_pe)_pe.textContent='replaying day '+(di+1)+' of '+days.length+'…'; }catch(e){} }
@@ -16273,17 +16278,23 @@ async function _scReplay(){
     var add=function(g,fwd){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); g[key].n++; g[key].sum+=fwd[wi]; if(fwd[wi]>0)g[key].up++; } };
     for(var ri=0;ri<rows.length;ri++){
       add(G.all,rows[ri].fwd);
-      for(var ru=0;ru<_SCAN_RULES.length;ru++){
+      var hits=[];
+      for(var ru=0;ru<NR;ru++){
         var R=_SCAN_RULES[ru];
         var hit=false; try{ hit=!!R.t(rows[ri].st); }catch(e){}
-        if(hit){ add(G[R.k],rows[ri].fwd); fires[R.k]++; }
+        if(hit){ add(G[R.k],rows[ri].fwd); fires[R.k]++; hits.push(ru); }
       }
+      rows[ri].hits=hits;
     }
     var ranked=rows.filter(function(x){return x.st.score>0;}).sort(function(a,b){return (b.st.score-a.st.score)||(b.st.acc-a.st.acc);}).slice(0,20);
-    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd); fires.top20++; }
+    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd); fires.top20++; ranked[t2].hits.push(NR); }
+    for(var pi=0;pi<rows.length;pi++){
+      var hs=rows[pi].hits; if(hs.length<2)continue;
+      for(var a1=0;a1<hs.length-1;a1++)for(var b1=a1+1;b1<hs.length;b1++)cAdd(hs[a1],hs[b1],rows[pi].fwd);
+    }
   }
   if(!usedDays)return null;
-  return {days:usedDays,from:days[0],to:days[days.length-1],G:G,fires:fires,exch:currentExch};
+  return {days:usedDays,from:days[0],to:days[days.length-1],G:G,C:C,fires:fires,exch:currentExch};
 }
 function allScansCard(){
   if(APP_VERSION.indexOf('-beta')>=0)return;
@@ -16300,41 +16311,111 @@ function allScansCard(){
     }
   }).catch(function(){});
 }
-function _renderSCCard(R){
+function _renderSCCard(R,win){
+  win=String(win||window._scWin||'5'); window._scWin=win;
   var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
-  var base=R.G.all, b5=base['5'], bavg5=b5.n?b5.sum/b5.n:0;
+  var base=R.G.all;
+  var bavg=function(w){ var b=base[w]; return b.n?b.sum/b.n:0; };
+  // Evidence tiers — a handful of fires is a rumour, not a result. Same spirit
+  // as the 📋 Signal report card's SOLID / PROMISING / TOO EARLY badges.
+  var MIN_SOLID=200, MIN_OK=50;
+  var TIER=function(n){ return n>=MIN_SOLID?['SOLID','var(--green)']:n>=MIN_OK?['PROMISING','var(--gold)']:['TOO EARLY','var(--dim)']; };
+  var TIP={SOLID:'SOLID — 200+ fires. Enough experiments that the edge is unlikely to be luck.','PROMISING':'PROMISING — 50+ fires. Worth watching; not yet proven.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the edge looks like, it cannot be told apart from luck yet, so this row is ranked last no matter how good it looks.'};
   var list=[{k:'top20',n:'🏆 Top 20 by Watch Score'}].concat(_SCAN_RULES.map(function(x){return {k:x.k,n:x.n};}));
-  list.forEach(function(x){ var m=R.G[x.k]['5']; x.edge=m.n?(m.sum/m.n)-bavg5:null; });
-  list.sort(function(a,b){ if(a.edge===null)return 1; if(b.edge===null)return -1; return b.edge-a.edge; });
-  var body=list.map(function(x,i){
+  list.forEach(function(x){
+    x.e={}; ['5','10','20'].forEach(function(w){ var m=R.G[x.k][w]; x.e[w]=m.n?(m.sum/m.n)-bavg(w):null; });
+    x.fires=R.G[x.k][win].n;
+    x.tier=TIER(x.fires)[0];
+    x.edge=x.e[win];
+    x.solid=x.fires>=MIN_OK;
+  });
+  // Ranking: adequately-evidenced rows first, then by edge in the chosen window.
+  list.sort(function(a,b){
+    if(a.solid!==b.solid)return a.solid?-1:1;
+    if(a.edge===null)return 1; if(b.edge===null)return -1;
+    return b.edge-a.edge;
+  });
+  var champ=null;
+  for(var ci=0;ci<list.length;ci++){ if(list[ci].solid&&list[ci].edge!==null){ champ=list[ci]; break; } }
+  var body=list.map(function(x){
     var cells=['5','10','20'].map(function(w){
       var m=R.G[x.k][w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
-      var avg=m.sum/m.n, b=base[w], bv=b.n?b.sum/b.n:0, beat=avg>bv;
-      return '<td style="text-align:center;"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span><br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% · '+m.n+' fires</span></td>';
+      var avg=m.sum/m.n, beat=avg>bavg(w), ed=x.e[w];
+      var sel=(w===win)?'background:rgba(255,210,0,.06);':'';
+      return '<td style="text-align:center;'+sel+'"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span>'
+        +'<br><span title="Edge — how far this scan beat the average share over the same '+w+' days. The honest number." style="cursor:help;font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+((ed!==null&&ed>0)?'var(--green)':'#ff9caa')+'">edge '+(ed===null?'—':f1(ed))+'</span>'
+        +'<br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% · '+m.n+' fires</span></td>';
     }).join('');
-    var edge=(x.edge===null)?'<td style="text-align:center;color:var(--dim)">—</td>':'<td style="text-align:center;"><span style="font-family:var(--mono);font-weight:800;font-size:12.5px;color:'+(x.edge>0?'var(--green)':'#ff9caa')+'">'+f1(x.edge)+'</span></td>';
-    var rank=(x.edge!==null&&i===0)?'<span title="Best 5-day edge on this card." style="color:var(--gold)">🥇 </span>':'';
-    return '<tr><td style="padding:7px 6px;font-weight:700;">'+rank+x.n+'</td>'+edge+cells+'</tr>';
+    var t=TIER(x.fires), chip='<span title="'+TIP[t[0]]+'" style="cursor:help;border:1px solid '+t[1]+';color:'+t[1]+';border-radius:4px;padding:0 4px;font-size:8.5px;font-weight:800;letter-spacing:.4px;margin-left:6px;">'+t[0]+'</span>';
+    var rank=(champ&&x.k===champ.k)?'<span title="Best '+win+'-day edge among the scans with enough fires to trust." style="color:var(--gold)">🥇 </span>':'';
+    var dim=x.solid?'':'opacity:.62;';
+    return '<tr style="'+dim+'"><td style="padding:7px 6px;font-weight:700;">'+rank+x.n+chip+'</td>'+cells+'</tr>';
   }).join('');
-  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'%</span></td>'; }).join('');
-  var win=list.filter(function(x){return x.edge!==null;})[0];
-  var verdict=win?('<div style="margin:10px 0 0;padding:9px 12px;border:1px solid '+(win.edge>0?'var(--green)':'#ff9caa')+';border-radius:8px;font-size:11.5px;color:'+(win.edge>0?'var(--green)':'#ff9caa')+';">'
-    +(win.edge>0
-      ? 'Best over these '+R.days+' days: <b>'+win.n+'</b>, beating the average share by <b>'+f1(win.edge)+'</b> per 5-day window. Evidence, not a promise.'
-      : 'Over these '+R.days+' days <b>not one scan</b> beat the average share at 5 days — the best was '+win.n+' at '+f1(win.edge)+'. This is a market punishing signals right now; be patient rather than busy.')
-    +'</div>'):'';
+  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var sw=['5','10','20'].map(function(w){
+    return '<button onclick="_scSort(\''+w+'\')" style="border:1px solid '+(w===win?'var(--gold)':'var(--border2)')+';color:'+(w===win?'var(--gold)':'var(--muted)')+';background:'+(w===win?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">rank by '+w+'-day edge</button>';
+  }).join('');
+  var verdict='';
+  if(champ){
+    verdict='<div style="margin:10px 0 0;padding:9px 12px;border:1px solid '+(champ.edge>0?'var(--green)':'#ff9caa')+';border-radius:8px;font-size:11.5px;color:'+(champ.edge>0?'var(--green)':'#ff9caa')+';">'
+      +(champ.edge>0
+        ? 'Best over these '+R.days+' days, counting only scans with enough fires to trust: <b>'+champ.n+'</b>, beating the average share by <b>'+f1(champ.edge)+'</b> per '+win+'-day window across '+champ.fires+' fires. Evidence, not a promise.'
+        : 'Over these '+R.days+' days <b>no well-tested scan</b> beat the average share at '+win+' days — the best was '+champ.n+' at '+f1(champ.edge)+'. A market punishing signals right now: be patient rather than busy.')
+      +'</div>';
+  }
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
-    +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b>. <b>Edge</b> = how far the scan beat that market average over 5 days — the honest ranking column. Sorted best to worst.</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:7px;">Every scan rule was re-tested <b>exactly as it stood</b> on each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), and every share it flagged was followed forward <b>5, 10 and 20 trading days</b> (close to close) against <b>every share with enough data</b>. <b>Edge</b> = how far the scan beat that market average — the honest number, shown under each window. Rows with too few fires to trust are dimmed and ranked last, whatever their edge looks like.</div>'
+    +'<div style="margin:0 0 8px;">'+sw+'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
-    +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">scan</th><th>edge (5d)</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
+    +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">scan</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +body
-    +'<tr><td style="padding:7px 6px;color:var(--muted);">📊 Market (all shares)</td><td style="text-align:center;color:var(--dim)">—</td>'+baseCells+'</tr>'
+    +'<tr><td style="padding:7px 6px;color:var(--muted);">📊 Market (all shares)</td>'+baseCells+'</tr>'
     +'</table>'
     +verdict
-    +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. Rules are faithful re-creations of each scan’s published test, computed from stored closes and volumes only — 🕳 Gap Report is absent because it needs opening prices, which the offline store does not keep. A few months of days is evidence, not proof. Rebuilt automatically each fresh data day.</div>'
+    +_scCombos(R,win,base)
+    +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. A scan can lose over 5 days and win over 20 (or the reverse) — that is a statement about how fast it works, so switch the ranking above and read all three. Rules are faithful re-creations of each scan’s published test, computed from stored closes and volumes only — 🕳 Gap Report is absent because it needs opening prices, which the offline store does not keep. Evidence, not prophecy. Rebuilt automatically each fresh data day.</div>'
     +'</div>';
   try{ showModal(html,'🧪 All scans — which ones actually work?'); }catch(e){}
 }
+function _scCombos(R,win,base){
+  if(!R.C)return '';
+  var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+  var bavg=function(w){ var b=base[w]; return b.n?b.sum/b.n:0; };
+  var NR=_SCAN_RULES.length;
+  var nameOf=function(i){ return (i>=NR)?'🏆 Top 20':_SCAN_RULES[i].n; };
+  var soloEdge=function(i,w){ var k=(i>=NR)?'top20':_SCAN_RULES[i].k; var m=R.G[k][w]; return m.n?(m.sum/m.n)-bavg(w):null; };
+  var MIN=50, list=[];
+  Object.keys(R.C).forEach(function(k){
+    var g=R.C[k], m=g[win]; if(!m.n||m.n<MIN)return;
+    var p=k.split('|'), a=+p[0], b=+p[1];
+    var e=(m.sum/m.n)-bavg(win), ea=soloEdge(a,win), eb=soloEdge(b,win);
+    list.push({a:a,b:b,g:g,edge:e,n:m.n,best:Math.max(ea===null?-99:ea,eb===null?-99:eb),ea:ea,eb:eb});
+  });
+  if(!list.length)return '<div style="margin-top:12px;font-size:10.5px;color:var(--dim);">🧩 <b>Combinations</b> — no pair of scans fired together often enough (50+ times) to grade yet. More stored history will fill this in.</div>';
+  list.sort(function(x,y){return y.edge-x.edge;});
+  var top=list.slice(0,8);
+  var rows=top.map(function(x){
+    var cells=['5','10','20'].map(function(w){
+      var m=x.g[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
+      var avg=m.sum/m.n, beat=avg>bavg(w), ed=avg-bavg(w);
+      return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span><br><span style="font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+(ed>0?'var(--green)':'#ff9caa')+'">edge '+f1(ed)+'</span><br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% · '+m.n+' fires</span></td>';
+    }).join('');
+    var helps=(x.edge>x.best);
+    var tag=helps
+      ? '<span title="Together they beat what either scan managed on its own — agreement is adding something." style="cursor:help;color:var(--green);font-weight:800;font-size:9px;"> ✓ better together</span>'
+      : '<span title="Together they did NOT beat the better of the two alone — the second scan is not adding information here." style="cursor:help;color:#ff9caa;font-weight:800;font-size:9px;"> ✗ no better than alone</span>';
+    return '<tr><td style="padding:7px 6px;font-weight:700;">'+nameOf(x.a)+' <span style="color:var(--dim)">+</span> '+nameOf(x.b)+tag
+      +'<br><span style="font-weight:400;font-size:9px;color:var(--dim)">each alone ('+win+'d): '+(x.ea===null?'—':f1(x.ea))+' / '+(x.eb===null?'—':f1(x.eb))+'</span></td>'+cells+'</tr>';
+  }).join('');
+  return '<div style="margin-top:14px;border-top:2px solid rgba(255,210,0,.35);padding-top:10px;">'
+    +'<div style="font:700 11px \'Space Grotesk\';color:var(--gold);margin-bottom:4px;">🧩 Combinations — does agreement help?</div>'
+    +'<div style="font-size:10.5px;color:var(--muted);margin-bottom:7px;">Every PAIR of scans that flagged the <b>same share on the same day</b>, graded the same way. '+list.length+' pairs fired often enough (50+ times) to grade; the best '+top.length+' by '+win+'-day edge are shown, with each leg&#8217;s solo edge underneath so you can see whether two signals agreeing actually beats one.</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+    +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">pair</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
+    +rows+'</table></div>';
+}
+function _scSort(w){ try{ if(window._scCache&&window._scCache.R)_renderSCCard(window._scCache.R,w); }catch(e){} }
+
 function _smDayQual(ser,end){
   if(end<26)return null;
   var lo=Math.max(0,end-30),vs=0,vn=0,i,v;
