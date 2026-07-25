@@ -660,6 +660,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
             <option value="en">🇬🇧 English</option><option value="es">🇪🇸 Español</option><option value="zh">🇨🇳 中文</option><option value="de">🇩🇪 Deutsch</option><option value="fr">🇫🇷 Français</option><option value="ja">🇯🇵 日本語</option><option value="hi">🇮🇳 हिन्दी</option><option value="ar">🇸🇦 العربية</option><option value="it">🇮🇹 Italiano</option><option value="fil">🇵🇭 Filipino</option>
           </select>
         </div>
+        <button onclick="toggleAcctMenu();toggleHelpPanel()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font:600 12px var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">📖 Help guide</button>
         <button onclick="changeAppPassword()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font:600 12px var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">🔑 Change password</button>
         <button onclick="checkForUpdateNow()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font:600 12px var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">⟳ Check for updates</button>
         <button onclick="logout()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:#ff9caa;font:600 12px var(--sans);cursor:pointer;">🚪 Log out</button>
@@ -1347,6 +1348,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     </div>
 
     <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) in the days after it fired — measured over your choice of 5, 10 or 30 trading days — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
+    <button class="menu-btn" onclick="top20Alumni()" title="Replays each of the last few weeks' Top 20 lists exactly as they stood that day (from your saved history) and follows every pick forward 5, 10 and 20 trading days against the whole market — with the top 10 shown separately from ranks 11-20. The honesty check for the 🏆 Top 20 button. A data summary, not advice."><span>🏆 Top 20 report card <span style="font-weight:400;color:var(--dim);font-size:10px;">did past picks succeed?</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" id="myChangesBtn" onclick="showMyChanges(false)" title="Checks YOUR practice holdings and watchlist against the latest day's data: targets and stops hit or near, big moves, confirmed price-sensitive news, volume surges and trend crosses. Opens by itself once per fresh data day — only when there's something to say."><span>🔔 What's changed for me <span style="font-weight:400;color:var(--dim);font-size:10px;">your shares, today</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="showRules()" title="Write your own trading rules — take-profit %, stop-loss %, max size per share, max open positions, and your own checklist. Your 🎯/🛑 auto-fill practice buys and going over your limits flags gently in the 🔔 briefing. Your plan, not advice."><span>📋 My trading rules <span style="font-weight:400;color:var(--dim);font-size:10px;">your plan</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="openOverlay('morescans')"><span>🔎 More scans &amp; presets</span><span class="mb-chev">▶</span></button>
@@ -1491,7 +1493,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-421-open';
+const APP_VERSION='2026.07.27-422-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15136,7 +15138,7 @@ body.training-on #lessonToggle{display:block;}
 #helpPanel p{font:400 12px 'Inter';color:#c9d6ea;line-height:1.55;margin:0 0 6px;}
 #helpPanel .hp-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#8fa6c9;font-size:18px;cursor:pointer;}
 #helpToggle{position:fixed;right:16px;bottom:16px;z-index:395;background:#9333ea;color:#fff;border:none;border-radius:30px;padding:11px 18px;font:700 13px 'Space Grotesk';cursor:pointer;box-shadow:0 6px 20px rgba(147,51,234,.5);display:none;}
-body.training-on #helpToggle{display:block;}
+#helpToggle{display:block;}
 #trainCoverage{position:fixed;left:16px;bottom:16px;z-index:395;pointer-events:none;opacity:.9;background:#0d1b33;border:1px solid #9333ea;color:#c88bff;border-radius:20px;padding:6px 12px;font:600 10px 'JetBrains Mono',monospace;display:none;}
 body.training-on #trainCoverage{display:block;}
 </style>
@@ -16040,6 +16042,127 @@ function _rcAltOpen(dd,hold){
       if(A&&A.M){ try{ _renderReportCard(A); }catch(e){ _fail(); } } else { _fail(); }
     }
   }).catch(function(){ if(window._rcTok===_tok)_fail(); });
+}
+// ═══ v422 — 🏆 Top 20 alumni: how past Top 20 lists actually fared ═══
+// Replays each past day PURELY from the saved series (same maths as
+// watchScore10/accumDays, computed as-of that day), rebuilds that day's
+// Top 20, then measures close→close forward returns vs every scored share.
+function _t20DayScore(ser,end){
+  if(end<3)return null;
+  var W=10, st=Math.max(1,end+1-W), bEnd=end+1-W, bsum=0,bn=0,i,v;
+  if(bEnd>0){ for(i=0;i<bEnd;i++){ v=ser[i].v; if(v>0){bsum+=v;bn++;} } }
+  else { for(i=0;i<=end;i++){ v=ser[i].v; if(v>0){bsum+=v;bn++;} } }
+  var baseVol=bn>0?bsum/bn:0, acc=0;
+  if(baseVol>0){ for(i=st;i<=end;i++){ var c=ser[i].c,p=ser[i-1].c; v=ser[i].v; if(p>0&&c>p&&v>0&&(v/baseVol)>=1.5)acc++; } }
+  var du=0; for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c)du++; else break; }
+  var vs=0,vn=0; for(i=0;i<=end-5;i++){ v=ser[i].v; if(v>0){vs+=v;vn++;} }
+  var avgV=vn>0?vs/vn:0, vd=0;
+  if(avgV>0){ for(i=end;i>=0;i--){ if(ser[i].v>0&&ser[i].v>avgV)vd++; else break; } }
+  var chg=(end>=1&&ser[end-1].c>0)?((ser[end].c-ser[end-1].c)/ser[end-1].c)*100:0;
+  var score=Math.round(Math.min(10,Math.min(7,acc*0.7)+Math.min(1.5,du*0.4)+Math.min(1,vd*0.3)+(chg>0?Math.min(0.5,chg/10):0))*10)/10;
+  return {score:score,acc:acc,liq:(avgV>0?avgV:(ser[end].v||0))*(ser[end].c||0)};
+}
+async function _t20Replay(){
+  var shares=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=30;});
+  if(shares.length<50)return null;
+  // exchange trading-day calendar = dates seen in a decent share of series
+  var seen={},k;
+  shares.forEach(function(s){ for(var i=0;i<s.series.length;i++){ var d=s.series[i].d; seen[d]=(seen[d]||0)+1; } });
+  var floor=Math.max(10,Math.round(shares.length*0.25));
+  var cal=Object.keys(seen).filter(function(d){return seen[d]>=floor;}).sort();
+  if(cal.length<12)return null;
+  // replay days: must leave 5 calendar steps for the shortest window; last 30
+  var eligible=cal.slice(0,Math.max(0,cal.length-5));
+  var days=eligible.slice(-30);
+  if(!days.length)return null;
+  var need=(typeof F!=='undefined'&&F&&F.cap&&F.cap!=='any')?(F.cap==='l50'?50e3:F.cap==='l250'?250e3:F.cap==='l1m'?1e6:0):0;
+  var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
+  var G={t10:{},t20:{},all:{}}; ['5','10','20'].forEach(function(w){ ['t10','t20','all'].forEach(function(g){ G[g][w]={n:0,sum:0,up:0}; }); });
+  var W=[5,10,20], usedDays=0, sample=[];
+  for(var di=0;di<days.length;di++){
+    if(di>0)await new Promise(function(r){setTimeout(r,0);});
+    var D=days[di], scored=[];
+    for(var si=0;si<shares.length;si++){
+      var s=shares[si], ix=idxmaps[si][D];
+      if(ix==null||ix<3)continue;
+      var r=_t20DayScore(s.series,ix);
+      if(!r||!(r.score>0))continue;
+      if(need&&r.liq<need)continue;
+      scored.push({si:si,ix:ix,score:r.score,acc:r.acc});
+    }
+    if(scored.length<20)continue;
+    usedDays++;
+    scored.sort(function(a,b){return (b.score-a.score)||(b.acc-a.acc);});
+    var top=scored.slice(0,20);
+    // market baseline for this day: every scored share's forward move
+    for(var wi=0;wi<3;wi++){
+      var w=W[wi], key=String(w);
+      for(var q=0;q<scored.length;q++){
+        var e=scored[q], ser=shares[e.si].series;
+        if(e.ix+w>=ser.length)continue;
+        var c0=ser[e.ix].c, c1=ser[e.ix+w].c;
+        if(!(c0>0)||!(c1>0))continue;
+        var ret=((c1-c0)/c0)*100;
+        G.all[key].n++; G.all[key].sum+=ret; if(ret>0)G.all[key].up++;
+        var rank=top.indexOf(e);
+        if(rank>=0){ G.t20[key].n++; G.t20[key].sum+=ret; if(ret>0)G.t20[key].up++;
+          if(rank<10){ G.t10[key].n++; G.t10[key].sum+=ret; if(ret>0)G.t10[key].up++; } }
+      }
+    }
+    if(di>=days.length-3){ sample.push({d:D,picks:top.slice(0,5).map(function(e){return shares[e.si].ticker;})}); }
+  }
+  if(!usedDays)return null;
+  return {days:usedDays,from:days[0],to:days[days.length-1],G:G,sample:sample,exch:currentExch};
+}
+function top20Alumni(){
+  var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+  if(window._t20Cache&&window._t20Cache.ex===currentExch&&window._t20Cache.d===dd&&window._t20Cache.R){ return _renderT20Card(window._t20Cache.R); }
+  if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — the alumni report replays your <b>saved history</b>.</div>','🏆 Top 20 — how past picks fared'); }catch(e){} return; }
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Replaying the last few weeks…</b><br>rebuilding each day&#8217;s Top 20 from your saved history and following every pick forward.</div>','🏆 Top 20 — how past picks fared'); }catch(e){}
+  _t20Replay().then(function(R){
+    if(R){ window._t20Cache={ex:currentExch,d:dd,R:R}; }
+    var m=document.getElementById('appModal');
+    if(m&&m.style.display!=='none'&&window._curModalLabel==='🏆 Top 20 — how past picks fared'){
+      if(R)_renderT20Card(R);
+      else{ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">Not enough saved history yet.<br>Run <b>⬇ Download all</b> so a few months of days are stored, then this report can replay past Top 20 lists honestly.</div>','🏆 Top 20 — how past picks fared'); }catch(e){} }
+    }
+  }).catch(function(){});
+}
+function _renderT20Card(R){
+  var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+  var row=function(name,g,base,tip){
+    var cells=['5','10','20'].map(function(w){
+      var m=g[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
+      var avg=m.sum/m.n, b=base[w], bavg=b.n?(b.sum/b.n):0, beat=avg>bavg;
+      return '<td style="text-align:center;"><span style="font-family:var(--mono);font-weight:800;color:'+(beat?'var(--green)':'#ff9caa')+'">'+f1(avg)+'</span><br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% higher · '+m.n+' picks</span></td>';
+    }).join('');
+    return '<tr title="'+tip+'" style="cursor:help;"><td style="padding:7px 6px;font-weight:700;">'+name+'</td>'+cells+'</tr>';
+  };
+  var base=R.G.all;
+  var baseCells=['5','10','20'].map(function(w){ var m=base[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>'; return '<td style="text-align:center;"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span><br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+  var g10=R.G.t10, g20=R.G.t20, w5=g10['5'], b5=base['5'];
+  var verdict='';
+  if(w5.n&&b5.n){
+    var e=(w5.sum/w5.n)-(b5.sum/b5.n);
+    verdict=(e>0)
+      ? '<div style="margin:10px 0 0;padding:9px 12px;border:1px solid var(--green);border-radius:8px;font-size:11.5px;color:var(--green);">Over these '+R.days+' days the top 10 beat the average share by <b>'+f1(e)+'</b> per 5-day window. An edge worth watching — never a guarantee.</div>'
+      : '<div style="margin:10px 0 0;padding:9px 12px;border:1px solid #ff9caa;border-radius:8px;font-size:11.5px;color:#ff9caa;">Over these '+R.days+' days the top 10 did <b>not</b> beat the average share (edge '+f1(e)+' per 5-day window). Be extra sceptical of high scores right now.</div>';
+  }
+  var samp=(R.sample&&R.sample.length)?('<div style="margin-top:8px;font-size:10px;color:var(--dim);">Most recent replayed lists: '+R.sample.map(function(x){return '<b>'+x.d+'</b> — '+x.picks.join(', ')+'…';}).join(' · ')+'</div>'):'';
+  var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), the day&#8217;s <b>🏆 Top 20 by Watch Score</b> was rebuilt exactly as it stood that day, then every pick was followed forward <b>5, 10 and 20 trading days</b> (close to close). &#8216;Market&#8217; is every scored share over the same windows.</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+    +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">group</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
+    +row('🥇 Ranks 1–10',g10,base,'The top half of each day&#8217;s list — where the signal should be strongest.')
+    +row('🥈 Ranks 11–20',(function(){var o={}; ['5','10','20'].forEach(function(w){ o[w]={n:R.G.t20[w].n-R.G.t10[w].n,sum:R.G.t20[w].sum-R.G.t10[w].sum,up:R.G.t20[w].up-R.G.t10[w].up}; }); return o;})(),base,'The bottom half — if the edge lives mostly in ranks 1–10, this row shows it.')
+    +row('🏆 Whole Top 20',g20,base,'All twenty together.')
+    +'<tr><td style="padding:7px 6px;color:var(--muted);">📊 Market (all scored)</td>'+baseCells+'</tr>'
+    +'</table>'
+    +verdict
+    +samp
+    +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. Same honesty rules as the 📋 Signal report card: a few weeks of data is evidence, not proof — and a red patch means be sceptical, not that the app is broken. Rebuilt automatically each fresh data day.</div>'
+    +'</div>';
+  try{ showModal(html,'🏆 Top 20 — how past picks fared'); }catch(e){}
 }
 function signalReportCard(){
   // v321/v332: grading the whole exchange is ~1s+ of maths. v332 runs it in
