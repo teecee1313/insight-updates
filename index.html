@@ -1389,7 +1389,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     </div>
 
     <div class="scan-group" id="sgCards">
-      <div class="sg-h" id="sgCardsH" style="cursor:pointer" title="Tap to show or hide the report cards — the app's honesty checks"><span>📋 Report cards<span class="sg-hint">honesty checks — do the signals actually work?</span></span><span class="sg-ch">▸</span></div>
+      <div class="sg-h" id="sgCardsH" style="cursor:pointer" title="Tap to show or hide the report cards — the app's honesty checks. They re-run every signal and every scan over your stored history and report how they actually did, including when the answer is bad."><span>📋 Report cards<span class="sg-hint">honesty checks</span></span><span class="sg-ch">▸</span></div>
       <div id="sgCardsBody" style="display:none;">
       <button class="menu-btn" onclick="signalReportCard()" title="The app grades its own signals over your saved history: for each flag, how often shares were higher (or lower, for the bearish flag) in the days after it fired — measured over your choice of 5, 10 or 30 trading days — against how the whole market moved. Honest by design; some weeks the flags score badly."><span>📋 Signal report card <span style="font-weight:400;color:var(--dim);font-size:10px;">how the flags scored</span></span><span class="mb-chev">▶</span></button>
     <div id="cardCards">
@@ -1541,7 +1541,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-444-open';
+const APP_VERSION='2026.07.27-445-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15889,9 +15889,17 @@ button:active{transform:scale(.985);}
 /* ═══ v296 PREVIEW — grouped Instant Reports ═══ */
 #scanGroups{display:flex;flex-direction:column;gap:8px;}
 body.simple-mode #scanGroups{display:none;}
-#scanGroups .sg-h{display:flex;justify-content:space-between;align-items:center;font:700 9.5px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:1px 2px;}
-#scanGroups .sg-h .sg-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-size:9px;margin-left:4px;}
-#scanGroups .sg-ch{color:var(--dim);font-size:10px;padding:0 3px;}
+/* v445 — #sgCards is listed alongside #scanGroups on purpose. #scanGroups is
+   built in JavaScript at runtime; the 📋 Report cards group is static markup
+   that sits OUTSIDE it, so it was picking up none of these rules and rendered
+   as unstyled run-together text. Any future static group header needs adding
+   here too — or, better, these rules want moving onto .scan-group itself. */
+#scanGroups .sg-h,#sgCards .sg-h{display:flex;justify-content:space-between;align-items:center;font:700 9.5px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:1px 2px;}
+#scanGroups .sg-h .sg-hint,#sgCards .sg-h .sg-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-size:9px;margin-left:5px;}
+#scanGroups .sg-ch,#sgCards .sg-ch{color:var(--dim);font-size:10px;padding:0 3px;}
+#sgCards{margin:8px 0 2px;}
+#sgCards .sg-h:hover{color:var(--text);}
+#sgCards #sgCardsBody{display:flex;flex-direction:column;gap:6px;margin-top:5px;}
 #scanGroups .sg-b{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 #scanGroups .sg-trio{grid-template-columns:1fr 1fr 1fr;gap:5px;}
 #scanGroups .sg-pinned .sg-h>span:first-child{color:var(--gold);}
