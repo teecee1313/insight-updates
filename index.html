@@ -1541,7 +1541,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-446-open';
+const APP_VERSION='2026.07.27-447-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5082,7 +5082,7 @@ function showRules(){
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option><option value="unus" ${r.apSource==='unus'?'selected':''}>🔥 Unusual Activity</option><option value="sharp" ${r.apSource==='sharp'?'selected':''}>🚨 Sharp Mover</option><option value="vol" ${r.apSource==='vol'?'selected':''}>📈 Volume 2× normal</option><option value="recov" ${r.apSource==='recov'?'selected':''}>↩️ Recovery Watch</option><option value="quiet" ${r.apSource==='quiet'?'selected':''}>🫧 Quiet Movers</option><option value="pull" ${r.apSource==='pull'?'selected':''}>🪜 Pullback in Uptrend</option><option value="strong" ${r.apSource==='strong'?'selected':''}>🧱 Strong Trends</option><option value="accum" ${r.apSource==='accum'?'selected':''}>💎 Heavy Accumulation</option><option value="hiscore" ${r.apSource==='hiscore'?'selected':''}>⭐ Watch Score 7+</option><option value="best" ${r.apSource==='best'?'selected':''}>🧪 Best proven scan (auto)</option></select><span style="font-size:9px;color:var(--dim)">🧪 = let the report card choose</span></label>
+        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option><option value="unus" ${r.apSource==='unus'?'selected':''}>🔥 Unusual Activity</option><option value="sharp" ${r.apSource==='sharp'?'selected':''}>🚨 Sharp Mover</option><option value="vol" ${r.apSource==='vol'?'selected':''}>📈 Volume 2× normal</option><option value="recov" ${r.apSource==='recov'?'selected':''}>↩️ Recovery Watch</option><option value="quiet" ${r.apSource==='quiet'?'selected':''}>🫧 Quiet Movers</option><option value="pull" ${r.apSource==='pull'?'selected':''}>🪜 Pullback in Uptrend</option><option value="strong" ${r.apSource==='strong'?'selected':''}>🧱 Strong Trends</option><option value="accum" ${r.apSource==='accum'?'selected':''}>💎 Heavy Accumulation</option><option value="hiscore" ${r.apSource==='hiscore'?'selected':''}>⭐ Watch Score 7+</option><option value="hi52" ${r.apSource==='hi52'?'selected':''}>📏 New 52-week High</option><option value="gold" ${r.apSource==='gold'?'selected':''}>✝️ Golden Cross (50/200)</option><option value="rsirec" ${r.apSource==='rsirec'?'selected':''}>🌀 RSI Recovery (30↗)</option><option value="squeeze" ${r.apSource==='squeeze'?'selected':''}>🤏 Volatility Squeeze</option><option value="rsl" ${r.apSource==='rsl'?'selected':''}>🏁 Rel-Strength Leader</option><option value="newsvol" ${r.apSource==='newsvol'?'selected':''}>📰 News + Volume 2×</option><option value="best" ${r.apSource==='best'?'selected':''}>🧪 Best proven scan (auto)</option></select><span style="font-size:9px;color:var(--dim)">🧪 = let the report card choose</span></label>
         <label style="font-size:10px;color:var(--muted);">Buys per day (max)<select id="rApMax" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option ${r.apMaxBuys===1?'selected':''}>1</option><option ${r.apMaxBuys===2?'selected':''}>2</option><option ${r.apMaxBuys===3?'selected':''}>3</option><option ${r.apMaxBuys===4?'selected':''}>4</option><option ${r.apMaxBuys===5?'selected':''}>5</option><option ${r.apMaxBuys===6?'selected':''}>6</option></select></label>
         <label style="font-size:10px;color:var(--muted);">Min Watch Score<input type="number" id="rApScore" min="0" max="10" step="1" value="${r.apMinScore||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
@@ -9166,7 +9166,7 @@ function _isBearish(s){
   if(!s)return false;
   const downVol=(s.chgPct<0 && s.volPct>=100);           // falling on heavy volume = selling
   const distribution=(s.blockDir==='down');               // inferred distribution
-  const downRun=(s.streakCalced && typeof s.daysUp==='number' && s.daysUp<=-2); // down-streak if tracked
+  const downRun=(s.streakCalced && (s.daysDown||0)>=2); // v447: a REAL down-streak (daysUp<=-2 was impossible)
   const nearLow=(s.chgPct<0 && s.rangePos!=null && s.rangePos<=10); // sinking near its floor
   return downVol||distribution||downRun||nearLow;
 }
@@ -9659,6 +9659,22 @@ function countStreakBoth(history){
   }
   return streak;
 }
+// v447: the DOWN companion of countStreak. Consecutive most-recent days where
+// close < prior close. Recovery Watch always wanted this; `daysUp<=-2` could
+// never be true because countStreak never returns a negative.
+function countDownStreak(history){
+  if(!Array.isArray(history)||history.length<2)return 0;
+  const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
+  const getClose=q=>parseFloat(qField(q,['close','Close','c']));
+  const h=history.slice().sort((a,b)=>{const da=getDate(a),db=getDate(b);return da<db?1:da>db?-1:0;});
+  let n=0;
+  for(let i=0;i<h.length-1;i++){
+    const c=getClose(h[i]), p=getClose(h[i+1]);
+    if(isNaN(c)||isNaN(p))break;
+    if(c<p)n++; else break;
+  }
+  return n;
+}
 function countStreak(history){
   // Count consecutive most-recent days where close > prior day's close.
   // History Quotes have no "previous" field, so compare to the prior row.
@@ -10001,7 +10017,7 @@ async function calcStreaksForPlan(p){
     if(window._offlineMode){ hist = Array.isArray(s.series) ? s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v})) : null; }
     else { hist = await fetchHistory(s.exchange,s.ticker,apiKey,95); }
     if(Array.isArray(hist)&&hist.length>=2){
-      s.daysUp=countStreak(hist);s.streakCalced=true;
+      s.daysUp=countStreak(hist);s.daysDown=countDownStreak(hist);s.streakCalced=true;
       s.newsFlag=newsProxy(hist);
       try{computeTechnicals(s,hist);}catch(e){}
       const avg3=computeVolAvg(hist,effVolWindow());
@@ -10385,7 +10401,7 @@ async function _computeSignalsFromSeries(){
     try{
       if(!Array.isArray(s.series)||s.series.length<2)continue;
       const hist=s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v}));
-      s.daysUp=countStreak(hist);s.streakCalced=true;
+      s.daysUp=countStreak(hist);s.daysDown=countDownStreak(hist);s.streakCalced=true;
       if(typeof countStreakBoth==='function')s.daysUpVol=countStreakBoth(hist);
       const avg3=computeVolAvg(hist,effVolWindow());
       if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
@@ -10430,7 +10446,7 @@ async function _freshenSeriesFromBulk(){
       // row is appended with its true open/high/low from the bulk feed.
       try{ _persistTodayRow(s,q,dd); }catch(e){}
       const hist2=s.series.map(r=>({dateStamp:r.d,close:r.c,volume:r.v}));
-      s.daysUp=countStreak(hist2);s.streakCalced=true;
+      s.daysUp=countStreak(hist2);s.daysDown=countDownStreak(hist2);s.streakCalced=true;
       const avg3=computeVolAvg(hist2,effVolWindow());
       if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
       try{
@@ -14072,7 +14088,7 @@ async function recoveryScan(){
   let rows=allData.filter(s=>{
     if(!(s.price>0))return false;
     if(!s.volCalced||!isFinite(s.volPct))return false;
-    const falling=(s.streakCalced&&s.daysUp<=-2);
+    const falling=(s.streakCalced&&(s.daysDown||0)>=2);   // v447: the primary branch finally works — daysUp<=-2 was never true
     const volumeUp=(s.volPct>=50);
     const stabilising=(s.chgPct>=-2);  // not accelerating downward
     return falling&&volumeUp&&stabilising;
@@ -16423,7 +16439,7 @@ function _apGradeRow(R,key,win){
   }catch(e){ return null; }
 }
 // the bot's own source names → the card's rule keys
-var _AP_SRC_KEYS=['smart','top20','unus','sharp','vol','recov','quiet','pull','strong','accum','hiscore'];
+var _AP_SRC_KEYS=['smart','top20','unus','sharp','vol','recov','quiet','pull','strong','accum','hiscore','hi52','gold','rsirec','squeeze','rsl','newsvol'];
 function _apSrcKey(src){ return (_AP_SRC_KEYS.indexOf(src)>=0)?src:'smart'; }
 function _apBestScan(R,win){
   var best=null;
@@ -16446,14 +16462,32 @@ function _apRuleFilter(pool,key){
     .sort(function(a,b){return (b.watchScore||0)-(a.watchScore||0);}).slice(0,20); }
   var rule=_SCAN_RULES.filter(function(x){return x.k===key;})[0];
   if(!rule)return [];   // v436 (audit): a filter that cannot filter must select NOTHING
-  return pool.filter(function(s){
+  // v447: two phases. Phase 1 computes today's stats for the whole pool; then
+  // the cross-share context the newcomers need (the day's rel-strength cut-off,
+  // the confirmed-news lookup) is stamped on; phase 2 applies the rule. The
+  // older rules see exactly what they always saw.
+  var sts=[];
+  for(var pi2=0;pi2<pool.length;pi2++){
+    var s2=pool[pi2];
     try{
-      if(!Array.isArray(s.series)||s.series.length<30)return false;
-      if(!s._scPf||s._scPfLen!==s.series.length){ s._scPf=_scPrep(s.series); s._scPfLen=s.series.length; }
-      var st=_scStats(s.series,s._scPf,s.series.length-1);
-      return st?!!rule.t(st):false;
-    }catch(e){ return false; }
-  });
+      if(!Array.isArray(s2.series)||s2.series.length<30)continue;
+      if(!s2._scPf||s2._scPfLen!==s2.series.length){ s2._scPf=_scPrep(s2.series); s2._scPfLen=s2.series.length; }
+      var st2=_scStats(s2.series,s2._scPf,s2.series.length-1);
+      if(!st2)continue;
+      try{ var lastD=s2.series[s2.series.length-1].d;
+        st2.newsFact=(window._scFacts)?!!window._scFacts[s2.ticker+'|'+lastD]:false; }catch(e){ st2.newsFact=false; }
+      sts.push({s:s2,st:st2});
+    }catch(e){}
+  }
+  (function(){
+    var ds=[]; for(var q1=0;q1<sts.length;q1++){ var v=sts[q1].st.d120; if(v!=null)ds.push(v); }
+    if(ds.length>=30){ ds.sort(function(a,b){return a-b;});
+      var cut=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
+      for(var q2=0;q2<sts.length;q2++)sts[q2].st.rslCut=cut; }
+  })();
+  var out=[];
+  for(var oi=0;oi<sts.length;oi++){ try{ if(rule.t(sts[oi].st))out.push(sts[oi].s); }catch(e){} }
+  return out;
 }
 // ═══ v434 — 💧 tradeability floor, adjustable inside every report card ═══
 // Micro-caps whose whole daily turnover is a few thousand dollars produce
@@ -16532,7 +16566,42 @@ function _scPrep(ser){
       R[i]=(al>0)?(100-100/(1+ag/al)):(ag>0?100:50);
     }
   }
-  return {P:P,V:V,G:G,L:L,M:M,VN:VN,R:R};
+  // v447 — three rolling views, each O(n) via monotonic deques:
+  //   HI[i] = highest close of the PRIOR 250 days (excludes day i) — the
+  //           yardstick for a true 52-week-high breakout. Valid from i>=200.
+  //   R10[i] = the last 10 days' close-to-close range as a % of today's close.
+  //   SQ[i] = the smallest R10 of the prior ~3 months (excludes today) — so
+  //           "tightest range in 3 months" is one comparison. Valid i>=75.
+  var HI=new Float64Array(n), R10=new Float64Array(n), SQ=new Float64Array(n);
+  for(i=0;i<n;i++){HI[i]=NaN;R10[i]=NaN;SQ[i]=NaN;}
+  var dqMax=[],dqMin=[],q;
+  for(i=0;i<n;i++){
+    if(i>=200){ // prior-window max: deque holds indices of a descending run
+      var lo0=i-250;
+      while(dqMax.length&&dqMax[0]<lo0)dqMax.shift();
+      if(dqMax.length)HI[i]=ser[dqMax[0]].c;
+    }
+    while(dqMax.length&&ser[dqMax[dqMax.length-1]].c<=ser[i].c)dqMax.pop();
+    dqMax.push(i);
+  }
+  var dq2=[],dq3=[];
+  for(i=0;i<n;i++){
+    while(dq2.length&&dq2[0]<i-9)dq2.shift();
+    while(dq3.length&&dq3[0]<i-9)dq3.shift();
+    while(dq2.length&&ser[dq2[dq2.length-1]].c<=ser[i].c)dq2.pop(); dq2.push(i);
+    while(dq3.length&&ser[dq3[dq3.length-1]].c>=ser[i].c)dq3.pop(); dq3.push(i);
+    if(i>=9&&ser[i].c>0)R10[i]=((ser[dq2[0]].c-ser[dq3[0]].c)/ser[i].c)*100;
+  }
+  var dq4=[];
+  for(i=0;i<n;i++){
+    if(i>=75){
+      var lo1=i-63;
+      while(dq4.length&&dq4[0]<lo1)dq4.shift();
+      if(dq4.length)SQ[i]=R10[dq4[0]];
+    }
+    if(!isNaN(R10[i])){ while(dq4.length&&R10[dq4[dq4.length-1]]>=R10[i])dq4.pop(); dq4.push(i); }
+  }
+  return {P:P,V:V,G:G,L:L,M:M,VN:VN,R:R,HI:HI,R10:R10,SQ:SQ};
 }
 function _scStats(ser,pf,end){
   if(end<29)return null;
@@ -16550,6 +16619,14 @@ function _scStats(ser,pf,end){
           typ:(end>=20?(pf.M[end+1]-pf.M[1])/end:mean(pf.M,20))};
   st.volRatio=(avgV>0)?(ser[end].v/avgV):0;
   st.rsi=(pf.R&&!isNaN(pf.R[end]))?pf.R[end]:null;
+  // v447 — inputs for the six new rules
+  st.rsiPrev=(pf.R&&end>0&&!isNaN(pf.R[end-1]))?pf.R[end-1]:null;
+  st.hiPrev=(pf.HI&&!isNaN(pf.HI[end]))?pf.HI[end]:null;
+  st.r10=(pf.R10&&!isNaN(pf.R10[end]))?pf.R10[end]:null;
+  st.sqBase=(pf.SQ&&!isNaN(pf.SQ[end]))?pf.SQ[end]:null;
+  st.ma50p=(end>=50)?((pf.P[end]-pf.P[end-50])/50):null;      // yesterday's MAs, for CROSS detection
+  st.ma200p=(end>=200)?((pf.P[end]-pf.P[end-200])/200):null;
+  st.d120=(end>=120&&ser[end-120].c>0)?((c-ser[end-120].c)/ser[end-120].c)*100:null;
   var du=0,i;
   for(i=end;i>=1;i--){ if(ser[i].c>ser[i-1].c)du++; else break; }
   st.du=du; st.streak=du;
@@ -16613,7 +16690,36 @@ var _SCAN_RULES=[
   {k:'accum', n:'💎 Heavy Accumulation (6+/10)', t:function(s){ return s.acc>=6; }},
   {k:'hiscore',n:'⭐ Watch Score 7+', t:function(s){ return s.score>=7; }},
   {k:'score6', n:'⭐ Watch Score 6+', t:function(s){ return s.score>=6; }},
-  {k:'score5', n:'⭐ Watch Score 5+', t:function(s){ return s.score>=5; }}
+  {k:'score5', n:'⭐ Watch Score 5+', t:function(s){ return s.score>=5; }},
+  // ═══ v447 — six newcomers. Every one starts TOO EARLY and earns its tier. ═══
+  {k:'hi52',  n:'📏 New 52-week High', t:function(s){
+      // the best-documented momentum effect: a close above the prior 250-day
+      // high, with at least some volume behind it so a one-tick blip in a dead
+      // stock doesn't count
+      return s.hiPrev!=null&&s.hiPrev>0&&s.c>s.hiPrev&&s.volRatio>=1.2; }},
+  {k:'gold',  n:'✝️ Golden Cross (50/200)', t:function(s){
+      // the 50-day average crossing UP through the 200-day — TODAY, not "is
+      // above" (that near-duplicates Strong Trends). Rare by design.
+      return s.ma50!=null&&s.ma200!=null&&s.ma50p!=null&&s.ma200p!=null
+        &&s.ma50>s.ma200&&s.ma50p<=s.ma200p; }},
+  {k:'rsirec',n:'🌀 RSI Recovery (30↗)', t:function(s){
+      // not "is oversold" — falling knives are oversold all the way down. The
+      // signal is the RSI crossing back UP through 30: the bounce has begun.
+      return s.rsiPrev!=null&&s.rsi!=null&&s.rsiPrev<30&&s.rsi>=30; }},
+  {k:'squeeze',n:'🤏 Volatility Squeeze', t:function(s){
+      // the last 10 days are the TIGHTEST 10-day range of the past ~3 months,
+      // on drying-up volume — a coiled spring; contraction precedes expansion
+      return s.r10!=null&&s.sqBase!=null&&s.r10<=s.sqBase*1.02&&s.r10<8&&s.volRatio>0&&s.volRatio<=0.9; }},
+  {k:'rsl',   n:'🏁 Rel-Strength Leader', t:function(s){
+      // top 10% of the WHOLE MARKET by 120-day return (the day's cut-off is
+      // computed across all shares and stamped on each st before rules run),
+      // and today not extended — buy leaders on a breather, not on a spike
+      return s.d120!=null&&s.rslCut!=null&&s.d120>=s.rslCut&&s.chg<=2&&s.chg>=-6; }},
+  {k:'newsvol',n:'📰 News + Volume 2×', t:function(s){
+      // a CONFIRMED material headline (from the news store, not the estimate)
+      // AND double volume the same day. Only fires where news coverage exists,
+      // so it starts tiny and honest and grows with the shortlist.
+      return s.newsFact===true&&s.volPct>=100; }}
 ];
 async function _scReplay(){
   var shares=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=30;});
@@ -16626,6 +16732,15 @@ async function _scReplay(){
   var days=cal.slice(0,Math.max(0,cal.length-5)).slice(-250);   // v443: up to a year
   if(!days.length)return null;
   var need=_cardLiqNeed();   // v434: set inside the card itself
+  // v447: CONFIRMED news days from the worker's store (weight ≥ .5 = material).
+  // Feeds the 📰 News+Volume rule. If the fetch fails or coverage is empty the
+  // rule simply never fires — a missing signal, never a wrong one.
+  var FACTS=null;
+  try{
+    var _fr=await fetch(DATA_PROXY+'/news/days?exch='+encodeURIComponent(currentExch)+'&days=420&minw=0.5');
+    if(_fr&&_fr.ok){ var _fj=await _fr.json();
+      if(_fj&&_fj.ok&&Array.isArray(_fj.rows)){ FACTS={}; for(var _fi=0;_fi<_fj.rows.length;_fi++){ var _row=_fj.rows[_fi]; FACTS[_row[0]+'|'+_row[1]]=1; } window._scFacts=FACTS; } }
+  }catch(e){}
   var pfs=shares.map(function(s){return _scPrep(s.series);});
   var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
   var W=[5,10,20], G={all:{}}, usedDays=0, fires={};
@@ -16649,6 +16764,7 @@ async function _scReplay(){
       var ix=idxmaps[si][D]; if(ix==null)continue;
       var st=_scStats(shares[si].series,pfs[si],ix); if(!st)continue;
       if(need&&st.avgV*st.c<need)continue;
+      st.newsFact=FACTS?!!FACTS[shares[si].ticker+'|'+D]:false;   // v447: confirmed headline that day?
       var fwd=[null,null,null], ser=shares[si].series, ok=false;
       for(var wi=0;wi<3;wi++){ var w=W[wi]; if(ix+w<ser.length&&ser[ix+w].c>0){ fwd[wi]=((ser[ix+w].c-ser[ix].c)/ser[ix].c)*100; ok=true; } }
       if(!ok)continue;
@@ -16656,6 +16772,15 @@ async function _scReplay(){
     }
     if(rows.length<50)continue;
     usedDays++;
+    // v447: the day's relative-strength cut-off — the 90th percentile of
+    // 120-day returns across every share trading that day, stamped on each st
+    // so 🏁 Rel-Strength Leader is graded against the same market it ran in.
+    (function(){
+      var ds=[]; for(var q1=0;q1<rows.length;q1++){ var v=rows[q1].st.d120; if(v!=null)ds.push(v); }
+      if(ds.length>=30){ ds.sort(function(a,b){return a-b;});
+        var cut=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
+        for(var q2=0;q2<rows.length;q2++)rows[q2].st.rslCut=cut; }
+    })();
     // v436 (audit): reservoir sampling. The old code kept the FIRST 60k samples,
   // so a big group's median described only the oldest days of the window while
   // its average described all of them — the mid-vs-market column was comparing
@@ -16715,7 +16840,7 @@ function _renderSCCard(R,win){
   var view=String(window._scViewMode||'all');   // must be set BEFORE the rows are built
   var news=String(window._scNewsMode||'all');   // 📢 / 🔇 subset — same rule
   var pick=function(m){ if(news==='all')return m; var q=m&&m.nq&&m.nq[news]; return q||{n:0,sum:0,up:0}; };
-  var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+  var f1=function(x){var t=x.toFixed(2);return (t==='0.00'||t==='-0.00')?'0.00%':((x>=0?'+':'')+t+'%');};   // v447: a dead-flat average shows unsigned — '+0.00%' in the fallers view read as a contradiction
   var base=R.G.all;
   var bavg=function(w){ var b=(String(window._scNewsMode||'all')==='all')?base[w]:((base[w].nq&&base[w].nq[String(window._scNewsMode)])||{n:0,sum:0}); return b.n?b.sum/b.n:0; };
   var med=function(c){ if(!c||!c.s||!c.s.length)return null;
@@ -16817,7 +16942,7 @@ function _renderSCCard(R,win){
 }
 function _scCombos(R,win,base){
   if(!R.C)return '';
-  var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+  var f1=function(x){var t=x.toFixed(2);return (t==='0.00'||t==='-0.00')?'0.00%':((x>=0?'+':'')+t+'%');};   // v447: a dead-flat average shows unsigned — '+0.00%' in the fallers view read as a contradiction
   var bavg=function(w){ var b=(String(window._scNewsMode||'all')==='all')?base[w]:((base[w].nq&&base[w].nq[String(window._scNewsMode)])||{n:0,sum:0}); return b.n?b.sum/b.n:0; };
   var NR=_SCAN_RULES.length;
   var nameOf=function(i){ return (i>=NR)?'🏆 Top 20':_SCAN_RULES[i].n; };
@@ -16938,7 +17063,7 @@ function smartAlumni(){
   }).catch(function(){});
 }
 function _renderSMCard(R){
-  var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+  var f1=function(x){var t=x.toFixed(2);return (t==='0.00'||t==='-0.00')?'0.00%':((x>=0?'+':'')+t+'%');};   // v447: a dead-flat average shows unsigned — '+0.00%' in the fallers view read as a contradiction
   var base=R.G.all;
   var row=function(name,g,tip){
     var cells=['5','10','20'].map(function(w){
@@ -16991,7 +17116,7 @@ function top20Alumni(){
   }).catch(function(){});
 }
 function _renderT20Card(R){
-  var f1=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+  var f1=function(x){var t=x.toFixed(2);return (t==='0.00'||t==='-0.00')?'0.00%':((x>=0?'+':'')+t+'%');};   // v447: a dead-flat average shows unsigned — '+0.00%' in the fallers view read as a contradiction
   var row=function(name,g,base,tip){
     var cells=['5','10','20'].map(function(w){
       var m=g[w]; if(!m.n)return '<td style="text-align:center;color:var(--dim)">—</td>';
