@@ -419,6 +419,40 @@ body.pf-hideprofit .pf-pl{filter:blur(8px)!important;-webkit-filter:blur(8px)!im
   #appModal #modalBox .modal-scroll{padding-right:4px!important;margin-right:0!important;-webkit-overflow-scrolling:touch;}
   #appModal #modalBox button{min-height:40px;}
   #appModal #modalBox .mb-resizehint{display:none!important;}
+}
+/* v444 — REPORT-CARD TABLES ON NARROW SCREENS.
+     Even with the label column restored, four columns of dense figures
+     (+12.78% · edge +3.61% · 41% · 8400 fires) do not fit a 400px screen. So
+     each row becomes a small block: the scan or pair name on its own line, the
+     three windows in a row underneath, each captioned. Nothing is squeezed and
+     nothing scrolls sideways. The breakpoint is 880px, not a phone width: the
+     modal opens at 90% of the window, and the four-column table needs ~744px,
+     so anything narrower than ~880px genuinely cannot fit it. Measured, not
+     guessed. */
+@media (max-width:880px){
+  #appModal .rc-t{display:block;width:100%!important;}
+  #appModal .rc-t tbody{display:block;}
+  #appModal .rc-t tr{display:block;padding:9px 0 10px;border-bottom:1px solid var(--border);}
+  #appModal .rc-t tr:last-child{border-bottom:none;}
+  #appModal .rc-t tr:first-child{display:none;}            /* header replaced by the per-cell captions below */
+  #appModal .rc-t th,#appModal .rc-t td{display:block;border:none;}
+  #appModal .rc-t tr>*:first-child{
+    width:auto!important;text-align:left!important;padding:0 2px 7px!important;line-height:1.45;
+  }
+  #appModal .rc-t tr>*:nth-child(n+2){
+    display:inline-block;width:33.33%;box-sizing:border-box;vertical-align:top;
+    text-align:center!important;padding:4px 2px!important;
+  }
+  #appModal .rc-t tr>*:nth-child(n+2)::before{
+    display:block;font-size:8.5px;font-weight:800;letter-spacing:.6px;
+    color:var(--dim);margin-bottom:2px;text-transform:uppercase;
+  }
+  #appModal .rc-t tr>*:nth-child(2)::before{content:'5 days';}
+  #appModal .rc-t tr>*:nth-child(3)::before{content:'10 days';}
+  #appModal .rc-t tr>*:nth-child(4)::before{content:'20 days';}
+}
+@media (max-width:640px){
+  /* (the phone modal block continues below) */
 /* Portfolio on phones: the 7-column holdings/history tables don't fit a narrow
      screen, so we hide the wide table and show a stacked "card" per holding
      instead (built in JS). Each card shows the share, the numbers as labelled
@@ -543,16 +577,23 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
   /* Table: keep the essentials, hide the dense columns.
      v340 — Cols (14): 1 chk · 2 star · 3 ticker · 4 price · 5 change · 6 RANGE · 7 volSurge · 8 volume · 9 priceStreak · 10 volStreak · 11 accum · 12 score · 13 news · 14 signals.
      Keep on phones: star, ticker, price, change, 📊 Range, score, news. (Indices were stale from before the Range column existed — they hid Range and the wrong columns.) */
-  table:not(.hist) th:nth-child(1), table:not(.hist) td:nth-child(1),   /* checkbox */
-  table:not(.hist) th:nth-child(7), table:not(.hist) td:nth-child(7),   /* vol surge */
-  table:not(.hist) th:nth-child(8), table:not(.hist) td:nth-child(8),   /* volume detail */
-  table:not(.hist) th:nth-child(9), table:not(.hist) td:nth-child(9),   /* price streak */
-  table:not(.hist) th:nth-child(10), table:not(.hist) td:nth-child(10), /* vol streak */
-  table:not(.hist) th:nth-child(11), table:not(.hist) td:nth-child(11), /* accumulation */
-  table:not(.hist) th:nth-child(14), table:not(.hist) td:nth-child(14){ /* signals */
+  /* v444 — SCOPED TO THE SHARE TABLE. This used to say `table:not(.hist)`,
+     which matched EVERY table in the document — so the report cards in the
+     modal lost their first column (the scan name) on any screen under 768px,
+     leaving columns of figures with nothing saying what they were. The rule
+     was only ever meant for the share table in #tblwrap. */
+  #tblwrap table th:nth-child(1), #tblwrap table td:nth-child(1),   /* checkbox */
+  #tblwrap table th:nth-child(7), #tblwrap table td:nth-child(7),   /* vol surge */
+  #tblwrap table th:nth-child(8), #tblwrap table td:nth-child(8),   /* volume detail */
+  #tblwrap table th:nth-child(9), #tblwrap table td:nth-child(9),   /* price streak */
+  #tblwrap table th:nth-child(10), #tblwrap table td:nth-child(10), /* vol streak */
+  #tblwrap table th:nth-child(11), #tblwrap table td:nth-child(11), /* accumulation */
+  #tblwrap table th:nth-child(14), #tblwrap table td:nth-child(14){ /* signals */
     display:none;
   }
-  table th,table td{padding:9px 6px;font-size:13px;}
+  /* likewise: the touch-friendly padding belongs to the share table, not to
+     every dense table in the app (the cards set their own 11.5px on purpose). */
+  #tblwrap table th,#tblwrap table td{padding:9px 6px;font-size:13px;}
   .tick-name{font-size:11px;}
   /* Language + password controls full friendly size */
   #langSel{padding:8px;font-size:13px;}
@@ -1500,7 +1541,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-443-open';
+const APP_VERSION='2026.07.27-444-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16698,7 +16739,7 @@ function _renderSCCard(R,win){
        +' Middle-outcome figures are hidden in these views — they are only computed for the full set.</div>')
     +(view==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);">'+(view==='up'?'📈 <b>Gainers only</b> — the average rise of the flagged shares that went UP, and what share of fires that was. Compare the % with the market row: a scan that turns 40% of fires into gains where the market managed 39% is barely picking better, however big those gains look.':'📉 <b>Fallers only</b> — the average fall of the flagged shares that went DOWN. Read it beside the gainers view: if the falls are deeper than the rises, a scan can win more often and still lose money.')+'</div>')
     +'<div style="margin:0 0 8px;">'+sw+'</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+    +'<table class="rc-t" style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">scan</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +body
     +'<tr><td style="padding:7px 6px;color:var(--muted);">📊 Market (all shares)</td>'+baseCells+'</tr>'
@@ -16707,6 +16748,7 @@ function _renderSCCard(R,win){
     +((view==='all'&&news==='all')?_scCombos(R,win,base):'')
     +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. A scan can lose over 5 days and win over 20 (or the reverse) — that is a statement about how fast it works, so switch the ranking above and read all three. Rules re-create each scan’s live test from stored closes and volumes. Known limits, stated plainly: 🕳 Gap Report is absent (it needs opening prices, which the offline store does not keep); rows named for a threshold (📈 Volume 2× normal, ⭐ Watch Score N+, 💎 Heavy Accumulation) measure that threshold rather than a button; the 20-day column necessarily covers fewer recent days than the 5-day column; and delisted shares are missing from stored history, which flatters every row a little. Evidence, not prophecy. Rebuilt automatically each fresh data day.</div>'
     +'</div>';
+  window._modalBig=true;   // v444: data-dense, open it big
   try{ showModal(html,'🧪 All scans — which ones actually work?'); }catch(e){}
 }
 function _scCombos(R,win,base){
@@ -16742,7 +16784,7 @@ function _scCombos(R,win,base){
   return '<div style="margin-top:14px;border-top:2px solid rgba(255,210,0,.35);padding-top:10px;">'
     +'<div style="font:700 11px \'Space Grotesk\';color:var(--gold);margin-bottom:4px;">🧩 Combinations — does agreement help?</div>'
     +'<div style="font-size:10.5px;color:var(--muted);margin-bottom:7px;">Every PAIR of scans that flagged the <b>same share on the same day</b>, graded the same way. '+list.length+' pairs fired often enough (50+ times) to grade; the best '+top.length+' by '+win+'-day edge are shown, with each leg&#8217;s solo edge underneath so you can see whether two signals agreeing actually beats one.</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+    +'<table class="rc-t" style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">pair</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +rows+'</table></div>';
 }
@@ -16854,7 +16896,7 @@ function _renderSMCard(R){
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), every share meeting the <b>🕵️ Smart Money rule as it stood that day</b> — an UP day on volume 50%+ above its average, with a 2+ day streak — was followed forward <b>5, 10 and 20 trading days</b> (close to close). About <b>'+R.perDay+'</b> qualifiers per day. &#8216;Market&#8217; is every share with enough data over the same windows. Directly comparable with the 🏆 Top 20 card — same days, same yardstick.</div>'
     +_cardLiqBar('smartAlumni')
-    +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+    +'<table class="rc-t" style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">group</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +row('🕵️ All qualifiers',R.G.q,'Every share that met the Smart Money rule that day.')
     +row('2-day streaks',R.G.s2,'The basic rule — exactly 2 days.')
@@ -16866,6 +16908,7 @@ function _renderSMCard(R){
     +samp
     +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. Same honesty rules as the other report cards: evidence, not prophecy. Rebuilt automatically each fresh data day.</div>'
     +'</div>';
+  window._modalBig=true;   // v444: data-dense, open it big
   try{ showModal(html,'🕵️ Smart Money — how past qualifiers fared'); }catch(e){}
 }
 function top20Alumni(){
@@ -16907,7 +16950,7 @@ function _renderT20Card(R){
   var html='<div style="padding:4px 6px 12px;font-size:12px;line-height:1.55;color:var(--text);">'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Each of the last <b>'+R.days+'</b> stored trading days ('+R.from+' → '+R.to+', '+R.exch+'), the day&#8217;s <b>🏆 Top 20 by Watch Score</b> was rebuilt exactly as it stood that day, then every pick was followed forward <b>5, 10 and 20 trading days</b> (close to close). &#8216;Market&#8217; is every scored share over the same windows.</div>'
     +_cardLiqBar('top20Alumni')
-    +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+    +'<table class="rc-t" style="width:100%;border-collapse:collapse;font-size:11.5px;">'
     +'<tr style="color:var(--muted);font-size:10px;"><th style="text-align:left;padding:4px 6px;">group</th><th>5 days on</th><th>10 days on</th><th>20 days on</th></tr>'
     +row('⭐ Ranks 1–5',g5,base,'The very front of the list - if rank order carries signal, it should show here first.')+row('🥇 Ranks 1–10',g10,base,'The top half of each day&#8217;s list — where the signal should be strongest.')
     +row('🥈 Ranks 11–20',(function(){var o={}; ['5','10','20'].forEach(function(w){ o[w]={n:R.G.t20[w].n-R.G.t10[w].n,sum:R.G.t20[w].sum-R.G.t10[w].sum,up:R.G.t20[w].up-R.G.t10[w].up}; }); return o;})(),base,'The bottom half — if the edge lives mostly in ranks 1–10, this row shows it.')
@@ -16918,6 +16961,7 @@ function _renderT20Card(R){
     +samp
     +'<div style="margin-top:10px;font-size:10px;color:var(--dim);">Green = beat the market average for that window. Same honesty rules as the 📋 Signal report card: a few weeks of data is evidence, not proof — and a red patch means be sceptical, not that the app is broken. Rebuilt automatically each fresh data day.</div>'
     +'</div>';
+  window._modalBig=true;   // v444: data-dense, open it big
   try{ showModal(html,'🏆 Top 20 — how past picks fared'); }catch(e){}
 }
 function signalReportCard(){
@@ -17199,6 +17243,7 @@ function _renderReportCard(A){
       +'</span>'
       +'<button onclick="printSignalReport()" title="Open a clean, saveable one-page version of this report card — print it, or save it as a PDF, to keep a dated record of how the signals graded today." style="padding:5px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🖨 Save / print this card</button></div>'
       +(_staleSrv?'<div style="border:1px solid var(--gold);background:rgba(255,210,0,.10);border-radius:8px;padding:7px 11px;margin:0 0 10px;font-size:10.5px;color:var(--gold);line-height:1.5;">⚠ You asked for the <b>'+_selHold+'d</b> view but your server answered with the '+_h+'-day card — <b>the server hasn\'t got the 10d/30d update yet.</b> Re-paste the latest worker code in Cloudflare (Edit code → Ctrl+A, Ctrl+V → Deploy), then tap '+_selHold+'d again.</div>':'');
+    window._modalBig=true;   // v444: data-dense, open it big
     showModal(_rcBar+_liqBar+_snewsBar+_sviewBar+_cardInner,'📋 Signal report card');
     setTimeout(function(){ try{ _attachCardTips(document.getElementById('modalBox')||document.getElementById('appModal')); }catch(e){} },0);
   }catch(e){ try{ showModal('<div style="padding:12px;color:var(--muted)">The report card hit a snag: '+e.message+'</div>','📋 Signal report card'); }catch(_){} }
