@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-441-open';
+const APP_VERSION='2026.07.27-442-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4892,7 +4892,7 @@ function _rules(){
   return { enabled:(r.enabled!==false), targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
     trailPct:num(r.trailPct,fresh?8:0), bePct:num(r.bePct,fresh?5:0), maxHoldDays:Math.round(num(r.maxHoldDays,fresh?10:0)),
-    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'smart'; }catch(e){ return (v==='top20')?'top20':'smart'; } })(r.apSource), apProvenOnly:(r.apProvenOnly===true),
+    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:(fresh?'best':'smart'); }catch(e){ return (v==='top20')?'top20':(fresh?'best':'smart'); } })(r.apSource), apProvenOnly:(fresh?true:(r.apProvenOnly===true)),
     apMinScore:num(r.apMinScore,0), apMinPrice:num(r.apMinPrice,0), apMaxPrice:num(r.apMaxPrice,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(num(r.apMaxBuys,1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,num(r.apDipPct,0)),
