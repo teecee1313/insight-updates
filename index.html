@@ -1334,7 +1334,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div id="whatsNewCardAdv" style="display:none;"></div>
     <div id="scanDragZone" class="drag-zone">
     <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume ≥50% above their average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
-    <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeReport()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Ranks every share by how much today's volume beats its own average, labelled Warm → Hot → Red-hot → Extreme. Filter by heat level. A data summary, not advice."><span>🔥 Volume Surge Report</span> <span class="scan-tag">hot/warm/cold by volume · estimate</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeScan()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Shows every share trading above its normal volume, biggest surge first, right in your table — so you can chart, research or practice-buy any of them exactly like the other scans. Volume is the crowd's attention: a share doing 3× its usual business is being looked at by someone. A 🖨 full report button appears with the results if you want the printable document version, with its Warm → Hot → Red-hot → Extreme bands. A data summary, not advice."><span>📈 Volume Surge</span> <span class="scan-tag">above-normal volume · biggest first</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-top20"><span class="drag-h">⠿</span><button id="top10Btn" onclick="topTenScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.14);font-weight:700;" title="Scans every share, scores each out of 10 (accumulation-weighted — same as the ⭐ Score column), and shows the 20 highest. A data summary, not advice."><span>🏆 Top 20 to Watch</span> <span class="scan-tag">highest score /10 · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-sharp"><span class="drag-h">⠿</span><button onclick="speedingTicketScan()" class="scan-alt" title="Ranks shares by the SIZE of today's move compared to that share's own normal day — a 4% jump is nothing for a wild penny stock but a siren for a sleepy blue chip. Split by whether news likely explains it. Estimate — not advice."><span>🚨 Sharp Mover Detector</span> <span class="scan-tag">abnormal SIZE of move · for that share</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-unusual"><span class="drag-h">⠿</span><button id="unusualBtn" onclick="unusualScan()" class="scan-alt" style="border-color:var(--orange);color:var(--orange);background:rgba(255,165,0,.1);" title="Looks for suspicious PATTERNS in HOW a share traded — five end-of-day patterns like heavy volume with no price move, or a price jump on thin volume. About the shape of the trading, not the size of the move. Estimate only — not manipulation detection, not advice."><span>🔍 Unusual Activity Scan</span> <span class="scan-tag">5 suspicious patterns · HOW it traded</span></button></div>
@@ -1500,7 +1500,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-439-open';
+const APP_VERSION='2026.07.27-440-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8539,6 +8539,72 @@ function rateSelected(){
 // Ranks every share with computed volume by how far today beats its average,
 // tagged Warm → Hot → Red-hot → Extreme. Opens a printable report with live
 // heat-level filter buttons. A data summary, NOT advice.
+// ═══ v440 — 📈 Volume Surge, as a normal scan ═══
+// Consistency fix: this used to open a printable document while every other
+// button in its group filtered the table. Now it filters the table like the
+// rest, and the document is still available via 🖨 in the status line.
+async function volumeSurgeScan(){
+  _scanStart&&_scanStart('📈 Volume Surge');
+  exitWatchView&&exitWatchView();
+  _resetBeforeScan();
+  const st=document.getElementById('smartStatus');
+  if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Volume Surge.'; _scanDone&&_scanDone(); return; }
+  if(typeof scanProgShow==='function')scanProgShow();
+  if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
+  if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
+    if(st)st.textContent='Loading volume & history…';
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else if(typeof bulkVolume==='function'){ await bulkVolume(); }
+  }
+  if(typeof scanProgSet==='function')scanProgSet(70);
+  const rows=[];
+  for(const s of allData){
+    if(!(s.price>0)||!s.volCalced||!isFinite(s.volPct))continue;
+    const r=(typeof volSurgeRating==='function')?volSurgeRating(s.volPct,s.chgPct):null;
+    if(!r)continue;
+    s._surgeKey=r.key; s._surgeLabel=r.label;
+    try{ const w=watchScore10(s); s.watchScore=w.score; }catch(e){}
+    rows.push({s,r});
+  }
+  rows.sort((a,b)=>b.s.volPct-a.s.volPct);
+  F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+  filtered=rows.map(x=>x.s);
+  lastScanLabel='Volume Surge';
+  _resetStatsForNewView();
+  const _ss=document.getElementById('sortSel'); if(_ss){ _ss.value='volPct'; }
+  sortKey='volPct'; sortDir=-1;
+  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
+  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('toolbar').style.display='flex';
+  if(typeof scanProgSet==='function')scanProgSet(100);
+  if(typeof scanProgHide==='function')scanProgHide();
+  const hot=rows.filter(x=>x.r.key==='hot'||x.r.key==='redhot'||x.r.key==='extreme').length;
+  const up=rows.filter(x=>x.s.chgPct>0).length;
+  if(st){
+    st.innerHTML='📈 <b>Volume Surge</b> — '+rows.length.toLocaleString()+' shares trading above their normal volume, biggest first'
+      +(hot?' · <b>'+hot+'</b> running hot (2×+)':'')
+      +' · '+up+' up / '+(rows.length-up)+' down'
+      +' &nbsp;<button onclick="_surgeDoc()" title="Open the printable Volume Surge document — the old format, with rating bands, links and a Print / Save as PDF button." style="border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:6px;padding:2px 8px;font:700 10px var(--sans);cursor:pointer;">🖨 full report</button>';
+  }
+}
+function _surgeDoc(){
+  // Open the printable document for exactly what is on screen right now — no
+  // re-scan, so the button that launched it survives and the paper matches the
+  // table (including any quick filters the user has tapped).
+  try{
+    const rows=(Array.isArray(filtered)?filtered:[]).map(function(s){
+      const r=(typeof volSurgeRating==='function')?volSurgeRating(s.volPct,s.chgPct):null;
+      if(!r)return null;
+      let volN=0;
+      if(Array.isArray(s.series)&&s.series.length>1){
+        volN=s.series.slice(0,-1).filter(function(x){var v=(x&&(x.v!=null?x.v:x.volume));return isFinite(v)&&v>0;}).length;
+      }
+      return {s:s,r:r,volN:volN};
+    }).filter(Boolean);
+    if(!rows.length)return volumeSurgeReport();
+    window._lastSurge=rows;
+    _openSurgeReport(rows,'');
+  }catch(e){ try{ volumeSurgeReport(); }catch(_){} }
+}
 async function volumeSurgeReport(){
   exitWatchView&&exitWatchView();
   _resetBeforeScan();
