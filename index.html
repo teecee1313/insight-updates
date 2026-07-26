@@ -1541,7 +1541,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-445-open';
+const APP_VERSION='2026.07.27-446-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7991,6 +7991,59 @@ function showPortfolio(exSel){
   `);
 }
 
+// ═══ v446 — automatic news shortlist ═══════════════════════════════════════
+// Tells the server which shares deserve real headlines: practice holdings
+// (both accounts), every starred share, today's top-20 picks — WITH company
+// names, which is what the server's "is this headline actually about this
+// company?" filter runs on. Customer copy only: the server keeps ONE shortlist
+// per exchange and replaces it on every send, so a second copy of the app
+// registering would overwrite this one's list.
+async function _newsRegister(force){
+  try{
+    if(APP_VERSION.indexOf('-beta')>=0)return;                 // beta must never overwrite the shortlist
+    if(!Array.isArray(allData)||!allData.length)return;
+    var ex=currentExch||'ASX';
+    var nameOf=function(t,fb){ var s=allData.find(function(x){return x.ticker===t;}); return (s&&s.name)||fb||''; };
+    var hold={}, watch={}, picks=[];
+    ['main','auto'].forEach(function(acct){
+      try{ var p=_paper(acct,ex);
+        (p.holdings||[]).forEach(function(h){ if(h&&h.ticker&&(!h.exchange||h.exchange===ex)) hold[h.ticker]=h.name||nameOf(h.ticker); });
+      }catch(e){}
+    });
+    try{
+      Object.keys(watchlists||{}).forEach(function(wn){
+        var L=watchlists[wn]||{};
+        Object.keys(L).forEach(function(t){
+          var en=L[t]; var exh=en&&en.exchange;
+          if(exh&&exh!==ex)return;
+          if(!(t in hold))watch[t]=((en&&en.name)||nameOf(t));
+        });
+      });
+    }catch(e){}
+    try{
+      allData.filter(function(s){return s.price>0;})
+        .map(function(s){ var sc=s.watchScore; if(sc==null){ try{ sc=watchScore10(s).score; }catch(e){ sc=0; } } return {t:s.ticker,n:s.name||'',sc:sc||0}; })
+        .sort(function(a,b){return b.sc-a.sc;}).slice(0,20)
+        .forEach(function(x){ if(!(x.t in hold)&&!(x.t in watch))picks.push({ticker:x.t,name:x.n}); });
+    }catch(e){}
+    var payload={ exch:ex,
+      hold:Object.keys(hold).map(function(t){return {ticker:t,name:hold[t]};}),
+      watch:Object.keys(watch).map(function(t){return {ticker:t,name:watch[t]};}),
+      picks:picks };
+    if(!(payload.hold.length+payload.watch.length+picks.length))return;
+    // don't re-send an unchanged shortlist inside 6 hours
+    var hash=ex+':'+payload.hold.map(function(x){return x.ticker;}).sort().join(',')
+      +'|'+payload.watch.map(function(x){return x.ticker;}).sort().join(',')
+      +'|'+picks.map(function(x){return x.ticker;}).join(',');
+    var K='asxScreener.newsReg.v1', st=null;
+    try{ st=JSON.parse(localStorage.getItem(K)); }catch(e){}
+    if(!force&&st&&st.hash===hash&&(Date.now()-(st.t||0))<6*3600e3)return;
+    var r=await fetch(DATA_PROXY+'/news/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r||!r.ok)return;                                        // locked / offline / server without the feature: silent
+    var j=await r.json();
+    if(j&&j.ok){ try{ localStorage.setItem(K,JSON.stringify({hash:hash,t:Date.now(),tracked:j.tracked||0,off:!!j.off})); }catch(e){} }
+  }catch(e){}
+}
 function toggleStar(ticker){
   const wl=curWL();
   if(wl[ticker])delete wl[ticker];
@@ -8002,6 +8055,7 @@ function toggleStar(ticker){
   saveWatchlists();
   updateWatchBtn();
   if(watchViewOn)renderWatch();else applyF();
+  try{ setTimeout(function(){ _newsRegister(); },2000); }catch(e){}   // v446: a newly starred share joins the news shortlist
 }
 // Tick-box selection for one-off report
 function toggleSelect(ticker){
@@ -13463,6 +13517,7 @@ Output the complete array. Start with [`;
       window._exchDataDate[exch]=best;
     }
   }catch(e){}
+  try{ setTimeout(function(){ _newsRegister(); },5000); }catch(e){}   // v446: register the news shortlist once the load settles
   // Apply the "What to load from the API (live)" type selection to the LIST
   // itself — tick only "Shares" and options/bonds/etc. never enter the app:
   // not in the table, not prepared, not downloaded. Untyped rows count as
@@ -16640,6 +16695,7 @@ async function _scReplay(){
   return {days:usedDays,from:days[0],to:days[days.length-1],G:G,C:C,fires:fires,exch:currentExch};
 }
 function allScansCard(){
+  try{ _newsRegister(); }catch(e){}
   if(APP_VERSION.indexOf('-beta')>=0)return;
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
   if(window._scCache&&window._scCache.ex===currentExch&&window._scCache.d===dd&&window._scCache.liq===_cardLiqKey()&&window._scCache.R){ return _renderSCCard(window._scCache.R); }
@@ -16973,6 +17029,7 @@ function _renderT20Card(R){
   try{ showModal(html,'🏆 Top 20 — how past picks fared'); }catch(e){}
 }
 function signalReportCard(){
+  try{ _newsRegister(); }catch(e){}
   // v321/v332: grading the whole exchange is ~1s+ of maths. v332 runs it in
   // non-blocking ≤35ms slices (_auditChunk) so the click never freezes, and
   // _auditWarmIdle usually has it pre-computed already — so the card is instant.
