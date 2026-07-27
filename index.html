@@ -1541,7 +1541,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-447-open';
+const APP_VERSION='2026.07.27-448-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4580,6 +4580,55 @@ Please structure your answer as: (1) one-paragraph summary, (2) bullish reading,
   _openPrintable(html, '📄 '+ticker);
   window._modalType='shareReport';
 }
+// ═══ v448 — 📰 confirmed news in the share detail panel ═══════════════════
+// Real headlines from the server's news store — the ones the worker fetched,
+// relevance-filtered and classified for the shares on the news shortlist.
+// Read-only; a share with no coverage says so rather than pretending quiet.
+var _shdNewsCache={};   // ticker -> {t:when, rows:[...]} (10-minute cache)
+var _SHD_KINDS={halt:['⛔','trading halt'],takeover:['🤝','takeover'],results:['📊','results'],
+  guidance:['🧭','guidance'],capital:['💰','capital'],project:['🏗️','project'],legal:['⚖️','legal'],
+  contract:['✍️','contract'],drill:['⛏️','drilling'],people:['👤','people'],broker:['🏦','broker'],other:['📄','news']};
+function _shdNewsRender(tk,rows,note){
+  var el=document.getElementById('shdNews'); if(!el)return;
+  var hdr='<div style="font:700 11px \'Space Grotesk\';color:var(--gold);margin:12px 0 4px;">📰 Confirmed news <span style="font-weight:400;color:var(--dim);font-size:9px;">from your news store — real headlines, not the estimate</span></div>';
+  if(note){ el.innerHTML=hdr+'<div style="font-size:10px;color:var(--dim);line-height:1.5;">'+note+'</div>'; return; }
+  var items=rows.slice(0,12).map(function(r){
+    var k=_SHD_KINDS[r.kind]||_SHD_KINDS.other;
+    var mat=(r.weight>=0.5);
+    var chip='<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:8.5px;font-weight:700;letter-spacing:.3px;background:'+(mat?'rgba(255,210,0,.14)':'rgba(125,149,189,.14)')+';color:'+(mat?'var(--gold)':'var(--muted)')+';">'+k[0]+' '+k[1].toUpperCase()+'</span>';
+    var title=String(r.title||'').replace(/[<>]/g,'');
+    var inner='<span style="color:var(--dim);font-family:var(--mono);font-size:9px;white-space:nowrap;">'+String(r.d||'').slice(5)+'</span> '+chip+' <span style="font-size:10.5px;color:var(--text);">'+title+'</span>';
+    // the worker already refuses non-http(s) links; this is belt-and-braces —
+    // a stored javascript:/data: url must never become a clickable anchor here
+    var safeUrl=(/^https?:\/\//i.test(String(r.url||'')))?String(r.url):'';
+    return '<div style="padding:4px 0;border-bottom:1px solid var(--border);line-height:1.5;">'
+      +(safeUrl?('<a href="'+encodeURI(safeUrl)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">'+inner+' <span style="color:var(--dim);font-size:9px;">↗</span></a>'):inner)
+      +'</div>';
+  }).join('');
+  el.innerHTML=hdr+items
+    +'<div style="font-size:8.5px;color:var(--dim);margin-top:5px;">Gold badge = material (results, halts, takeovers, projects…). Collected automatically for your holdings, watchlist and daily picks; other shares have no coverage. Headlines are from public feeds — a research aid, not advice.</div>';
+}
+function _shdNewsLoad(tk,exch){
+  try{
+    if(APP_VERSION.indexOf('-beta')>=0)return;                 // news surfaces are customer-only
+    var el=document.getElementById('shdNews'); if(!el)return;
+    var c=_shdNewsCache[tk];
+    if(c&&(Date.now()-c.t)<600e3){ _shdNewsRender(tk,c.rows,c.note); return; }
+    el.innerHTML='<div style="font-size:9px;color:var(--dim);margin:12px 0 4px;">📰 checking the news store…</div>';
+    fetch(DATA_PROXY+'/news/for?exch='+encodeURIComponent(exch||currentExch)+'&ticker='+encodeURIComponent(tk)+'&days=120')
+      .then(function(r){ return (r&&r.ok)?r.json():null; })
+      .then(function(j){
+        var note=null, rows=[];
+        if(!j||!j.ok)note='Could not reach the news store just now.';
+        else if(j.off)note='The news feature is switched off on the server.';
+        else if(!Array.isArray(j.rows)||!j.rows.length)note='No stored headlines for '+tk+' yet. Coverage begins when a share joins your news shortlist (hold it, star it, or it makes the day\'s picks) — and some shares genuinely have no public news for weeks.';
+        else rows=j.rows;
+        _shdNewsCache[tk]={t:Date.now(),rows:rows,note:note};
+        _shdNewsRender(tk,rows,note);
+      })
+      .catch(function(){ var el2=document.getElementById('shdNews'); if(el2)el2.innerHTML=''; });
+  }catch(e){}
+}
 function showShareDetail(ticker,days){
   const n=days||7;
   window._detailTicker=ticker;
@@ -4758,8 +4807,10 @@ function showShareDetail(ticker,days){
         </tr></thead><tbody>${body}</tbody>
       </table>
     </div>
+    <div id="shdNews"></div>
     <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows fetched per share (1 call, remembered)${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
   `);
+  try{ _shdNewsLoad(ticker,s.exchange); }catch(e){}   // v448: real headlines, async, cached
 }
 
 // ── Paper trading ────────────────────────────────────────────────────────────
@@ -16475,7 +16526,7 @@ function _apRuleFilter(pool,key){
       var st2=_scStats(s2.series,s2._scPf,s2.series.length-1);
       if(!st2)continue;
       try{ var lastD=s2.series[s2.series.length-1].d;
-        st2.newsFact=(window._scFacts)?!!window._scFacts[s2.ticker+'|'+lastD]:false; }catch(e){ st2.newsFact=false; }
+        st2.newsFact=(window._scFacts)?((window._scFacts[s2.ticker+'|'+lastD]||0)>=0.5):false; }catch(e){ st2.newsFact=false; }
       sts.push({s:s2,st:st2});
     }catch(e){}
   }
@@ -16735,11 +16786,19 @@ async function _scReplay(){
   // v447: CONFIRMED news days from the worker's store (weight ≥ .5 = material).
   // Feeds the 📰 News+Volume rule. If the fetch fails or coverage is empty the
   // rule simply never fires — a missing signal, never a wrong one.
-  var FACTS=null;
+  // v448: fetch ALL stored news days (any weight); keep the max weight per
+  // share-day and remember WHICH shares have coverage at all. Covered shares
+  // get their 📢/🔇 split from FACTS; uncovered shares keep the estimate.
+  var FACTS=null, COV=null;
   try{
-    var _fr=await fetch(DATA_PROXY+'/news/days?exch='+encodeURIComponent(currentExch)+'&days=420&minw=0.5');
+    var _fr=await fetch(DATA_PROXY+'/news/days?exch='+encodeURIComponent(currentExch)+'&days=420&minw=0');
     if(_fr&&_fr.ok){ var _fj=await _fr.json();
-      if(_fj&&_fj.ok&&Array.isArray(_fj.rows)){ FACTS={}; for(var _fi=0;_fi<_fj.rows.length;_fi++){ var _row=_fj.rows[_fi]; FACTS[_row[0]+'|'+_row[1]]=1; } window._scFacts=FACTS; } }
+      if(_fj&&_fj.ok&&Array.isArray(_fj.rows)){ FACTS={}; COV={};
+        for(var _fi=0;_fi<_fj.rows.length;_fi++){ var _row=_fj.rows[_fi];
+          var _k=_row[0]+'|'+_row[1], _w=+_row[2]||0;
+          if(!(FACTS[_k]>=_w))FACTS[_k]=_w;
+          COV[_row[0]]=1; }
+        window._scFacts=FACTS; window._scFactCov=COV; } }
   }catch(e){}
   var pfs=shares.map(function(s){return _scPrep(s.series);});
   var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
@@ -16764,7 +16823,9 @@ async function _scReplay(){
       var ix=idxmaps[si][D]; if(ix==null)continue;
       var st=_scStats(shares[si].series,pfs[si],ix); if(!st)continue;
       if(need&&st.avgV*st.c<need)continue;
-      st.newsFact=FACTS?!!FACTS[shares[si].ticker+'|'+D]:false;   // v447: confirmed headline that day?
+      st.newsFact=FACTS?((FACTS[shares[si].ticker+'|'+D]||0)>=0.5):false;   // v447/v448: MATERIAL confirmed headline that day
+      // v448: the news split — fact for covered shares, estimate for the rest
+      st.newsEff=(COV&&COV[shares[si].ticker])?st.newsFact:st.newsy;
       var fwd=[null,null,null], ser=shares[si].series, ok=false;
       for(var wi=0;wi<3;wi++){ var w=W[wi]; if(ix+w<ser.length&&ser[ix+w].c>0){ fwd[wi]=((ser[ix+w].c-ser[ix].c)/ser[ix].c)*100; ok=true; } }
       if(!ok)continue;
@@ -16800,17 +16861,17 @@ async function _scReplay(){
     if(c.s.length<CAP)c.s.push(fwd[wi]);
     else { var j=Math.floor(_rnd()*c.n); if(j<CAP)c.s[j]=fwd[wi]; } } };
     for(var ri=0;ri<rows.length;ri++){
-      add(G.all,rows[ri].fwd,rows[ri].st.newsy);
+      add(G.all,rows[ri].fwd,rows[ri].st.newsEff!==undefined?rows[ri].st.newsEff:rows[ri].st.newsy);
       var hits=[];
       for(var ru=0;ru<NR;ru++){
         var R=_SCAN_RULES[ru];
         var hit=false; try{ hit=!!R.t(rows[ri].st); }catch(e){}
-        if(hit){ add(G[R.k],rows[ri].fwd,rows[ri].st.newsy); fires[R.k]++; hits.push(ru); }
+        if(hit){ add(G[R.k],rows[ri].fwd,rows[ri].st.newsEff!==undefined?rows[ri].st.newsEff:rows[ri].st.newsy); fires[R.k]++; hits.push(ru); }
       }
       rows[ri].hits=hits;
     }
     var ranked=rows.filter(function(x){return x.st.score>0;}).sort(function(a,b){return (b.st.score-a.st.score)||(b.st.acc-a.st.acc);}).slice(0,20);
-    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd,ranked[t2].st.newsy); fires.top20++; ranked[t2].hits.push(NR); }
+    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd,ranked[t2].st.newsEff!==undefined?ranked[t2].st.newsEff:ranked[t2].st.newsy); fires.top20++; ranked[t2].hits.push(NR); }
     for(var pi=0;pi<rows.length;pi++){
       var hs=rows[pi].hits; if(hs.length<2)continue;
       for(var a1=0;a1<hs.length-1;a1++)for(var b1=a1+1;b1<hs.length;b1++)cAdd(hs[a1],hs[b1],rows[pi].fwd);
@@ -16919,11 +16980,11 @@ function _renderSCCard(R,win){
     +_cardLiqBar('allScansCard')
     +'<div style="margin:0 0 6px;">'+vsw+'</div>'
     +'<div style="margin:0 0 6px;">'+[['all','all fires'],['news','📢 news-driven'],['quiet','🔇 quiet']].map(function(x){
-        return '<button onclick="_scNews(\''+x[0]+'\')" title="'+(x[0]==='news'?'Only fires where the share had a sharp move or a volume spike in the days around it — the footprint of an announcement. An estimate from price and volume, the same test the table uses.':x[0]==='quiet'?'Only fires with no such footprint — the scan spotted something while nothing obvious was in the news.':'Every fire, news-driven or not.')+'" style="border:1px solid '+(x[0]===news?'var(--gold)':'var(--border2)')+';color:'+(x[0]===news?'var(--gold)':'var(--muted)')+';background:'+(x[0]===news?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
+        return '<button onclick="_scNews(\''+x[0]+'\')" title="'+(x[0]==='news'?'Only news-driven fires. For shares with news coverage this is a FACT — a confirmed material headline (results, halt, takeover…) on or just before the fire day. For shares without coverage it falls back to the estimate (sharp move or volume spike). Coverage grows as your shortlist does.':x[0]==='quiet'?'Only fires with no such footprint — the scan spotted something while nothing obvious was in the news.':'Every fire, news-driven or not.')+'" style="border:1px solid '+(x[0]===news?'var(--gold)':'var(--border2)')+';color:'+(x[0]===news?'var(--gold)':'var(--muted)')+';background:'+(x[0]===news?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
       }).join('')+'</div>'
     +(news==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);line-height:1.5;">'
        +(news==='news'
-         ? '📢 <b>News-driven fires only</b> — the share had a sharp move or a volume spike around that day, so something was probably announced. The market row is the same subset, so the comparison stays fair. If a scan only works here, it is really reacting to news rather than finding anything.'
+         ? '📢 <b>News-driven fires only</b> — for covered shares this means a <b>confirmed material headline</b> from your news store; for the rest, the price-and-volume estimate. The market row is the same subset, so the comparison stays fair. If a scan only works here, it is really reacting to news rather than finding anything.'
          : '🔇 <b>Quiet fires only</b> — no announcement footprint. This is where a scan earns its keep: spotting something while nothing obvious is happening. Compare it with the 📢 view to see which half carries the edge.')
        +' Middle-outcome figures are hidden in these views — they are only computed for the full set.</div>')
     +(view==='all'?'':'<div style="margin:0 0 8px;font-size:10.5px;color:var(--gold);">'+(view==='up'?'📈 <b>Gainers only</b> — the average rise of the flagged shares that went UP, and what share of fires that was. Compare the % with the market row: a scan that turns 40% of fires into gains where the market managed 39% is barely picking better, however big those gains look.':'📉 <b>Fallers only</b> — the average fall of the flagged shares that went DOWN. Read it beside the gainers view: if the falls are deeper than the rises, a scan can win more often and still lose money.')+'</div>')
