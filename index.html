@@ -1545,7 +1545,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-469-open';
+const APP_VERSION='2026.07.27-470-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9476,6 +9476,15 @@ function statsBar(){
         +'So the share-tiles lean heavily to SOLID no matter what, while the unproven signals tag almost nothing BECAUSE they are unproven. '
         +'That is not a fault; it is the two counts measuring different things. Lesson 46 explains it.';
       _evSetNote(_rn,_bits.length?(_rs.total+' signals: '+_bits.join(' · ')):'',_rt);
+      // v470: and where the grading was done. Not decoration — if the server
+      // is answering, the numbers on screen were computed somewhere the user
+      // cannot inspect, and they are entitled to know that at a glance.
+      try{
+        if(window._scanSrc&&_rn){
+          var _sv=(window._scanSrc==='server');
+          _rn.textContent=_rn.textContent+(_sv?'  ·  scored on our server':'  ·  scored on this device');
+        }
+      }catch(e){}
     } else if(_rn){ _evSetNote(_rn,''); }
   }catch(e){}
   try{ if(!_evReady&&(window._evWarming||window._apWarming))
@@ -17641,7 +17650,47 @@ var _SCAN_RULES=[
       // so it starts tiny and honest and grows with the shortlist.
       return s.newsFact===true&&s.volPct>=100; }}
 ];
+// ═══ v470 — the signals are scored on the server ═══════════════════════════
+// What crosses the wire going up is the price history the browser already has.
+// What comes back is a graded table. The thresholds that turn one into the
+// other never leave the worker.
+var _SCAN_SERVER_OFF = false;   // set once, per session, if the worker is older than w391
+async function _scServerReplay(shares, need){
+  try{
+    if(!DATA_PROXY || _SCAN_SERVER_OFF)return null;
+    var base=DATA_PROXY.replace(/\/+$/,'')+'/scan';
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    var post=async function(body){
+      // v470b: the probe already told us this worker cannot answer — do not
+      // then upload tens of megabytes for it to refuse a second time.
+      if(_SCAN_SERVER_OFF)return null;
+      var r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      // A worker that predates w391 answers 405 (its POST handler only knows
+      // /grades) or 404. That is not an error worth retrying all session.
+      if(r.status===404||r.status===405){ _SCAN_SERVER_OFF=true; return null; }
+      if(!r.ok)return null;
+      var j=await r.json();
+      return (j&&j.ok&&j.R&&j.R.G)?j.R:null;
+    };
+    var head={mode:'replay',exch:currentExch,dataDate:dd,need:(+need>0?+need:0),n:shares.length};
+    // Ask first whether today is already done — a few hundred bytes instead of
+    // tens of megabytes. Only upload the market if the answer is no.
+    if(dd){ try{ var hit=await post(Object.assign({},head,{shares:[]})); if(hit)return hit; }catch(e){} }
+    var payload=shares.map(function(s){ return {ticker:s.ticker,series:s.series}; });
+    return await post(Object.assign({},head,{shares:payload}));
+  }catch(e){ return null; }
+}
+// The orchestrator: server first, this device second, and it says which.
 async function _scReplay(){
+  var shares=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=30;});
+  if(shares.length<50)return null;
+  var R=null;
+  try{ R=await _scServerReplay(shares,_cardLiqNeed()); }catch(e){ R=null; }
+  if(R&&R.G){ window._scanSrc='server'; return R; }
+  window._scanSrc='device';
+  return await _scReplayLocal();
+}
+async function _scReplayLocal(){
   var shares=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=30;});
   if(shares.length<50)return null;
   var seen={};
