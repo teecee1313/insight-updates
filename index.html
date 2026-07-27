@@ -331,23 +331,28 @@ input[type=range].dual::-webkit-slider-runnable-track{background:none;height:24p
 input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .duallbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:3px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;}
+.stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;}
 .radar-label{display:flex;align-items:center;gap:5px;font:800 11px var(--sans);color:var(--gold);letter-spacing:.3px;white-space:nowrap;cursor:default;}
 .radar-label .rl-sub{font-weight:500;font-size:9px;color:var(--dim);letter-spacing:0;}
 .hbadge.ex-ASX{border-color:#FFD200;color:#FFD200;}
 .hbadge.ex-NYSE{border-color:#58a6ff;color:#58a6ff;}
 .hbadge.ex-NASDAQ{border-color:#58a6ff;color:#58a6ff;}
 #radarMoreBtn{margin-left:8px;padding:2px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;}
-.radar-grp{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:9px;padding:3px 8px 3px 4px;margin:3px 6px 3px 0;background:rgba(255,255,255,.015);vertical-align:middle;}
-.radar-grp .rg-l{writing-mode:vertical-rl;transform:rotate(180deg);font:700 8px var(--sans);letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-right:2px;}
-.radar-grp .rg-t{display:flex;flex-wrap:wrap;align-items:center;}
+/* v481 — shorter groups pack more per row. The dead space in the old layout
+   was a tall group that could not fit beside its neighbour, leaving the rest
+   of the line empty. */
+.radar-grp{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:8px;padding:2px 7px;margin:2px 5px 2px 0;background:rgba(255,255,255,.015);vertical-align:middle;}
+/* v481 — these used to be rotated 90°, which made every group at least as tall
+   as the longest word in it and set a floor no tile could go under. Lying them
+   down is the single biggest height saving in the bar. */
+.radar-grp .rg-l{font:700 8px var(--sans);letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-right:6px;white-space:nowrap;align-self:center;}
+.radar-grp .rg-t{display:flex;flex-wrap:wrap;align-items:center;row-gap:1px;}
 .stats.r-less .radar-grp.rg-more{display:none;}
 /* v479 — folded is a different density, not just fewer groups. About 40% of the
    folded radar's height was padding and margin; the table needs it more. */
 .stats.r-less{padding:4px 16px;gap:8px;}
-.stats.r-less .radar-grp{padding:1px 6px 1px 3px;margin:1px 4px 1px 0;border-radius:7px;}
-.stats.r-less .radar-grp .stat{padding-left:5px;padding-right:5px;}
-.stats.r-less .radar-grp .sv{font-size:15px;line-height:1.15;}
+.stats.r-less .radar-grp{padding:1px 6px;margin:1px 4px 1px 0;border-radius:7px;}
+.stats.r-less .radar-grp .sv{font-size:14px;line-height:1.15;}
 .stats.r-less .radar-grp .sl{font-size:8px;}
 /* The two evidence notes are full-width lines of small text. Folded, they
    collapse to one line — the whole text stays on hover, and comes back in full
@@ -368,9 +373,9 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .stats{padding:4px 12px;gap:6px;row-gap:3px;}
 .radar-label{font-size:11px;}
 .radar-grp{margin:1px 4px 1px 0;padding:2px 8px 2px 3px;border-radius:8px;}
-.radar-grp .rg-l{font-size:6.5px;letter-spacing:.6px;margin-right:1px;}
+.radar-grp .rg-l{font-size:6.5px;letter-spacing:.4px;margin-right:4px;}
 .radar-grp .rg-t{gap:0 13px;}
-.radar-grp .stat{gap:0;padding:1px 0;}
+.radar-grp .stat{gap:4px;padding:1px 0;}
 .radar-grp .sv{font-size:12.5px;line-height:1.15;}
 .radar-grp .sl{font-size:7.5px;letter-spacing:.2px;}
 body.stat-over-modal .stats{z-index:2100;}
@@ -391,8 +396,10 @@ body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-
   body.sheet-printing .modal-scroll{overflow:visible!important;max-height:none!important;height:auto!important;padding:0!important;margin:0!important;}
   body.sheet-printing .rpt-sheet{max-height:none!important;overflow:visible!important;border-radius:0!important;}
 }
-.stat{display:flex;flex-direction:column;gap:1px;}
-.statclick{cursor:pointer;padding:3px 8px;border-radius:7px;border:1px solid transparent;transition:all .12s;}
+/* v481 — a number stacked over its caption is two lines where one will do, and
+   there are forty of them in the bar. "1,177 GAINERS" reads fine across. */
+.stat{display:flex;flex-direction:row;align-items:baseline;gap:4px;}
+.statclick{cursor:pointer;padding:2px 7px;border-radius:6px;border:1px solid transparent;transition:all .12s;}
 .statclick:hover{background:var(--bg3);border-color:var(--border2);}
 .statclick.active{background:rgba(255,210,0,.12);border-color:var(--gold);}
 .sv{font-family:var(--mono);font-size:14px;font-weight:700;}
@@ -1582,7 +1589,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-480-open';
+const APP_VERSION='2026.07.27-481-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
