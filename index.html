@@ -1542,7 +1542,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-453-open';
+const APP_VERSION='2026.07.27-454-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2115,11 +2115,28 @@ function _sanText(v,max){
   return v;
 }
 function _sanTicker(v){ return String(v==null?'':v).toUpperCase().replace(/[^A-Z0-9._:\-]/g,'').slice(0,16); }
+// ═══ v454 — supplier name corrections ═══════════════════════════════════════
+// The data supplier's reference file can lag corporate renames / ticker
+// reassignments (found in the wild: ASX GLS still labelled with a previous
+// holder's name while the code now belongs to L1 Global Long Short Fund).
+// Prices key off the TICKER, so signals and orders were always right — but
+// the label feeds the eye and the news matcher, so it must be right too.
+// Add corrections as 'EXCH|TICKER': 'Correct Name'.
+var _NAME_FIX={
+  'ASX|GLS':'L1 Global Long Short Fund Ltd'
+};
+function _fixShareName(ticker,exch,name){
+  try{
+    var k=String(exch||'ASX').toUpperCase()+'|'+String(ticker||'').toUpperCase();
+    return _NAME_FIX[k]||name;
+  }catch(e){ return name; }
+}
 function _sanShare(s){
   if(!s||typeof s!=='object')return s;
   try{
     if('ticker' in s)s.ticker=_sanTicker(s.ticker);
     if('name' in s)s.name=_sanText(s.name,120);
+    if('name' in s&&s.ticker)s.name=_fixShareName(s.ticker,s.exchange,s.name);   // v454: stale stored labels self-heal
     if('exchange' in s)s.exchange=_sanText(s.exchange,12);
     if('currency' in s)s.currency=_sanText(s.currency,8);
     if('type' in s)s.type=_sanText(s.type,20);
@@ -8108,7 +8125,7 @@ async function _newsRegister(force){
     var hold={}, watch={}, picks=[];
     ['main','auto'].forEach(function(acct){
       try{ var p=_paper(acct,ex);
-        (p.holdings||[]).forEach(function(h){ if(h&&h.ticker&&(!h.exchange||h.exchange===ex)) hold[h.ticker]=h.name||nameOf(h.ticker); });
+        (p.holdings||[]).forEach(function(h){ if(h&&h.ticker&&(!h.exchange||h.exchange===ex)) hold[h.ticker]=_fixShareName(h.ticker,ex,h.name||nameOf(h.ticker)); });
       }catch(e){}
     });
     try{
@@ -8117,7 +8134,7 @@ async function _newsRegister(force){
         Object.keys(L).forEach(function(t){
           var en=L[t]; var exh=en&&en.exchange;
           if(exh&&exh!==ex)return;
-          if(!(t in hold))watch[t]=((en&&en.name)||nameOf(t));
+          if(!(t in hold))watch[t]=_fixShareName(t,ex,((en&&en.name)||nameOf(t)));
         });
       });
     }catch(e){}
@@ -13367,7 +13384,7 @@ function mapRecord(r,exch,currency,today){
   const instBuy=false;
   // map EODData type → our type buckets
   const rawType=String(r.type||'').toUpperCase();
-  let type=guessType(r.name||'');
+  let type=guessType(_fixShareName(ticker,exch,String(r.name||''))||'');   // v454: classify on the corrected name
   if(/ETF|FUND/.test(rawType))type='ETF';
   else if(/INDEX/.test(rawType))type='Other';
   // ASX ticker convention: ordinary shares are 3 letters; extra letters mark the
@@ -13391,7 +13408,7 @@ function mapRecord(r,exch,currency,today){
   }
   return{
     ticker,
-    name:_sanText(r.name,120)||ticker,
+    name:_fixShareName(ticker,exch,_sanText(r.name,120))||ticker,   // v454
     exchange:exch,
     currency:_sanText(r.currency,8)||currency,
     type,
