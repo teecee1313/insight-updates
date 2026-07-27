@@ -1545,7 +1545,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-466-open';
+const APP_VERSION='2026.07.27-469-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15779,6 +15779,39 @@ body.training-on #trainCoverage{display:block;}
 <script>
 (function(){
 const TRAIN_HELP={
+  "modeSimpleBtn":{"t": "Simple view", "d": "Strips the app back to the essentials. Everything else stays available under Advanced."},
+  "modeAdvBtn":{"t": "Advanced view", "d": "Shows every tool — all scans, the full filter panel, report cards and the practice bot."},
+  "simpleLoadBtn":{"t": "Load today's shares", "d": "Fills the app with market data, using what is saved on this device where it can."},
+  "simpleSavedBtn":{"t": "Load saved data", "d": "Opens instantly from what is already stored here. Works with no internet, but prices are from the last download."},
+  "simpleFreshBtn":{"t": "Get fresh prices", "d": "Downloads the latest end-of-day prices from the internet, replacing what is saved."},
+  "simpleSearch":{"t": "Search", "d": "Type a company name or code to jump straight to it."},
+  "prepStopBtn":{"t": "Stop loading", "d": "Halts the background calculation pass. Anything finished is kept."},
+  "bulkStopBtn":{"t": "Stop download", "d": "Halts the bulk history download. Everything already fetched is kept."},
+  "tab-price":{"t": "Price filters", "d": "Price band, today's move, up-day streak and direction."},
+  "tab-vol":{"t": "Volume filters", "d": "Volume against a share's own average, raw shares traded, streaks and accumulation."},
+  "tab-mkt":{"t": "Type filters", "d": "Security type and the 💧 liquidity floor that keeps barely-traded shares out."},
+  "tab-sig":{"t": "Signal filters", "d": "Watch score, RSI band and the report card's pattern flags."},
+  "cBO":{"t": "Breakout flag", "d": "Keep only shares that closed above their highest stored close on above-average volume. An estimate from price and volume, not a confirmed event."},
+  "cDI":{"t": "Distribution flag", "d": "Keep only shares falling on heavy volume — a warning pattern, not a prediction."},
+  "cVR":{"t": "Volume record flag", "d": "Keep only shares whose volume today is the highest in their stored history."},
+  "cMX":{"t": "MA cross flag", "d": "Keep only shares whose 20-day average crossed above their 50-day today."},
+  "cDirC":{"t": "Possible accumulation", "d": "Keep only shares showing the quiet-buying pattern. An estimate from price and volume — NOT a confirmed director or institutional filing."},
+  "dlGainersOnly":{"t": "Gainers only", "d": "Downloads only shares that rose. Faster, but it hides every falling share — including ones you may hold, and warnings only appear on shares you can see."},
+  "autoDlChk":{"t": "Automatic download", "d": "Fetches fresh data on a schedule so the app is current when you open it. Off by default, because it uses your data allowance."},
+  "autoDlTime":{"t": "Download time", "d": "What time of day the automatic download runs. Set it after your market closes, or the prices will be yesterday's."},
+  "lpName":{"t": "Preset name", "d": "Rename this load preset to something you will recognise, like 'ASX ordinaries only'."},
+  "lpGainers":{"t": "Preset: gainers only", "d": "Whether this preset downloads only rising shares."},
+  "lpMinVol":{"t": "Preset: minimum volume", "d": "Shares trading below this volume are skipped when loading with this preset."},
+  "newsApiKey":{"t": "News key", "d": "An optional key for a richer news source. The app works without it — the news layer simply uses fewer sources and, as always, never invents a headline it does not have."},
+  "importOfflineInput":{"t": "Choose a backup file", "d": "Pick a backup you exported earlier to restore its history onto this device."},
+  "gateBtn":{"t": "Unlock", "d": "Sends the access password so the app can reach its data service."},
+  "gateForgot":{"t": "Forgot password", "d": "Clears the stored access password so you can enter a different one."},
+  "ovBackdrop":{"t": "Close panel", "d": "Clicking outside a panel closes it. Nothing you set is lost."},
+  "demoBtn":{"t": "Demo data", "d": "Fills the app with made-up shares so you can practise every button safely. None of it is real."},
+  "tipToggleBtn":{"t": "Tooltips on/off", "d": "Silences these bubbles while keeping training mode on."},
+  "helpToggle":{"t": "Help guide", "d": "Opens the written guide to every part of the app."},
+  "lessonToggle":{"t": "Lessons", "d": "Opens the illustrated course, each lesson ending in a short quiz."},
+
   "sidebarToggle":{t:"Hide / show panel",d:"Collapses the left control panel to give the results table more room. Click again to bring it back."},
   "acctBtn":{t:"Account",d:"Your account menu — change the app password, switch language, ⟳ check for updates (shows the version you're on), and log out."},
   "langSel":{t:"Language",d:"Switches the app's language. Menus and labels translate; your data stays the same."},
@@ -15921,6 +15954,73 @@ const COLUMN_HELP={
   "Range":{t:"Trading Range",d:"The band this share has normally traded in over about the last month. Shows where the price sits between its floor and ceiling, plus how stable the range is. 'Near low' is highlighted for research, not as a buy signal."}
 };
 const ONCLICK_HELP={
+  "simpleRun('top20')":{"t": "Top picks today", "d": "Runs the 🏆 Top 20 to Watch and shows the twenty highest-scoring shares, best first. The score out of 10 blends accumulation, price and volume streaks and momentum. A shortlist to research — never a buy list."},
+  "simpleRun('smart')":{"t": "Who's being quietly bought?", "d": "Runs the 🎯 Smart Money scan: shares rising on volume well above their own average, several days running. The pattern that sometimes shows up before news does — and sometimes means nothing at all."},
+  "simpleRun('surge')":{"t": "What's moving on big volume?", "d": "Runs the Volume Surge report — every share ranked by how far today's volume beats its own normal, tagged 🟢 buying or 🔴 selling so a heavy fall never looks like good news."},
+  "simpleRun('recovery')":{"t": "Recovery watch", "d": "Finds shares that have fallen hard and are now steadying on volume. The turn is the point, not the fall — plenty of cheap shares keep getting cheaper."},
+  "simpleRun('portfolio')":{"t": "My portfolio", "d": "Opens your practice portfolio: what you 'own', what it is worth now, your win rate and profit or loss. No real money is ever involved."},
+  "simpleRun('watchlist')":{"t": "My watchlist", "d": "Shows only the shares you have starred. Star any row with ☆ to follow it here."},
+  "simpleLoad(true)":{"t": "Get today's fresh prices", "d": "Downloads the latest end-of-day prices from the internet, replacing what is saved on this device. Use after the market closes; use the saved option if you just want the app open quickly."},
+  "simpleLoad()":{"t": "Load shares", "d": "Fills the app with market data. It reads what is already saved on this device where it can — instant and works offline — and fetches fresh prices when you ask for them."},
+  "renderResearch()":{"t": "Research further", "d": "Your parked list: shares you set aside to look into later, kept separately from your watchlist so a 'maybe' never gets mistaken for a 'following'."},
+  "setAppMode('simple')":{"t": "Simple view", "d": "Strips the app back to the few things most people need — load, a handful of scans, portfolio and watchlist. Everything else is still there under Advanced."},
+  "setAppMode('advanced')":{"t": "Advanced view", "d": "Shows every tool: all scans, the full filter panel, report cards, the practice bot and settings. Switch back to Simple any time."},
+  "setPriceBand":{"t": "Price band", "d": "Narrows the table to one price range — Nano under 10c through to Premium over $100. Useful because the same percentage move means very different things at 2c and at $50: a one-cent tick is a 50% move on the first and invisible on the second. Tap Any to clear."},
+  "setVolBand":{"t": "Volume vs its own average", "d": "Keeps only shares trading at least this much ABOVE their own normal volume. Judged against each share's own history, not against the market — 100% means double its usual day. That is what makes it comparable between a bank and an explorer."},
+  "setPctBand":{"t": "Today's move", "d": "Keeps only shares that moved at least this far today, up or down. A blunt filter — pair it with a volume one, because a big move on no volume is usually just a wide spread rather than real interest."},
+  "setAbsVolBand":{"t": "Actual shares traded", "d": "Filters on the raw number of shares changing hands, regardless of the share's own average. Use it to avoid the thinly-traded end of the market, where your own order moves the price against you both going in and coming out."},
+  "setVolStreakDays":{"t": "Volume streak", "d": "Keeps shares whose volume has beaten their own average this many days in a row. One heavy day can be a single large order; several in a row is harder to explain away as noise."},
+  "setBuyDays":{"t": "Up-day streak", "d": "Keeps shares that have closed higher this many days running. Streaks say persistence, not size — five tiny green days count the same as five big ones."},
+  "setAccumMin":{"t": "Accumulation days", "d": "Counts, out of the last ten sessions, how many had the price up AND volume above average on the same day. That combination is the quiet-buying pattern; this filter keeps shares with at least this many."},
+  "setMinScore":{"t": "Minimum watch score", "d": "Keeps shares scoring at least this out of 10 — the same accumulation-weighted score the 🏆 Top 20 ranks by. Seven or more is demanding and some days nothing qualifies."},
+  "clrFg(":{"t": "Clear this filter", "d": "Removes just this one filter and leaves the rest of your settings alone."},
+  "sw('price')":{"t": "Price tab", "d": "The filter panel's price group: price band, today's move, up-day streak and direction."},
+  "sw('vol')":{"t": "Volume tab", "d": "The filter panel's volume group: volume against a share's own average, raw shares traded, volume streaks and accumulation."},
+  "sw('mkt')":{"t": "Type tab", "d": "Market-wide filters: security type (ordinary shares, ETFs, options and so on) and the 💧 liquidity floor that keeps barely-traded shares out of your results."},
+  "sw('sig')":{"t": "Signals tab", "d": "Filters built on the app's own flags — watch score, RSI band, and the pattern flags from the report card."},
+  "sp1(this,'gAnn','annq')":{"t": "News filter", "d": "Narrows by whether a share has had recent news. Remember the distinction the app keeps everywhere: a CONFIRMED headline is a fact, a 'likely news' flag is an estimate from price and volume that may simply be wrong."},
+  "sp1(this,'gSM','sm')":{"t": "Smart-money filter", "d": "Narrows to shares showing the sustained buying pattern — up days on above-average volume, repeated."},
+  "sb('ticker')":{"t": "Sort by code", "d": "Orders the table alphabetically by ticker. Click again to reverse it."},
+  "sb('price')":{"t": "Sort by price", "d": "Orders the table by share price. Click again to reverse. Price alone says nothing about value — a $100 share is not 'better' than a 10c one."},
+  "sb('volume')":{"t": "Sort by volume", "d": "Orders by raw shares traded today. For 'is this unusual FOR this share', use the volume-versus-average column instead — that is the one that compares like with like."},
+  "printPDF('all')":{"t": "Print all shown", "d": "Makes a printable page of every row currently displayed — filters and all — which you can print or save as a PDF for your records."},
+  "toggleShareMenu(event)":{"t": "Share", "d": "Opens the sharing options: email, copy to clipboard, or a spreadsheet file. Everything is generated on this device; nothing is uploaded anywhere."},
+  "shareEmail()":{"t": "Share by email", "d": "Opens your email program with the shown list already written into a message. It does not send anything by itself, and nothing leaves this device until you press send."},
+  "shareCopy()":{"t": "Copy to clipboard", "d": "Copies the shown list as plain text so you can paste it into notes, a message or a spreadsheet."},
+  "shareCSV()":{"t": "Share as spreadsheet", "d": "Builds a CSV file of the shown rows — opens in Excel, Numbers or Google Sheets. Handy for keeping your own records or doing your own sums."},
+  "exportOfflineData()":{"t": "Export saved data", "d": "Saves everything this device has stored — price history, watchlists, practice portfolio — into one backup file. Worth doing before changing devices or clearing your browser, because that history is what the grading needs."},
+  "importOfflinePaste()":{"t": "Import from text", "d": "Restores a backup you pasted in as text, rather than from a file. Useful when moving between devices where file sharing is awkward."},
+  "document.getElementById('importOfflineInput')":{"t": "Import a backup file", "d": "Loads a backup file you exported earlier, restoring the saved history, watchlists and practice portfolio onto this device."},
+  "selectLoadPreset(0)":{"t": "Load preset 1", "d": "One of three saved load settings — which security types to include, gainers only or not, and a minimum volume. Switch between them without retyping the settings each time."},
+  "selectLoadPreset(1)":{"t": "Load preset 2", "d": "The second of three saved load settings. Rename them to whatever you actually use, like 'ASX ordinaries only'."},
+  "selectLoadPreset(2)":{"t": "Load preset 3", "d": "The third of three saved load settings."},
+  "saveLoadPreset()":{"t": "Save this preset", "d": "Stores the current load settings under the selected preset name so you can come back to them."},
+  "runLoadPreset()":{"t": "Run this preset", "d": "Loads the market using this preset's settings rather than whatever is currently on screen."},
+  "refreshLiveFromApi()":{"t": "Refresh live prices", "d": "Re-fetches today's prices from the data provider for the shares already loaded, without downloading the whole market again."},
+  "testConnectionSpeed()":{"t": "Test connection", "d": "Times a small request to the data provider so you can tell a slow network apart from a problem with the app or your key."},
+  "window._forceFullDownload=true":{"t": "Download everything", "d": "Fetches the full stored history for every share, not just the recent days. Slow and heavy — but it is what deep history needs, and deep history is what makes honest grading possible."},
+  "stopBulkDownload()":{"t": "Stop downloading", "d": "Halts a running download. Everything already fetched is kept — you can carry on later without starting over."},
+  "stopPrepare()":{"t": "Stop preparing", "d": "Stops the background pass that calculates streaks, averages and scores. Whatever finished is kept; the rest simply stays blank until next time."},
+  "clearDataCache(event)":{"t": "Clear saved data", "d": "Deletes the market data stored on this device. Your watchlists and practice portfolio are NOT touched. Use it if data looks stale or wrong — but you will need to download history again, and the grading needs that history."},
+  "changeApiKey()":{"t": "Change data key", "d": "Updates the key the app uses to fetch market data from the provider. Stored only on this device."},
+  "checkForUpdateNow()":{"t": "Check for updates", "d": "Asks whether a newer version of the app has been published, and shows which version you are on now."},
+  "changeAppPassword()":{"t": "Change app password", "d": "Sets a new password for opening the app on this device. It is stored on the device only — there is no account on any server, so nobody can reset it for you."},
+  "logout()":{"t": "Log out", "d": "Locks the app on this device. Your saved data stays where it is; you just need the password again to get back in."},
+  "resetLicence(event)":{"t": "Reset licence", "d": "Clears the stored licence on this device so a different key can be entered. Your data is untouched."},
+  "licenceSubmit()":{"t": "Activate licence", "d": "Checks the licence key you entered and unlocks the app on this device."},
+  "gateSubmit()":{"t": "Unlock", "d": "Sends the access password so the app can reach its data service."},
+  "gateReset()":{"t": "Forgot the password", "d": "Clears the stored access password so you can enter a different one."},
+  "toggleAcctMenu()":{"t": "Account menu", "d": "Password, language, update check and log out."},
+  "closeOverlay()":{"t": "Close", "d": "Shuts this panel and returns to the table. Nothing you set is lost."},
+  "openOverlay('setup')":{"t": "Setup", "d": "Where the data key, saved-data options and load presets live — the settings you touch once and then forget."},
+  "openOverlay('refine')":{"t": "Refine results", "d": "Opens the full filter panel: price, volume, trend and signal filters, all combinable."},
+  "openOverlay('morescans')":{"t": "More scans & presets", "d": "The scans that do not have a front-page button — 🧱 Strong Trends, 🕳 Gap Report, 🪜 Pullback, 📐 Technical Signals and your own saved reports."},
+  "disableTrainingMode()":{"t": "Exit training mode", "d": "Turns off the purple dashed outlines and these explanations. Press Ctrl+Shift+T and enter the code to bring it back."},
+  "loadDemoData()":{"t": "Demo data", "d": "Fills the app with made-up shares so you can practise every button without needing a data key or a live market. Nothing here is real — do not read anything into the numbers."},
+  "toggleTrainTips()":{"t": "Tooltips on/off", "d": "Silences these explanation bubbles while keeping training mode on — useful when demonstrating to someone else and the pop-ups get in the way."},
+  "toggleHelpPanel()":{"t": "Help guide", "d": "Opens the written guide: what each part of the app does, in order, with pictures."},
+  "toggleLessons()":{"t": "Lessons", "d": "Opens the course — short illustrated lessons from 'what is a share' through to the newer signals, each ending in a short quiz."},
+
   "signalReportCard":{t:"Signal report card",d:"The app grades its own flags over your saved history: for each flag, how often shares were higher (or lower, for the bearish Dist? flag) five trading days after it fired — measured against how ALL shares moved over the same days. Bullish flags earn 'beat the market' or 'did NOT beat the market'; Vol record and Block day are direction-neutral, so they just show their numbers. Results swing week to week — a red patch means be extra sceptical right now, not that the app is broken. The 🧩 Combinations section grades PAIRS and TRIPLES of flags that fired together on the same share the same day — with each leg's solo average shown for comparison. Lesson 27 walks through reading it."},
   "setChartTF":{t:"Chart timeframe",d:"Switch the window shown: 1M, 3M, 6M, 1Y or everything stored. The % change chip recalculates for the visible period."},
   "_chartToggleStyle":{t:"Line / Candles",d:"Swap between a clean closing-price line and candlesticks. Each candle shows the day's open→close body and high/low wicks — green closed up, red closed down."},
@@ -16120,7 +16220,127 @@ function attachTraining(){
     const oc=el.getAttribute('onclick')||'';
     for(const key in ONCLICK_HELP){ if(oc.indexOf(key)>-1){ _attachOne(el,ONCLICK_HELP[key]); seen.add('fn:'+key); break; } }
   });
-  const cov=document.getElementById('trainCoverage'); if(cov)cov.textContent='🎓 '+seen.size+' controls explained';
+  try{ _trainParkedTitles(); }catch(e){}   // v469: hand back what private mode parked
+  try{ _trainFallback(); }catch(e){}
+  try{ _trainCoverage(); }catch(e){}
+}
+// ═══ v467 — nothing is left bare ═══════════════════════════════════════════
+// Explicit tips are better, but a control with NO explanation is the failure
+// Tony found. So anything still uncovered gets one built from its own label and
+// the nearest explained ancestor. A button added next year is explained the day
+// it ships rather than the day somebody notices it is not.
+var _TRAIN_SEL='button,[onclick],select,input:not([type=hidden]):not([type=submit]),.statclick,summary,a.btn,th';
+function _trainKind(el){
+  var tg=el.tagName.toLowerCase(), ty=(el.getAttribute('type')||'').toLowerCase();
+  if(tg==='select')return 'a drop-down: pick one option from the list';
+  if(tg==='th')return 'a column heading — click it to sort the table by this column';
+  if(tg==='summary')return 'a fold-out section: click to open or close it';
+  if(ty==='checkbox')return 'a tick-box: on or off';
+  if(ty==='radio')return 'one choice out of a group — picking it un-picks the others';
+  if(ty==='number'||ty==='text'||ty==='search'||ty==='password'||ty==='email')return 'a box you type into';
+  if(ty==='date'||ty==='time')return 'a date or time picker';
+  return 'a button';
+}
+function _trainNearestTip(el){
+  var n=el.parentElement, hops=0;
+  while(n&&hops<5){
+    if(n.dataset&&n.dataset.trainTitle)return n.dataset.trainTitle;
+    var lbl=n.querySelector&&n.querySelector('.rg-l,legend,.fg-l,.grp-l,h3,h4');
+    if(lbl&&lbl.textContent&&lbl.textContent.trim())return lbl.textContent.trim().slice(0,48);
+    n=n.parentElement; hops++;
+  }
+  return '';
+}
+// v469 — the element's OWN words, not its children's. textContent on a
+// <summary> or a wrapper button drags in every nested label and produces a
+// run-on blob; direct text nodes are what the user reads as its name.
+function _trainOwnLabel(el){
+  try{
+    var a=el.getAttribute('aria-label'); if(a&&a.trim())return a.trim().slice(0,60);
+    if(el.value&&typeof el.value==='string'&&el.value.trim())return el.value.trim().slice(0,60);
+    var parts=[];
+    for(var i=0;i<el.childNodes.length;i++){
+      var n=el.childNodes[i], p='';
+      if(n.nodeType===3)p=n.nodeValue;
+      else if(n.nodeType===1&&n.children.length===0)p=n.textContent;
+      p=String(p).replace(/\s+/g,' ').trim();
+      if(p)parts.push(p);
+    }
+    var own=parts.join(' ');
+    // A name, not a paragraph: when the joined text runs long it is usually a
+    // caption tacked under a heading (⚙ Advanced settings / news key · volume
+    // window · …), so keep the heading and drop the caption.
+    if(own.length>48&&parts.length>1&&parts[0].length>2)own=parts[0];
+    if(!own)own=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(el.getAttribute('placeholder')&&!own)own=el.getAttribute('placeholder');
+    return own.slice(0,60);
+  }catch(e){ return ''; }
+}
+// v469 — private mode parks every title in data-ttip and deletes the attribute,
+// so the explanation is shipped but never shown. Training mode is unlocked by a
+// private code, so inside it we hand those words back; outside it, nothing
+// changes and the methodology stays hidden exactly as intended.
+function _trainParkedTitles(){
+  document.querySelectorAll(_TRAIN_SEL).forEach(function(el){
+    try{
+      if(el.getAttribute('data-train'))return;                 // better prose already won
+      if(el.id==='gatePass'||el.type==='password')return;
+      var d=(el.dataset&&(el.dataset.ttip||el.dataset.tip))||el.getAttribute('title')||'';
+      d=String(d).trim(); if(!d)return;
+      var t=_trainOwnLabel(el)||_trainNearestTip(el)||'What this does';
+      _attachOne(el,{t:t,d:d});
+      el.setAttribute('data-train-ttip','1');
+    }catch(e){}
+  });
+}
+function _trainFallback(){
+  document.querySelectorAll(_TRAIN_SEL).forEach(function(el){
+    try{
+      if(el.getAttribute('data-train'))return;                 // already explained
+      // v469: a parked data-ttip is NOT an explanation the user can see —
+      // _trainParkedTitles has already had its turn, so anything still here is
+      // genuinely bare and the generic tip is the right answer.
+      if(el.id==='gatePass'||el.type==='password')return;      // never annotate a password box
+      var own=_trainOwnLabel(el);
+      var grp=_trainNearestTip(el);
+      if(!own&&!grp)return;                                    // truly nothing to say
+      var title=own||grp||'Control';
+      var d=(own?('“'+own+'” — '):'')+_trainKind(el)+'.';
+      if(grp&&grp!==own)d+=' It belongs to the “'+grp+'” group, so it narrows or changes that part of the app.';
+      d+=' This one has no written explanation yet — if it matters to you, the 📖 Help guide and the 🎓 Lessons cover the area it sits in.';
+      _attachOne(el,{t:title,d:d,_fb:1});
+      el.setAttribute('data-train-fb','1');
+    }catch(e){}
+  });
+}
+// v467b — what counts as a control the badge should be measuring.
+// getClientRects() is empty for anything inside a display:none subtree, which
+// getComputedStyle(el).display is NOT — a button inside a hidden overlay still
+// reports its own display, so the licence gate and the password gate were
+// silently padding the denominator. Password boxes are excluded because the
+// fallback refuses to annotate them on purpose; counting something we will
+// never explain would put a ceiling on the score below 100%.
+function _trainCountable(el){
+  try{
+    if(el.id==='gatePass'||el.type==='password')return false;
+    if(!el.getClientRects().length)return false;
+    return getComputedStyle(el).visibility!=='hidden';
+  }catch(e){ return false; }
+}
+// Coverage as a number you can see, so a gap is never invisible again.
+function _trainCoverage(){
+  var cov=document.getElementById('trainCoverage'); if(!cov)return;
+  var all=document.querySelectorAll(_TRAIN_SEL);
+  var n=0, fb=0, tot=0;
+  all.forEach(function(el){
+    if(!_trainCountable(el))return;
+    tot++;
+    if(el.getAttribute('data-train')){ n++; if(el.getAttribute('data-train-fb'))fb++; }
+  });
+  cov.textContent=(n===tot&&tot)? ('🎓 all '+tot+' controls explained'+(fb?(' · '+fb+' generic'):''))
+                                : ('🎓 '+n+' of '+tot+' controls explained'+(fb?(' · '+fb+' generic'):''));
+  cov.title=fb? (fb+' of these fall back to a generic explanation built from the control\'s own label. Everything else has a written one. Training mode also restores the hover explanations that private mode normally hides.')
+              : 'Every visible control on screen has a written explanation. Training mode also restores the hover explanations that private mode normally hides from everyone else.';
 }
 const HELP_SECTIONS=[
  {c:"Getting started",h:"The screen at a glance",p:"Three zones. Left: the <b>report buttons</b> (one-click scans, grouped into families you can fold). Top: the <b>&#128225; Market Radar</b> tiles. Middle: the <b>share table</b> - one row per share.<svg viewBox='0 0 320 110' style='max-width:300px;width:100%;display:block;margin:8px 0' xmlns='http://www.w3.org/2000/svg'><rect x='6' y='6' width='86' height='98' rx='6' fill='none' stroke='#f5c84c' stroke-width='1.2'/><text x='49' y='20' fill='#f5c84c' font-size='8' font-weight='700' text-anchor='middle' font-family='sans-serif'>REPORTS</text><text x='49' y='34' fill='#8fa0c9' font-size='7.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>one-click</text><text x='49' y='44' fill='#8fa0c9' font-size='7.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>scans</text><rect x='100' y='6' width='214' height='30' rx='6' fill='none' stroke='#60a5fa' stroke-width='1.2'/><text x='207' y='19' fill='#60a5fa' font-size='8.5' font-weight='700' text-anchor='middle' font-family='sans-serif'>RADAR tiles</text><text x='207' y='30' fill='#8fa0c9' font-size='7.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>tap a tile = filter the app</text><rect x='100' y='42' width='214' height='62' rx='6' fill='none' stroke='#4ade80' stroke-width='1.2'/><text x='207' y='56' fill='#4ade80' font-size='8.5' font-weight='700' text-anchor='middle' font-family='sans-serif'>THE TABLE</text><text x='207' y='70' fill='#8fa0c9' font-size='7.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>every share, one row each</text><text x='207' y='82' fill='#8fa0c9' font-size='7.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>Buy on the row - everything</text><text x='207' y='93' fill='#8fa0c9' font-size='7.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>else under its three-dot menu</text></svg>Top-right buttons: theme &#183; &#9974; full screen &#183; hide panel &#183; &#128100; Account &#183; Research &#183; &#128188; Portfolio."},
