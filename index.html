@@ -1542,7 +1542,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-454-open';
+const APP_VERSION='2026.07.27-455-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9452,6 +9452,21 @@ async function _srvDaySync(exch,say){
     const latest=await jf('/history/latest?exch='+encodeURIComponent(exch)).catch(()=>null);
     const latestD=latest&&latest.ok&&latest.date?String(latest.date).slice(0,10):null;
     if(!latestD)return out;
+    // v455 TRUST, BUT VERIFY THE POINTER. This sync stamps a share "saved today"
+    // when its history reaches the server's newest day — and anything stamped
+    // today skips the download entirely. So a server that UNDER-reports its
+    // newest day (a stalled ingest, a crawler writing old dates) would freeze
+    // prices for the rest of the day and look perfectly healthy doing it.
+    // A pointer older than a long weekend is not believed: we still merge the
+    // real bars it gave us, we just never claim the share is up to date, so the
+    // ordinary per-share download runs and fills the gap.
+    const _ptrAge=Math.round((Date.now()-Date.parse(latestD+'T00:00:00Z'))/86400000);
+    const _ptrOK=isFinite(_ptrAge)&&_ptrAge<=5;   // Fri close, read Wed after a Mon holiday
+    if(!_ptrOK&&say)say('🫙 Your server store looks behind ('+latestD+') — fetching fresh prices instead.');
+    // When the pointer is not believed, keep the share's OWN existing stamp (or
+    // its newest bar's date) rather than today's — histPut defaults a missing
+    // stamp to today, which is exactly the freeze we are avoiding.
+    const _stampFor=(s,ld)=>_ptrOK?today:((s&&s.saved)||ld||'1970-01-01');
     const skey='asxScreener.srvDaySync.v1.'+exch;
     let lastSync=null; try{ lastSync=localStorage.getItem(skey); }catch(e){}
     if(lastSync&&lastSync>=latestD)return out;              // nothing new in the pantry
@@ -9493,21 +9508,24 @@ async function _srvDaySync(exch,say){
           const stored=await histGet(exch,t);
           if(!stored||!Array.isArray(stored.rows)||!stored.rows.length)return; // never seed a share from thin day-slices
           let lastD=''; for(const r of stored.rows){ const x=dOf(r); if(x>lastD)lastD=x; }
-          if(lastD>=latestD){ if(stored.saved!==today)await histPut(exch,t,stored.rows,today); out.merged++; return; }
+          if(lastD>=latestD){ const _s=_stampFor(stored,lastD); if(stored.saved!==_s)await histPut(exch,t,stored.rows,_s); out.merged++; return; }
           // HOLE GUARD: our window must reach back to (or past) the share's last saved
           // day — allow a long-weekend-sized step, otherwise leave it to the per-share path.
           const gapMs=new Date(oldestFetched)-new Date(lastD);
           if(!(lastD>=oldestFetched||gapMs<=5*86400000)){ out.skippedGap++; return; }
           const add=per.get(t).filter(b=>b.dateStamp>lastD);
-          if(!add.length){ if(stored.saved!==today)await histPut(exch,t,stored.rows,today); out.merged++; return; }
-          await histPut(exch,t,stored.rows.concat(add),today);
+          if(!add.length){ const _s=_stampFor(stored,lastD); if(stored.saved!==_s)await histPut(exch,t,stored.rows,_s); out.merged++; return; }
+          const _newLast=add[add.length-1].dateStamp||lastD;
+          await histPut(exch,t,stored.rows.concat(add),_stampFor(stored,_newLast));
           out.merged++;
         }catch(e){}
       }));
       done+=slice.length;
       if(say&&ticks.length>400)say('🫙 Merging your server store… '+Math.min(done,ticks.length).toLocaleString()+' / '+ticks.length.toLocaleString());
     }
-    try{ localStorage.setItem(skey,latestD); }catch(e){}
+    // v455: only remember the sync mark when the pointer was believable — a
+    // stale pointer must not lock this device out of retrying later.
+    if(_ptrOK){ try{ localStorage.setItem(skey,latestD); }catch(e){} }
   }catch(e){}
   return out;
 }
@@ -9517,7 +9535,16 @@ async function fetchHistoryUpdate(exch,ticker,apiKey,fullDays){
     if(stored&&Array.isArray(stored.rows)&&stored.rows.length){
       // v416: anything stamped TODAY is already as fresh as a download can make it —
       // the 🫙 server day-sync stamps merged shares, so the whole loop below becomes instant.
-      if(stored.saved===new Date().toISOString().slice(0,10))return stored.rows;
+      // v455 BACKSTOP: honour that stamp only if the data behind it really is recent.
+      // The stamp is a claim; the newest bar is the evidence. Without this, one bad
+      // stamp (a server reporting an old "newest day", a half-finished merge) could
+      // freeze a share's prices for the whole day with nothing on screen to show it.
+      if(stored.saved===new Date().toISOString().slice(0,10)){
+        const _s0=_sortedCloses(stored.rows);
+        const _ld0=_s0.length?_s0[_s0.length-1].d:null;
+        const _age0=_ld0?Math.round((Date.now()-Date.parse(_ld0+'T00:00:00Z'))/86400000):999;
+        if(_age0<=5)return stored.rows;                  // claim backed by evidence — skip the download
+      }
       const sorted=_sortedCloses(stored.rows);
       const lastD=sorted.length?sorted[sorted.length-1].d:null;
       if(lastD){
