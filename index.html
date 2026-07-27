@@ -3,6 +3,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- v474 — the control that decides what a successful injection can DO.
+     (frame-ancestors is deliberately absent: browsers ignore it in a <meta>
+     tag, and GitHub Pages cannot send response headers. Clickjacking is the
+     one thing this policy cannot cover from here.) Without
+     it, one piece of injected script reads the access key out of storage and
+     posts it anywhere it likes. connect-src is deliberately narrow: our worker,
+     EODData, and the relays that only ever carry public data. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://insight-data.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Insight Trading — Multi-Exchange Share Screener</title>
 <!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
@@ -1545,7 +1553,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-473-open';
+const APP_VERSION='2026.07.27-474-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2181,7 +2189,11 @@ function _safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u.rep
 // Override or disable at runtime via localStorage 'asxScreener.dataProxy.v1'
 // (set it to '' to turn the server off and use the old relays).
 let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
-try{ const _dp=localStorage.getItem('asxScreener.dataProxy.v1'); if(_dp!=null) DATA_PROXY=String(_dp).trim(); }catch(e){}
+// v474 — the localStorage override is GONE. It was a development convenience
+// that doubled as a complete takeover: one hostile extension, or one successful
+// injection, could repoint every request at an attacker's server permanently —
+// and the fetch wrapper below would then hand them the access key. Nothing in
+// the product needed it.
 function _serverData(){ return (typeof DATA_PROXY==='string' && !!DATA_PROXY); } // v382: the Worker provides the data, so no user API key is needed
 // ═══ v380 — ACCESS GATE (client side) ══════════════════════════════════════
 // A shared "tester password" that the Worker enforces server-side (it refuses to
@@ -2202,7 +2214,11 @@ function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PRO
   window.fetch=function(input,init){
     let url=''; try{ url=(typeof input==='string')?input:((input&&input.url)||''); }catch(e){}
     const b=_gateBase();
-    const isWorker=b&&url&&url.indexOf(b)===0;
+    // v474 — compare ORIGINS, not string prefixes. A prefix test also matches
+    // insight-data.tonycotton13.workers.dev.attacker.com, which would send the
+    // password to whoever registered it.
+    let isWorker=false;
+    try{ isWorker=!!(b&&url&&new URL(url,location.href).origin===new URL(b).origin); }catch(e){ isWorker=false; }
     if(!isWorker)return _raw(input,init);
     init=init||{};
     const k=_gateKey();
@@ -2268,6 +2284,20 @@ function _gateLock(){
   if(document.readyState!=='loading')_probe(); else document.addEventListener('DOMContentLoaded',_probe);
 })();
 // ═══════════════════════════════════════════════════════════════════════════
+// v474 — a URL carrying a customer's API key gets exactly two routes: OUR
+// worker (which holds its own key server-side and never sees theirs) and a
+// direct call to EODData. Public relays see everything they relay, and these
+// are free, unauthenticated services run by strangers. Non-secret URLs may
+// still use them, so nothing that worked stops working.
+function _isKeyed(u){ try{ return /[?&]apikey=/i.test(String(u)); }catch(e){ return true; } }
+function _keyedRoutes(u){
+  var safe=[];
+  try{ if(typeof DATA_PROXY==='string'&&DATA_PROXY&&_eodProxy(u)!==u)safe.push(function(x){return _eodProxy(x);}); }catch(e){}
+  safe.push(function(x){return x;});   // direct: the key reaches EODData, and nobody else
+  return safe;
+}
+// Filter any route list down to the safe ones when the URL carries a key.
+function _safeRoutes(u, routes){ return _isKeyed(u) ? _keyedRoutes(u) : routes; }
 function _eodProxy(u){
   // Rewrite a direct EODData URL to go through our Worker, DROPPING the apiKey
   // (the Worker injects its own). Only symbol/list and quote/list are proxied —
@@ -2277,7 +2307,7 @@ function _eodProxy(u){
     const m=String(u).match(/^https?:\/\/api\.eoddata\.com\/(.+)$/i);
     if(!m)return u;
     let rest=m[1];
-    if(!/^(symbol|quote)\/list\//i.test(rest))return u;
+    if(!/^(symbol|quote|technical)\/list\//i.test(rest))return u;   // v474: technical/list too, so it need not use a relay
     const qi=rest.indexOf('?');
     if(qi>=0){ const path=rest.slice(0,qi); const kept=rest.slice(qi+1).split('&').filter(kv=>kv&&!/^apikey=/i.test(kv)); rest=path+(kept.length?('?'+kept.join('&')):''); }
     return DATA_PROXY.replace(/\/+$/,'')+'/eod/'+rest;
@@ -4387,7 +4417,10 @@ function _openPrintable(html, label){
     window._modalLabel=label||'Report';
     window._modalBig=true;
     const fid='rptFrame_'+Math.floor(performance.now());
-    showModal('<iframe id="'+fid+'" style="width:100%;height:100%;min-height:62vh;border:none;background:#fff;border-radius:8px;display:block;"></iframe>', label||'Report');
+    // v474 — a comment called this ISOLATED; it was not. allow-same-origin is
+    // required because the report deliberately calls back into the parent, but
+    // everything else a frame can do is now switched off.
+    showModal('<iframe id="'+fid+'" sandbox="allow-same-origin allow-scripts allow-popups allow-modals" referrerpolicy="no-referrer" style="width:100%;height:100%;min-height:62vh;border:none;background:#fff;border-radius:8px;display:block;"></iframe>', label||'Report');
     const f=document.getElementById(fid);
     if(f){ f.srcdoc=doc; }
     return;
@@ -5948,7 +5981,7 @@ function _apQueueSellPush(sells){
           note:'auto-pilot exit · '+whyTxt };
       }).filter(Boolean);
       if(!orders.length)return;
-      fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:day,orders:orders})})
+      fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:day,orders:orders})})
         .then(function(res){
           if(!(res&&res.ok))return;
           try{ const ls=document.getElementById('loadStatus');
@@ -5957,6 +5990,15 @@ function _apQueueSellPush(sells){
     });
   }catch(e){}
 }
+// v474 — the worker now requires the dedicated bridge key to QUEUE an order,
+// not just to read the queue. Creating orders is the side that reaches a
+// trading bridge, so it should never have been the side with the weaker
+// credential. Without a key set here, nothing is queued — which is the right
+// failure for anything that touches money.
+var _BRIDGE_STORE='asxScreener.bridgeKey.v1';
+function _bridgeKey(){ try{ return localStorage.getItem(_BRIDGE_STORE)||''; }catch(e){ return ''; } }
+window._bridgeSet=function(k){ try{ if(k)localStorage.setItem(_BRIDGE_STORE,String(k).trim()); else localStorage.removeItem(_BRIDGE_STORE); }catch(e){} };
+function _bridgeHeaders(){ var h={'Content-Type':'application/json'}; var k=_bridgeKey(); if(k)h['X-Bridge-Key']=k; return h; }
 function _apQueuePush(ent,r){
   try{
     if(APP_VERSION.indexOf('-beta')>=0)return;                    // customer only
@@ -5978,7 +6020,7 @@ function _apQueuePush(ent,r){
         note:(b.limit?'auto-pilot pick':'auto-pilot scanner')+(b.score!=null?' · score '+b.score+'/10':'') };
     }).filter(Boolean);
     if(!orders.length)return;
-    fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:day,orders:orders})})
+    fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:day,orders:orders})})
       .then(res=>{
         if(!(res&&res.ok))return;
         // Mark the STORED diary entry as queued only after the server said yes —
@@ -9519,7 +9561,7 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   // what an unreachable server looks like, so the state with the emptiest
   // screen was the one state that explained nothing.
   try{
-    var _noYear=(window._scanSrc==='unavailable'), _noDay=!!window._scDayFail;
+    var _noYear=(window._scanSrc==='unavailable'), _noDay=(window._scanSrc!=='unavailable'&&!_scDayGet());
     if(_noYear||_noDay){
       _evSetNote(el,'\u26a0\ufe0f signals not scored \u2014 could not reach our server',
         (_noYear&&_noDay)?'Both halves of the evidence system run on our server: the year-long replay that grades each signal, and the check of which signals are firing today. Neither could be reached just now, so these tiles are blank rather than wrong. Prices, volumes, your portfolio and your watchlists are stored on your device and are unaffected. Try again in a moment, or reload.'
@@ -9891,13 +9933,9 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   const from=new Date(to.getTime()-lookback*86400000);
   const fmt=d=>d.toISOString().slice(0,10);
   const url=`https://api.eoddata.com/quote/list/${exch}/${ticker}?Interval=d&apiKey=${apiKey}&FromDateStamp=${fmt(from)}&ToDateStamp=${fmt(to)}`;
-  const proxies=[
-    u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    u=>u, // direct (in case CORS is allowed)
-    u=>`https://thingproxy.freeboard.io/fetch/${u}`,
-    u=>_eodProxy(u), // 4: OUR Cloudflare Worker — fast, edge-cached, key held server-side (preferred)
-  ];
+  // v474: this URL carries the customer's apiKey, so the public relays are out.
+  // Worker first (it strips the key entirely), then direct to EODData.
+  const proxies=_keyedRoutes(url);
   // FASTEST-ROUTE RACING: on the first fetch, try ALL routes at once and keep
   // whichever answers fastest; every later fetch uses that route directly.
   // (The old logic kept the first route that merely WORKED — so a slow-but-
@@ -11977,15 +12015,18 @@ async function testConnectionSpeed(){
   const url=`https://api.eoddata.com/quote/list/${ex}/${t}?Interval=d&apiKey=${apiKey}&FromDateStamp=${fmt(from)}&ToDateStamp=${fmt(to)}`;
   const routes=[
     ['Direct (no proxy)', u=>u],
-    ['Proxy 1 · corsproxy.io', u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`],
-    ['Proxy 2 · allorigins.win', u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`],
+    // v474: the route tester must not be the one place a key still leaks.
+    ['Proxy 1 · corsproxy.io', u=>_isKeyed(u)?null:`https://corsproxy.io/?url=${encodeURIComponent(u)}`],
+    ['Proxy 2 · allorigins.win', u=>_isKeyed(u)?null:`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`],
   ];
   const lines=[];
   for(const [name,fn] of routes){
     const t0=performance.now();
     try{
       const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),8000);
-      let r; try{ r=await fetch(fn(url),{headers:{'Accept':'application/json'},signal:ctrl.signal}); } finally{ clearTimeout(tm); }
+      const _u=fn(url);
+      if(!_u){ clearTimeout(tm); rows.push([name,'skipped — this route would expose your API key',0]); continue; }
+      let r; try{ r=await fetch(_u,{headers:{'Accept':'application/json'},signal:ctrl.signal}); } finally{ clearTimeout(tm); }
       const txt=await r.text();
       const ok=r.ok&&txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{');
       const ms=Math.round(performance.now()-t0);
@@ -12354,11 +12395,9 @@ async function calcStreaks(){
 // ═══════════════════════════════════
 async function fetchTechnicalList(exch,apiKey){
   const url=`https://api.eoddata.com/technical/list/${exch}?apiKey=${apiKey}`;
-  const tries=[
-    u=>u, // direct
-    u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  ];
+  // v474: this URL carries the key, so worker-or-direct only. Note _eodProxy
+  // now recognises technical/list/ too, so the worker route is real here.
+  const tries=_keyedRoutes(url);
   for(const t of tries){
     try{
       const r=await fetch(t(url),{headers:{'Accept':'application/json'}});
@@ -12738,7 +12777,7 @@ async function histClearAll(){const db=await cacheOpen();if(!db)return;try{db.tr
 // multi-exchange downloader to know which shares to pull for each market.
 async function fetchSymbolList(exch,apiKey){
   const url=`https://api.eoddata.com/symbol/list/${exch}?apiKey=${apiKey}`;
-  const proxies=[u=>u, u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`, u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`];
+  const proxies=_safeRoutes(url,[u=>u]);   // v474: keyed → worker/direct only
   for(const p of proxies){
     try{
       const r=await fetch(p(url),{headers:{'Accept':'application/json'}});
@@ -13182,11 +13221,7 @@ async function fetchQuoteListByDate(exch,apiKey,dateStr){
   const cached=await cacheGet(exch,dateStr);
   if(cached){return normRows(cached);}
   const url=`https://api.eoddata.com/quote/list/${exch}?apiKey=${apiKey}&DateStamp=${dateStr}`;
-  const tries=[
-    u=>u,
-    u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  ];
+  const tries=_keyedRoutes(url);   // v474: keyed → worker/direct only
   for(const t of tries){
     try{
       const r=await fetch(t(url),{headers:{'Accept':'application/json'}});
@@ -13793,14 +13828,20 @@ async function loadData(userClick){
   // ---- Attempt 2 (v238): public CORS relays RACED IN PARALLEL. The symbol
   // list is a heavy payload; racing every relay at once means one healthy relay
   // is enough, instead of waiting out serial 20-second timeouts. ----
-  const _relays=[
+  // v474 — this was the biggest of the leaks: the bulk symbol and quote lists
+  // carry the customer's apiKey and were raced across FOUR public relays at
+  // once, so every one of them saw the key on every load. A keyed URL now gets
+  // our worker (which never receives their key) and a direct call, and nothing
+  // else. Unkeyed URLs may still be raced across the relays.
+  const _relaysPublic=[
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u=>`https://thingproxy.freeboard.io/fetch/${u}`,
     u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
   ];
   async function _raceList(url,label){
-    statusEl.textContent=`Fetching ${label} via ${_relays.length} relays at once…`;
+    const _relays=_safeRoutes(url,_relaysPublic);
+    statusEl.textContent=`Fetching ${label} via ${_relays.length} route${_relays.length===1?'':'s'} at once…`;
     const tryOne=async(fn)=>{
       const r=await _fetchTO(fn(url),{headers:{'Accept':'application/json'}},20000);
       if(!r.ok)throw new Error('http '+r.status);
@@ -16833,7 +16874,13 @@ body.tbl-tighter .tick-name{max-width:80px;}
       return {n:n,d:d,h:h,ps:psD,list:list,ok:ok};
     }catch(e){ return {n:0,d:false,h:'',ps:[],list:[],ok:false}; }
   }
-  function urlFor(code){ return 'https://asx.api.markitdigital.com/asx-research/1.0/companies/'+encodeURIComponent(code)+'/announcements?access_token=83ff96335c2d45a094df02a206a39ff4&itemsPerPage=20'; }
+  // v474 — the access token used to be written out here, in a file anyone can
+  // download. It now lives on the worker and the request goes through us.
+  function urlFor(code){
+    if(typeof DATA_PROXY==='string'&&DATA_PROXY)
+      return DATA_PROXY.replace(/\/+$/,'')+'/asxann/'+encodeURIComponent(code);
+    return '';
+  }
   async function fetchOne(code){
     var routes=[function(u){return u;},
       function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},
@@ -17237,89 +17284,30 @@ async function _scStashGet(k){
   }catch(e){ return null; }
 }
 function _scToday(){ try{ return (window._exchDataDate&&window._exchDataDate[currentExch])||''; }catch(e){ return ''; } }
-// ═══ v471 — today's firing signals, worked out on the server ═══════════════
-// One request per market load, not one per click: the answer is cached against
-// everything that could change it, so filtering and sorting re-read the cache.
-var _scDayF=null;          // { key, F:{ ticker: [rule keys] } }
-// v471d — the answer belongs to the MARKET, not to whoever asked for it. It is
-// a map from ticker to signals covering everything loaded; a caller holding a
-// subset just reads fewer entries. Keying it on the caller's list length meant
-// the auto-pilot, which applies the 💧 floor to its pool first, always missed.
-// (The floor is out of the key too: since v462 it does not decide who gets
-// evidence-checked, only what the bot may buy — and _apRuleFilter applies it.)
-function _scDayKey(){
-  try{ return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||'')
-    +'|'+((Array.isArray(allData)?allData.length:0)); }
-  catch(e){ return ''; }
-}
-function _scDayGet(){ try{ return (_scDayF&&_scDayF.key===_scDayKey())?_scDayF.F:null; }catch(e){ return null; } }
-// The textbook indicators for one share, today. This is the part that stays in
-// the browser: moving averages, RSI, volume ratios, ranges — in any charting
-// book, and worth nothing to hide.
-function _scDayStats(pool){
-  var sts=[];
-  for(var pi=0;pi<pool.length;pi++){
-    var sh=pool[pi];
-    try{
-      if(!sh||!Array.isArray(sh.series)||sh.series.length<30){ if(sh)sh._evSkip='hist'; continue; }
-      if(!sh._scPf||sh._scPfLen!==sh.series.length){ sh._scPf=_scPrep(sh.series); sh._scPfLen=sh.series.length; }
-      var st=_scStats(sh.series,sh._scPf,sh.series.length-1);
-      if(!st){ sh._evSkip='hist'; continue; }
-      st.newsy=!!st.newsy;
-      sts.push({s:sh,st:st});
-    }catch(e){}
-  }
-  return sts;
-}
-function _scWarmDay(){
+// ═══ v474 — today's firing signals arrive with the year's grades ══════════
+// The worker used to expose a second endpoint that took the computed
+// indicators and answered which rules fired. That was a threshold oracle:
+// ask "does it fire at 49?", then "at 51?", and binary search recovers every
+// number. It is gone. Today's answer now rides back inside the replay, worked
+// out on the server from the same price history the replay already receives —
+// which also saves a round trip and 226 KB per load.
+function _scDayGet(){
   try{
-    if(window._scDayWarming)return;
-    var key=_scDayKey();
-    if(!key||window._scDayFail===key)return;
-    if(!DATA_PROXY||_SCAN_SERVER_OFF){ window._scDayFail=key; return; }
-    // always the whole market, so one answer serves every caller
-    var pool=(Array.isArray(allData)?allData:[]);
-    var sts=_scDayStats(pool);
-    if(!sts.length){ window._scDayFail=key; return; }
-    window._scDayWarming=true;
+    var C=window._scCache;
+    if(!C||C.ex!==currentExch)return null;
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
-    var body={mode:'day',exch:currentExch,dataDate:dd,
-      rows:sts.map(function(x){ return {ticker:x.s.ticker,st:x.st}; })};
-    fetch(DATA_PROXY.replace(/\/+$/,'')+'/scan',
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-      .then(function(r){
-        if(r.status===404||r.status===405){ _SCAN_SERVER_OFF=true; throw new Error('old worker'); }
-        if(!r.ok)throw new Error('http '+r.status);
-        return r.json();
-      })
-      .then(function(j){
-        window._scDayWarming=false;
-        if(!j||!j.ok||!j.fires)throw new Error('bad answer');
-        if(_scDayKey()!==key)return;   // the world moved while we asked
-        _scDayF={key:key,F:j.fires};
-        window._scDayFail=null; window._scDayStale='';
-        try{ _scStash('day|'+currentExch,{d:_scToday(),key:key,F:j.fires}); }catch(e){}
-        try{ _evAfterWarm(); }catch(e){}
-      })
-      .catch(function(){
-        window._scDayWarming=false;
-        // v472: before giving up, look for the last answer we were given.
-        // Reused ONLY for the SAME data date — Friday's firing signals are not
-        // a degraded answer for Monday, they are a wrong one.
-        _scStashGet('day|'+currentExch).then(function(st){
-          if(st&&st.d&&st.d===_scToday()&&st.F&&_scDayKey()===key){
-            _scDayF={key:key,F:st.F};
-            window._scDayFail=null; window._scDayStale='device';
-          } else {
-            window._scDayFail=key;
-          }
-          try{ _evAfterWarm(); }catch(e){}
-        }).catch(function(){
-          window._scDayFail=key;
-          try{ _evAfterWarm(); }catch(e){}
-        });
-      });
-  }catch(e){ window._scDayWarming=false; }
+    if(C.d!==dd)return null;
+    // The firing list carries the day it was worked out, and is refused on any
+    // other day. This matters because the grades it travels with MAY honestly
+    // be reused from an earlier replay when the server is unreachable — a
+    // twelve-month record ages gracefully, a list of what fired today does not.
+    // Without this check, restoring yesterday's saved answer would credit
+    // shares with signals they did not fire.
+    if(!C.R||!C.R.todayFires)return null;
+    if(C.R.todayDate&&C.R.todayDate!==dd)return null;
+    if(!C.R.todayDate)return null;
+    return C.R.todayFires;
+  }catch(e){ return null; }
 }
 // Stamp a set of shares with which of the 18 graded rules fire on them TODAY,
 // using the REAL rule predicates (_apRuleFilter — same maths the replay grades,
@@ -17333,7 +17321,9 @@ function _evMark(shares){
     // unset so _evEnsureMarked tries again once the warm lands; if the warm has
     // FAILED, stamp the day anyway so we stop asking on every repaint.
     var _F=_scDayGet();
-    var _failed=(window._scDayFail===_scDayKey());
+    // v474: there is no separate day request any more, so "we could not score
+    // today" is simply "the replay did not come back with an answer".
+    var _failed=(!_F&&(window._scanSrc==='unavailable'||!!window._scDayFail));
     shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=(_F||_failed)?dd:''; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; } });
     // Same phases as _apRuleFilter (one _scStats per share, the day's
     // rel-strength cut, confirmed-news stamp) — all 18 predicates run against
@@ -17349,8 +17339,7 @@ function _evMark(shares){
     if(!_F){
       // Not scored yet. Ask the server, mark why the screen is quiet, and let
       // the repaint after the answer arrives fill it in.
-      if(_failed){ shares.forEach(function(s){ if(s&&!s._evSkip)s._evSkip='srv'; }); }
-      else { try{ _scWarmDay(); }catch(e){} }
+      if(_failed)shares.forEach(function(s){ if(s&&!s._evSkip)s._evSkip='srv'; });
       return false;
     }
     for(var pi=0;pi<pool.length;pi++){
@@ -17575,7 +17564,7 @@ function _apRuleFilter(pool,key){
   // v436 made for a filter that cannot filter. Standing aside costs a missed
   // trade; guessing costs a wrong one.
   var F=_scDayGet();
-  if(!F){ try{ _scWarmDay(); }catch(e){} return []; }
+  if(!F)return [];   // v474: fail closed — standing aside costs a missed trade, guessing costs a wrong one
   var out=[];
   for(var i2=0;i2<pool.length;i2++){
     var s2=pool[i2]; if(!s2)continue;
@@ -17785,6 +17774,25 @@ var _SCAN_RULES=[
 // What comes back is a graded table. The thresholds that turn one into the
 // other never leave the worker.
 var _SCAN_SERVER_OFF = false;   // set once, per session, if the worker is older than w391
+// Mirrors the worker's _fingerprint EXACTLY. If the two ever disagree the app
+// simply misses the cache and re-uploads — a slow day, never a wrong answer.
+function _scFingerprint(shares){
+  var h=0x811c9dc5;
+  var mixNum=function(n){ h=((h^(n|0))*0x01000193)>>>0; };
+  var mixStr=function(s){ for(var i=0;i<s.length;i++)h=((h^s.charCodeAt(i))*0x01000193)>>>0; };
+  mixNum(shares.length); mixStr('#');
+  for(var si=0;si<shares.length;si++){
+    var ser=(shares[si]&&shares[si].series)||[];
+    mixStr(String((shares[si]&&shares[si].ticker)||'')); mixNum(ser.length);
+    for(var i2=0;i2<ser.length;i2++){
+      var b=ser[i2]; if(!b)continue;
+      mixNum(Math.round((+b.c||0)*10000));
+      mixNum(+b.v||0);
+      if(i2===0||i2===ser.length-1)mixStr(String(b.d||''));
+    }
+  }
+  return h.toString(36);
+}
 async function _scServerReplay(shares, need){
   try{
     if(!DATA_PROXY || _SCAN_SERVER_OFF)return null;
@@ -17800,9 +17808,17 @@ async function _scServerReplay(shares, need){
       if(r.status===404||r.status===405){ _SCAN_SERVER_OFF=true; return null; }
       if(!r.ok)return null;
       var j=await r.json();
-      return (j&&j.ok&&j.R&&j.R.G)?j.R:null;
+      // v474: today's fires travel with the grades now
+      if(j&&j.ok&&j.R&&j.R.G){
+        try{ j.R.todayFires=j.todayFires||j.R.todayFires||null;
+             j.R.todayDate=j.todayDate||j.R.todayDate||''; }catch(e){}
+        return j.R; }
+      return null;
     };
-    var head={mode:'replay',exch:currentExch,dataDate:dd,need:(+need>0?+need:0),n:shares.length};
+    // v474: the worker keys its cache on a fingerprint of the payload itself,
+    // so one caller can no longer decide what every later caller is served. The
+    // probe sends that fingerprint instead of a bare count.
+    var head={mode:'replay',exch:currentExch,dataDate:dd,need:(+need>0?+need:0),fp:_scFingerprint(shares)};
     // Ask first whether today is already done — a few hundred bytes instead of
     // tens of megabytes. Only upload the market if the answer is no.
     if(dd){ try{ var hit=await post(Object.assign({},head,{shares:[]})); if(hit)return hit; }catch(e){} }

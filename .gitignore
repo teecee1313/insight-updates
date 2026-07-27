@@ -1,0 +1,36 @@
+# Nothing that is not the published app belongs in this repository.
+# The audit of 27 July 2026 found a deleted customer build still recoverable
+# from history with a live password record in it. A file removed in a later
+# commit is still public forever, so the only reliable control is never
+# committing it.
+
+# Server code — the rules live here and must never be published
+worker.js
+scan_engine.js*
+grading_engine.js
+make_beta.py
+build_*.py
+verify_*.js
+*.cjs
+
+# Credentials of any kind
+*.env
+.env*
+*token*.txt
+*secret*
+*.pem
+*.key
+wrangler.toml
+.git-credentials
+
+# Customer-specific builds (this is the exact class of file that leaked)
+*locked*.html
+*-backup.html
+index-v*.html
+
+# Working files
+node_modules/
+__pycache__/
+*.tmp
+*.log
+.DS_Store
