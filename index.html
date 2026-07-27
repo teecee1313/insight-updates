@@ -807,6 +807,21 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
           <div style="font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;">Get a free key at <a href="https://www.marketaux.com" target="_blank" style="color:var(--blue);">marketaux.com</a> to test live inline headlines in each share's Deep dive. Leave blank to keep using the free news buttons. Free tier is limited — news loads only when you open a share, and is cached.</div>
         </div>
 
+        <!-- v476: auto-trade bridge key. Hidden on the beta build (auto-trade
+             is customer-only, so a box that can never work would just invite a
+             tester to paste a live credential into a test copy). -->
+        <div class="field" id="bridgeKeyField" style="margin-bottom:10px;display:none;">
+          <label>🔗 Auto-trade bridge key <span style="float:right;font-weight:400;font-size:9px;color:var(--dim);">only if you use auto-trade</span></label>
+          <input type="password" id="bridgeKeyInput" value="" placeholder="your BRIDGE_KEY…"
+            oninput="_bridgeBoxSave(this.value)">
+          <div id="bridgeKeyMsg" style="font-size:9px;color:var(--dim);margin-top:4px;line-height:1.5;"></div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <button onclick="_bridgeBoxTest()" id="bridgeTestBtn" style="padding:5px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🧪 Test it</button>
+            <button onclick="_bridgeBoxClear()" style="padding:5px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">✕ Remove</button>
+          </div>
+          <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.5;">The same secret your desktop bridge uses. Saved on this device only, and never sent anywhere except your own server. Without it the auto-pilot still trades on paper — it just won't queue anything for the bridge.</div>
+        </div>
+
         <!-- (CSV load/export removed.) -->
 
         <!-- Volume window -->
@@ -1553,7 +1568,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-475-open';
+const APP_VERSION='2026.07.27-476-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5999,6 +6014,54 @@ var _BRIDGE_STORE='asxScreener.bridgeKey.v1';
 function _bridgeKey(){ try{ return localStorage.getItem(_BRIDGE_STORE)||''; }catch(e){ return ''; } }
 window._bridgeSet=function(k){ try{ if(k)localStorage.setItem(_BRIDGE_STORE,String(k).trim()); else localStorage.removeItem(_BRIDGE_STORE); }catch(e){} };
 function _bridgeHeaders(){ var h={'Content-Type':'application/json'}; var k=_bridgeKey(); if(k)h['X-Bridge-Key']=k; return h; }
+// ── v476: the Settings box ────────────────────────────────────────────────
+function _bridgeBoxNote(t,c){ try{ var el=document.getElementById('bridgeKeyMsg'); if(el){ el.innerHTML=t; el.style.color=c||'var(--dim)'; } }catch(e){} }
+function _bridgeBoxSave(v){
+  _bridgeSet(v);
+  _bridgeBoxNote(v?'Saved on this device. Press 🧪 Test it to check the server accepts it.':'Removed. Auto-trade will not queue orders for the bridge.',
+                 v?'var(--muted)':'var(--dim)');
+}
+function _bridgeBoxClear(){
+  try{ var i=document.getElementById('bridgeKeyInput'); if(i)i.value=''; }catch(e){}
+  _bridgeBoxSave('');
+}
+// A real test, not a reassurance. It posts an EMPTY order list, so the worker
+// authenticates, finds nothing to store, and answers stored:0 — which tells us
+// the key is accepted without queueing anything.
+async function _bridgeBoxTest(){
+  var btn=document.getElementById('bridgeTestBtn');
+  var k=_bridgeKey();
+  if(!k){ _bridgeBoxNote('Enter the key first.','#ff9caa'); return; }
+  if(!DATA_PROXY){ _bridgeBoxNote('No server address configured, so there is nothing to test against.','#ff9caa'); return; }
+  if(btn)btn.disabled=true;
+  _bridgeBoxNote('Checking with the server…','var(--muted)');
+  try{
+    var today=new Date().toISOString().slice(0,10);
+    var r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',
+      {method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:today,orders:[]})});
+    if(r.ok){ _bridgeBoxNote('✅ The server accepted this key. Auto-trade can queue orders.','var(--green)'); }
+    else if(r.status===401){ _bridgeBoxNote('❌ The server rejected this key. Check it matches the BRIDGE_KEY secret on your Worker, and the copy in your desktop bridge.','#ff9caa'); }
+    else if(r.status===503){ _bridgeBoxNote('⚠️ Your Worker has no BRIDGE_KEY secret set, so the bridge is switched off there. Add it in the Cloudflare dashboard first.','var(--gold)'); }
+    else if(r.status===429){ _bridgeBoxNote('⚠️ Too many attempts just now — wait a few minutes and try again.','var(--gold)'); }
+    else { _bridgeBoxNote('⚠️ The server answered '+r.status+'. Not a key problem as far as we can tell — try again shortly.','var(--gold)'); }
+  }catch(e){
+    _bridgeBoxNote('⚠️ Could not reach the server at all. Check your connection, then try again.','var(--gold)');
+  }
+  if(btn)btn.disabled=false;
+}
+// Fill the box on load, and keep it out of the beta entirely.
+(function(){ try{
+  var _b=function(){
+    try{
+      var f=document.getElementById('bridgeKeyField'); if(!f)return;
+      if(APP_VERSION.indexOf('-beta')>=0)return;             // auto-trade is customer-only
+      f.style.display='block';
+      var i=document.getElementById('bridgeKeyInput'); if(i)i.value=_bridgeKey();
+      _bridgeBoxNote(_bridgeKey()?'A key is saved on this device. Press 🧪 Test it to confirm the server still accepts it.':'Not set. The auto-pilot will still trade on paper; it just won\'t queue anything for the bridge.');
+    }catch(e){}
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_b); else _b();
+}catch(e){} })();
 function _apQueuePush(ent,r){
   try{
     if(APP_VERSION.indexOf('-beta')>=0)return;                    // customer only
