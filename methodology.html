@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Insight Trading — Our Methodology</title>
+<meta name="description" content="How Insight Trading grades its own signals — the full method: point-in-time replay, market-adjusted edge, sample-size tiers, and a robot that refuses to trade without evidence.">
+<style>
+  :root{--bg:#0a1526;--bg2:#0f1d33;--text:#c9d6ea;--bright:#e8eef7;--muted:#8fa0c9;--dim:#5d6f95;--gold:#f5c84c;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--border:#24314d;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:34px 20px 80px;line-height:1.75;}
+  .wrap{max-width:840px;margin:0 auto;}
+  h1{color:var(--gold);font-size:28px;margin:0 0 6px;line-height:1.3;}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:34px;font-style:italic;}
+  h2{color:var(--blue);font-size:20px;margin:40px 0 10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  h3{color:var(--bright);font-size:16px;margin:24px 0 6px;}
+  p{font-size:15px;margin:12px 0;}
+  b{color:var(--bright);}
+  .g{color:var(--green);font-weight:700;} .r{color:var(--red);font-weight:700;} .gold{color:var(--gold);font-weight:700;}
+  .box{border:1px solid #3a4a7a;border-left:5px solid var(--blue);background:rgba(58,74,122,.13);padding:14px 18px;margin:18px 0;font-size:14.5px;border-radius:0 8px 8px 0;}
+  .win{border-left-color:var(--green);background:rgba(74,222,128,.06);}
+  .risk{border-left-color:var(--red);background:rgba(248,113,113,.06);}
+  .goldbox{border-left-color:var(--gold);background:rgba(245,200,76,.06);}
+  table{border-collapse:collapse;width:100%;margin:16px 0;font-size:13.5px;}
+  th,td{border:1px solid #2b3a5c;padding:9px 11px;text-align:left;vertical-align:top;}
+  th{background:#152340;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;}
+  code{background:#111f38;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font:13px ui-monospace,Consolas,monospace;color:#ffd479;}
+  .tier{display:inline-block;padding:2px 9px;border-radius:9px;font-size:10.5px;font-weight:800;letter-spacing:.4px;}
+  .t-solid{background:rgba(74,222,128,.15);color:var(--green);}
+  .t-prom{background:rgba(245,200,76,.15);color:var(--gold);}
+  .t-early{background:rgba(125,149,189,.15);color:var(--muted);}
+  .foot{margin-top:44px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--border);padding-top:16px;line-height:1.7;}
+  ul li{margin:8px 0;font-size:15px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The screener that tells you when it's wrong</h1>
+<div class="sub">Insight Trading's methodology, in full. Written so you can check every claim against the app itself — because the app computes these numbers on <b>your</b> device, from <b>your</b> stored data, where we couldn't fake them if we wanted to.</div>
+
+<div class="box goldbox">
+<b>The one-sentence version:</b> every signal in Insight Trading is re-tested against months of real market history, measured against the whole market, and publicly graded — <span class="g">including when the answer is bad</span>. Signals that haven't earned trust are labelled as unproven, and the automated practice-trader refuses to act on them.
+</div>
+
+<h2>1 · What we believe a screener owes you</h2>
+<p>Most tools in this market publish their winners. Track-record pages list the +800% trades; the losers, the win rates and the average losses go unmentioned. We think that's backwards. A tool that recommends signals owes you the <b>whole</b> distribution — how often the signal fired, how often it worked, by how much, against what baseline — and it owes you that answer continuously, not as a one-off marketing backtest.</p>
+<p>So the grading isn't a page on this website. It's a feature <b>inside the product</b>, computed fresh on your own stored data, and it regularly reports that some of our own signals are underperforming. That's not a bug in the marketing. It <i>is</i> the product.</p>
+
+<h2>2 · The data, and its limits</h2>
+<p>Insight Trading works from <b>end-of-day prices and volumes</b> for the whole Australian market and a broad slice of the US market, collected nightly from a commercial market-data supplier into the app's own history store. Over time that store holds a year or more of daily bars for thousands of shares — which is what makes honest grading possible: you cannot measure a signal's track record without the history it fired in.</p>
+<div class="box risk">
+<b>What this data cannot see</b> — and therefore what we never claim: intraday moves, live order books, broker flows, off-market deals, or tomorrow's announcements. Every flag in the app is an estimate computed from the daily footprint, labelled as an estimate. Where the app has <i>confirmed</i> information (see §6) it says so explicitly; everything else is clearly an inference.
+</div>
+
+<h2>3 · The signals</h2>
+<p>The app runs eighteen scan rules plus a daily ranked list, spanning four families: <b>momentum</b> (new 52-week highs, golden crosses, strong trends, relative-strength leaders), <b>mean-reversion</b> (RSI recovery, pullbacks in uptrends, recovery watch), <b>volume behaviour</b> (surges, unusual activity, quiet accumulation, volatility squeezes) and <b>news-confirmed</b> events (a verified material headline plus a doubled volume, the same day).</p>
+<p>Here's the part we're proud of: <b>famous signals get no free credibility.</b> The golden cross has a century of folklore behind it; in this app it entered the grading system marked unproven, exactly like everything else, and it earns its tier on measured results or it doesn't get one.</p>
+
+<h2>4 · How the grading actually works</h2>
+
+<h3>Point-in-time replay — no hindsight allowed</h3>
+<p>For each stored trading day, every scan rule is re-run <b>exactly as it stood on that day</b>, seeing only the data that existed up to that day. If a rule flags a share, the app then looks <i>forward</i> — 5, 10 and 20 trading days — and records what actually happened to the price. No rule ever sees the future it's being graded on; the day's rankings, cut-offs and averages are all recomputed from that day's information alone.</p>
+
+<h3>Measured against the whole market, not against zero</h3>
+<p>A signal that returns +2% in a market that rose +3% didn't help you — it cost you. So every result is compared with how <b>all shares</b> moved over the same forward window from the same days. The difference is the signal's <b>edge</b>, and it's the number that matters. We show the average <i>and</i> the median, because those two disagreeing is itself information: it tells you whether a signal's record rests on typical results or on a handful of lucky moonshots.</p>
+
+<h3>Evidence tiers — sample size before excitement</h3>
+<table>
+<tr><th>Tier</th><th>What it takes</th><th>What it means</th></tr>
+<tr><td><span class="tier t-solid">SOLID</span></td><td>A large number of fires (50+) and an edge strong enough to be unlikely by chance</td><td>The record is deep enough to lean on — though never a guarantee</td></tr>
+<tr><td><span class="tier t-prom">PROMISING</span></td><td>A meaningful sample (30+) trending the right way</td><td>Worth watching; not yet worth trusting</td></tr>
+<tr><td><span class="tier t-early">TOO EARLY</span></td><td>Anything less</td><td>The row is shown, dimmed and demoted — <b>no matter how spectacular its numbers look</b></td></tr>
+</table>
+<p>That last clause is the heart of it. A six-fire signal showing +23% gets demoted below a five-hundred-fire signal showing +2%, because six fires is a story and five hundred is evidence. Standard practice in research; nearly absent in retail tools.</p>
+
+<h3>Guard-rails on the measurement itself</h3>
+<ul>
+<li><b>Liquidity floor</b> — shares whose daily turnover is a rounding error produce "returns" that are mostly bid-ask noise. An adjustable floor excludes them from both the signals and the market baseline, so neither side of the comparison is polluted.</li>
+<li><b>Consistency checks</b> — records are split into halves of the window and into rising-market versus falling-market days, so a signal that only worked in one lucky stretch can't disguise it.</li>
+<li><b>News-driven vs quiet split</b> — every fire is classified by whether news was around it. A signal that only works when there's news isn't finding anything; it's reacting. The split shows which half of a signal's record carries the edge.</li>
+</ul>
+
+<h2>5 · The robot that refuses</h2>
+<p>The app includes an automated practice-trader. Before it buys anything, it checks the current grade of the very signal it's about to use. If that signal is <b>not</b> currently beating the market with a SOLID record — or if the check itself cannot be completed — the robot stands down and writes the reason in its diary. <span class="gold">"Do nothing today" is a first-class output.</span></p>
+<p>We could not find another retail tool whose automation suppresses its own trades because its signal is currently underperforming. Most products in this space are built to generate activity, because activity feels like value. Ours is built to generate <i>justified</i> activity, which is rarer and quieter.</p>
+
+<h2>6 · News: facts where we have them, honesty where we don't</h2>
+<p>The app's news layer collects real headlines for the shares a user actually holds and watches, filters out anything that doesn't genuinely name the company, discards listicles and market-wrap chatter, and grades what remains by materiality — results, trading halts, takeovers, capital raisings, project approvals.</p>
+<p>Where that confirmed record exists, the grading uses <b>facts</b>. Where it doesn't, the app falls back to a clearly-labelled estimate — and the one signal built purely on news simply <b>refuses to fire</b> for shares without coverage. A missing signal is honest. A fabricated one is not. This fail-closed principle runs through the entire product.</p>
+
+<h2>7 · What we deliberately don't claim</h2>
+<div class="box risk">
+<ul>
+<li>We don't predict. Every grade describes the <b>past</b> behaviour of a signal; markets change, and a SOLID tier can be lost as fast as it was earned. Past performance is not an indicator of future results.</li>
+<li>We don't advise. Insight Trading is a research and education tool. Nothing in it is a recommendation to buy or sell anything, and it never touches real money itself.</li>
+<li>We don't do intraday. Day traders need real-time tools; this isn't one, and we'd rather say so than pretend.</li>
+<li>We don't read balance sheets. This is a price-and-volume instrument. Serious investing usually wants fundamental analysis alongside — from a source built for it.</li>
+</ul>
+</div>
+
+<h2>8 · Check everything yourself</h2>
+<p>This page describes the method; the app demonstrates it. Open the report cards and the numbers you see are computed <b>at that moment, on your device, from the history stored there</b>. We don't host them, we can't edit them, and when they're unflattering they say so on our own screens. The built-in curriculum — 45 illustrated lessons — teaches the method itself, including its limits, and ends by testing you on them.</p>
+<div class="box win">
+<b>The honest sales pitch:</b> find the worst-performing signal on your own report card. Notice the app told you about it, unprompted, with the sample size attached — and that its robot is refusing to trade it. Then ask any other tool you're considering to show you the same thing.
+</div>
+
+<div class="foot">
+Insight Trading is a research and education tool. It provides general information computed from end-of-day market data; it does not provide financial advice, does not consider your personal circumstances, and does not execute real trades. Estimates are labelled as estimates; confirmed information is labelled as confirmed. Before making investment decisions, consider seeking advice from a licensed adviser. Past performance is not an indicator of future performance.
+</div>
+
+</div>
+</body>
+</html>
