@@ -1545,7 +1545,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-464-open';
+const APP_VERSION='2026.07.27-465-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9414,7 +9414,7 @@ function statsBar(){
   let _t250=0,_t1m=0;                                  // v458: dollar-turnover tiles
   let _evs=0,_evp=0,_eve=0,_evAny=false,_evSkipL=0,_evSkipH=0; const _evD0=(typeof _evDD==='function')?_evDD():''; // v452 · v459 skip counts
   const _sgN={hi52:0,gold:0,rsirec:0,squeeze:0,rsl:0,newsvol:0}; // v460: the six newer signals, counted off the same stamp
-  let _evThinN=0; // v462: included, but flagged
+  let _evThinN=0,_evNegN=0; // v462: included, but flagged · v465: fired-but-losing
   for(const s of d){
     if(s.chgPct>0)g++; if(s.chgPct<0)l++;
     if(s.volPct>=200)v200++;
@@ -9434,7 +9434,8 @@ function statsBar(){
     if(_tov>=250000){ _t250++; if(_tov>=1000000)_t1m++; }
     if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; else if(s._evTier==='PROMISING')_evp++; else if(s._evTier==='TOO EARLY')_eve++;
       if(!s._evTier&&s._evSkip==='liq')_evSkipL++; else if(!s._evTier&&s._evSkip==='hist')_evSkipH++;
-      if(s._evThin)_evThinN++;
+      if(s._evThin&&s._evSkip!=='hist')_evThinN++;   // v465: only count the thin shares we actually CHECKED — the label says so
+      if(s._evNeg)_evNegN++;
       if(Array.isArray(s._evKeys))for(var _sgk=0;_sgk<s._evKeys.length;_sgk++){ if(_sgN[s._evKeys[_sgk]]!=null)_sgN[s._evKeys[_sgk]]++; } } // v453 buckets · v459 skipped · v460 signal counts · v462 thin
   }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
@@ -9453,7 +9454,7 @@ function statsBar(){
   const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); _set('sEvE',_evReady?_eve:'–'); // v453: – until this view has been evidence-checked
   _set('sgHi52',_evReady?_sgN.hi52:'–'); _set('sgGold',_evReady?_sgN.gold:'–'); _set('sgRsi',_evReady?_sgN.rsirec:'–');
   _set('sgSqz',_evReady?_sgN.squeeze:'–'); _set('sgRsl',_evReady?_sgN.rsl:'–'); _set('sgNews',_evReady?_sgN.newsvol:'–'); // v460
-  try{ _evSkipNote(_evReady,_evSkipL,_evSkipH,d.length,_evThinN); }catch(e){}   // v459 · v461 denominator · v462 thin count
+  try{ _evSkipNote(_evReady,_evSkipL,_evSkipH,d.length,_evThinN,_evNegN); }catch(e){}   // v459 · v461 denominator · v462 thin · v465 losing-signal count
   // v463: LAST word — while the replay is running, say so rather than leaving
   // nine unexplained dashes. Must come after _evSkipNote, which clears the line.
   try{ if(!_evReady&&(window._evWarming||window._apWarming))
@@ -9469,13 +9470,18 @@ function _evSetNote(el,htmlTxt,tip){
   el.style.display='block'; el.innerHTML=htmlTxt; el.setAttribute('title',tip);
   try{ if(typeof privateOn==='function'&&privateOn()){ el.dataset.ttip=tip; el.removeAttribute('title'); } }catch(e){}
 }
-function _evSkipNote(ready,nLiq,nHist,nSeen,nThin){
+function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   var el=document.getElementById('evSkipNote');
   var sg=document.getElementById('sigSkipNote');
   if(!ready){ _evSetNote(el,''); _evSetNote(sg,''); return; }
+  nNeg=nNeg||0;
   var bits=[], tip='';
   // v462: thin shares are INCLUDED and flagged. This line is not a warning
   // that something is missing — it is a warning about what IS there.
+  if(nNeg){
+    bits.push('\u26a0\ufe0f '+nNeg+' firing losing signals');
+    tip+='\u26a0\ufe0f '+nNeg+' share'+(nNeg===1?' is':'s are')+' firing graded signals whose records UNDERPERFORM the market, so they earn no tier. A big sample can prove a signal reliably loses \u2014 that is good evidence about a bad signal, and the \ud83e\udd16 auto-pilot ignores them too. ';
+  }
   if(nThin){
     bits.push('\ud83d\udca7 '+nThin+' thin \u00b7 checked &amp; flagged');
     tip+='\ud83d\udca7 '+nThin+' of the '+(nSeen||0)+' shares on screen trade below your \ud83d\udca7 floor ('+_cardLiqLabel()+') on three-month average turnover. Since v462 they ARE evidence-checked and counted here \u2014 hiding them told you less than warning you does \u2014 but they wear a \ud83d\udca7 on their \u2696\ufe0f chip, and the auto-pilot still will not buy them. Thin shares can be hard to get out of without moving the price against you. ';
@@ -16834,22 +16840,40 @@ function _evKeyForLabel(lb){
 }
 function _evRuleName(key){ try{ if(key==='top20')return '🏆 Top 20 by Watch Score'; var r=_SCAN_RULES.filter(function(x){return x.k===key;})[0]; return r?r.n:key; }catch(e){ return key; } }
 // [tierName, colour, fires] for a rule key, from today's cached grading — or null.
+// v465: the EDGE travels with the tier. A tier is a statement about sample
+// size only — on its own it cannot tell you whether a signal is worth acting
+// on, and seven of the app's own rules currently have a big sample proving
+// they UNDERPERFORM the market. Anything that paints a badge needs both.
+// Returns [tier, colour, fires, edge] — edge is null when nothing fired.
 function _evRuleTier(key){
   try{
     var R=_apGrades(); if(!R)return null;
     var g=R.G&&R.G[key]; if(!g)return null;
     var m=g['5'], n=(m&&m.n)||0, t=_evTierOf(n);
-    return [t[0],t[1],n];
+    var edge=null;
+    try{ var b=R.G.all&&R.G.all['5'];
+      if(n&&b&&b.n)edge=(m.sum/m.n)-(b.sum/b.n); }catch(e){}
+    return [t[0],t[1],n,edge];
   }catch(e){ return null; }
 }
+// Does this rule's record justify a badge at all? Same test the auto-pilot
+// uses before it will act (`_apBestScan`: solid && edge > 0) — the radar and
+// the robot must not give opposite verdicts on the same signal.
+function _evRuleEarnsBadge(t){ return !!(t && t[3]!=null && t[3]>0); }
+function _evPct(x){ return (x>0?'+':'')+x.toFixed(2)+'%'; }
 // The small tier chip that rides on a scan banner / report header.
 function _evBannerChip(key){
   try{
     if(!key||_evBetaBlocked())return '';
     var t=_evRuleTier(key);
     if(!t)return window._evWarming?'<span style="border:1px solid var(--border);color:var(--dim);border-radius:4px;padding:0 5px;font-size:9px;font-weight:700;margin-left:6px;white-space:nowrap;">🧪 grading…</span>':'';
-    var tip='Evidence tier for the graded version of this scan ("'+_evRuleName(key)+'"), from replaying the stored year (🧪 All-scans report card). '+_EV_TIP[t[0]]+' Fired '+t[2]+' times in that year. A record of the past, not a prediction — research, not advice.';
-    return '<span title="'+tip.replace(/"/g,'&quot;')+'" style="cursor:help;border:1px solid '+t[1]+';color:'+t[1]+';border-radius:4px;padding:0 5px;font-size:9px;font-weight:800;letter-spacing:.4px;margin-left:6px;white-space:nowrap;">'+t[0]+'</span>';
+    var _neg=(t[3]!=null&&t[3]<=0);
+    var tip='Evidence tier for the graded version of this scan ("'+_evRuleName(key)+'"), from replaying the stored year (🧪 All-scans report card). '+_EV_TIP[t[0]]+' Fired '+t[2]+' times in that year'
+      +(t[3]!=null?', averaging '+_evPct(t[3])+' against the market over the next 5 days':'')+'. '
+      +(_neg?'⚠️ THAT IS A LOSING RECORD — a big sample here is good evidence that following this scan underperforms simply holding the market. The 🤖 auto-pilot will not act on it, and it earns no ⚖️ badge on any share. ':'')
+      +'A record of the past, not a prediction — research, not advice.';
+    var _col=_neg?'var(--red)':t[1];
+    return '<span title="'+tip.replace(/"/g,'&quot;')+'" style="cursor:help;border:1px solid '+_col+';color:'+_col+';border-radius:4px;padding:0 5px;font-size:9px;font-weight:800;letter-spacing:.4px;margin-left:6px;white-space:nowrap;">'+t[0]+(t[3]!=null?' '+_evPct(t[3]):'')+'</span>';
   }catch(e){ return ''; }
 }
 // Stamp a set of shares with which of the 18 graded rules fire on them TODAY,
@@ -16860,7 +16884,7 @@ function _evMark(shares){
     if(_evBetaBlocked())return false;
     var R=_apGrades(); if(!R||!Array.isArray(shares)||!shares.length)return false;
     var dd=_evDD();
-    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=dd; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; } });
+    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=dd; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; } });
     // Same phases as _apRuleFilter (one _scStats per share, the day's
     // rel-strength cut, confirmed-news stamp) — all 18 predicates run against
     // the one stats object instead of 18 full sweeps.
@@ -16897,16 +16921,28 @@ function _evMark(shares){
     }
     shares.forEach(function(s){
       if(!s||!s._evKeys)return;
-      var best=-1,solid=0,prom=0,parts=[];
+      // v465: sample size decides WHICH tier; the edge decides whether the
+      // rule counts at all. A rule with 4,520 fires and a −0.33% edge has
+      // excellent evidence — that following it loses to the market. It must
+      // not hand a share a green badge.
+      var best=-1,solid=0,prom=0,parts=[],negParts=[],bestEdge=null,anyFired=false;
       s._evKeys.forEach(function(k){
         var t=_evRuleTier(k); if(!t)return;
+        anyFired=true;
+        var lbl=_evRuleName(k)+' — '+t[0]+' ('+t[2]+' fires'+(t[3]!=null?', '+_evPct(t[3])+' vs market':'')+')';
+        if(!_evRuleEarnsBadge(t)){ negParts.push(lbl); return; }
         var rank=t[0]==='SOLID'?2:t[0]==='PROMISING'?1:0;
-        if(rank>best)best=rank;
+        if(rank>best){ best=rank; }
+        if(bestEdge==null||t[3]>bestEdge)bestEdge=t[3];
         if(rank===2)solid++; else if(rank===1)prom++;
-        parts.push(_evRuleName(k)+' — '+t[0]+' ('+t[2]+' fires)');
+        parts.push(lbl);
       });
       s._evTier=best<0?null:(best===2?'SOLID':best===1?'PROMISING':'TOO EARLY');
       s._evSolidN=solid; s._evPromN=prom; s._evWhy=parts.join(' · ');
+      s._evEdge=bestEdge;
+      // fired, but every firing signal has a losing record — say so, don't blank
+      s._evNeg=(!s._evTier&&anyFired&&negParts.length>0);
+      s._evWhyNeg=negParts.join(' · ');
     });
     return true;
   }catch(e){ return false; }
@@ -16939,12 +16975,20 @@ function _evRowChip(s){
         return '<span class="tag" style="border:1px solid var(--dim);color:var(--dim);font-weight:700;letter-spacing:.3px" title="'+ht.replace(/"/g,'&quot;')+'">📉 not checked</span>';
       }
     }
+    // v465: fired, but only by signals with a losing record — that is
+    // information, not an absence of it.
+    if(!s._evTier&&s._evD===_evDD()&&s._evNeg){
+      var nt='⚠️ This share IS firing graded signals today — but every one of them has a record of UNDERPERFORMING the market, so it earns no tier. Firing now: '+(s._evWhyNeg||'')+'. The 🤖 auto-pilot will not act on these either. A big sample can prove a signal reliably loses; that is good evidence about a bad signal.';
+      return '<span class="tag" style="border:1px solid var(--red);color:#ff9caa;font-weight:800;letter-spacing:.3px" title="'+nt.replace(/"/g,'&quot;')+'">⚠️ underperforms</span>';
+    }
     if(!s._evTier||s._evD!==_evDD())return '';
     var col=s._evTier==='SOLID'?'var(--green)':s._evTier==='PROMISING'?'var(--gold)':'var(--dim)';
     var n=s._evTier==='SOLID'?s._evSolidN:s._evTier==='PROMISING'?s._evPromN:0;
-    var tip='⚖️ Evidence check — of the graded signals firing on this share today, the strongest record is '+s._evTier+'. Firing now: '+(s._evWhy||'none')+'. Tiers come from replaying the stored year (🧪 All-scans report card). Research, not advice.';
+    var tip='⚖️ Evidence check — of the graded signals firing on this share today that BEAT the market, the strongest record is '+s._evTier+(s._evEdge!=null?' ('+_evPct(s._evEdge)+' vs the market over 5 days)':'')+'. Counting now: '+(s._evWhy||'none')+'.'
+      +(s._evWhyNeg?' ALSO firing, but ignored because their records underperform: '+s._evWhyNeg+'.':'')
+      +' A tier is sample size; only signals that also beat the market earn one. Tiers come from replaying the stored year (🧪 All-scans report card). Research, not advice.';
     if(s._evThin)tip='💧 THIN — this share trades below your 💧 floor ('+_cardLiqLabel()+') on its three-month average turnover, so it may be hard to buy or sell without moving the price against you. The signal record below is still real, but it was earned on the market as a whole, not on shares this thin — and the auto-pilot will not buy it. '+tip;
-    return '<span class="tag" style="border:1px solid '+col+';color:'+col+';font-weight:800;letter-spacing:.3px" title="'+tip.replace(/"/g,'&quot;')+'">'+(s._evThin?'💧':'⚖️')+' '+s._evTier+(n>1?' ×'+n:'')+'</span>';
+    return '<span class="tag" style="border:1px solid '+col+';color:'+col+';font-weight:800;letter-spacing:.3px" title="'+tip.replace(/"/g,'&quot;')+'">'+(s._evThin?'💧':'⚖️')+' '+s._evTier+(s._evEdge!=null?' '+_evPct(s._evEdge):'')+(n>1?' ×'+n:'')+'</span>';
   }catch(e){ return ''; }
 }
 // Backoff key: exchange + data-day + how many shares have gradable history —
