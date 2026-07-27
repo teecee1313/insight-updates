@@ -1553,7 +1553,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-474-open';
+const APP_VERSION='2026.07.27-475-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6239,7 +6239,14 @@ function updatePaperPrices(acct){
 // function is kept. To restore the button, re-add to the P/L cell in the history
 // row: <button onclick="undoSale('DATE','TICKER','BUYDATE')">↩ undo</button>
 // You can also still trigger it from the browser console: undoSale(sellDate,ticker,buyDate)
+// v475 — ↩ Undo is a CUSTOMER-ONLY control. Reversing a closed trade rewrites
+// holdings and cash, which is exactly the kind of thing that makes a tester's
+// account stop matching what they reported. Same shape as v430's report-card
+// fence: one switch, read by the renderers AND by the function, because a
+// hidden button is not a removed feature to anyone who opens the console.
+function _undoOn(){ try{ return APP_VERSION.indexOf('-beta')<0; }catch(e){ return true; } }
 function undoSale(sellDate,ticker,buyDate){
+  if(!_undoOn()){ alert('Undoing a sale is turned off in the beta build.\n\nThe released app can reverse a closed trade; this test copy deliberately cannot, so your test account keeps matching what you have reported.'); return; }
   // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
   // rely on the exact sell-date (a re-recorded trade can shift it). Find the trade in the
   // viewed account then the other account, matching exact first, then by ticker + buy-date.
@@ -6302,6 +6309,7 @@ function undoSale(sellDate,ticker,buyDate){
 // confirm). Same per-trade restore as undoSale (return shares, reverse cash, clear
 // the holding's stop + guard it from re-firing today). Rules are left untouched.
 function _undoAllAutoSells(){
+  if(!_undoOn()){ alert('Restoring auto-sold trades is turned off in the beta build.'); return; }
   // v409: auto-sold trades can sit in EVERY exchange's account — gather and restore across all of them.
   const stores=_pfExchsKnown().map(function(ex){ const q=_paper(undefined,ex);
     return {ex:ex,p:q,autos:(q.history||[]).map(function(t,i){return {t:t,i:i};}).filter(function(x){return x.t&&x.t.auto;})};
@@ -7983,7 +7991,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:9px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button></td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:9px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}${_undoOn()?`<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>`:''}</td>
     </tr>`;
   }).join('');
   // v388: mobile card version of each closed trade — the wide history TABLE is
@@ -8005,9 +8013,9 @@ function showPortfolio(exSel){
         <div><span>Sell</span> <b>${fmtP(t.sellPrice,t.currency)}</b></div>
         <div><span>Fees</span> <b>${t.fees>0?fmtP(t.fees,t.currency):'—'}</b></div>
       </div>${t.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-bottom:4px;">📝 ${String(t.note).slice(0,60)}${t.note.length>60?'…':''}</div>`:''}
-      <div class="pf-card-actions">
+${_undoOn()?`<div class="pf-card-actions">
         <button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">↩ Undo</button>
-      </div>
+      </div>`:''}
     </div>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
