@@ -1421,6 +1421,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Trend</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div><div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div><div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div><div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div><div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div><div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div><div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover (volume over 30k and at least 1.5× its average). An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div><div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">⚠ Caution</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div><div class="stat statclick" onclick="statFilter('floor')" title="In the bottom 10% of its trading-range window — near its floor. A floor can hold or break: research, not a buy signal."><div class="sv" id="sFloor">0</div><div class="sl">Near Floor</div></div><div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div></div></div>
+    <div class="radar-grp rg-more" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Show only shares flagged TODAY by at least one signal whose replayed record is SOLID (200+ fires over the stored year — the 🧪 All-scans card's top tier). Some days this shows nothing: that's an honest &quot;no strong evidence today&quot;, not a fault. Grading runs automatically after a scan. Shows – until this view has been evidence-checked — tapping the tile checks it."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID signals</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Show shares flagged today by a signal graded SOLID or PROMISING (50+ fires in the replayed year). A looser evidence lens than SOLID-only. Shows – until this view has been evidence-checked — tapping the tile checks it. Research, not advice."><div class="sv gold" id="sEvP">–</div><div class="sl">🟢🟡 SOLID or PROMISING</div></div></div></div>
   </div>
 
   <div id="activeScanBanner"></div>
@@ -1541,7 +1542,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-451-open';
+const APP_VERSION='2026.07.27-452-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3906,7 +3907,7 @@ function refreshMyReportBtn(){
 // start clean and re-capture this new result as their base.
 // ── v228: persistent "which report am I in" banner over the results table ──
 function _scanStart(label){
-  window._activeScan={label:label,running:true}; window._scanViewBase=null; // v290: fresh report → recapture search base
+  window._activeScan={label:label,running:true}; window._scanViewBase=null; window._evWantMark=false; // v290: fresh report → recapture search base · v452: evidence marking is per-view
   window._scanGuard=true;             // scans reset filters internally — don't let that clear the banner
   _renderScanBanner();
   // Watchdog: if a scan bails out early (no data / no key), don't stay locked.
@@ -3926,6 +3927,7 @@ function _scanDone(){
   a.count=(typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered.length:null;
   try{a.when=new Date().toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'});}catch(e){a.when='';}
   window._scanGuard=false;
+  try{ if(typeof _evWarm==='function')_evWarm(); }catch(e){}   // v452: grade the day so the banner chip + evidence filter have something to say
   _renderScanBanner();
 }
 function _scanClear(){
@@ -3941,7 +3943,7 @@ function _renderScanBanner(){
   b.style.display='flex';
   b.innerHTML=a.running
     ? '<span class="asb-spin"></span><span>Running '+a.label+'…</span><span class="asb-meta">results will fill the table below</span><button class="asb-clear" onclick="window._scanGuard=false;window._activeScan=null;_renderScanBanner();">✕</button>'
-    : '<span>'+a.label+'</span><span class="asb-meta">'+(a.count!=null?a.count+' shares':'')+(a.when?' · run '+a.when:'')+' — this table is the report\u2019s result</span><button class="asb-clear" onclick="window._activeScan=null;_renderScanBanner();if(typeof doReset===\'function\')doReset();">✕ Clear · show all shares</button>';
+    : '<span>'+a.label+'</span>'+((typeof _evBannerChip==='function')?_evBannerChip(_evKeyForLabel(a.label)):'')+'<span class="asb-meta">'+(a.count!=null?a.count+' shares':'')+(a.when?' · run '+a.when:'')+' — this table is the report\u2019s result</span><button class="asb-clear" onclick="window._activeScan=null;_renderScanBanner();if(typeof doReset===\'function\')doReset();">✕ Clear · show all shares</button>';
 }
 function _resetStatsForNewView(){
   try{ Object.keys(_statOn).forEach(k=>_statOn[k]=false); }catch(e){}
@@ -4273,6 +4275,8 @@ function renderRows(rows){
       const names=s.unusualHits.map(h=>h.label).join(' · ');
       sg=`<span class="tag" style="background:rgba(255,165,0,.18);border:1px solid var(--orange);color:var(--orange);font-weight:700" title="Unusual patterns (estimate, not advice): ${names}. Verify via the link.">🔍 ${s.unusualScore}</span> `+sg;
     }
+    var _evch=(typeof _evRowChip==='function')?_evRowChip(s):'';   // v452: evidence chip leads the signal cell
+    if(_evch)sg=_evch+' '+sg;
     // volSurgeRating is computed ONCE here (was computed twice per row before).
     const _sr=s.volCalced?volSurgeRating(s.volPct,s.chgPct):null;
     const _srBadge=(_sr&&_sr.key!=='normal'&&_sr.key!=='cold')?`<div style="margin-top:2px"><span style="display:inline-block;padding:0 6px;border-radius:9px;background:${_sr.bg};color:${_sr.color};font-weight:700;font-size:9px;">${_sr.label}</span></div>`:'';
@@ -9147,7 +9151,7 @@ function printPDFRows(rows,title){
 // combine them (e.g. Gainers + Vol ≥200% + Up 2+ Days). Click one again to
 // turn just it off; click "Showing" to clear all. Gainers/Losers are mutually
 // exclusive (a share can't be both).
-let _statOn={gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false};
+let _statOn={tsolid:false,tprom:false,gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false};
 function statFilter(which){
   if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
   else if(which==='bullish'||which==='bearish'){
@@ -9162,6 +9166,26 @@ function statFilter(which){
     if(which==='losers'&&_statOn.losers)_statOn.gainers=false;
     if(which==='hi52'&&_statOn.hi52)_statOn.floor=false;          // can't be at high AND floor
     if(which==='floor'&&_statOn.floor)_statOn.hi52=false;
+    if(which==='tsolid'&&_statOn.tsolid)_statOn.tprom=false;      // v452: one evidence lens at a time
+    if(which==='tprom'&&_statOn.tprom)_statOn.tsolid=false;
+  }
+  // v452: an evidence tile needs the day graded and the view stamped
+  if((which==='tsolid'||which==='tprom')&&_statOn[which]){
+    try{
+      if(_apGrades()){
+        if(typeof watchViewOn!=='undefined'&&watchViewOn){ _evMarkWatch(); }
+        else{
+          var _evb=(window._statBaseValid&&window._statBase)?window._statBase:((typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered:[]);
+          _evMark(_evb);
+        }
+      }else if(typeof _evWarm==='function'){
+        _evWarm();
+        var _ls=document.getElementById('loadStatus');
+        if(_ls)_ls.textContent=(window._evWarming||window._apWarming)
+          ?'🧪 Grading the signals against the stored year — the evidence filter switches on when it finishes (a few seconds)…'
+          :'🧪 Nothing to grade yet — run ⚡ Load, then ⬇ Download all, so a year of history is stored to check the signals against.';
+      }
+    }catch(e){}
   }
   // reflect active state on the stat boxes
   document.querySelectorAll('.statclick').forEach(el=>{
@@ -9210,6 +9234,8 @@ function _statPass(s){
   if(_statOn.inst && !s.instBuy)return false;
   if(_statOn.blk && !s.blockTrade)return false;
   if(_statOn.dist && !s.sigDist)return false;
+  if(_statOn.tsolid && !(s._evD===_evDD()&&s._evTier==='SOLID'))return false;   // v452: flagged today by a SOLID-graded signal
+  if(_statOn.tprom && !(s._evD===_evDD()&&(s._evTier==='SOLID'||s._evTier==='PROMISING')))return false;
   return true;
 }
 function _applyStatFilters(){
@@ -9314,6 +9340,7 @@ function statsBar(){
   // v295: one pass over the list instead of ~15 separate sweeps — identical numbers.
   let g=0,l=0,v200=0,dir=0,c2=0,v50=0,qm=0,vs=0,s7=0,hi=0,fl=0,ma=0,bull=0,bear=0;
   let _brk=0,_vrec=0,_cross=0,_inst=0,_blk=0,_dist=0; // v358: report-card signal tiles
+  let _evs=0,_evp=0,_evAny=false; const _evD0=(typeof _evDD==='function')?_evDD():''; // v452
   for(const s of d){
     if(s.chgPct>0)g++; if(s.chgPct<0)l++;
     if(s.volPct>=200)v200++;
@@ -9329,6 +9356,7 @@ function statsBar(){
     if(_isBullish(s))bull++;
     if(_isBearish(s))bear++;
     if(s.sigBreakout)_brk++; if(s.sigVolRecord)_vrec++; if(s.sigCross)_cross++; if(s.instBuy)_inst++; if(s.blockTrade)_blk++; if(s.sigDist)_dist++; // v358
+    if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; if(s._evTier==='SOLID'||s._evTier==='PROMISING')_evp++; } // v452
   }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
   document.getElementById('sG').textContent=g;
@@ -9342,6 +9370,7 @@ function statsBar(){
   const bl=document.getElementById('sBull'); if(bl)bl.textContent=bull;
   const br=document.getElementById('sBear'); if(br)br.textContent=bear;
   _set('sBrk',_brk); _set('sVR',_vrec); _set('sCx',_cross); _set('sInst',_inst); _set('sBlk',_blk); _set('sDist',_dist); // v358
+  const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); // v452: – until this view has been evidence-checked
 }
 
 // Currency map
@@ -10600,6 +10629,8 @@ async function topTenScan(){
   const topPairs=_ranked.slice(0,20);
   const top=topPairs.map(x=>x.s);
   window._lastTop10=topPairs;
+  window._evWantMark=true;   // v452: this view carries per-share evidence chips
+  try{ if(_apGrades())_evMark(topPairs.map(function(p){return p.s;})); else if(typeof _evWarm==='function')_evWarm(); }catch(e){}
   // Show them directly (neutralise filters so nothing hides the top 10).
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=top;
@@ -10692,14 +10723,14 @@ function showTop10Panel(pairs){
       <div style="flex:1 1 auto;height:7px;border-radius:4px;background:var(--bg3);overflow:hidden;min-width:36px;"><div style="height:100%;width:${r.score*10}%;background:${b.c};"></div></div>
       <span style="flex:0 0 auto;font-weight:800;font-size:15px;color:${b.c};">${r.score}</span><span style="flex:0 0 auto;font-size:9px;color:var(--dim);">/10</span>
       <span style="flex:0 0 56px;font-size:9px;color:${b.c};text-align:right;">${b.t}</span>
-      ${_popupStar(s.ticker)}
+      ${(typeof _evRowChip==='function'&&_evRowChip(s))||''}${_popupStar(s.ticker)}
     </div>`;
   }).join('')||`<div style="padding:22px 8px;text-align:center;color:var(--muted);font-size:12px;">None of the Top ${_all.length} match the active quick filters.<br><br>Tap <b>Showing</b> in the stats bar above to clear them.</div>`;
   const filtNote=_anyOn?`<div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⚡ Quick filters on — showing ${_shown.length} of ${_all.length}. Tap <b>Showing</b> in the stats bar to clear.</div>`:'';
   window._modalLabel='🏆 Top 20 to Watch';
   try{document.body.classList.add('stat-over-modal');}catch(_){}
   showModal(`
-    <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10</div>
+    <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">🏆 Top 20 to Watch · scored /10 ${(typeof _evBannerChip==='function'&&_evBannerChip('top20'))||''}</div>
     <div style="font-size:10px;color:var(--orange);margin-bottom:10px;">Ranked by an accumulation-weighted score out of 10 — mostly days with price up <strong>and</strong> volume up together, blended with streaks and momentum. <strong>A data summary, not advice.</strong> Verify via ↗ links. <span style="color:var(--gold)">Tap a share code for its report, or ☆ to add it to a watchlist.</span></div>
     ${filtNote}
     ${_popupListSelect()}
@@ -11344,6 +11375,8 @@ async function allSignalsScan(){
   scored.sort((a,b)=>b.allSigN-a.allSigN||(b.watchScore||0)-(a.watchScore||0));
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   filtered=scored;
+  window._evWantMark=true;   // v452: this view carries per-share evidence chips
+  try{ if(_apGrades())_evMark(scored); else if(typeof _evWarm==='function')_evWarm(); }catch(e){}
   lastScanLabel='All Signals';
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
@@ -16549,8 +16582,13 @@ function _apWarmGrades(){
     if(window._apWarming)return; window._apWarming=true;
     if(typeof _scReplay!=='function'){ window._apWarming=false; return; }
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
-    _scReplay().then(function(R){ if(R)window._scCache={ex:currentExch,d:dd,liq:_cardLiqKey(),R:R}; window._apWarming=false; })
-               .catch(function(){ window._apWarming=false; });
+    var ex0=currentExch, liq0=_cardLiqKey();
+    ((typeof _evReplayShared==='function')?_evReplayShared():_scReplay()).then(function(R){
+      window._apWarming=false;
+      var dd1=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+      if(currentExch!==ex0||dd1!==dd||_cardLiqKey()!==liq0)return;   // v452: the world changed mid-replay — discard
+      if(R){ window._scCache={ex:ex0,d:dd,liq:liq0,R:R}; try{ if(typeof _evAfterWarm==='function')_evAfterWarm(); }catch(e){} }
+    }).catch(function(){ window._apWarming=false; });
   }catch(e){ window._apWarming=false; }
 }
 function _apGrades(){
@@ -16571,6 +16609,184 @@ function _apGradeRow(R,key,win){
   }catch(e){ return null; }
 }
 // the bot's own source names → the card's rule keys
+// ═══ v452 — evidence tiers on the daily radar ═══════════════════════════════
+// The 🧪 All-scans card grades every scan rule against a replayed year. These
+// helpers bring those grades out of the card and onto the scans themselves.
+// ONE source of truth for the tier thresholds (the card now uses these too).
+var _EV_MIN_SOLID=200,_EV_MIN_OK=50;
+function _evTierOf(n){ return n>=_EV_MIN_SOLID?['SOLID','var(--green)']:n>=_EV_MIN_OK?['PROMISING','var(--gold)']:['TOO EARLY','var(--dim)']; }
+var _EV_TIP={'SOLID':'SOLID — fired 200+ times in the replayed year. Enough experiments that the record is unlikely to be luck.','PROMISING':'PROMISING — 50+ fires. Worth watching; not yet proven.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the numbers look like, luck can still explain them.'};
+function _evDD(){ try{ return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||''); }catch(e){ return ''; } }
+// Which graded rule is the "twin" of a named scan? (Composite scans map to nothing.)
+function _evKeyForLabel(lb){
+  lb=String(lb||'');
+  if(lb.indexOf('🎯 Smart Money')===0)return 'smart';
+  if(lb.indexOf('📈 Volume Surge')===0)return 'vol';
+  if(lb.indexOf('🚨 Sharp Mover')===0)return 'sharp';
+  if(lb.indexOf('🔍 Unusual Activity')===0)return 'unus';
+  if(lb.indexOf('↩️ Recovery Watch')===0)return 'recov';
+  if(lb.indexOf('🫧 Quiet Movers')===0)return 'quiet';
+  if(lb.indexOf('🪜 Pullback')===0)return 'pull';
+  if(lb.indexOf('🧱 Strong Trends')===0)return 'strong';
+  return null;
+}
+function _evRuleName(key){ try{ if(key==='top20')return '🏆 Top 20 by Watch Score'; var r=_SCAN_RULES.filter(function(x){return x.k===key;})[0]; return r?r.n:key; }catch(e){ return key; } }
+// [tierName, colour, fires] for a rule key, from today's cached grading — or null.
+function _evRuleTier(key){
+  try{
+    var R=_apGrades(); if(!R)return null;
+    var g=R.G&&R.G[key]; if(!g)return null;
+    var m=g['5'], n=(m&&m.n)||0, t=_evTierOf(n);
+    return [t[0],t[1],n];
+  }catch(e){ return null; }
+}
+// The small tier chip that rides on a scan banner / report header.
+function _evBannerChip(key){
+  try{
+    if(!key||APP_VERSION.indexOf('-beta')>=0)return '';
+    var t=_evRuleTier(key);
+    if(!t)return window._evWarming?'<span style="border:1px solid var(--border);color:var(--dim);border-radius:4px;padding:0 5px;font-size:9px;font-weight:700;margin-left:6px;white-space:nowrap;">🧪 grading…</span>':'';
+    var tip='Evidence tier for the graded version of this scan ("'+_evRuleName(key)+'"), from replaying the stored year (🧪 All-scans report card). '+_EV_TIP[t[0]]+' Fired '+t[2]+' times in that year. A record of the past, not a prediction — research, not advice.';
+    return '<span title="'+tip.replace(/"/g,'&quot;')+'" style="cursor:help;border:1px solid '+t[1]+';color:'+t[1]+';border-radius:4px;padding:0 5px;font-size:9px;font-weight:800;letter-spacing:.4px;margin-left:6px;white-space:nowrap;">'+t[0]+'</span>';
+  }catch(e){ return ''; }
+}
+// Stamp a set of shares with which of the 18 graded rules fire on them TODAY,
+// using the REAL rule predicates (_apRuleFilter — same maths the replay grades,
+// same 💧 floor). Best tier + why land on the share for chips and the filter.
+function _evMark(shares){
+  try{
+    if(APP_VERSION.indexOf('-beta')>=0)return false;
+    var R=_apGrades(); if(!R||!Array.isArray(shares)||!shares.length)return false;
+    var dd=_evDD();
+    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=dd; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; } });
+    // Same two phases as _apRuleFilter (💧 floor, one _scStats per share, the
+    // day's rel-strength cut, confirmed-news stamp) — but ALL 18 predicates
+    // run against the one stats object instead of 18 full sweeps.
+    var pool=shares;
+    try{ if(_cardLiqNeed()>0)pool=pool.filter(_cardLiqPass); }catch(e){}
+    var sts=[];
+    for(var pi=0;pi<pool.length;pi++){
+      var sh=pool[pi];
+      try{
+        if(!sh||!Array.isArray(sh.series)||sh.series.length<30)continue;
+        if(!sh._scPf||sh._scPfLen!==sh.series.length){ sh._scPf=_scPrep(sh.series); sh._scPfLen=sh.series.length; }
+        var st=_scStats(sh.series,sh._scPf,sh.series.length-1);
+        if(!st)continue;
+        try{ var lastD=sh.series[sh.series.length-1].d;
+          st.newsFact=(window._scFacts)?((window._scFacts[sh.ticker+'|'+lastD]||0)>=0.5):false; }catch(e){ st.newsFact=false; }
+        sts.push({s:sh,st:st});
+      }catch(e){}
+    }
+    (function(){
+      var ds=[]; for(var q1=0;q1<sts.length;q1++){ var v=sts[q1].st.d120; if(v!=null)ds.push(v); }
+      if(ds.length>=30){ ds.sort(function(a,b){return a-b;});
+        var cut=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
+        for(var q2=0;q2<sts.length;q2++)sts[q2].st.rslCut=cut; }
+    })();
+    for(var ri=0;ri<_SCAN_RULES.length;ri++){
+      var rr=_SCAN_RULES[ri];
+      for(var si=0;si<sts.length;si++){ try{ if(rr.t(sts[si].st))sts[si].s._evKeys.push(rr.k); }catch(e){} }
+    }
+    shares.forEach(function(s){
+      if(!s||!s._evKeys)return;
+      var best=-1,solid=0,prom=0,parts=[];
+      s._evKeys.forEach(function(k){
+        var t=_evRuleTier(k); if(!t)return;
+        var rank=t[0]==='SOLID'?2:t[0]==='PROMISING'?1:0;
+        if(rank>best)best=rank;
+        if(rank===2)solid++; else if(rank===1)prom++;
+        parts.push(_evRuleName(k)+' — '+t[0]+' ('+t[2]+' fires)');
+      });
+      s._evTier=best<0?null:(best===2?'SOLID':best===1?'PROMISING':'TOO EARLY');
+      s._evSolidN=solid; s._evPromN=prom; s._evWhy=parts.join(' · ');
+    });
+    return true;
+  }catch(e){ return false; }
+}
+// The per-share chip for table rows and the Top 20 panel.
+function _evRowChip(s){
+  try{
+    if(!s||!s._evTier||s._evD!==_evDD()||APP_VERSION.indexOf('-beta')>=0)return '';
+    var col=s._evTier==='SOLID'?'var(--green)':s._evTier==='PROMISING'?'var(--gold)':'var(--dim)';
+    var n=s._evTier==='SOLID'?s._evSolidN:s._evTier==='PROMISING'?s._evPromN:0;
+    var tip='⚖️ Evidence check — of the graded signals firing on this share today, the strongest record is '+s._evTier+'. Firing now: '+(s._evWhy||'none')+'. Tiers come from replaying the stored year (🧪 All-scans report card). Research, not advice.';
+    return '<span class="tag" style="border:1px solid '+col+';color:'+col+';font-weight:800;letter-spacing:.3px" title="'+tip.replace(/"/g,'&quot;')+'">⚖️ '+s._evTier+(n>1?' ×'+n:'')+'</span>';
+  }catch(e){ return ''; }
+}
+// Backoff key: exchange + data-day + how many shares have gradable history —
+// so "⬇ Download all" (which changes the count, not the date) clears a backoff
+// that was stamped when there was nothing to grade yet.
+function _evWarmKey(){
+  try{
+    var n=0, a=(Array.isArray(allData)?allData:[]);
+    for(var i=0;i<a.length;i++){ var s=a[i]; if(s&&Array.isArray(s.series)&&s.series.length>=30)n++; }
+    return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||'')+'|'+n;
+  }catch(e){ return 'x'; }
+}
+// ONE replay at a time — shared by the warm-up, the auto-pilot warm and the
+// 🧪 card, so two year-long replays can never run concurrently on a phone.
+function _evReplayShared(){
+  if(window._scReplayP)return window._scReplayP;
+  var p=_scReplay().then(function(R){ window._scReplayP=null; return R; },function(e){ window._scReplayP=null; throw e; });
+  window._scReplayP=p; return p;
+}
+// Quiet warm-up: run (or reuse) the day's grading, then refresh whatever is
+// showing. Customer copy only; backs off for the rest of the data day if the
+// replay finds too little stored history to grade (fail-closed, no hammering).
+function _evWarm(){
+  try{
+    if(APP_VERSION.indexOf('-beta')>=0)return;
+    if(typeof _scReplay!=='function')return;
+    if(_apGrades()){ _evAfterWarm(); return; }
+    if(window._evWarmFail===_evWarmKey())return;
+    if(window._evWarming||window._apWarming)return;
+    window._evWarming=true;
+    var ex0=currentExch, dd0=(window._exchDataDate&&window._exchDataDate[currentExch])||'', liq0=_cardLiqKey(), key0=_evWarmKey();
+    _evReplayShared().then(function(R){
+      window._evWarming=false;
+      var dd1=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+      if(currentExch!==ex0||dd1!==dd0||_cardLiqKey()!==liq0)return;   // the world changed mid-replay — throw the run away
+      if(R){ window._scCache={ex:ex0,d:dd0,liq:liq0,R:R}; _evAfterWarm(); }
+      else { window._evWarmFail=key0; try{ if(window._activeScan&&!window._activeScan.running)_renderScanBanner(); }catch(e){} }
+    }).catch(function(){ window._evWarming=false; });
+  }catch(e){ window._evWarming=false; }
+}
+// Stamp the LIVE allData counterparts of the current watchlist — renderWatch
+// copies from allData, so the stamps ride along into its copies.
+function _evMarkWatch(){
+  try{
+    var wl=Object.values(curWL()); if(!wl.length)return;
+    var by={}; (Array.isArray(allData)?allData:[]).forEach(function(s){ if(s&&s.ticker)by[s.ticker]=s; });
+    var live=[]; wl.forEach(function(w){ var s=w&&by[w.ticker]; if(s)live.push(s); });
+    if(live.length)_evMark(live);
+  }catch(e){}
+}
+// Grades just arrived — restamp the current view and repaint what's open.
+function _evAfterWarm(){
+  try{ if(window._activeScan&&!window._activeScan.running)_renderScanBanner(); }catch(e){}
+  try{
+    if(typeof watchViewOn!=='undefined'&&watchViewOn){
+      if(_statOn.tsolid||_statOn.tprom)_evMarkWatch();
+      try{ renderWatch(); }catch(e){}
+      try{ statsBar&&statsBar(); }catch(e){}
+      return;
+    }
+  }catch(e){}
+  try{
+    var base=(window._statBaseValid&&window._statBase)?window._statBase:((typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered:[]);
+    if(base.length&&(window._evWantMark||_statOn.tsolid||_statOn.tprom))_evMark(base);
+  }catch(e){}
+  try{
+    if(_statOn.tsolid||_statOn.tprom){ _applyStatFilters(); }
+    else{
+      render&&render(); statsBar&&statsBar();
+      var _sm=document.getElementById('appModal');
+      if(window._modalType==='top20'&&_sm&&_sm.style.display!=='none')showTop10Panel(window._lastTop10||[]);
+    }
+  }catch(e){}
+}
+// Beta never shows the Evidence radar tiles (grading is a customer feature).
+(function(){ try{ if(APP_VERSION.indexOf('-beta')>=0){ var _h=function(){ var b=document.getElementById('evGrp'); if(b)b.style.display='none'; }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_h); else _h(); } }catch(e){} })();
 var _AP_SRC_KEYS=['smart','top20','unus','sharp','vol','recov','quiet','pull','strong','accum','hiscore','hi52','gold','rsirec','squeeze','rsl','newsvol'];
 function _apSrcKey(src){ return (_AP_SRC_KEYS.indexOf(src)>=0)?src:'smart'; }
 function _apBestScan(R,win){
@@ -16968,8 +17184,10 @@ function allScansCard(){
   if(window._scCache&&window._scCache.ex===currentExch&&window._scCache.d===dd&&window._scCache.liq===_cardLiqKey()&&window._scCache.R){ return _renderSCCard(window._scCache.R); }
   if(!Array.isArray(allData)||!allData.length){ try{ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);text-align:center;">Load your market first — this report replays your <b>saved history</b>.</div>','🧪 All scans — which ones actually work?'); }catch(e){} return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every scan…</b><br>re-running every scan rule over every stored day (up to a year of them) and following each qualifier forward.<br><span class="t20prog" style="font-size:10px;color:var(--dim)"></span></div>','🧪 All scans — which ones actually work?'); }catch(e){}
-  _scReplay().then(function(R){
-    if(R){ window._scCache={ex:currentExch,d:dd,liq:_cardLiqKey(),R:R}; }
+  var _cEx0=currentExch, _cLiq0=_cardLiqKey();
+  ((typeof _evReplayShared==='function')?_evReplayShared():_scReplay()).then(function(R){
+    if(R){ var _cDd1=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+      if(currentExch===_cEx0&&_cDd1===dd&&_cardLiqKey()===_cLiq0)window._scCache={ex:_cEx0,d:dd,liq:_cLiq0,R:R}; }
     var m=document.getElementById('appModal');
     if(m&&m.style.display!=='none'&&window._curModalLabel==='🧪 All scans — which ones actually work?'){
       if(R)_renderSCCard(R);
@@ -16992,8 +17210,8 @@ function _renderSCCard(R,win){
   var bmed=function(w){ return med(base[w]); };
   // Evidence tiers — a handful of fires is a rumour, not a result. Same spirit
   // as the 📋 Signal report card's SOLID / PROMISING / TOO EARLY badges.
-  var MIN_SOLID=200, MIN_OK=50;
-  var TIER=function(n){ return n>=MIN_SOLID?['SOLID','var(--green)']:n>=MIN_OK?['PROMISING','var(--gold)']:['TOO EARLY','var(--dim)']; };
+  var MIN_SOLID=_EV_MIN_SOLID, MIN_OK=_EV_MIN_OK;   // v452: hoisted — the scan banners use the same numbers
+  var TIER=_evTierOf;   // v452: one tier function everywhere
   var TIP={SOLID:'SOLID — 200+ fires. Enough experiments that the edge is unlikely to be luck.','PROMISING':'PROMISING — 50+ fires. Worth watching; not yet proven.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the edge looks like, it cannot be told apart from luck yet, so this row is ranked last no matter how good it looks.'};
   var list=[{k:'top20',n:'🏆 Top 20 by Watch Score'}].concat(_SCAN_RULES.map(function(x){return {k:x.k,n:x.n};}));
   list.forEach(function(x){
