@@ -331,7 +331,13 @@ input[type=range].dual::-webkit-slider-runnable-track{background:none;height:24p
 input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .duallbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:3px;}
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;}
+/* v484 — the radar was a stream of shrink-to-fit boxes that wrapped like text,
+   so no two groups began at the same x and the right edge was ragged. It is now
+   ONE two-column grid: a fixed label gutter, and a tile area that always starts
+   in the same place. rg-grid marks the new layout for the verify suite. */
+.stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:3px 14px 4px;
+  display:grid;grid-template-columns:70px minmax(0,1fr);column-gap:10px;row-gap:0;align-items:center;flex-shrink:0;}
+.stats.rg-grid{}
 .radar-label{display:flex;align-items:center;gap:5px;font:800 11px var(--sans);color:var(--gold);letter-spacing:.3px;white-space:nowrap;cursor:default;}
 .radar-label .rl-sub{font-weight:500;font-size:9px;color:var(--dim);letter-spacing:0;}
 .hbadge.ex-ASX{border-color:#FFD200;color:#FFD200;}
@@ -341,17 +347,31 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 /* v481 — shorter groups pack more per row. The dead space in the old layout
    was a tall group that could not fit beside its neighbour, leaving the rest
    of the line empty. */
-.radar-grp{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:8px;padding:2px 7px;margin:2px 5px 2px 0;background:rgba(255,255,255,.015);vertical-align:middle;}
+/* display:contents dissolves the group box so its label and tiles become cells
+   of the bar's own grid — which is what makes all six rows share one gutter and
+   one set of tile columns. The box itself was never doing useful work; it was
+   what forced the wrapping. */
+.radar-grp{display:contents;}
+.radar-grp>*:not(.rg-l){grid-column:2;}
+.radar-grp .rg-l,.radar-grp .rg-t{border-bottom:1px solid var(--border);padding:1px 0;}
+.stats>.radar-grp:last-of-type .rg-l,.stats>.radar-grp:last-of-type .rg-t{border-bottom:0;}
 /* v481 — these used to be rotated 90°, which made every group at least as tall
    as the longest word in it and set a floor no tile could go under. Lying them
    down is the single biggest height saving in the bar. */
-.radar-grp .rg-l{font:700 8px var(--sans);letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-right:6px;white-space:nowrap;align-self:center;}
-.radar-grp .rg-t{display:flex;flex-wrap:wrap;align-items:center;row-gap:1px;}
+/* one gutter, right-aligned, identical for every row */
+.radar-grp .rg-l{grid-column:1;font:700 8px var(--sans);letter-spacing:.7px;text-transform:uppercase;color:var(--dim);
+  white-space:nowrap;text-align:right;align-self:stretch;display:flex;align-items:center;justify-content:flex-end;}
+/* equal columns, and every tile area is the same width — so the tiles line up
+   in columns down the whole radar instead of packing like words */
+/* 132px is what the longest caption needs once the number's own right-aligned
+   sub-column is taken out of it — at 116px "REL-STRENGTH" and "$250K+ TRADED"
+   were being clipped, which is worse than being misaligned. */
+.radar-grp .rg-t{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));align-items:center;row-gap:1px;}
 .stats.r-less .radar-grp.rg-more{display:none;}
 /* v479 — folded is a different density, not just fewer groups. About 40% of the
    folded radar's height was padding and margin; the table needs it more. */
-.stats.r-less{padding:4px 16px;gap:8px;}
-.stats.r-less .radar-grp{padding:1px 6px;margin:1px 4px 1px 0;border-radius:7px;}
+.stats.r-less{padding:3px 14px 4px;}
+.stats.r-less .radar-grp .rg-l,.stats.r-less .radar-grp .rg-t{padding:1px 0;}
 .stats.r-less .radar-grp .sv{font-size:14px;line-height:1.15;}
 .stats.r-less .radar-grp .sl{font-size:8px;}
 /* The two evidence notes are full-width lines of small text. Folded, they
@@ -362,7 +382,24 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
   padding-top:0;font-size:9px;}
 .stats.r-less #evRuleNote{display:none !important;}
 /* v456: the evidence buckets are the point of the radar, not a detail — they never fold away, and a faint SOLID-green edge finds them fast. */
-.radar-grp.rg-ev{border-color:rgba(63,185,80,.38);background:rgba(63,185,80,.045);}
+/* v456: the evidence buckets are the point of the radar, not a detail.
+   v484 — with the group boxes gone, the emphasis moves to the row: a green
+   gutter label and a faint green wash behind its tiles. */
+.radar-grp.rg-ev .rg-l{color:#3fb950;}
+.radar-grp.rg-ev .rg-t{background:rgba(63,185,80,.05);border-radius:5px;}
+/* v484 — these notes used to be prose inside a shrink-to-fit box, so they
+   wrapped to three lines and made Evidence look like a different component.
+   In column 2 at full width they are one aligned sub-line. */
+/* v484e — the notes are now items of their group's TILE grid, sitting in the
+   columns the tiles do not reach. EVIDENCE uses 3 of 8 columns and SIGNALS 6 of
+   8, so each note lands beside exactly the tiles it is talking about and costs
+   no row of its own. */
+#evSkipNote,#evRuleNote,#sigSkipNote{font-size:9px !important;line-height:1.3;padding:0 0 0 6px !important;align-self:center;}
+#evSkipNote{grid-column:4 / -1;}
+#evRuleNote{grid-column:1 / -1;padding-left:0 !important;}
+#sigSkipNote{grid-column:7 / -1;}
+/* folded, there is no room beside three tiles — they go back to their own line */
+.stats.r-less #evSkipNote{grid-column:1 / -1;padding-left:0 !important;}
 .stats.r-less #radarMoreBtn{color:var(--gold);border-color:var(--gold);}
 .row-more{padding:2px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 11px var(--sans);cursor:pointer;line-height:1.3;}
 .row-more:hover{border-color:var(--gold);color:var(--gold);}
@@ -370,12 +407,23 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .drag-row>button.scan-on{outline:2px solid var(--gold);outline-offset:1px;box-shadow:0 0 12px rgba(255,210,0,.25);}
 
 /* v413b: compact radar — the groups earn their keep in one tight band, table gets the room */
-.stats{padding:4px 12px;gap:6px;row-gap:3px;}
-.radar-label{font-size:11px;}
-.radar-grp{margin:1px 4px 1px 0;padding:2px 8px 2px 3px;border-radius:8px;}
-.radar-grp .rg-l{font-size:6.5px;letter-spacing:.4px;margin-right:4px;}
-.radar-grp .rg-t{gap:0 13px;}
+/* v484c — NOT a media query, despite what the "compact" comment implies. These
+   are the values the desktop actually gets, which is why they have to be the
+   right ones. */
+.stats{padding:3px 10px 4px;grid-template-columns:62px minmax(0,1fr);column-gap:8px;}
+/* v484b — a shared column grid necessarily leaves the short rows (MARKET,
+   EVIDENCE, CAUTION have 3-4 tiles on a row eight wide) empty at the right.
+   That space is free, and the title and ▾ details button are precisely what
+   should occupy it instead of costing a whole row of their own. */
+.radar-label{position:absolute;top:2px;right:14px;z-index:3;font-size:11px;display:flex;align-items:center;gap:6px;
+  background:linear-gradient(90deg,transparent,var(--bg2) 14px);padding-left:16px;}
+.radar-grp .rg-l{font-size:6.5px;letter-spacing:.3px;}
+/* 132px: what "🏁 Rel-Strength" and "$250k+ Traded" need beside their number.
+   At 96px they were clipped to "REL-STRE…", which is worse than any amount of
+   misalignment. */
+.radar-grp .rg-t{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
 .radar-grp .stat{gap:4px;padding:1px 0;}
+.stat .sv{min-width:32px;}
 .radar-grp .sv{font-size:12.5px;line-height:1.15;}
 .radar-grp .sl{font-size:7.5px;letter-spacing:.2px;}
 body.stat-over-modal .stats{z-index:2100;}
@@ -396,9 +444,17 @@ body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-
   body.sheet-printing .modal-scroll{overflow:visible!important;max-height:none!important;height:auto!important;padding:0!important;margin:0!important;}
   body.sheet-printing .rpt-sheet{max-height:none!important;overflow:visible!important;border-radius:0!important;}
 }
-/* v481 — a number stacked over its caption is two lines where one will do, and
-   there are forty of them in the bar. "1,177 GAINERS" reads fine across. */
-.stat{display:flex;flex-direction:row;align-items:baseline;gap:4px;}
+/* v481 — a number stacked over its caption is two lines where one will do.
+   v484 — and the number gets its own right-aligned sub-column with tabular
+   figures, so the digits form a clean edge and every caption starts together.
+   Without that, "0 SCORE 7+" and "1466 NEAR 52WK HIGH" begin at different x. */
+.stat{display:flex;flex-direction:row;align-items:baseline;gap:5px;min-width:0;}
+.stat .sv{min-width:32px;text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+.stat .sl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+/* v484 — a zero is information, not an announcement. It stays readable and
+   stays clickable; it just stops competing with the numbers that have
+   something to say. */
+.stat.z0{opacity:.42;}
 .statclick{cursor:pointer;padding:2px 7px;border-radius:6px;border:1px solid transparent;transition:all .12s;}
 .statclick:hover{background:var(--bg3);border-color:var(--border2);}
 .statclick.active{background:rgba(255,210,0,.12);border-color:var(--gold);}
@@ -1468,8 +1524,8 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
   <div class="stats" id="statsBar" style="display:none">
     <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button></div>
     <div class="radar-grp"><div class="rg-l">Market</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div><div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div><div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div><div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column. A data summary, not advice."><div class="sv gold" id="sS7">0</div><div class="sl">Score 7+</div></div></div></div>
-    <div class="radar-grp rg-ev" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — 200+ fires over the replayed year, the 🧪 All-scans card's top tier. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. A share below your 💧 grading floor is never tested at all — when that happens the line underneath says so, because a skipped share is not the same as an honest zero."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — 50+ fires in the replayed year. Worth watching, not yet proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares flagged today ONLY by unproven signals — under 50 fires, so luck can still explain their record. Curiosity, not evidence: research with extra care. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ TOO EARLY</div></div></div><div id="evSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div><div id="evRuleNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div>
-    <div class="radar-grp rg-more" id="sigGrp"><div class="rg-l">🔬 Signals</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('sghi52')" title="Closed above every close of the past year, on volume — no trapped sellers overhead from the last 250 days. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgHi52">–</div><div class="sl">📏 52wk High</div></div><div class="stat statclick" onclick="statFilter('sggold')" title="The 50-day average crossed UP through the 200-day TODAY — fires on the cross day only, so it is rare by design. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgGold">–</div><div class="sl">✝️ Golden Cross</div></div><div class="stat statclick" onclick="statFilter('sgrsirec')" title="RSI crossed back UP through 30 — the bounce beginning, not merely "oversold" (which can stay oversold for months). Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsi">–</div><div class="sl">🌀 RSI Recovery</div></div><div class="stat statclick" onclick="statFilter('sgsqueeze')" title="Tightest 10-day range in about three months on dry volume — a coiled spring. Direction unknown: it can break either way. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgSqz">–</div><div class="sl">🤏 Squeeze</div></div><div class="stat statclick" onclick="statFilter('sgrsl')" title="The strongest slice of the WHOLE market by recent return, caught on a breather — beating the market, not just rising with it. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsl">–</div><div class="sl">🏁 Rel-Strength</div></div><div class="stat statclick" onclick="statFilter('sgnewsvol')" title="A CONFIRMED material headline landing on a day of unusually heavy volume. Fail-closed: where there is no news coverage it never fires. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgNews">–</div><div class="sl">📰 News + Vol</div></div></div><div id="sigSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div>
+    <div class="radar-grp rg-ev" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — 200+ fires over the replayed year, the 🧪 All-scans card's top tier. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. A share below your 💧 grading floor is never tested at all — when that happens the line underneath says so, because a skipped share is not the same as an honest zero."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — 50+ fires in the replayed year. Worth watching, not yet proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares flagged today ONLY by unproven signals — under 50 fires, so luck can still explain their record. Curiosity, not evidence: research with extra care. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ TOO EARLY</div></div><div id="evSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div><div id="evRuleNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
+    <div class="radar-grp rg-more" id="sigGrp"><div class="rg-l">🔬 Signals</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('sghi52')" title="Closed above every close of the past year, on volume — no trapped sellers overhead from the last 250 days. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgHi52">–</div><div class="sl">📏 52wk High</div></div><div class="stat statclick" onclick="statFilter('sggold')" title="The 50-day average crossed UP through the 200-day TODAY — fires on the cross day only, so it is rare by design. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgGold">–</div><div class="sl">✝️ Golden Cross</div></div><div class="stat statclick" onclick="statFilter('sgrsirec')" title="RSI crossed back UP through 30 — the bounce beginning, not merely "oversold" (which can stay oversold for months). Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsi">–</div><div class="sl">🌀 RSI Recovery</div></div><div class="stat statclick" onclick="statFilter('sgsqueeze')" title="Tightest 10-day range in about three months on dry volume — a coiled spring. Direction unknown: it can break either way. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgSqz">–</div><div class="sl">🤏 Squeeze</div></div><div class="stat statclick" onclick="statFilter('sgrsl')" title="The strongest slice of the WHOLE market by recent return, caught on a breather — beating the market, not just rising with it. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsl">–</div><div class="sl">🏁 Rel-Strength</div></div><div class="stat statclick" onclick="statFilter('sgnewsvol')" title="A CONFIRMED material headline landing on a day of unusually heavy volume. Fail-closed: where there is no news coverage it never fires. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgNews">–</div><div class="sl">📰 News + Vol</div></div><div id="sigSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume moderately above their average — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div><div class="stat statclick" onclick="statFilter('t250k')" title="Liquidity floor — at least $250,000 of value changed hands today (today’s close × today’s volume), in the exchange’s own currency. Below this a share can be hard to sell without moving the price against you. NOTE this measures TODAY — the 🧪 Evidence floor measures a share's THREE-MONTH AVERAGE turnover, so a share that just woke up can light this tile and still be skipped by the evidence check. A liquidity measure, not advice."><div class="sv" id="sT250">0</div><div class="sl">$250k+ Traded</div></div><div class="stat statclick" onclick="statFilter('t1m')" title="Liquidity floor — at least $1,000,000 of value changed hands today (today’s close × today’s volume), in the exchange’s own currency. The stricter of the two turnover tiles: every $1M day is also a $250k day, so tapping both is the same as tapping this one. NOTE this is TODAY's turnover; the 🧪 Evidence floor uses the THREE-MONTH AVERAGE, so the two can disagree about the same share on the same day. A liquidity measure, not advice."><div class="sv gold" id="sT1M">0</div><div class="sl">$1M+ Traded</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Trend</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div><div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div><div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div><div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div><div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div><div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div><div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover, well above its own average. An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div><div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">⚠ Caution</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div><div class="stat statclick" onclick="statFilter('floor')" title="In the bottom 10% of its trading-range window — near its floor. A floor can hold or break: research, not a buy signal."><div class="sv" id="sFloor">0</div><div class="sl">Near Floor</div></div><div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div></div></div>
@@ -1593,7 +1649,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-483-open';
+const APP_VERSION='2026.07.27-484-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8984,7 +9040,7 @@ async function volumeSurgeScan(){
   const _ss=document.getElementById('sortSel'); if(_ss){ _ss.value='volPct'; }
   sortKey='volPct'; sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')scanProgHide();
@@ -9671,6 +9727,20 @@ function statsBar(){
   try{ if(!_evReady&&(window._evWarming||window._apWarming))
     _evSetNote(document.getElementById('evSkipNote'),'🧪 grading the stored year…','The signals are being replayed against your stored history — a few seconds. The ⚖️ and 🔬 tiles fill in on their own when it finishes; there is nothing to click.');
   }catch(e){}
+  try{ _radarDim(); }catch(e){}
+}
+// v484 — a radar where half the tiles read 0 in the same weight as the ones
+// reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
+// caption and its click; it simply stops shouting. Not-yet-graded tiles ("–")
+// are treated the same way, because "we have not checked" is also not news.
+function _radarDim(){
+  var t=document.querySelectorAll('#statsBar .stat');
+  for(var i=0;i<t.length;i++){
+    var v=t[i].querySelector('.sv'); if(!v)continue;
+    var s=(v.textContent||'').trim();
+    if(s==='0'||s==='–'||s==='-'||s==='')t[i].classList.add('z0');
+    else t[i].classList.remove('z0');
+  }
 }
 // ═══ v459 — "0" must mean we looked ══════════════════════════════════════
 // The Evidence tiles promise an honest zero. That promise is only kept for
@@ -10791,7 +10861,7 @@ async function speedingTicketScan(){
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   document.getElementById('sortSel').value='chgPct';sortKey='chgPct';sortDir=-1;
   render();statsBar();dots();mkBadges();_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   scanProgSet(100);scanProgHide();
 
@@ -11059,7 +11129,7 @@ async function topTenScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();if(typeof dots==='function')dots();if(typeof mkBadges==='function')mkBadges();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')scanProgHide();
@@ -11802,7 +11872,7 @@ async function allSignalsScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   scanProgSet&&scanProgSet(100);scanProgHide&&scanProgHide();
   if(btn){btn.disabled=false;btn.style.opacity='1';}
@@ -11853,7 +11923,7 @@ async function unusualScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='volPct';sortKey='volPct';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   scanProgSet&&scanProgSet(100);scanProgHide&&scanProgHide();
   if(btn){btn.disabled=false;btn.style.opacity='1';}
@@ -11989,7 +12059,7 @@ async function smartMoneyScan(minDays,scanAll){
 
   document.getElementById('sortSel').value='volPct';sortKey='volPct';sortDir=-1;
   render();statsBar();dots();mkBadges();_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
 
   if(btn){btn.disabled=false;btn.style.opacity='1';}
@@ -14137,7 +14207,7 @@ Output the complete array. Start with [`;
   }
 
   {const _n=document.getElementById('notice'); if(_n){_n.innerHTML=`📡 ${exch} · ${today} · ${results.length.toLocaleString()} stocks · <span title="End-of-day closing prices from the last completed trading session — NOT real-time. Fetched just now from the internet (not your saved data).">${via==='ai-proxy'?'<span style="color:var(--orange)">end-of-day · AI relay</span>':(via==='quote-list'?'end-of-day · quote list':'end-of-day')}</span>${(window._dlTypeDropped>0)?` · <span style="color:var(--dim)" title="Your load-type chips (Setup ▸ What to load from the API) are skipping these security types — tick more chips there to load everything">${window._dlTypeDropped.toLocaleString()} skipped by type</span>`:''}`; _n.style.display='inline-block';}}
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   const _eb=document.getElementById('exchBadge');
   _eb.textContent=`🌐 ${exch} — ${results.length.toLocaleString()} stocks`;
@@ -14728,7 +14798,7 @@ async function quietMoversScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')scanProgHide();
@@ -14797,7 +14867,7 @@ async function gapScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='chgPct';sortKey='chgPct';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')scanProgHide();
@@ -14871,7 +14941,7 @@ async function trendScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')scanProgHide();
@@ -14931,7 +15001,7 @@ async function pullbackScan(){
   _resetStatsForNewView();
   document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
   render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
-  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
   if(typeof scanProgSet==='function')scanProgSet(100);
   if(typeof scanProgHide==='function')scanProgHide();
@@ -15882,6 +15952,23 @@ body.training-on #trainBanner{display:flex;}
 body.training-min #trainBanner .tb-txt{display:none;}
 body.training-min #trainBanner .tb-full{display:none;}
 body.training-min{padding-top:30px;}
+/* v484c — the radar on a narrow screen. The title cannot float into spare
+   width because there is none, and the tile tracks have to be small enough that
+   two still fit across a phone. */
+@media(max-width:760px){
+  .stats{padding:3px 9px 4px;grid-template-columns:48px minmax(0,1fr);column-gap:7px;}
+  .radar-label{position:static;grid-column:1 / -1;background:none;padding-left:0;font-size:10px;}
+  .radar-grp .rg-l{font-size:6.5px;letter-spacing:.3px;}
+  .radar-grp .rg-t{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));}
+  .stat .sv{min-width:22px;}
+  .radar-grp .sl{font-size:7px;letter-spacing:.1px;}
+  /* only three columns here, so a note asking for column 7 would invent four
+     more and squeeze every track — full width instead */
+  #evSkipNote,#evRuleNote,#sigSkipNote{grid-column:1 / -1 !important;padding-left:0 !important;}
+  /* the tile's own padding was eating 14px of a 115px track */
+  #statsBar .statclick{padding:2px 3px;}
+  .radar-grp .stat{gap:3px;}
+}
 @media(max-width:640px){
   #trainBanner{padding:5px 9px;font-size:11px;gap:6px;}
   #trainBanner .tb-txt{font-size:10.5px;}
