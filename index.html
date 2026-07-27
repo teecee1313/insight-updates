@@ -1545,7 +1545,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-471-open';
+const APP_VERSION='2026.07.27-472-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9483,9 +9483,18 @@ function statsBar(){
       // v470: and where the grading was done. Not decoration — if the server
       // is answering, the numbers on screen were computed somewhere the user
       // cannot inspect, and they are entitled to know that at a glance.
+      // v472: a stored answer is never presented as a fresh one. If either half
+      // came off the device, the line says so, with the day it was worked out.
       try{
-        if(window._scanSrc&&_rn&&window._scanSrc!=='unavailable'){
-          _rn.textContent=_rn.textContent+'  ·  scored on our server';
+        if(_rn&&window._scanSrc&&window._scanSrc!=='unavailable'){
+          var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
+          if(!_fromDev&&!_dayDev){ _rn.textContent=_rn.textContent+'  ·  scored on our server'; }
+          else {
+            var _w=[];
+            if(_fromDev)_w.push('graded from the replay saved on this device'+(window._scanGradedOn?' ('+window._scanGradedOn+')':''));
+            if(_dayDev)_w.push("today's signals from the copy saved on this device");
+            _rn.textContent=_rn.textContent+'  ·  \u26a0\ufe0f '+_w.join(' \u00b7 ')+' \u2014 could not reach our server';
+          }
         }
       }catch(e){}
     } else if(_rn){ _evSetNote(_rn,''); }
@@ -17163,6 +17172,42 @@ function _evBannerChip(key){
     return '<span title="'+tip.replace(/"/g,'&quot;')+'" style="cursor:help;border:1px solid '+_col+';color:'+_col+';border-radius:4px;padding:0 5px;font-size:9px;font-weight:800;letter-spacing:.4px;margin-left:6px;white-space:nowrap;">'+t[0]+(t[3]!=null?' '+_evPct(t[3]):'')+'</span>';
   }catch(e){ return ''; }
 }
+// ═══ v472 — remember the server's last answer ══════════════════════════════
+// A second server would be a second copy of the rules. Keeping the ANSWER on
+// the device gets most of the resilience and none of that risk: an answer is
+// not a threshold, and it is already on screen anyway.
+var _SC_STASH_DB='asxScreener.scanStash.v1';
+function _scStashDB(){
+  return new Promise(function(res){
+    try{
+      var rq=indexedDB.open(_SC_STASH_DB,1);
+      rq.onupgradeneeded=function(){ if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv'); };
+      rq.onsuccess=function(){ res(rq.result); };
+      rq.onerror=function(){ res(null); };
+    }catch(e){ res(null); }
+  });
+}
+async function _scStash(k,v){
+  try{
+    var db=await _scStashDB(); if(!db)return;
+    await new Promise(function(r){
+      try{ var tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k);
+        tx.oncomplete=function(){r();}; tx.onerror=function(){r();}; tx.onabort=function(){r();}; }
+      catch(e){ r(); }
+    });
+  }catch(e){}
+}
+async function _scStashGet(k){
+  try{
+    var db=await _scStashDB(); if(!db)return null;
+    return await new Promise(function(r){
+      try{ var g=db.transaction('kv').objectStore('kv').get(k);
+        g.onsuccess=function(){ r(g.result||null); }; g.onerror=function(){ r(null); }; }
+      catch(e){ r(null); }
+    });
+  }catch(e){ return null; }
+}
+function _scToday(){ try{ return (window._exchDataDate&&window._exchDataDate[currentExch])||''; }catch(e){ return ''; } }
 // ═══ v471 — today's firing signals, worked out on the server ═══════════════
 // One request per market load, not one per click: the answer is cached against
 // everything that could change it, so filtering and sorting re-read the cache.
@@ -17223,13 +17268,27 @@ function _scWarmDay(){
         if(!j||!j.ok||!j.fires)throw new Error('bad answer');
         if(_scDayKey()!==key)return;   // the world moved while we asked
         _scDayF={key:key,F:j.fires};
-        window._scDayFail=null;
+        window._scDayFail=null; window._scDayStale='';
+        try{ _scStash('day|'+currentExch,{d:_scToday(),key:key,F:j.fires}); }catch(e){}
         try{ _evAfterWarm(); }catch(e){}
       })
       .catch(function(){
         window._scDayWarming=false;
-        window._scDayFail=key;
-        try{ _evAfterWarm(); }catch(e){}   // repaint, so the blank can explain itself
+        // v472: before giving up, look for the last answer we were given.
+        // Reused ONLY for the SAME data date — Friday's firing signals are not
+        // a degraded answer for Monday, they are a wrong one.
+        _scStashGet('day|'+currentExch).then(function(st){
+          if(st&&st.d&&st.d===_scToday()&&st.F&&_scDayKey()===key){
+            _scDayF={key:key,F:st.F};
+            window._scDayFail=null; window._scDayStale='device';
+          } else {
+            window._scDayFail=key;
+          }
+          try{ _evAfterWarm(); }catch(e){}
+        }).catch(function(){
+          window._scDayFail=key;
+          try{ _evAfterWarm(); }catch(e){}
+        });
       });
   }catch(e){ window._scDayWarming=false; }
 }
@@ -17728,8 +17787,21 @@ async function _scReplay(){
   if(shares.length<50)return null;
   var R=null;
   try{ R=await _scServerReplay(shares,_cardLiqNeed()); }catch(e){ R=null; }
-  if(R&&R.G){ window._scanSrc='server'; return R; }
-  window._scanSrc='unavailable';
+  if(R&&R.G){
+    window._scanSrc='server'; window._scanGradedOn='';
+    try{ _scStash('replay|'+currentExch+'|'+_cardLiqKey(),{d:_scToday(),R:R}); }catch(e){}
+    return R;
+  }
+  // v472: a year-long record does not change materially overnight, so an older
+  // replay is a reasonable answer — as long as we say which day it is from.
+  try{
+    var st=await _scStashGet('replay|'+currentExch+'|'+_cardLiqKey());
+    if(st&&st.R&&st.R.G){
+      window._scanSrc='device'; window._scanGradedOn=st.d||'';
+      return st.R;
+    }
+  }catch(e){}
+  window._scanSrc='unavailable'; window._scanGradedOn='';
   return null;
 }
 // v471: there is no longer an on-device replay. It existed to run the rule
