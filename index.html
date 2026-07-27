@@ -1568,7 +1568,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-476-open';
+const APP_VERSION='2026.07.27-477-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2731,17 +2731,40 @@ const LICENCE_SECRET='CHANGE-ME-to-your-own-secret-phrase'; // ← set this, kee
 // Built-in training mode, hidden from normal users. YOU unlock it by pressing
 // Ctrl+Shift+T (or Cmd+Shift+T on Mac) and entering this code. Change it to your
 // own private code. Once unlocked it stays on for the session (until reload).
-const TRAINING_CODE='train'; // ← set your own private training code
-function unlockTraining(){
+// v477 — the code is NOT here any more. It used to be a plaintext constant on
+// this line, compared with ===, in a file anyone can download — so "training
+// mode" was unlocked by reading the page. That is only a curiosity until you
+// remember that training mode hands back every hover explanation private mode
+// deliberately confiscates, which made private mode protect the methodology
+// from a passer-by and from nobody else.
+//
+// The worker holds the code now (GET /train), compares it in constant time, and
+// stops after eight wrong guesses. No server, no unlock — a lock that opens
+// when it cannot reach its keyholder is not a lock.
+async function unlockTraining(){
   var code=prompt('Enter training-mode code:');
   if(code===null)return;
-  if(code===TRAINING_CODE){
+  if(!code){ alert('No code entered.'); return; }
+  if(!DATA_PROXY){ alert('Training mode needs to check the code with our server, and no server address is set on this copy.'); return; }
+  var r=null;
+  try{
+    r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/train',{headers:{'X-Insight-Train':code}});
+  }catch(e){
+    alert("Couldn't reach our server to check that code. Check your connection and try again."); return;
+  }
+  if(r&&r.ok){
     try{sessionStorage.setItem('asxScreener.trainingUnlocked','1');}catch(e){}
     if(typeof enableTrainingMode==='function'){ enableTrainingMode(); }
-    else { /* training layer not present in this build */ alert('Training mode is not available in this build.'); }
-  }else{
-    alert('Incorrect code.');
+    else { alert('Training mode is not available in this build.'); }
+    return;
   }
+  if(r&&r.status===429){ alert('Too many attempts. Wait a few minutes and try again.'); return; }
+  if(r&&r.status===403){ alert('Training mode is switched off on the server.\n\nSet the TRAINING_CODE secret on the Worker in the Cloudflare dashboard, then try again.'); return; }
+  // v477: a worker older than w393 has no /train route at all and answers 404.
+  // Telling Tony "that code did not work" there would be a lie — the code was
+  // never checked.
+  if(r&&r.status===404){ alert('This copy of the server does not know how to check the training code yet.\n\nPaste the latest Worker (w393 or newer) in the Cloudflare dashboard, set the TRAINING_CODE secret, then try again.'); return; }
+  alert('That code did not work.');
 }
 // Ways to open the training-code prompt (all hidden — no visible button):
 //  1. Press Ctrl+Alt+T  (Cmd+Alt+T on Mac). NOTE: Ctrl+SHIFT+T doesn't work in
