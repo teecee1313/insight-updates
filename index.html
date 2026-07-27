@@ -722,6 +722,11 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 
     <button id="researchBtn" onclick="renderResearch()" title="🔬 Research further — open your worklist of shares parked to look into later. Flag any share from its report or the 🔔 What’s-changed list to add it here." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🔬 Research <span data-research-count style="color:var(--green);font-weight:700;"></span></button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
+    <!-- v482 — the 49 lessons used to be reachable only after unlocking
+         training mode with a secret code, which made one of the better reasons
+         to own this product invisible to the people who own it. -->
+    <button id="lessonsBtn" onclick="toggleLessons()" title="🎓 Lessons — 49 short illustrated lessons on reading the market, the signals and this app. Free to browse; your progress is remembered on this device." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🎓 Lessons</button>
+    <button id="trainBtn" onclick="toggleTrainingMode()" title="🎓 Training mode — hover any button, column or tile and it explains itself. Nothing is hidden while it is on and nothing changes about your data; press again to switch it off." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🎓 Training</button>
     <div style="position:relative;display:inline-block;">
       <button id="acctBtn" onclick="toggleAcctMenu(event)" title="Your account — password, language, updates, log out" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">👤 Account ▾</button>
       <div id="acctMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:2050;min-width:220px;overflow:hidden;">
@@ -1589,7 +1594,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-481-open';
+const APP_VERSION='2026.07.27-482-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2762,32 +2767,21 @@ const LICENCE_SECRET='CHANGE-ME-to-your-own-secret-phrase'; // ← set this, kee
 // The worker holds the code now (GET /train), compares it in constant time, and
 // stops after eight wrong guesses. No server, no unlock — a lock that opens
 // when it cannot reach its keyholder is not a lock.
-async function unlockTraining(){
-  var code=prompt('Enter training-mode code:');
-  if(code===null)return;
-  if(!code){ alert('No code entered.'); return; }
-  if(!DATA_PROXY){ alert('Training mode needs to check the code with our server, and no server address is set on this copy.'); return; }
-  var r=null;
+// v482 — no code. Training mode reveals the hover explanations that private
+// mode parks, which is why it used to be locked; v480 removed the tuned
+// thresholds from every one of those explanations, so what it reveals now is
+// what a control DOES, not the number behind it. There is nothing left in there
+// worth guarding, and plenty worth reading.
+window.toggleTrainingMode=function(){
   try{
-    r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/train',{headers:{'X-Insight-Train':code}});
-  }catch(e){
-    alert("Couldn't reach our server to check that code. Check your connection and try again."); return;
-  }
-  if(r&&r.ok){
-    try{sessionStorage.setItem('asxScreener.trainingUnlocked','1');}catch(e){}
-    if(typeof enableTrainingMode==='function'){ enableTrainingMode(); }
-    else { alert('Training mode is not available in this build.'); }
-    return;
-  }
-  if(r&&r.status===429){ alert('Too many attempts. Wait a few minutes and try again.'); return; }
-  if(r&&r.status===403){ alert('Training mode is switched off on the server.\n\nSet the TRAINING_CODE secret on the Worker in the Cloudflare dashboard, then try again.'); return; }
-  // v477: a worker older than w393 has no /train route at all and answers 404.
-  // Telling Tony "that code did not work" there would be a lie — the code was
-  // never checked.
-  if(r&&r.status===404){ alert('This copy of the server does not know how to check the training code yet.\n\nPaste the latest Worker (w393 or newer) in the Cloudflare dashboard, set the TRAINING_CODE secret, then try again.'); return; }
-  alert('That code did not work.');
-}
-// Ways to open the training-code prompt (all hidden — no visible button):
+    if(document.body.classList.contains('training-on')){ disableTrainingMode(); }
+    else { enableTrainingMode(); }
+  }catch(e){}
+};
+// Kept so anything still calling it behaves sensibly.
+function unlockTraining(){ try{ toggleTrainingMode(); }catch(e){} }
+// Ways to toggle training mode. These stay as shortcuts, but they are no
+// longer the ONLY way in — there is a 🎓 Training button in the header.
 //  1. Press Ctrl+Alt+T  (Cmd+Alt+T on Mac). NOTE: Ctrl+SHIFT+T doesn't work in
 //     Chrome/Edge — the browser reserves it for "reopen closed tab" and never
 //     passes it to the page. Ctrl+ALT+T is not reserved, so it works.
@@ -15911,8 +15905,12 @@ body.training-on [data-train]{position:relative;outline:1px dashed rgba(147,51,2
 #lessonPanel .hp-fs:hover{color:#FFD200;}
 #lessonPanel h3{font:700 15px 'Space Grotesk';color:#FFD200;margin:0 0 10px;}
 #lessonPanel .hp-close{position:absolute;top:10px;right:12px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#0d1b33;border:1px solid #2a3b5c;border-radius:7px;color:#8fa6c9;font-size:16px;cursor:pointer;z-index:5;} /* v411: fixed-in-panel — never scrolls out of reach */
-#lessonToggle{position:fixed;top:34px;right:132px;z-index:391;background:#0d1b33;border:1px solid #FFD200;color:#FFD200;border-radius:0 0 8px 8px;padding:5px 10px;font:600 11px 'Space Grotesk';cursor:pointer;display:none;}
-body.training-on #lessonToggle{display:block;}
+/* v482 — removed. Lessons have a permanent header button now; a second,
+   hidden entry point that only appeared in training mode was how they stayed
+   invisible to most people who had paid for them. */
+#lessonToggle{display:none !important;}
+/* the header Training button lights up while training mode is on */
+body.training-on #trainBtn{background:rgba(147,51,234,.18);border-color:#9333ea;color:#c88bff;}
 #lessonNav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
 #lessonProg{margin:0 0 10px;}
 .lsn-prog-bar{height:7px;border-radius:5px;background:#152647;overflow:hidden;margin:5px 0 4px;}
