@@ -45,7 +45,9 @@
     <input type="password" id="code" placeholder="Enter your code" autocomplete="off">
     <label>Type it again to confirm</label>
     <input type="password" id="code2" placeholder="Enter the same code again" autocomplete="off">
-    <div class="hint">The code itself is never stored in the file — only a one-way scrambled fingerprint (PBKDF2-SHA-256, 150,000 rounds). Nobody can read your code out of the file, but the right code will always unlock it.</div>
+    <button type="button" id="suggest" style="margin-top:6px;padding:6px 10px;border-radius:6px;border:1px solid #d0d7de;background:#f6f8fa;cursor:pointer;font:600 12px system-ui,sans-serif;">🎲 Suggest a strong code</button>
+    <div id="suggested" style="display:none;margin-top:6px;padding:8px 10px;border-radius:6px;background:#f6f8fa;border:1px solid #d0d7de;font:700 15px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;user-select:all;"></div>
+    <div class="hint">The code itself is never stored in the file — only a one-way scrambled fingerprint (PBKDF2-SHA-256, 600,000 rounds). Nobody can read your code out of the file, but the right code will always unlock it.</div>
 
     <div class="step" style="margin-top:20px;"><div class="num">3</div><div>Download your locked copy and use it on every device.</div></div>
     <button id="go" disabled>🔒 Create my locked copy</button>
@@ -79,18 +81,42 @@ function checkReady(){$('go').disabled=!(fileText&&$('code').value.length>=1);}
 function show(t,c){const m=$('msg');m.innerHTML=t;m.className='msg '+c;m.style.display='block';}
 function hide(){$('msg').style.display='none';}
 
+// A code the customer will paste, not invent. Ambiguous characters (0/O, 1/I/L)
+// are left out so it can be read off a screen and typed without a support call.
+const CODE_ALPHABET='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function suggestCode(){
+  const b=crypto.getRandomValues(new Uint8Array(20));
+  let out='';
+  for(let i=0;i<20;i++){ if(i&&i%5===0)out+='-'; out+=CODE_ALPHABET[b[i]%CODE_ALPHABET.length]; }
+  return out;
+}
+// v478: 600,000 rounds, and the count travels WITH the record. Codes issued
+// before this were pinned to 150,000 because the number was stored nowhere, so
+// they could never be raised. Old copies keep working; new ones cost an
+// attacker four times as much per guess.
+const LOCK_ITERS=600000;
 async function hashCode(pw){
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
-  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,256);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:LOCK_ITERS,hash:'SHA-256'},base,256);
   const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
-  return {salt:b64(salt),hash:b64(bits)};
+  return {salt:b64(salt),hash:b64(bits),iters:LOCK_ITERS};
 }
 
+$('suggest').addEventListener('click',()=>{
+  const c=suggestCode();
+  $('code').value=c; $('code2').value=c;
+  const box=$('suggested');
+  box.textContent=c; box.style.display='block';
+  show('Copy this code somewhere safe and send it to the customer with the file. It is not stored anywhere \u2014 if it is lost, the only fix is a new locked copy.','ok');
+});
 $('go').addEventListener('click',async()=>{
   hide();
   const c1=$('code').value, c2=$('code2').value;
-  if(c1.length<1){show('Enter a code.','err');return;}
+  // v478: a floor, because rounds of hashing buy nothing against a short word.
+  // The whole point of PBKDF2 is to make each guess expensive; if there are only
+  // a few million guesses to make, expensive is still cheap.
+  if(c1.length<12){show('Use a code of at least 12 characters. A short code can be worked out from the locked file itself, no matter how well it is scrambled \u2014 press \u201cSuggest a strong code\u201d if you would rather not invent one.','err');return;}
   if(c1!==c2){show('The two codes don\u2019t match — type the same code in both boxes.','err');return;}
   if(!window.crypto||!crypto.subtle){show('This browser can\u2019t create the secure lock. Try Chrome, Edge, Safari or Firefox.','err');return;}
   if(!fileText){show('Choose your app file first.','err');return;}
