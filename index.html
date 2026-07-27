@@ -1421,7 +1421,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button></div>
     <div class="radar-grp"><div class="rg-l">Market</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div><div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div><div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div><div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column. A data summary, not advice."><div class="sv gold" id="sS7">0</div><div class="sl">Score 7+</div></div></div></div>
     <div class="radar-grp rg-ev" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — 200+ fires over the replayed year, the 🧪 All-scans card's top tier. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — 50+ fires in the replayed year. Worth watching, not yet proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares flagged today ONLY by unproven signals — under 50 fires, so luck can still explain their record. Curiosity, not evidence: research with extra care. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ TOO EARLY</div></div></div></div>
-    <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div></div></div>
+    <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div><div class="stat statclick" onclick="statFilter('t250k')" title="Liquidity floor — at least $250,000 of value changed hands today (today’s close × today’s volume), in the exchange’s own currency. Below this a share can be hard to sell without moving the price against you. A liquidity measure, not advice."><div class="sv" id="sT250">0</div><div class="sl">$250k+ Traded</div></div><div class="stat statclick" onclick="statFilter('t1m')" title="Liquidity floor — at least $1,000,000 of value changed hands today (today’s close × today’s volume), in the exchange’s own currency. The stricter of the two turnover tiles: every $1M day is also a $250k day, so tapping both is the same as tapping this one. A liquidity measure, not advice."><div class="sv gold" id="sT1M">0</div><div class="sl">$1M+ Traded</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Trend</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div><div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div><div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div><div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div><div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div><div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div><div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover (volume over 30k and at least 1.5× its average). An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div><div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">⚠ Caution</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div><div class="stat statclick" onclick="statFilter('floor')" title="In the bottom 10% of its trading-range window — near its floor. A floor can hold or break: research, not a buy signal."><div class="sv" id="sFloor">0</div><div class="sl">Near Floor</div></div><div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div></div></div>
   </div>
@@ -1544,7 +1544,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-457-open';
+const APP_VERSION='2026.07.27-458-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9170,7 +9170,7 @@ function printPDFRows(rows,title){
 // combine them (e.g. Gainers + Vol ≥200% + Up 2+ Days). Click one again to
 // turn just it off; click "Showing" to clear all. Gainers/Losers are mutually
 // exclusive (a share can't be both).
-let _statOn={tsolid:false,tprom:false,tearly:false,gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false};
+let _statOn={tsolid:false,tprom:false,tearly:false,gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false,t250k:false,t1m:false};
 function statFilter(which){
   if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
   else if(which==='bullish'||which==='bearish'){
@@ -9251,6 +9251,11 @@ function _statPass(s){
   if(_statOn.inst && !s.instBuy)return false;
   if(_statOn.blk && !s.blockTrade)return false;
   if(_statOn.dist && !s.sigDist)return false;
+  // v458: dollar turnover TODAY — close × volume, in the share's own currency.
+  // Missing price or volume gives NaN, which fails both tests: we can't prove a
+  // share traded $250k, so we don't claim it did.
+  if(_statOn.t250k && !(s.price*s.volume>=250000))return false;
+  if(_statOn.t1m   && !(s.price*s.volume>=1000000))return false;
   if(_statOn.tsolid||_statOn.tprom||_statOn.tearly){               // v453: evidence buckets — best tier today, tap any combination
     var _evT=(s._evD===_evDD())?s._evTier:null, _evOk=false;
     if(_statOn.tsolid&&_evT==='SOLID')_evOk=true;
@@ -9362,6 +9367,7 @@ function statsBar(){
   // v295: one pass over the list instead of ~15 separate sweeps — identical numbers.
   let g=0,l=0,v200=0,dir=0,c2=0,v50=0,qm=0,vs=0,s7=0,hi=0,fl=0,ma=0,bull=0,bear=0;
   let _brk=0,_vrec=0,_cross=0,_inst=0,_blk=0,_dist=0; // v358: report-card signal tiles
+  let _t250=0,_t1m=0;                                  // v458: dollar-turnover tiles
   let _evs=0,_evp=0,_eve=0,_evAny=false; const _evD0=(typeof _evDD==='function')?_evDD():''; // v452
   for(const s of d){
     if(s.chgPct>0)g++; if(s.chgPct<0)l++;
@@ -9378,6 +9384,8 @@ function statsBar(){
     if(_isBullish(s))bull++;
     if(_isBearish(s))bear++;
     if(s.sigBreakout)_brk++; if(s.sigVolRecord)_vrec++; if(s.sigCross)_cross++; if(s.instBuy)_inst++; if(s.blockTrade)_blk++; if(s.sigDist)_dist++; // v358
+    const _tov=(s.price||0)*(s.volume||0);           // v458: value traded today
+    if(_tov>=250000){ _t250++; if(_tov>=1000000)_t1m++; }
     if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; else if(s._evTier==='PROMISING')_evp++; else if(s._evTier==='TOO EARLY')_eve++; } // v453: exclusive buckets
   }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
@@ -9392,6 +9400,7 @@ function statsBar(){
   const bl=document.getElementById('sBull'); if(bl)bl.textContent=bull;
   const br=document.getElementById('sBear'); if(br)br.textContent=bear;
   _set('sBrk',_brk); _set('sVR',_vrec); _set('sCx',_cross); _set('sInst',_inst); _set('sBlk',_blk); _set('sDist',_dist); // v358
+  _set('sT250',_t250); _set('sT1M',_t1m);              // v458
   const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); _set('sEvE',_evReady?_eve:'–'); // v453: – until this view has been evidence-checked
 }
 
@@ -9545,7 +9554,7 @@ async function fetchHistoryUpdate(exch,ticker,apiKey,fullDays){
         const _s0=_sortedCloses(stored.rows);
         const _ld0=_s0.length?_s0[_s0.length-1].d:null;
         const _age0=_ld0?Math.round((Date.now()-Date.parse(_ld0+'T00:00:00Z'))/86400000):999;
-        if(_age0<=5)return stored.rows;                  // claim backed by evidence — skip the download
+        if(_age0<=5&&_histReaches(stored.rows,(window._exchDataDate||{})[exch]))return stored.rows;                  // claim backed by evidence — skip the download
       }
       const sorted=_sortedCloses(stored.rows);
       const lastD=sorted.length?sorted[sorted.length-1].d:null;
@@ -9606,7 +9615,16 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
         staleFallback=stored.rows; // v238: ALWAYS keep the stored copy as the network-failure fallback — a failed forced-live refresh now degrades to stale data instead of a "?"
         if(!forceNet){
         const _today=new Date().toISOString().slice(0,10);
-        if(stored.saved===_today){ _histCache.set(ckey,stored.rows); return stored.rows; }
+        // v458: the stamp is a claim about when this file was WRITTEN, not about
+        // what it CONTAINS. Open the app on Monday morning, before the ASX close:
+        // the store is correctly complete to Friday and the heal below re-stamps it
+        // Monday. Re-open Monday evening, once the feed has moved on, and the old
+        // one-line check served Friday's rows as fresh — which is why the main table
+        // showed Monday while every history modal insisted today wasn't loaded.
+        // Stamped AND current → the fast path. Stamped but behind → fall into the
+        // heal; see the stamp's second, still-valid meaning just past it.
+        const _stampedToday=(stored.saved===_today);
+        if(_stampedToday&&_histReaches(stored.rows,(window._exchDataDate||{})[exch])){ _histCache.set(ckey,stored.rows); return stored.rows; }
         // PREFER-OFFLINE: when the app is in offline mode (or the user explicitly
         // asked to lean on saved data), don't grind through a slow live fetch for
         // every share — use what's on disk immediately. This is what stops a full
@@ -9648,6 +9666,11 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
             }
           }
         }catch(e){/* heal is best-effort; fall through to live fetch */}
+        // v458: the heal had its chance and could not help — a suspended share, a
+        // gap wider than its window, or no quote for this ticker in the loaded list.
+        // The stamp's other meaning still stands: this file was downloaded today, so
+        // downloading it again would cost a request and learn nothing. Serve it.
+        if(_stampedToday){ _histCache.set(ckey,stored.rows); return stored.rows; }
         // v236: prefer-offline is decided AFTER the zero-network heal, so saved
         // data keeps gaining today's bar and the store stays current. Explicit
         // offline mode always serves the stored rows. Prefer-offline serves them
@@ -9910,6 +9933,30 @@ function _sortedCloses(history){
   // Plain string compare — ISO dates sort correctly and it's ~20× faster than localeCompare.
   const rows=history.slice().filter(q=>isFinite(gc(q))).sort((a,b)=>{const da=gd(a),db=gd(b);return da<db?-1:da>db?1:0;}); // oldest→newest
   return rows.map(q=>({d:gd(q).slice(0,10),o:go(q),c:gc(q),hi:gh(q),lo:gl(q),v:gv(q)}));
+}
+// v458: a stored history carries TWO dates — the day it was SAVED (histPut's
+// stamp) and the newest day it actually CONTAINS. They are different claims,
+// and the disk cache used to treat the first as proof of the second.
+//
+// Open the app on Monday morning, before the ASX close: the store is correctly
+// complete to Friday and the same-day heal re-stamps it Monday. Re-open Monday
+// evening, once the feed has moved on, and the stamp says "saved today" while
+// the rows still end on Friday — which is why the main table showed Monday's
+// session and every history modal insisted today wasn't loaded.
+//
+// The stamp is a claim; the newest bar is the evidence. Believe the stamp only
+// when the rows reach the exchange's known data date. When that date is UNKNOWN
+// the stamp keeps its benefit of the doubt: an unknown date is not evidence of
+// staleness, and calling it stale would turn a cache hit into a 3,000-share
+// download. Never throws — a coverage check must not be able to block a hit.
+function _histReaches(rows,dd){
+  try{
+    if(!dd)return true;                                   // nothing to check against
+    if(!rows||!rows.length)return false;
+    const s=_sortedCloses(rows);
+    const last=s.length?s[s.length-1].d:null;
+    return !!(last&&last>=dd);                            // ISO dates compare as strings
+  }catch(e){ return true; }
 }
 function _sma(arr,n){if(arr.length<n)return null;let s=0;for(let i=arr.length-n;i<arr.length;i++)s+=arr[i];return s/n;}
 function _rsi(closes,period){
