@@ -1545,7 +1545,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-463-open';
+const APP_VERSION='2026.07.27-464-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4694,9 +4694,16 @@ function showShareDetail(ticker,days){
           // and the v307 empty-map retry never fired.
           let _needNet=false;
           try{
-            const _sd=(Array.isArray(s.series)?s.series:[]).slice(-10).map(r=>String(r.d).slice(0,10));
+            // v464: judge the window the user is actually LOOKING at, not a
+            // fixed 10. The old test sampled the last ten days and only
+            // repaired when FEWER THAN HALF had OHLC — but the daily heal
+            // supplies 5-7 good recent days, so coverage sat exactly at the
+            // threshold, the repair never fired, and every older row dashed
+            // forever. Repair when a fifth of the visible window is missing.
+            const _win=Math.max(20,Math.min(200,(+days||20)));
+            const _sd=(Array.isArray(s.series)?s.series:[]).slice(-_win).map(r=>String(r.d).slice(0,10));
             const _cov=_sd.filter(d=>map[d]&&(map[d].o||map[d].h||map[d].l)).length;
-            _needNet=(_sd.length>0)?(_cov<Math.ceil(_sd.length/2)):(!Object.keys(map).length);
+            _needNet=(_sd.length>0)?(_cov<Math.ceil(_sd.length*0.8)):(!Object.keys(map).length);
           }catch(e){ _needNet=!Object.keys(map).length; }
           if(_needNet && !forceNet){ s._ohlcLoading=false; _ohlcFetch(true); return; } // slim/misaligned saved rows → one LIVE retry
           if(Object.keys(map).length){ s._ohlcMap=map; s._ohlcRetryAt=0; }
@@ -4775,7 +4782,7 @@ function showShareDetail(ticker,days){
   // when no range is set or today falls inside it. Its Vol-vs-Avg uses the SAME
   // baseline average as the dated rows so the numbers agree.
   if(!_suppressToday && !histHasToday && (!ranged || ((!from||from<=todayStr)&&(!to||to>=todayStr))))
-    rowsData.push({d:'Today',o:openFor(todayStr)||(s.open>0?s.open:null),h:((ohlcFor(todayStr)||{}).h)||((s._q&&s._q.hi>0)?s._q.hi:null),l:((ohlcFor(todayStr)||{}).l)||((s._q&&s._q.lo>0)?s._q.lo:null),c:s.price,chg:s.chgPct||0,v:s.volume,vp:(baseAvg>0&&s.volume>0)?Math.round(((s.volume-baseAvg)/baseAvg)*100):null,ps:s.daysUp||0,vs:s.volDays||0,acc:s.accum10!=null?s.accum10:'—',sc:s.watchScore!=null?s.watchScore:'—',live:true});
+    rowsData.push({d:'Today',o:openFor(todayStr)||(s.open>0?s.open:null),h:((ohlcFor(todayStr)||{}).h)||((s._q&&s._q.h>0)?s._q.h:null),l:((ohlcFor(todayStr)||{}).l)||((s._q&&s._q.l>0)?s._q.l:null),c:s.price,chg:s.chgPct||0,v:s.volume,vp:(baseAvg>0&&s.volume>0)?Math.round(((s.volume-baseAvg)/baseAvg)*100):null,ps:s.daysUp||0,vs:s.volDays||0,acc:s.accum10!=null?s.accum10:'—',sc:s.watchScore!=null?s.watchScore:'—',live:true});
   for(let i=ser.length-1;i>=0;i--){
     const d=ser[i].d;
     if(ranged){
@@ -5560,7 +5567,7 @@ async function dipFinder(code){
     <table style="width:100%;border-collapse:collapse;font-size:11px;">
       <thead><tr style="color:var(--muted);font-size:9px;text-transform:uppercase;"><th style="text-align:left;padding:4px 8px;">Limit under close</th><th style="text-align:right;padding:4px 8px;">Days it fills</th><th style="text-align:right;padding:4px 8px;">Avg +5d after fill</th><th style="text-align:right;padding:4px 8px;">n</th></tr></thead>
       <tbody>${rowsHtml}</tbody></table>
-    <div style="font-size:11px;color:var(--gold);margin-top:10px;">Suggested starting depth for ${tk}: <b>~${D.suggest}%</b> under the close (its median dip). Type it into 🎣, or use it for a 🎯 pick's buy price.</div>
+    <div style="font-size:11px;color:var(--gold);margin-top:10px;">Suggested starting depth for ${tk}: <b>~${D.suggest}%</b> under the close (its median dip)${(function(){try{const _p=_tickRound(D.s.price*(1-D.suggest/100),D.s.exchange);if(!(_p>0)||_p>=D.s.price)return '';const _e=(((D.s.price-_p)/D.s.price)*100).toFixed(1);return ' — on a $'+D.s.price+' close that is a limit of <b>$'+_p.toFixed(D.s.price<1?3:2)+'</b> ('+_e+'% once snapped to a real tick)';}catch(e){return '';}})()}. Type it into 🎣, or use it for a 🎯 pick's buy price.</div>
     <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5;">One number never fits all shares — a 3-cent explorer swings 5–10% a day, a bank barely 1%. Measure the share you actually mean to buy. End-of-day estimates, not advice.</div>
   `,'📉 Dip Finder');
 }
@@ -5574,12 +5581,42 @@ async function dipFinderInline(tk){
   if(!D.ok){ bx.innerHTML='<div style="font-size:9px;color:var(--dim);line-height:1.5;">'+D.why+'</div>'; return; }
   const s=D.s, dec=s.price<1?3:2;
   const fr=x=>{ const row=D.table.filter(r2=>r2.x<=x).pop(); return row?row.fillRate:null; };
-  const chip=x=>{ const px=(s.price*(1-x/100)).toFixed(dec); const f=fr(x);
-    return '<button type="button" onclick="_useDipPx(\''+px+'\')" style="padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 10px var(--sans);cursor:pointer;">'+x+'% → $'+px+(f!=null?' <span style=\'font-weight:400;color:var(--dim)\'>(fills ~'+f+'% of days)</span>':'')+'</button>'; };
+  // v464 — a suggested price has to be a price you can actually type into a
+  // broker. Shares don't trade in arbitrary fractions: on the ASX, between
+  // 10c and $2 the step is half a cent, so $0.149 simply does not exist.
+  // Snap every suggestion to the share's real step, then say what dip that
+  // snapped price genuinely represents — which is NOT always the % asked for.
+  const _step=(typeof _priceStep==='function')?_priceStep(s.price,s.exchange):0;
+  const _snap=(typeof _tickRound==='function')?function(p){ return _tickRound(p,s.exchange); }:function(p){ return p; };
+  const _dipChips=function(depths){
+    var seen={}, out=[], tooFine=0;
+    depths.forEach(function(x){
+      var px=_snap(s.price*(1-x/100));
+      if(!(px>0))return;
+      if(px>=s.price){ tooFine++; return; }              // dip smaller than one step — unreachable
+      var key=px.toFixed(4); if(seen[key])return; seen[key]=1;
+      var eff=+(((s.price-px)/s.price)*100).toFixed(1);  // what this price REALLY is
+      out.push({x:x,px:px,eff:eff,f:fr(x)});
+    });
+    return {list:out,tooFine:tooFine};
+  };
+  const chip=c=>{
+    const pxs=c.px.toFixed(dec);
+    const tip='$'+pxs+' is '+c.eff+'% under the last close — the nearest real price to your '+c.x+'% target'
+      +(_step>0?' (this share trades in $'+_step.toFixed(_step<0.01?3:2)+' steps)':'')+'.';
+    return '<button type="button" title="'+tip.replace(/"/g,'&quot;')+'" onclick="_useDipPx(\''+pxs+'\')" style="padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 10px var(--sans);cursor:pointer;">$'+pxs+' <span style=\'font-weight:400;color:var(--dim)\'>· '+c.eff+'% under'+(c.f!=null?' · fills ~'+c.f+'% of days':'')+'</span></button>'; };
   const depths=[D.suggest]; if(D.suggest!==2)depths.push(2); if(D.suggest!==3)depths.push(3);
   bx.innerHTML='<div style="font-size:9.5px;color:var(--muted);line-height:1.6;margin-top:2px;">📉 '+tk+' median dip below the previous close: <b style="color:var(--text)">'+D.medDip.toFixed(2)+'%</b> (last '+D.nPts+' sessions). Tap a depth to use it as your limit price:</div>'
-    +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">'+depths.map(chip).join('')+'</div>'
-    +'<div style="font-size:9px;color:var(--dim);margin-top:4px;">'+D.suggest+'% is its median dip. Deeper = better price but fewer fills, and fills cluster on weak days. Full table (with the +5-day after-fill test): 📉 Dip Finder in ⚙ bot settings. Estimates, not advice.</div>';
+    +(function(){
+        var R=_dipChips(depths);
+        var html='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">'+R.list.map(chip).join('')+'</div>';
+        if(!R.list.length)
+          html+='<div style="font-size:9px;color:var(--orange);margin-top:4px;">No dip is reachable here — every depth lands on the last close once snapped to this share\'s $'+(_step||0).toFixed((_step||0)<0.01?3:2)+' price step. Bid at the close, or wait for a lower one.</div>';
+        else if(R.tooFine)
+          html+='<div style="font-size:9px;color:var(--dim);margin-top:4px;">Prices snap to this share\'s $'+(_step||0).toFixed((_step||0)<0.01?3:2)+' step, so shallower depths land back on the close and aren\'t shown — the smallest dip you can actually bid is '+R.list[0].eff+'%.</div>';
+        return html;
+      })()
+    +'<div style="font-size:9px;color:var(--dim);margin-top:4px;">'+D.suggest+'% is its median dip. Deeper = better price but fewer fills, and fills cluster on weak days. Prices shown are snapped to a real tick, so the % beside each is the dip you would truly be bidding. Full table (with the +5-day after-fill test): 📉 Dip Finder in ⚙ bot settings. Estimates, not advice.</div>';
 }
 window._useDipPx=function(px){
   try{ if(window._buyType!=='limit')_setBuyType('limit'); }catch(e){} // v320: a dip price IS a limit order — switch mode + reveal the price box
