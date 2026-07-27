@@ -1421,7 +1421,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume 50–100% above their average (1.5×–2×) — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Trend</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div><div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div><div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div><div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div><div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div><div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div><div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover (volume over 30k and at least 1.5× its average). An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div><div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">⚠ Caution</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="sBear">0</div><div class="sl">Bearish</div></div><div class="stat statclick" onclick="statFilter('floor')" title="In the bottom 10% of its trading-range window — near its floor. A floor can hold or break: research, not a buy signal."><div class="sv" id="sFloor">0</div><div class="sl">Near Floor</div></div><div class="stat statclick" onclick="statFilter('dist')" title="📉 Possible distribution — falling on heavy volume (down today, volume at least 1.8× its average). A WARNING estimate, not advice."><div class="sv r" id="sDist">0</div><div class="sl">📉 Dist?</div></div></div></div>
-    <div class="radar-grp rg-more" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Show only shares flagged TODAY by at least one signal whose replayed record is SOLID (200+ fires over the stored year — the 🧪 All-scans card's top tier). Some days this shows nothing: that's an honest &quot;no strong evidence today&quot;, not a fault. Grading runs automatically after a scan. Shows – until this view has been evidence-checked — tapping the tile checks it."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID signals</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Show shares flagged today by a signal graded SOLID or PROMISING (50+ fires in the replayed year). A looser evidence lens than SOLID-only. Shows – until this view has been evidence-checked — tapping the tile checks it. Research, not advice."><div class="sv gold" id="sEvP">–</div><div class="sl">🟢🟡 SOLID or PROMISING</div></div></div></div>
+    <div class="radar-grp rg-more" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — 200+ fires over the replayed year, the 🧪 All-scans card's top tier. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — 50+ fires in the replayed year. Worth watching, not yet proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares flagged today ONLY by unproven signals — under 50 fires, so luck can still explain their record. Curiosity, not evidence: research with extra care. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ TOO EARLY</div></div></div></div>
   </div>
 
   <div id="activeScanBanner"></div>
@@ -1542,7 +1542,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-452-open';
+const APP_VERSION='2026.07.27-453-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9151,7 +9151,7 @@ function printPDFRows(rows,title){
 // combine them (e.g. Gainers + Vol ≥200% + Up 2+ Days). Click one again to
 // turn just it off; click "Showing" to clear all. Gainers/Losers are mutually
 // exclusive (a share can't be both).
-let _statOn={tsolid:false,tprom:false,gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false};
+let _statOn={tsolid:false,tprom:false,tearly:false,gainers:false,losers:false,vol:false,vol50:false,dir:false,up2:false,qm:false,vs2:false,sc7:false,hi52:false,floor:false,ma200:false,brk:false,vrec:false,cross:false,inst:false,blk:false,dist:false};
 function statFilter(which){
   if(which==='all'){ Object.keys(_statOn).forEach(k=>_statOn[k]=false); window._statBullBear=null; }
   else if(which==='bullish'||which==='bearish'){
@@ -9166,11 +9166,9 @@ function statFilter(which){
     if(which==='losers'&&_statOn.losers)_statOn.gainers=false;
     if(which==='hi52'&&_statOn.hi52)_statOn.floor=false;          // can't be at high AND floor
     if(which==='floor'&&_statOn.floor)_statOn.hi52=false;
-    if(which==='tsolid'&&_statOn.tsolid)_statOn.tprom=false;      // v452: one evidence lens at a time
-    if(which==='tprom'&&_statOn.tprom)_statOn.tsolid=false;
   }
   // v452: an evidence tile needs the day graded and the view stamped
-  if((which==='tsolid'||which==='tprom')&&_statOn[which]){
+  if((which==='tsolid'||which==='tprom'||which==='tearly')&&_statOn[which]){
     try{
       if(_apGrades()){
         if(typeof watchViewOn!=='undefined'&&watchViewOn){ _evMarkWatch(); }
@@ -9234,8 +9232,13 @@ function _statPass(s){
   if(_statOn.inst && !s.instBuy)return false;
   if(_statOn.blk && !s.blockTrade)return false;
   if(_statOn.dist && !s.sigDist)return false;
-  if(_statOn.tsolid && !(s._evD===_evDD()&&s._evTier==='SOLID'))return false;   // v452: flagged today by a SOLID-graded signal
-  if(_statOn.tprom && !(s._evD===_evDD()&&(s._evTier==='SOLID'||s._evTier==='PROMISING')))return false;
+  if(_statOn.tsolid||_statOn.tprom||_statOn.tearly){               // v453: evidence buckets — best tier today, tap any combination
+    var _evT=(s._evD===_evDD())?s._evTier:null, _evOk=false;
+    if(_statOn.tsolid&&_evT==='SOLID')_evOk=true;
+    if(_statOn.tprom&&_evT==='PROMISING')_evOk=true;
+    if(_statOn.tearly&&_evT==='TOO EARLY')_evOk=true;
+    if(!_evOk)return false;
+  }
   return true;
 }
 function _applyStatFilters(){
@@ -9340,7 +9343,7 @@ function statsBar(){
   // v295: one pass over the list instead of ~15 separate sweeps — identical numbers.
   let g=0,l=0,v200=0,dir=0,c2=0,v50=0,qm=0,vs=0,s7=0,hi=0,fl=0,ma=0,bull=0,bear=0;
   let _brk=0,_vrec=0,_cross=0,_inst=0,_blk=0,_dist=0; // v358: report-card signal tiles
-  let _evs=0,_evp=0,_evAny=false; const _evD0=(typeof _evDD==='function')?_evDD():''; // v452
+  let _evs=0,_evp=0,_eve=0,_evAny=false; const _evD0=(typeof _evDD==='function')?_evDD():''; // v452
   for(const s of d){
     if(s.chgPct>0)g++; if(s.chgPct<0)l++;
     if(s.volPct>=200)v200++;
@@ -9356,7 +9359,7 @@ function statsBar(){
     if(_isBullish(s))bull++;
     if(_isBearish(s))bear++;
     if(s.sigBreakout)_brk++; if(s.sigVolRecord)_vrec++; if(s.sigCross)_cross++; if(s.instBuy)_inst++; if(s.blockTrade)_blk++; if(s.sigDist)_dist++; // v358
-    if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; if(s._evTier==='SOLID'||s._evTier==='PROMISING')_evp++; } // v452
+    if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; else if(s._evTier==='PROMISING')_evp++; else if(s._evTier==='TOO EARLY')_eve++; } // v453: exclusive buckets
   }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
   document.getElementById('sG').textContent=g;
@@ -9370,7 +9373,7 @@ function statsBar(){
   const bl=document.getElementById('sBull'); if(bl)bl.textContent=bull;
   const br=document.getElementById('sBear'); if(br)br.textContent=bear;
   _set('sBrk',_brk); _set('sVR',_vrec); _set('sCx',_cross); _set('sInst',_inst); _set('sBlk',_blk); _set('sDist',_dist); // v358
-  const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); // v452: – until this view has been evidence-checked
+  const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); _set('sEvE',_evReady?_eve:'–'); // v453: – until this view has been evidence-checked
 }
 
 // Currency map
@@ -16766,7 +16769,7 @@ function _evAfterWarm(){
   try{ if(window._activeScan&&!window._activeScan.running)_renderScanBanner(); }catch(e){}
   try{
     if(typeof watchViewOn!=='undefined'&&watchViewOn){
-      if(_statOn.tsolid||_statOn.tprom)_evMarkWatch();
+      if(_statOn.tsolid||_statOn.tprom||_statOn.tearly)_evMarkWatch();
       try{ renderWatch(); }catch(e){}
       try{ statsBar&&statsBar(); }catch(e){}
       return;
@@ -16774,10 +16777,10 @@ function _evAfterWarm(){
   }catch(e){}
   try{
     var base=(window._statBaseValid&&window._statBase)?window._statBase:((typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered:[]);
-    if(base.length&&(window._evWantMark||_statOn.tsolid||_statOn.tprom))_evMark(base);
+    if(base.length&&(window._evWantMark||_statOn.tsolid||_statOn.tprom||_statOn.tearly))_evMark(base);
   }catch(e){}
   try{
-    if(_statOn.tsolid||_statOn.tprom){ _applyStatFilters(); }
+    if(_statOn.tsolid||_statOn.tprom||_statOn.tearly){ _applyStatFilters(); }
     else{
       render&&render(); statsBar&&statsBar();
       var _sm=document.getElementById('appModal');
