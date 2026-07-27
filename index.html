@@ -1541,7 +1541,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-449-open';
+const APP_VERSION='2026.07.27-450-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5853,6 +5853,49 @@ function _apRunPicks(r,ent,maxN){
 //  · CUSTOMER builds only (the beta's test account must not feed the queue)
 //  · silent + non-blocking — offline, no Worker, or a locked gate changes nothing
 //  · the server dedupes by order id (day-TICKER-n), so re-runs can't duplicate
+// ═══ v450 — the auto-pilot's EXITS ride the same bridge as its buys ════════
+// When the 🤖 account auto-sells, the sale is queued as a SELL LIMIT at the
+// engine's fill price. Same guards as the buy push: customer copy only, ASX
+// only (the bridge's safety gates are built for Stake-AU), and ONLY the bot's
+// account — a manual sale on YOUR account never queues anything. The worker's
+// _sanOrder and the bridge's safety layer both already understand SELL; the
+// bridge's daily spend caps are deliberately buy-only, so exits are never
+// blocked by a spending limit.
+function _apQueueSellPush(sells){
+  try{
+    if(APP_VERSION.indexOf('-beta')>=0)return;                    // customer only
+    if((currentExch||'ASX')!=='ASX')return;                       // ASX only, like the buys
+    if(!(Array.isArray(sells)&&sells.length))return;
+    if(!(typeof DATA_PROXY==='string'&&DATA_PROXY))return;
+    const byDay={};
+    sells.slice(0,24).forEach(function(x){
+      const d=String(x.d||_todayLocal()).slice(0,10);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
+      (byDay[d]=byDay[d]||[]).push(x);
+    });
+    Object.keys(byDay).forEach(function(day){
+      const orders=byDay[day].map(function(x,i){
+        const qty=Math.floor(+x.qty), px=+x.px;
+        if(!(qty>0&&px>0))return null;
+        const ex=String(x.ex||'ASX');
+        let lim=px; try{ lim=_tickRound(px,ex); }catch(e){}
+        const whyTxt={target:'🎯 target hit','target-scale':'🎯 scale-out',stop:'🛑 stop',trail:'🪤 trailing stop',time:'⏱ time exit'}[x.why]||x.why;
+        return { id:day+'-'+String(x.tk||'').toUpperCase()+'-SELL-'+(i+1),
+          action:'SELL', ticker:String(x.tk||'').toUpperCase(), exchange:ex,
+          qty:qty, order_type:'LIMIT', limit:(lim>0?lim:px),
+          target:null, stop:null,
+          note:'auto-pilot exit · '+whyTxt };
+      }).filter(Boolean);
+      if(!orders.length)return;
+      fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:day,orders:orders})})
+        .then(function(res){
+          if(!(res&&res.ok))return;
+          try{ const ls=document.getElementById('loadStatus');
+            if(ls&&/Auto-sold/.test(ls.textContent))ls.innerHTML+=' <span style="color:var(--dim)">· 📤 exit'+(orders.length>1?'s':'')+' queued for the bridge</span>'; }catch(e){}
+        }).catch(function(){});
+    });
+  }catch(e){}
+}
 function _apQueuePush(ent,r){
   try{
     if(APP_VERSION.indexOf('-beta')>=0)return;                    // customer only
@@ -6202,6 +6245,7 @@ async function checkAutoSellTargets(acct){
   if(!targeted.length)return [];
   window._tgtChecking=true;
   const autoSold=[];let changed=false;
+  const _qSells=[];   // v450: completed AUTO-account sales, queued to the bridge after the save
   // A freshly-bought holding must not auto-sell on the very next data check —
   // morning/opening data is often glitchy, and a surprise next-day sale on a
   // share you just bought is almost never what the user intended. Require at
@@ -6359,10 +6403,12 @@ async function checkAutoSellTargets(acct){
           if(i>=0)p.holdings.splice(i,1);
           autoSold.push(`${h.ticker} ${hit.why==='stop'?'🛑 stopped out':(hit.why==='time'?'⏱ time exit':'🎯 target hit')} at ${fmtP(hit.fill,h.currency)} on ${hit.date} (P/L ${plAbs>=0?'+':''}${plAbs})`);
         }
+        if(_isAuto){ try{ _qSells.push({tk:h.ticker,ex:h.exchange||currentExch||'ASX',qty:_sellQty,px:hit.fill,why:(_partial?'target-scale':hit.why),d:hit.date}); }catch(e){} }   // v450
         changed=true; // v366: only mark changed when something actually changed — the old unconditional flag forced a save every run, which clobbered concurrent buys made while this checker was mid-fetch
       }
     }
     if(changed)_paperSave(_paperPrune(p),ACCT);
+    if(_isAuto&&_qSells.length){ try{ _apQueueSellPush(_qSells); }catch(e){} }   // v450: the bridge hears about exits too
     if(autoSold.length){
       const ls=document.getElementById('loadStatus');
       if(ls)ls.innerHTML=`<span style="color:var(--gold)">Auto-sold (intraday): ${autoSold.join(' · ')}</span> — see 💼 Portfolio history.`;
@@ -14441,6 +14487,40 @@ async function pullbackScan(){
 }
 // ═══ v276 — "What's changed for YOU": your lists checked against each fresh day ═══
 function _myWatchSet(){ const set={}; try{ Object.values(watchlists||{}).forEach(l=>{ Object.keys(l||{}).forEach(t=>{set[t]=1;}); }); }catch(e){} return set; }
+// ═══ v450 — sell-side warning signs ════════════════════════════════════════
+// The buy side got the golden cross and the 52-week high in v447; holdings
+// deserve their mirror images. Both warnings need 200+ stored days — where the
+// history is shallow they stay SILENT rather than guess.
+function _sellWarn(s){
+  var out=[];
+  try{
+    var ser=s&&s.series; if(!Array.isArray(ser)||ser.length<200)return out;
+    var n=ser.length, i, c;
+    // prefix sums of closes for O(1) moving averages
+    var P=new Float64Array(n+1);
+    for(i=0;i<n;i++)P[i+1]=P[i]+(ser[i].c>0?ser[i].c:0);
+    var ma=function(end,w){ return (end+1>=w)?((P[end+1]-P[end+1-w])/w):null; };
+    var last=n-1;
+    // ✝️ death cross: 50d fell DOWN through 200d within the last 5 sessions
+    var m50=ma(last,50), m200=ma(last,200);
+    if(m50!=null&&m200!=null&&m50<m200){
+      for(i=1;i<=5&&last-i>=199;i++){
+        var p50=ma(last-i,50), p200=ma(last-i,200);
+        if(p50!=null&&p200!=null&&p50>=p200){
+          out.push({sev:0,icon:'✝️',txt:'death cross — its 50-day average has fallen BELOW its 200-day within the last week. The golden cross’s dark twin (lesson 41): a classic warning the long trend may be turning. A prompt to review, not an order to sell.'});
+          break;
+        }
+      }
+    }
+    // 📉 new 52-week low: today closed below every close of the prior 250 days
+    var lo0=Math.max(0,last-250), lowPrev=Infinity;
+    for(i=lo0;i<last;i++){ c=ser[i].c; if(c>0&&c<lowPrev)lowPrev=c; }
+    if(isFinite(lowPrev)&&ser[last].c>0&&ser[last].c<lowPrev){
+      out.push({sev:0,icon:'📉',txt:'closed at a NEW 52-WEEK LOW — below every close of the past year. The mirror of the 📏 high: no support level underneath from the last 250 days. Worth an honest look at why you still hold it.'});
+    }
+  }catch(e){}
+  return out;
+}
 function myChangesData(){
   window._pfCtx='main'; // v312: the briefing's holdings checks read YOUR account; bot activity is added separately below
   const out={items:[],lists:[],dataDate:null,holdN:0,watchN:0};
@@ -14460,6 +14540,7 @@ function myChangesData(){
     if(h.target>0&&s.price>=h.target) addH(0,'🎯',h.ticker,`reached your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
     else if(h.target>0&&s.price>=h.target*0.97) addH(1,'🎯',h.ticker,`is within 3% of your target (${fmtP(h.target,cur)}) — closed ${fmtP(s.price,cur)}.`);
     if(Math.abs(chg)>=3) addH(2,chg>0?'📈':'📉',h.ticker,`(your holding) moved ${chg>0?'+':''}${chg.toFixed(1)}% today${(s.volCalced&&s.volPct>=100)?` on ${Math.round(s.volPct)}% above-average volume`:''}.`);
+    try{ _sellWarn(s).forEach(function(w){ addH(w.sev,w.icon,h.ticker,w.txt); }); }catch(e){}   // v450: ✝️ death cross / 📉 new yearly low on a holding
     if(s.annConfirmed&&(s.annNews5d||0)>0) addH(1,'📢',h.ticker,`(your holding) has ${s.annNews5d} confirmed price-sensitive announcement${s.annNews5d>1?'s':''} in the last 5 days${s.annHeadline?` — “${String(s.annHeadline).slice(0,70)}”`:''}. Tap to verify.`);
     if(_rul&&_rul.enabled){ const _val=h.qty*s.price;
       if(_rul.maxPosPct>0&&_acct>0&&(_val/_acct)*100>_rul.maxPosPct+0.5) addH(2,'📦',h.ticker,`is ${Math.round((_val/_acct)*100)}% of your account — over your ${_rul.maxPosPct}% max-size rule.`);
