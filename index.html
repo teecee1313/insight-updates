@@ -1544,7 +1544,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-456-open';
+const APP_VERSION='2026.07.27-457-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16663,6 +16663,12 @@ function _apGradeRow(R,key,win){
 // helpers bring those grades out of the card and onto the scans themselves.
 // ONE source of truth for the tier thresholds (the card now uses these too).
 var _EV_MIN_SOLID=200,_EV_MIN_OK=50;
+// v457: the evidence tiers shipped CUSTOMER-FIRST (v452) while the maths settled.
+// They have settled, so beta gets them too — through one switch, so there is a
+// single line to flip if that ever needs reversing. This is NOT the v430 fence
+// around the three report cards (#cardCards); that one stands.
+var _EV_ON_BETA=true;
+function _evBetaBlocked(){ try{ return !_EV_ON_BETA&&APP_VERSION.indexOf('-beta')>=0; }catch(e){ return false; } }
 function _evTierOf(n){ return n>=_EV_MIN_SOLID?['SOLID','var(--green)']:n>=_EV_MIN_OK?['PROMISING','var(--gold)']:['TOO EARLY','var(--dim)']; }
 var _EV_TIP={'SOLID':'SOLID — fired 200+ times in the replayed year. Enough experiments that the record is unlikely to be luck.','PROMISING':'PROMISING — 50+ fires. Worth watching; not yet proven.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the numbers look like, luck can still explain them.'};
 function _evDD(){ try{ return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||''); }catch(e){ return ''; } }
@@ -16692,7 +16698,7 @@ function _evRuleTier(key){
 // The small tier chip that rides on a scan banner / report header.
 function _evBannerChip(key){
   try{
-    if(!key||APP_VERSION.indexOf('-beta')>=0)return '';
+    if(!key||_evBetaBlocked())return '';
     var t=_evRuleTier(key);
     if(!t)return window._evWarming?'<span style="border:1px solid var(--border);color:var(--dim);border-radius:4px;padding:0 5px;font-size:9px;font-weight:700;margin-left:6px;white-space:nowrap;">🧪 grading…</span>':'';
     var tip='Evidence tier for the graded version of this scan ("'+_evRuleName(key)+'"), from replaying the stored year (🧪 All-scans report card). '+_EV_TIP[t[0]]+' Fired '+t[2]+' times in that year. A record of the past, not a prediction — research, not advice.';
@@ -16704,7 +16710,7 @@ function _evBannerChip(key){
 // same 💧 floor). Best tier + why land on the share for chips and the filter.
 function _evMark(shares){
   try{
-    if(APP_VERSION.indexOf('-beta')>=0)return false;
+    if(_evBetaBlocked())return false;
     var R=_apGrades(); if(!R||!Array.isArray(shares)||!shares.length)return false;
     var dd=_evDD();
     shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=dd; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; } });
@@ -16755,7 +16761,7 @@ function _evMark(shares){
 // The per-share chip for table rows and the Top 20 panel.
 function _evRowChip(s){
   try{
-    if(!s||!s._evTier||s._evD!==_evDD()||APP_VERSION.indexOf('-beta')>=0)return '';
+    if(!s||!s._evTier||s._evD!==_evDD()||_evBetaBlocked())return '';
     var col=s._evTier==='SOLID'?'var(--green)':s._evTier==='PROMISING'?'var(--gold)':'var(--dim)';
     var n=s._evTier==='SOLID'?s._evSolidN:s._evTier==='PROMISING'?s._evPromN:0;
     var tip='⚖️ Evidence check — of the graded signals firing on this share today, the strongest record is '+s._evTier+'. Firing now: '+(s._evWhy||'none')+'. Tiers come from replaying the stored year (🧪 All-scans report card). Research, not advice.';
@@ -16780,11 +16786,11 @@ function _evReplayShared(){
   window._scReplayP=p; return p;
 }
 // Quiet warm-up: run (or reuse) the day's grading, then refresh whatever is
-// showing. Customer copy only; backs off for the rest of the data day if the
+// showing. Both builds since v457; backs off for the rest of the data day if the
 // replay finds too little stored history to grade (fail-closed, no hammering).
 function _evWarm(){
   try{
-    if(APP_VERSION.indexOf('-beta')>=0)return;
+    if(_evBetaBlocked())return;
     if(typeof _scReplay!=='function')return;
     if(_apGrades()){ _evAfterWarm(); return; }
     if(window._evWarmFail===_evWarmKey())return;
@@ -16834,8 +16840,9 @@ function _evAfterWarm(){
     }
   }catch(e){}
 }
-// Beta never shows the Evidence radar tiles (grading is a customer feature).
-(function(){ try{ if(APP_VERSION.indexOf('-beta')>=0){ var _h=function(){ var b=document.getElementById('evGrp'); if(b)b.style.display='none'; }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_h); else _h(); } }catch(e){} })();
+// Kept as the one visible consequence of _EV_ON_BETA: flip that to false and
+// the tiles leave the radar on beta again, engine and all.
+(function(){ try{ if(_evBetaBlocked()){ var _h=function(){ var b=document.getElementById('evGrp'); if(b)b.style.display='none'; }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_h); else _h(); } }catch(e){} })();
 var _AP_SRC_KEYS=['smart','top20','unus','sharp','vol','recov','quiet','pull','strong','accum','hiscore','hi52','gold','rsirec','squeeze','rsl','newsvol'];
 function _apSrcKey(src){ return (_AP_SRC_KEYS.indexOf(src)>=0)?src:'smart'; }
 function _apBestScan(R,win){
