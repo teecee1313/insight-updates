@@ -1545,7 +1545,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-470-open';
+const APP_VERSION='2026.07.27-471-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9451,7 +9451,11 @@ function statsBar(){
   const br=document.getElementById('sBear'); if(br)br.textContent=bear;
   _set('sBrk',_brk); _set('sVR',_vrec); _set('sCx',_cross); _set('sInst',_inst); _set('sBlk',_blk); _set('sDist',_dist); // v358
   _set('sT250',_t250); _set('sT1M',_t1m);              // v458
-  const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); _set('sEvE',_evReady?_eve:'–'); // v453: – until this view has been evidence-checked
+  // v471c: a failed scan still stamps the day, so that the app stops re-asking
+  // on every repaint — which means _evAny alone can be true for a view nobody
+  // managed to check. Without this clause the tiles print a confident 0 where
+  // the honest answer is a dash.
+  const _evReady=(typeof _apGrades==='function')&&!!_apGrades()&&_evAny&&!window._scDayFail; _set('sEvS',_evReady?_evs:'–'); _set('sEvP',_evReady?_evp:'–'); _set('sEvE',_evReady?_eve:'–'); // v453: – until this view has been evidence-checked
   _set('sgHi52',_evReady?_sgN.hi52:'–'); _set('sgGold',_evReady?_sgN.gold:'–'); _set('sgRsi',_evReady?_sgN.rsirec:'–');
   _set('sgSqz',_evReady?_sgN.squeeze:'–'); _set('sgRsl',_evReady?_sgN.rsl:'–'); _set('sgNews',_evReady?_sgN.newsvol:'–'); // v460
   try{ _evSkipNote(_evReady,_evSkipL,_evSkipH,d.length,_evThinN,_evNegN); }catch(e){}   // v459 · v461 denominator · v462 thin · v465 losing-signal count
@@ -9480,9 +9484,8 @@ function statsBar(){
       // is answering, the numbers on screen were computed somewhere the user
       // cannot inspect, and they are entitled to know that at a glance.
       try{
-        if(window._scanSrc&&_rn){
-          var _sv=(window._scanSrc==='server');
-          _rn.textContent=_rn.textContent+(_sv?'  ·  scored on our server':'  ·  scored on this device');
+        if(window._scanSrc&&_rn&&window._scanSrc!=='unavailable'){
+          _rn.textContent=_rn.textContent+'  ·  scored on our server';
         }
       }catch(e){}
     } else if(_rn){ _evSetNote(_rn,''); }
@@ -9503,6 +9506,20 @@ function _evSetNote(el,htmlTxt,tip){
 function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   var el=document.getElementById('evSkipNote');
   var sg=document.getElementById('sigSkipNote');
+  // v471b — BEFORE the not-ready return, not after it. "Not ready" is exactly
+  // what an unreachable server looks like, so the state with the emptiest
+  // screen was the one state that explained nothing.
+  try{
+    var _noYear=(window._scanSrc==='unavailable'), _noDay=!!window._scDayFail;
+    if(_noYear||_noDay){
+      _evSetNote(el,'\u26a0\ufe0f signals not scored \u2014 could not reach our server',
+        (_noYear&&_noDay)?'Both halves of the evidence system run on our server: the year-long replay that grades each signal, and the check of which signals are firing today. Neither could be reached just now, so these tiles are blank rather than wrong. Prices, volumes, your portfolio and your watchlists are stored on your device and are unaffected. Try again in a moment, or reload.'
+        :(_noYear?'The year-long replay that grades each signal runs on our server, and it could not be reached just now. Rather than show tiers we cannot stand behind, the evidence tiles stay blank. Everything stored on your device \u2014 prices, volumes, portfolio, watchlists \u2014 is unaffected. Try again in a moment, or reload.'
+                 :'Which signals are firing today is worked out on our server, so the thresholds behind them are not published in the app. We could not reach it just now, so these tiles are blank rather than wrong. Everything stored on your device is unaffected. Try again in a moment, or reload.'));
+      _evSetNote(sg,'');
+      return;
+    }
+  }catch(e){}
   if(!ready){ _evSetNote(el,''); _evSetNote(sg,''); return; }
   nNeg=nNeg||0;
   var bits=[], tip='';
@@ -17146,6 +17163,76 @@ function _evBannerChip(key){
     return '<span title="'+tip.replace(/"/g,'&quot;')+'" style="cursor:help;border:1px solid '+_col+';color:'+_col+';border-radius:4px;padding:0 5px;font-size:9px;font-weight:800;letter-spacing:.4px;margin-left:6px;white-space:nowrap;">'+t[0]+(t[3]!=null?' '+_evPct(t[3]):'')+'</span>';
   }catch(e){ return ''; }
 }
+// ═══ v471 — today's firing signals, worked out on the server ═══════════════
+// One request per market load, not one per click: the answer is cached against
+// everything that could change it, so filtering and sorting re-read the cache.
+var _scDayF=null;          // { key, F:{ ticker: [rule keys] } }
+// v471d — the answer belongs to the MARKET, not to whoever asked for it. It is
+// a map from ticker to signals covering everything loaded; a caller holding a
+// subset just reads fewer entries. Keying it on the caller's list length meant
+// the auto-pilot, which applies the 💧 floor to its pool first, always missed.
+// (The floor is out of the key too: since v462 it does not decide who gets
+// evidence-checked, only what the bot may buy — and _apRuleFilter applies it.)
+function _scDayKey(){
+  try{ return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||'')
+    +'|'+((Array.isArray(allData)?allData.length:0)); }
+  catch(e){ return ''; }
+}
+function _scDayGet(){ try{ return (_scDayF&&_scDayF.key===_scDayKey())?_scDayF.F:null; }catch(e){ return null; } }
+// The textbook indicators for one share, today. This is the part that stays in
+// the browser: moving averages, RSI, volume ratios, ranges — in any charting
+// book, and worth nothing to hide.
+function _scDayStats(pool){
+  var sts=[];
+  for(var pi=0;pi<pool.length;pi++){
+    var sh=pool[pi];
+    try{
+      if(!sh||!Array.isArray(sh.series)||sh.series.length<30){ if(sh)sh._evSkip='hist'; continue; }
+      if(!sh._scPf||sh._scPfLen!==sh.series.length){ sh._scPf=_scPrep(sh.series); sh._scPfLen=sh.series.length; }
+      var st=_scStats(sh.series,sh._scPf,sh.series.length-1);
+      if(!st){ sh._evSkip='hist'; continue; }
+      st.newsy=!!st.newsy;
+      sts.push({s:sh,st:st});
+    }catch(e){}
+  }
+  return sts;
+}
+function _scWarmDay(){
+  try{
+    if(window._scDayWarming)return;
+    var key=_scDayKey();
+    if(!key||window._scDayFail===key)return;
+    if(!DATA_PROXY||_SCAN_SERVER_OFF){ window._scDayFail=key; return; }
+    // always the whole market, so one answer serves every caller
+    var pool=(Array.isArray(allData)?allData:[]);
+    var sts=_scDayStats(pool);
+    if(!sts.length){ window._scDayFail=key; return; }
+    window._scDayWarming=true;
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    var body={mode:'day',exch:currentExch,dataDate:dd,
+      rows:sts.map(function(x){ return {ticker:x.s.ticker,st:x.st}; })};
+    fetch(DATA_PROXY.replace(/\/+$/,'')+'/scan',
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){
+        if(r.status===404||r.status===405){ _SCAN_SERVER_OFF=true; throw new Error('old worker'); }
+        if(!r.ok)throw new Error('http '+r.status);
+        return r.json();
+      })
+      .then(function(j){
+        window._scDayWarming=false;
+        if(!j||!j.ok||!j.fires)throw new Error('bad answer');
+        if(_scDayKey()!==key)return;   // the world moved while we asked
+        _scDayF={key:key,F:j.fires};
+        window._scDayFail=null;
+        try{ _evAfterWarm(); }catch(e){}
+      })
+      .catch(function(){
+        window._scDayWarming=false;
+        window._scDayFail=key;
+        try{ _evAfterWarm(); }catch(e){}   // repaint, so the blank can explain itself
+      });
+  }catch(e){ window._scDayWarming=false; }
+}
 // Stamp a set of shares with which of the 18 graded rules fire on them TODAY,
 // using the REAL rule predicates (_apRuleFilter — same maths the replay grades,
 // same 💧 floor). Best tier + why land on the share for chips and the filter.
@@ -17154,7 +17241,12 @@ function _evMark(shares){
     if(_evBetaBlocked())return false;
     var R=_apGrades(); if(!R||!Array.isArray(shares)||!shares.length)return false;
     var dd=_evDD();
-    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=dd; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; } });
+    // v471: the answer comes from the server. Until it arrives, leave _evD
+    // unset so _evEnsureMarked tries again once the warm lands; if the warm has
+    // FAILED, stamp the day anyway so we stop asking on every repaint.
+    var _F=_scDayGet();
+    var _failed=(window._scDayFail===_scDayKey());
+    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=(_F||_failed)?dd:''; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; } });
     // Same phases as _apRuleFilter (one _scStats per share, the day's
     // rel-strength cut, confirmed-news stamp) — all 18 predicates run against
     // the one stats object instead of 18 full sweeps.
@@ -17166,28 +17258,29 @@ function _evMark(shares){
     // hiding a share is not the same as warning about it.
     var pool=shares;
     try{ if(_cardLiqNeed()>0)shares.forEach(function(s){ if(s&&!_cardLiqPass(s))s._evThin=true; }); }catch(e){}
-    var sts=[];
+    if(!_F){
+      // Not scored yet. Ask the server, mark why the screen is quiet, and let
+      // the repaint after the answer arrives fill it in.
+      if(_failed){ shares.forEach(function(s){ if(s&&!s._evSkip)s._evSkip='srv'; }); }
+      else { try{ _scWarmDay(); }catch(e){} }
+      return false;
+    }
     for(var pi=0;pi<pool.length;pi++){
       var sh=pool[pi];
       try{
-        if(!sh||!Array.isArray(sh.series)||sh.series.length<30){ if(sh)sh._evSkip='hist'; continue; }   // v459: too little stored history to test
-        if(!sh._scPf||sh._scPfLen!==sh.series.length){ sh._scPf=_scPrep(sh.series); sh._scPfLen=sh.series.length; }
-        var st=_scStats(sh.series,sh._scPf,sh.series.length-1);
-        if(!st){ sh._evSkip='hist'; continue; }   // v459
-        try{ var lastD=sh.series[sh.series.length-1].d;
-          st.newsFact=(window._scFacts)?((window._scFacts[sh.ticker+'|'+lastD]||0)>=0.5):false; }catch(e){ st.newsFact=false; }
-        sts.push({s:sh,st:st});
+        if(!sh)continue;
+        if(!Array.isArray(sh.series)||sh.series.length<30){ sh._evSkip='hist'; continue; }   // v459
+        var f=_F[sh.ticker];
+        // v471e: not-scanned is not the same as not-enough-history. This share
+        // has the history; it simply is not in the answer we hold — so say that,
+        // rather than blaming its data for our gap.
+        if(!f){ sh._evSkip='srv'; continue; }
+        // v471b: 🏆 Top 20 is a ranking of the market, not a signal on a share.
+        // The server returns it because the card grades it; _evMark never
+        // carried it, and letting it in now would hand shares tiers they did
+        // not have yesterday.
+        sh._evKeys=f.filter(function(k){ return k!=='top20'; });
       }catch(e){}
-    }
-    (function(){
-      var ds=[]; for(var q1=0;q1<sts.length;q1++){ var v=sts[q1].st.d120; if(v!=null)ds.push(v); }
-      if(ds.length>=30){ ds.sort(function(a,b){return a-b;});
-        var cut=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
-        for(var q2=0;q2<sts.length;q2++)sts[q2].st.rslCut=cut; }
-    })();
-    for(var ri=0;ri<_SCAN_RULES.length;ri++){
-      var rr=_SCAN_RULES[ri];
-      for(var si=0;si<sts.length;si++){ try{ if(rr.t(sts[si].st))sts[si].s._evKeys.push(rr.k); }catch(e){} }
     }
     shares.forEach(function(s){
       if(!s||!s._evKeys)return;
@@ -17389,35 +17482,21 @@ function _apRuleFilter(pool,key){
   try{ if(_cardLiqNeed()>0)pool=pool.filter(_cardLiqPass); }catch(e){}
   if(key==='top20'){ return pool.filter(function(s){return s.watchScore!=null;})
     .sort(function(a,b){return (b.watchScore||0)-(a.watchScore||0);}).slice(0,20); }
-  var rule=_SCAN_RULES.filter(function(x){return x.k===key;})[0];
-  if(!rule)return [];   // v436 (audit): a filter that cannot filter must select NOTHING
-  // v447: two phases. Phase 1 computes today's stats for the whole pool; then
-  // the cross-share context the newcomers need (the day's rel-strength cut-off,
-  // the confirmed-news lookup) is stamped on; phase 2 applies the rule. The
-  // older rules see exactly what they always saw.
-  var sts=[];
-  for(var pi2=0;pi2<pool.length;pi2++){
-    var s2=pool[pi2];
-    try{
-      if(!Array.isArray(s2.series)||s2.series.length<30)continue;
-      if(!s2._scPf||s2._scPfLen!==s2.series.length){ s2._scPf=_scPrep(s2.series); s2._scPfLen=s2.series.length; }
-      var st2=_scStats(s2.series,s2._scPf,s2.series.length-1);
-      if(!st2)continue;
-      try{ var lastD=s2.series[s2.series.length-1].d;
-        st2.newsFact=(window._scFacts)?((window._scFacts[s2.ticker+'|'+lastD]||0)>=0.5):false; }catch(e){ st2.newsFact=false; }
-      sts.push({s:s2,st:st2});
-    }catch(e){}
-  }
-  (function(){
-    var ds=[]; for(var q1=0;q1<sts.length;q1++){ var v=sts[q1].st.d120; if(v!=null)ds.push(v); }
-    if(ds.length>=30){ ds.sort(function(a,b){return a-b;});
-      var cut=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
-      for(var q2=0;q2<sts.length;q2++)sts[q2].st.rslCut=cut; }
-  })();
+  // v471: which shares a rule fires on today is decided on the server. If the
+  // answer is not in yet, the bot selects NOTHING — the same fail-closed choice
+  // v436 made for a filter that cannot filter. Standing aside costs a missed
+  // trade; guessing costs a wrong one.
+  var F=_scDayGet();
+  if(!F){ try{ _scWarmDay(); }catch(e){} return []; }
   var out=[];
-  for(var oi=0;oi<sts.length;oi++){ try{ if(rule.t(sts[oi].st))out.push(sts[oi].s); }catch(e){} }
+  for(var i2=0;i2<pool.length;i2++){
+    var s2=pool[i2]; if(!s2)continue;
+    var f=F[s2.ticker];
+    if(f&&f.indexOf(key)>=0)out.push(s2);
+  }
   return out;
 }
+
 // ═══ v434 — 💧 tradeability floor, adjustable inside every report card ═══
 // Micro-caps whose whole daily turnover is a few thousand dollars produce
 // "returns" that are mostly bid-ask noise. They distort the scans AND the
@@ -17588,67 +17667,30 @@ function _scStats(ser,pf,end){
   st.newsy=nsy;
   return st;
 }
+// v471 — keys and names only. The predicates that used to sit here (which
+// combination of conditions, at which thresholds, constitutes a signal)
+// now run ONLY on the worker, behind POST /scan. The app still needs to be
+// able to write '🎯 Smart Money' next to a tier it is displaying, and a
+// name is not a threshold.
 var _SCAN_RULES=[
-  // v436 (audit): each rule now mirrors the LIVE scan's real test. Where a row
-  // measures a threshold rather than a button, it is labelled as the threshold.
-  {k:'smart', n:'🎯 Smart Money', t:function(s){ return s.chg>0&&s.volPct>=50&&s.streak>=2; }},
-  {k:'vol',   n:'📈 Volume 2× normal', t:function(s){ return s.volPct>=100; }},
-  {k:'unus',  n:'🔥 Unusual Activity', t:function(s){
-      // the live scoreUnusual patterns that stored closes+volumes can express
-      if(s.volRatio>=3&&Math.abs(s.chg)<2)return true;                 // spike on a FLAT day
-      if(s.streak>=3&&s.volDays>=3&&Math.abs(s.chg)<6)return true;     // quiet build-up
-      if(s.du>=3&&s.volRatio>=4)return true;                            // volume climax
-      if(s.lowPx&&Math.abs(s.chg)>=15&&s.volRatio>=3)return true;       // penny blow-off
-      return false; }},
-  {k:'sharp', n:'🚨 Sharp Mover', t:function(s){
-      var mv=Math.abs(s.chg);
-      return mv>=8 && s.typ>0 && (mv/s.typ)>=3 && s.volRatio>=2; }},
-  {k:'recov', n:'↩️ Recovery Watch', t:function(s){ return s.volPct>=100&&s.chg>=-1&&s.chg<=3; }},
-  {k:'quiet', n:'🫧 Quiet Movers', t:function(s){
-      if(!(s.chg>=-5&&s.chg<=5))return false;
-      var coiling=(s.d5!=null&&s.d5>=3)||s.streak>=2||s.acc>=4;
-      return coiling||s.volPct>=80; }},
-  {k:'pull',  n:'🪜 Pullback in Uptrend', t:function(s){
-      if(s.ma20==null||s.ma50==null)return false;
-      var up=(s.ma200!=null)?(s.c>s.ma200&&s.ma50>s.ma200):(s.c>s.ma50);
-      if(!up)return false;
-      if(!(s.rsi!=null&&s.rsi>=35&&s.rsi<=55))return false;
-      var d20=((s.c-s.ma20)/s.ma20)*100; if(!(d20>=-5&&d20<=8))return false;
-      var d50=((s.c-s.ma50)/s.ma50)*100; return !(d50<-7); }},
-  {k:'strong',n:'🧱 Strong Trends', t:function(s){ return s.ma200!=null&&s.c>s.ma20&&s.ma20>s.ma50&&s.ma50>s.ma200; }},
-  {k:'accum', n:'💎 Heavy Accumulation (6+/10)', t:function(s){ return s.acc>=6; }},
-  {k:'hiscore',n:'⭐ Watch Score 7+', t:function(s){ return s.score>=7; }},
-  {k:'score6', n:'⭐ Watch Score 6+', t:function(s){ return s.score>=6; }},
-  {k:'score5', n:'⭐ Watch Score 5+', t:function(s){ return s.score>=5; }},
-  // ═══ v447 — six newcomers. Every one starts TOO EARLY and earns its tier. ═══
-  {k:'hi52',  n:'📏 New 52-week High', t:function(s){
-      // the best-documented momentum effect: a close above the prior 250-day
-      // high, with at least some volume behind it so a one-tick blip in a dead
-      // stock doesn't count
-      return s.hiPrev!=null&&s.hiPrev>0&&s.c>s.hiPrev&&s.volRatio>=1.2; }},
-  {k:'gold',  n:'✝️ Golden Cross (50/200)', t:function(s){
-      // the 50-day average crossing UP through the 200-day — TODAY, not "is
-      // above" (that near-duplicates Strong Trends). Rare by design.
-      return s.ma50!=null&&s.ma200!=null&&s.ma50p!=null&&s.ma200p!=null
-        &&s.ma50>s.ma200&&s.ma50p<=s.ma200p; }},
-  {k:'rsirec',n:'🌀 RSI Recovery (30↗)', t:function(s){
-      // not "is oversold" — falling knives are oversold all the way down. The
-      // signal is the RSI crossing back UP through 30: the bounce has begun.
-      return s.rsiPrev!=null&&s.rsi!=null&&s.rsiPrev<30&&s.rsi>=30; }},
-  {k:'squeeze',n:'🤏 Volatility Squeeze', t:function(s){
-      // the last 10 days are the TIGHTEST 10-day range of the past ~3 months,
-      // on drying-up volume — a coiled spring; contraction precedes expansion
-      return s.r10!=null&&s.sqBase!=null&&s.r10<=s.sqBase*1.02&&s.r10<8&&s.volRatio>0&&s.volRatio<=0.9; }},
-  {k:'rsl',   n:'🏁 Rel-Strength Leader', t:function(s){
-      // top 10% of the WHOLE MARKET by 120-day return (the day's cut-off is
-      // computed across all shares and stamped on each st before rules run),
-      // and today not extended — buy leaders on a breather, not on a spike
-      return s.d120!=null&&s.rslCut!=null&&s.d120>=s.rslCut&&s.chg<=2&&s.chg>=-6; }},
-  {k:'newsvol',n:'📰 News + Volume 2×', t:function(s){
-      // a CONFIRMED material headline (from the news store, not the estimate)
-      // AND double volume the same day. Only fires where news coverage exists,
-      // so it starts tiny and honest and grows with the shortlist.
-      return s.newsFact===true&&s.volPct>=100; }}
+  {k:'smart', n:'🎯 Smart Money'},
+  {k:'vol', n:'📈 Volume 2× normal'},
+  {k:'unus', n:'🔥 Unusual Activity'},
+  {k:'sharp', n:'🚨 Sharp Mover'},
+  {k:'recov', n:'↩️ Recovery Watch'},
+  {k:'quiet', n:'🫧 Quiet Movers'},
+  {k:'pull', n:'🪜 Pullback in Uptrend'},
+  {k:'strong', n:'🧱 Strong Trends'},
+  {k:'accum', n:'💎 Heavy Accumulation (6+/10)'},
+  {k:'hiscore', n:'⭐ Watch Score 7+'},
+  {k:'score6', n:'⭐ Watch Score 6+'},
+  {k:'score5', n:'⭐ Watch Score 5+'},
+  {k:'hi52', n:'📏 New 52-week High'},
+  {k:'gold', n:'✝️ Golden Cross (50/200)'},
+  {k:'rsirec', n:'🌀 RSI Recovery (30↗)'},
+  {k:'squeeze', n:'🤏 Volatility Squeeze'},
+  {k:'rsl', n:'🏁 Rel-Strength Leader'},
+  {k:'newsvol', n:'📰 News + Volume 2×'}
 ];
 // ═══ v470 — the signals are scored on the server ═══════════════════════════
 // What crosses the wire going up is the price history the browser already has.
@@ -17687,117 +17729,15 @@ async function _scReplay(){
   var R=null;
   try{ R=await _scServerReplay(shares,_cardLiqNeed()); }catch(e){ R=null; }
   if(R&&R.G){ window._scanSrc='server'; return R; }
-  window._scanSrc='device';
-  return await _scReplayLocal();
+  window._scanSrc='unavailable';
+  return null;
 }
-async function _scReplayLocal(){
-  var shares=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=30;});
-  if(shares.length<50)return null;
-  var seen={};
-  shares.forEach(function(s){ for(var i=0;i<s.series.length;i++){ var d=s.series[i].d; seen[d]=(seen[d]||0)+1; } });
-  var floor=Math.max(10,Math.round(shares.length*0.25));
-  var cal=Object.keys(seen).filter(function(d){return seen[d]>=floor;}).sort();
-  if(cal.length<12)return null;
-  var days=cal.slice(0,Math.max(0,cal.length-5)).slice(-250);   // v443: up to a year
-  if(!days.length)return null;
-  var need=_cardLiqNeed();   // v434: set inside the card itself
-  // v447: CONFIRMED news days from the worker's store (weight ≥ .5 = material).
-  // Feeds the 📰 News+Volume rule. If the fetch fails or coverage is empty the
-  // rule simply never fires — a missing signal, never a wrong one.
-  // v448: fetch ALL stored news days (any weight); keep the max weight per
-  // share-day and remember WHICH shares have coverage at all. Covered shares
-  // get their 📢/🔇 split from FACTS; uncovered shares keep the estimate.
-  var FACTS=null, COV=null;
-  try{
-    var _fr=await fetch(DATA_PROXY+'/news/days?exch='+encodeURIComponent(currentExch)+'&days=420&minw=0');
-    if(_fr&&_fr.ok){ var _fj=await _fr.json();
-      if(_fj&&_fj.ok&&Array.isArray(_fj.rows)){ FACTS={}; COV={};
-        for(var _fi=0;_fi<_fj.rows.length;_fi++){ var _row=_fj.rows[_fi];
-          var _k=_row[0]+'|'+_row[1], _w=+_row[2]||0;
-          if(!(FACTS[_k]>=_w))FACTS[_k]=_w;
-          COV[_row[0]]=1; }
-        window._scFacts=FACTS; window._scFactCov=COV; } }
-  }catch(e){}
-  var pfs=shares.map(function(s){return _scPrep(s.series);});
-  var idxmaps=shares.map(function(s){ var m={}; for(var i=0;i<s.series.length;i++)m[s.series[i].d]=i; return m; });
-  var W=[5,10,20], G={all:{}}, usedDays=0, fires={};
-  ['5','10','20'].forEach(function(w){ G.all[w]={n:0,sum:0,up:0}; });
-  _SCAN_RULES.forEach(function(R){ G[R.k]={}; fires[R.k]=0; ['5','10','20'].forEach(function(w){ G[R.k][w]={n:0,sum:0,up:0}; }); });
-  // 🏆 Top 20 needs a per-day ranking, so it is handled after the per-share pass
-  G.top20={}; fires.top20=0; ['5','10','20'].forEach(function(w){ G.top20[w]={n:0,sum:0,up:0}; });
-  // v431: 🧩 combos — every PAIR of rules that fired on the same share, same day.
-  // Rule index space: 0..N-1 = _SCAN_RULES, N = 🏆 Top 20 (ranked, added below).
-  var NR=_SCAN_RULES.length, C={};
-  var cAdd=function(a,b,fwd){ var k=a+'|'+b, g=C[k]; if(!g){ g=C[k]={}; ['5','10','20'].forEach(function(w){ g[w]={n:0,sum:0,up:0}; }); }
-    // combos only ever show mean/hit-rate, so no samples are kept (v436: this
-    // was allocating tens of megabytes that nothing read)
-    for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
-      c.n++; c.sum+=fwd[wi]; if(fwd[wi]>0)c.up++; } };
-  for(var di=0;di<days.length;di++){
-    if(di>0)await new Promise(function(r){setTimeout(r,0);});
-    if((di%5)===0){ try{ var _pm=document.getElementById('appModal'); var _pe=_pm?_pm.querySelector('.t20prog'):null; if(_pe)_pe.textContent='replaying day '+(di+1)+' of '+days.length+'…'; }catch(e){} }
-    var D=days[di], rows=[];
-    for(var si=0;si<shares.length;si++){
-      var ix=idxmaps[si][D]; if(ix==null)continue;
-      var st=_scStats(shares[si].series,pfs[si],ix); if(!st)continue;
-      if(need&&st.avgV*st.c<need)continue;
-      st.newsFact=FACTS?((FACTS[shares[si].ticker+'|'+D]||0)>=0.5):false;   // v447/v448: MATERIAL confirmed headline that day
-      // v448: the news split — fact for covered shares, estimate for the rest
-      st.newsEff=(COV&&COV[shares[si].ticker])?st.newsFact:st.newsy;
-      var fwd=[null,null,null], ser=shares[si].series, ok=false;
-      for(var wi=0;wi<3;wi++){ var w=W[wi]; if(ix+w<ser.length&&ser[ix+w].c>0){ fwd[wi]=((ser[ix+w].c-ser[ix].c)/ser[ix].c)*100; ok=true; } }
-      if(!ok)continue;
-      rows.push({st:st,fwd:fwd});
-    }
-    if(rows.length<50)continue;
-    usedDays++;
-    // v447: the day's relative-strength cut-off — the 90th percentile of
-    // 120-day returns across every share trading that day, stamped on each st
-    // so 🏁 Rel-Strength Leader is graded against the same market it ran in.
-    (function(){
-      var ds=[]; for(var q1=0;q1<rows.length;q1++){ var v=rows[q1].st.d120; if(v!=null)ds.push(v); }
-      if(ds.length>=30){ ds.sort(function(a,b){return a-b;});
-        var cut=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
-        for(var q2=0;q2<rows.length;q2++)rows[q2].st.rslCut=cut; }
-    })();
-    // v436 (audit): reservoir sampling. The old code kept the FIRST 60k samples,
-  // so a big group's median described only the oldest days of the window while
-  // its average described all of them — the mid-vs-market column was comparing
-  // two different periods. A deterministic reservoir keeps a fair spread.
-  var CAP=40000, _seed=20260727;
-  var _rnd=function(){ _seed=(_seed*1103515245+12345)&0x7fffffff; return _seed/0x7fffffff; };
-  var bump=function(o,x){ o.n++; o.sum+=x;
-    if(x>0){ o.up++; o.wsum=(o.wsum||0)+x; }
-    else { o.dn=(o.dn||0)+1; o.dsum=(o.dsum||0)+x; } };
-  var add=function(g,fwd,newsy){ for(var wi=0;wi<3;wi++){ if(fwd[wi]==null)continue; var key=String(W[wi]); var c=g[key];
-    bump(c,fwd[wi]);
-    // v439: the same tallies again, split by whether the fire day looked
-    // news-driven — so 📢 and 🔇 can be graded against their own market
-    if(!c.nq)c.nq={news:{n:0,sum:0,up:0},quiet:{n:0,sum:0,up:0}};
-    bump(c.nq[newsy?'news':'quiet'],fwd[wi]);
-    if(!c.s)c.s=[];
-    if(c.s.length<CAP)c.s.push(fwd[wi]);
-    else { var j=Math.floor(_rnd()*c.n); if(j<CAP)c.s[j]=fwd[wi]; } } };
-    for(var ri=0;ri<rows.length;ri++){
-      add(G.all,rows[ri].fwd,rows[ri].st.newsEff!==undefined?rows[ri].st.newsEff:rows[ri].st.newsy);
-      var hits=[];
-      for(var ru=0;ru<NR;ru++){
-        var R=_SCAN_RULES[ru];
-        var hit=false; try{ hit=!!R.t(rows[ri].st); }catch(e){}
-        if(hit){ add(G[R.k],rows[ri].fwd,rows[ri].st.newsEff!==undefined?rows[ri].st.newsEff:rows[ri].st.newsy); fires[R.k]++; hits.push(ru); }
-      }
-      rows[ri].hits=hits;
-    }
-    var ranked=rows.filter(function(x){return x.st.score>0;}).sort(function(a,b){return (b.st.score-a.st.score)||(b.st.acc-a.st.acc);}).slice(0,20);
-    for(var t2=0;t2<ranked.length;t2++){ add(G.top20,ranked[t2].fwd,ranked[t2].st.newsEff!==undefined?ranked[t2].st.newsEff:ranked[t2].st.newsy); fires.top20++; ranked[t2].hits.push(NR); }
-    for(var pi=0;pi<rows.length;pi++){
-      var hs=rows[pi].hits; if(hs.length<2)continue;
-      for(var a1=0;a1<hs.length-1;a1++)for(var b1=a1+1;b1<hs.length;b1++)cAdd(hs[a1],hs[b1],rows[pi].fwd);
-    }
-  }
-  if(!usedDays)return null;
-  return {days:usedDays,from:days[0],to:days[days.length-1],G:G,C:C,fires:fires,exch:currentExch};
-}
+// v471: there is no longer an on-device replay. It existed to run the rule
+// predicates over a year of stored history, and the predicates are gone from
+// this file. When the server cannot answer, the evidence system says so rather
+// than showing numbers it cannot stand behind.
+async function _scReplayLocal(){ return null; }
+
 function allScansCard(){
   try{ _newsRegister(); }catch(e){}
   if(APP_VERSION.indexOf('-beta')>=0)return;
