@@ -41,7 +41,8 @@
       1. The <strong>customer app</strong> and the <strong>🧪 beta app</strong> both load, report their versions, and their code parses with no JavaScript errors.<br>
       2. Each live version <strong>matches its <code>update.json</code></strong> (catches the "still says the old version" cache problem).<br>
       3. The deep-audit <strong>integrity markers</strong> (🌏×7 · 🎲×5 · 🧊×3) are intact in both builds — a fingerprint that the full, untampered file deployed.<br>
-      4. The <strong>server</strong> (data + grading Worker) is up, and reports its features: market-data grades, 🔒 password lock, 📚 history store, and the 🤖 auto-trade <strong>bridge queue</strong>.
+      4. The <strong>server</strong> (data + grading Worker) is up, and reports its features: market-data grades, 🔒 password lock, 📚 history store, and the 🤖 auto-trade <strong>bridge queue</strong>.<br>
+      5. The nightly <strong>📈 price feed is still arriving</strong> for each market — the check that catches a store which has quietly stopped taking new closes while looking perfectly healthy.
     </div>
   </div>
 
@@ -170,6 +171,19 @@ async function runAll(){
       else { addRow(sc,'⚠️','warn','📚 History store not connected','the app rebuilds history itself'); warns++; }
       checks++; if(j.bridge) addRow(sc,'✅','ok','🤖 Auto-trade bridge queue armed','locked to the BRIDGE_KEY holder · dry-run previews only');
       else { addRow(sc,'⚠️','warn','🤖 Bridge queue not armed','the BRIDGE_KEY secret is missing on the Worker'); warns++; }
+      // v390: is the nightly EOD ingest actually keeping up, per exchange? This
+      // is the row that would have caught the July stall — a store that had
+      // silently stopped taking new closes still reported every flag above as
+      // healthy, because nothing here was measuring whether data was ARRIVING.
+      if(j.fresh&&typeof j.fresh==='object'){
+        for(const ex of ['ASX','NYSE']){
+          if(!(ex in j.fresh)) continue;
+          checks++;
+          if(j.fresh[ex]===true) addRow(sc,'✅','ok','📈 '+ex+' prices up to date','the store holds the most recent close');
+          else if(j.fresh[ex]===false){ addRow(sc,'❌','bad','📈 '+ex+' prices are BEHIND','the nightly ingest has not taken the latest close — check the Worker cron triggers'); problems++; }
+          else { addRow(sc,'⚠️','warn','📈 '+ex+' freshness unknown','the server could not read its own store'); warns++; }
+        }
+      } else { checks++; addRow(sc,'⚠️','warn','📈 Price-freshness check unavailable','this Worker predates v390 — paste the latest Worker to see whether EOD data is still arriving'); warns++; }
     } else { addRow(sc,'❌','bad','Server answered strangely',JSON.stringify(j).slice(0,120)); problems++; checks++; }
   }catch(e){
     checks++;
