@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-490-open';
+const APP_VERSION='2026.07.28-491-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6520,7 +6520,18 @@ function updatePaperPrices(acct){
 // account stop matching what they reported. Same shape as v430's report-card
 // fence: one switch, read by the renderers AND by the function, because a
 // hidden button is not a removed feature to anyone who opens the console.
-function _undoOn(){ try{ return APP_VERSION.indexOf('-beta')<0; }catch(e){ return true; } }
+// v491 — Tony asked for ↩ Undo on the beta build (28 Jul 2026). The v475
+// reasoning above still holds and is left standing on purpose: reversing a
+// closed trade rewrites holdings and cash, so a tester's account can stop
+// matching what they reported. His call, and his beta — and a tester who
+// cannot undo a mis-click either lives with a wrong account or wipes it,
+// neither of which makes their reports more useful.
+//
+// ONE named switch, read by the renderers AND the functions, so turning it
+// back off is one word. (v457's lesson: the beta evidence fence was five
+// separate guards and only one of them was visible.)
+const _UNDO_ON_BETA = true;
+function _undoOn(){ try{ return _UNDO_ON_BETA || APP_VERSION.indexOf('-beta')<0; }catch(e){ return true; } }
 function undoSale(sellDate,ticker,buyDate){
   if(!_undoOn()){ alert('Undoing a sale is turned off in the beta build.\n\nThe released app can reverse a closed trade; this test copy deliberately cannot, so your test account keeps matching what you have reported.'); return; }
   // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
