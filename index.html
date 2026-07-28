@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-494-open';
+const APP_VERSION='2026.07.28-495-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4515,8 +4515,15 @@ function renderRows(rows){
     // 30-row ones) but drive them with setTimeout(0) so the fill ALWAYS finishes —
     // requestAnimationFrame pauses when the tab isn't visible, which could leave a big
     // list half-painted.
-    let _i=FIRST; const _CH=80;
-    const _step=()=>{ if(_tok!==window._rrToken)return; const _to=Math.min(_i+_CH,rows.length); try{ tbody.insertAdjacentHTML('beforeend',_rr(_i,_to)); }catch(e){} _i=_to; if(_i<rows.length)setTimeout(_step,0); };
+    // v495 — the chunk GROWS. Every append re-lays-out the table already on
+    // screen, so a fixed 80 pays that cost 51 times for 4,000 rows and the last
+    // chunks cost three times the first. Measured over 2,000 rows, append cost
+    // by chunk size: 80 → 102 ms, 200 → 53, 400 → 32, 800 → 26, one shot → 17.
+    // One shot is fastest and blocks the page, which is what chunking is for.
+    // Starting small keeps the first screenful instant; doubling after that
+    // takes the reflow count down with it.
+    let _i=FIRST, _CH=120; const _CHMAX=400;   // 400 keeps most of the win (32 ms vs 26 at 800) with a shorter individual block — the worst frame gap matters more than the last 6 ms
+    const _step=()=>{ if(_tok!==window._rrToken)return; const _to=Math.min(_i+_CH,rows.length); try{ tbody.insertAdjacentHTML('beforeend',_rr(_i,_to)); }catch(e){} _i=_to; if(_CH<_CHMAX)_CH=Math.min(_CHMAX,_CH*2); if(_i<rows.length)setTimeout(_step,0); };
     setTimeout(_step,0);
   }
 }
@@ -10590,10 +10597,14 @@ function computeTechnicals(s,history,preRows){
   const hi52=Math.max(...yr.map(r=>isFinite(r.hi)?r.hi:r.c));
   const lo52=Math.min(...yr.map(r=>isFinite(r.lo)?r.lo:r.c));
   s.hi52=hi52; s.lo52=lo52;
-  s.pctFromHigh=hi52>0?Math.round(((px-hi52)/hi52)*100):null;   // 0 = at high, negative = below
-  s.pctFromLow=lo52>0?Math.round(((px-lo52)/lo52)*100):null;    // 0 = at low, positive = above
-  s.nearHigh=(s.pctFromHigh!=null&&s.pctFromHigh>=-3);          // within 3% of 52w high
-  s.nearLow=(s.pctFromLow!=null&&s.pctFromLow<=3);              // within 3% of 52w low
+  // v495 — the ROUNDED figure is for display; the TEST uses the exact one. A
+  // share 3.4% below its high rounded to -3 and read as "within 3%".
+  const _pfhX=hi52>0?(((px-hi52)/hi52)*100):null;
+  const _pflX=lo52>0?(((px-lo52)/lo52)*100):null;
+  s.pctFromHigh=_pfhX!=null?Math.round(_pfhX):null;   // 0 = at high, negative = below
+  s.pctFromLow=_pflX!=null?Math.round(_pflX):null;    // 0 = at low, positive = above
+  s.nearHigh=(_pfhX!=null&&_pfhX>=-3);                // within 3% of 52w high
+  s.nearLow=(_pflX!=null&&_pflX<=3);                  // within 3% of 52w low
 
   // ── TRADING RANGE (selectable window) ───────────────────────────────────
   // The band a share has "normally" traded in over the chosen window (3 days,
@@ -10648,8 +10659,11 @@ function computeTechnicals(s,history,preRows){
     const y=rows[rows.length-2].c, o=rows[rows.length-1].c; // if opens absent, close-to-close proxy
     const tOpen=parseFloat(qField(history.find(q=>String(qField(q,['dateStamp','date','Date'])||'').slice(0,10)===rows[rows.length-1].d)||{},['open','Open','o']));
     const openUsed=isFinite(tOpen)?tOpen:o;
-    s.gapPct=y>0?Math.round(((openUsed-y)/y)*100):null;
-    s.gapUp=(s.gapPct!=null&&s.gapPct>=3); s.gapDown=(s.gapPct!=null&&s.gapPct<=-3);
+    // v495 — the rounded figure is for display; the tests use the exact one.
+    // A 2.5% gap rounded to 3 and flagged as a 3%+ gap up.
+    const _gapX=y>0?(((openUsed-y)/y)*100):null;
+    s.gapPct=_gapX!=null?Math.round(_gapX):null;
+    s.gapUp=(_gapX!=null&&_gapX>=3); s.gapDown=(_gapX!=null&&_gapX<=-3);
   }
 
   // Volatility — average daily range % over last 14 sessions, and expansion flag
@@ -11651,7 +11665,18 @@ async function topTenScan(){
   const top=topPairs.map(x=>x.s);
   window._lastTop10=topPairs;
   window._evWantMark=true;   // v452: this view carries per-share evidence chips
-  try{ if(_apGrades())_evMark(topPairs.map(function(p){return p.s;})); else if(typeof _evWarm==='function')_evWarm(); }catch(e){}
+  // v495 — marking from a grading we ALREADY have is cheap, so it stays inline.
+  // Warming one we do not have is not: it serialises the whole market and
+  // uploads it (45 MB, a ~4 second freeze, heap to 330 MB). That belongs after
+  // the twenty shares are on screen, not between the press and the list.
+  try{
+    if(_apGrades())_evMark(topPairs.map(function(p){return p.s;}));
+    else if(typeof _evWarm==='function'){
+      var _w=function(){ try{ _evWarm(); }catch(e){} };
+      if(typeof requestIdleCallback==='function')requestIdleCallback(_w,{timeout:2500});
+      else setTimeout(_w,800);
+    }
+  }catch(e){}
   // Show them directly (neutralise filters so nothing hides the top 10).
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=top;
