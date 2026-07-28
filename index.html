@@ -1027,6 +1027,8 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
           </div>
           <button onclick="refreshLiveFromApi()" style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 10px var(--sans);cursor:pointer;">🔄 Refresh live from API <span style="font-weight:400;font-size:9px;">(re-fetch fresh, ignore saved data)</span></button>
           <button onclick="testConnectionSpeed()" style="width:100%;margin-top:6px;padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🔎 Test connection speed <span style="font-weight:400;font-size:9px;">(loading slow? see which route is the problem)</span></button>
+          <button onclick="serverReportCheck()" style="width:100%;margin-top:6px;padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🔬 Check the server's reports <span style="font-weight:400;font-size:9px;">(compares its answers with this device's — changes nothing)</span></button>
+          <div id="srvChkOut" style="font-size:9px;color:var(--muted);margin-top:5px;line-height:1.6;"></div>
           <div id="speedTestOut" style="font-size:9px;color:var(--muted);margin-top:5px;line-height:1.6;"></div>
           <div id="lpMsg" style="font-size:9px;color:var(--dim);margin-top:5px;min-height:11px;"></div>
         </div>
@@ -1684,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-486-open';
+const APP_VERSION='2026.07.28-487-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15071,6 +15073,103 @@ async function quietMoversScan(){
       st.innerHTML='No quiet movers right now. <span style="font-size:9px">(needs volume &amp; streak data — try after a full load or another scan.)</span>';
     }
   }
+}
+// ═══ v487 — THE SHADOW CHECK ══════════════════════════════════════════════
+// Ask the server to run the same ten reports over the same shares, and compare
+// its answer with ours, position by position. Nothing on screen changes: this
+// exists to earn the right to delete our own copy later, and a comparison run
+// on invented data cannot earn it.
+const _REP_OPEN=['allSignals','unusual','volumeSurge','topTen','gaps','smart','pullback','recovery','quietMovers','sharpMovers'];
+const _REP_NAME={allSignals:'📋 All Signals',unusual:'🔥 Unusual Activity',volumeSurge:'📊 Volume Surge',
+  topTen:'🏆 Top 20',gaps:'🕳 Gap Report',smart:'🎯 Smart Money',pullback:'🪜 Pullback',
+  recovery:'↩️ Recovery Watch',quietMovers:'🫧 Quiet Movers',sharpMovers:'🚨 Sharp Movers'};
+
+// An even spread across the loaded list, not the first N. The first 300 by
+// ticker are the A's, which on the ASX is mostly tiny miners — a sample that
+// would miss every large, liquid share the floors are there to separate.
+function _repSample(n){
+  var pool=[],i;
+  for(i=0;i<allData.length;i++){
+    var s=allData[i];
+    if(s&&Array.isArray(s.series)&&s.series.length>=30&&s.price>0)pool.push(s);
+  }
+  if(pool.length<=n)return pool;
+  var step=pool.length/n,out=[];
+  for(var k=0;k<n;k++)out.push(pool[Math.floor(k*step)]);
+  return out;
+}
+
+// Our own ten, over exactly the array we are about to upload.
+async function _repLocal(sample){
+  var out={},k;
+  var FN={allSignals:_selAllSignals,unusual:_selUnusual,volumeSurge:_selVolumeSurge,
+    topTen:_selTopTen,gaps:_selGaps,smart:_selSmartCandidates,pullback:_selPullback,
+    recovery:_selRecovery,quietMovers:_selQuietMovers,sharpMovers:_selSharpMovers};
+  for(var i=0;i<_REP_OPEN.length;i++){
+    k=_REP_OPEN[i];
+    var args=(k==='sharpMovers')?[speedSensitivity]:(k==='smart')?[3,false]:[];
+    var r=null;
+    try{
+      r=FN[k].apply(null,[sample.slice()].concat(args));
+      if(r&&typeof r.then==='function')r=await r;
+    }catch(e){ r=null; }
+    var list=Array.isArray(r)?r:((r&&(r.rows||r.candidates))||[]);
+    out[k]={tickers:list.map(function(x){return (x&&x.s&&x.s.ticker)?x.s.ticker:(x&&x.ticker)?x.ticker:String(x);}),
+            noOpen:(r&&r.noOpen!=null)?r.noOpen:null};
+  }
+  return out;
+}
+
+async function serverReportCheck(){
+  var el=document.getElementById('srvChkOut');
+  var say=function(h){ if(el)el.innerHTML=h; };
+  if(!Array.isArray(allData)||allData.length<50){ say('Load a market first — there is nothing to compare.'); return; }
+  if(!DATA_PROXY){ say('No server address configured.'); return; }
+  var sample=_repSample(300);
+  if(sample.length<50){ say('Only '+sample.length+' shares have enough history to compare. Load saved data or run a full load first.'); return; }
+  say('Comparing '+sample.length+' shares…');
+  var mine;
+  try{ mine=await _repLocal(sample); }catch(e){ say('This device could not run the reports: '+e); return; }
+  var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+  var body={exch:currentExch,dataDate:dd,cap:((typeof F!=='undefined'&&F&&F.cap)||'any'),
+    sensitivity:speedSensitivity,minDays:3,scanAll:false,
+    shares:sample.map(function(s){return {ticker:s.ticker,series:s.series};})};
+  var j=null;
+  try{
+    var r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/reports',
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.status===404||r.status===405){ say('This server does not have the reports yet (it needs w395 or later).'); return; }
+    if(!r.ok){ say('The server answered '+r.status+'.'); return; }
+    j=await r.json();
+  }catch(e){ say('Could not reach the server: '+e); return; }
+  if(!j||!j.ok||!j.picks){ say('The server did not send an answer it could stand behind.'); return; }
+
+  var rows=[],agree=0;
+  for(var i=0;i<_REP_OPEN.length;i++){
+    var k=_REP_OPEN[i], a=(mine[k]&&mine[k].tickers)||[], b=(j.picks[k]&&j.picks[k].tickers)||[];
+    var why='';
+    if(a.length!==b.length)why='this device '+a.length+', server '+b.length;
+    else{
+      for(var p=0;p<a.length;p++){ if(a[p]!==b[p]){ why='differs at position '+(p+1)+': '+a[p]+' here, '+b[p]+' there'; break; } }
+    }
+    // The one honest exception: without today's opening prices this device
+    // cannot find a gap at all, and the server can. Say which, rather than
+    // calling the server wrong.
+    if(why&&k==='gaps'){
+      var mo=mine[k].noOpen, so=(j.picks[k].extras&&j.picks[k].extras.noOpen);
+      if(mo!=null&&so!=null&&mo!==so)
+        why+=' — this device had no opening price for '+mo+' shares, the server for '+so;
+    }
+    if(!why)agree++;
+    rows.push('<div style="margin:2px 0">'+(why?'<span style="color:#ff9caa">✗</span> ':'<span style="color:var(--green)">✓</span> ')+
+      _REP_NAME[k]+' <span style="color:var(--dim)">('+a.length+')</span>'+(why?'<br><span style="color:var(--dim);padding-left:14px">'+why+'</span>':'')+'</div>');
+  }
+  var head=(agree===_REP_OPEN.length)
+    ? '<b style="color:var(--green)">All '+agree+' reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
+    : '<b style="color:var(--gold)">'+agree+' of '+_REP_OPEN.length+' agree</b> on '+sample.length+' real shares.';
+  say(head+'<div style="margin-top:6px">'+rows.join('')+'</div>'+
+      '<div style="color:var(--dim);margin-top:5px">Server had opening prices for '+(j.bars||0)+
+      ' shares and graded '+(j.graded||0)+'. Nothing on screen changed — this is only a comparison.</div>');
 }
 // ═══ v282 — shared liquidity-floor test (💧 Type tab) ═══
 function _liqPass(s){
