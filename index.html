@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-489-open';
+const APP_VERSION='2026.07.28-490-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5517,6 +5517,49 @@ function _apStatus(){
     return {state:'armed', why:'armed — it scans and buys within seconds', dd:dd, lastRun:lr, last:last};
   }catch(e){ return {state:'err', why:String(e).slice(0,60)}; }
 }
+// v490 — which exchange a recorded buy was on. Buys made from now on carry it
+// (`ex`); older diary entries do not, so it is looked up from the auto-pilot's
+// own portfolios and then from the loaded market. A share bought, sold and
+// delisted before you look would defeat the lookup — which is exactly why the
+// field is written down at the time now.
+function _apBuyExch(b){
+  try{ if(b&&b.ex)return String(b.ex).toUpperCase(); }catch(e){}
+  var tk=String((b&&b.tk)||'');
+  if(!tk)return '';
+  try{
+    var exs=(typeof _pfExchsKnown==='function')?_pfExchsKnown():['ASX'];
+    for(var i=0;i<exs.length;i++){
+      var p=null; try{ p=_paper('auto',exs[i]); }catch(e){ p=null; }
+      if(!p)continue;
+      var hit=((p.holdings||[]).some(function(h){return h&&h.ticker===tk;}))
+           || ((p.orders||[]).some(function(o){return o&&o.ticker===tk;}))
+           || ((p.history||[]).some(function(h){return h&&h.ticker===tk;}));
+      if(hit)return String(exs[i]).toUpperCase();
+    }
+  }catch(e){}
+  try{ var s=(allData||[]).find(function(x){return x&&x.ticker===tk;}); if(s&&s.exchange)return String(s.exchange).toUpperCase(); }catch(e){}
+  return '';
+}
+// v490 — the sentence that was missing. The banner reports the run across EVERY
+// exchange; the holdings list below it is filtered to the tab in view. When
+// those two disagree the screen looks broken, so say which tab the buy is on.
+function _apExchNote(le){
+  try{
+    if(!le||!Array.isArray(le.buys)||!le.buys.length)return '';
+    var view=String(window._pfExSel||'ALL').toUpperCase();
+    if(!view||view==='ALL')return '';
+    var exs=[],seen={};
+    for(var i=0;i<le.buys.length;i++){
+      var e=_apBuyExch(le.buys[i]);
+      if(e&&!seen[e]){seen[e]=1;exs.push(e);}
+    }
+    if(!exs.length||seen[view])return '';
+    var esc=function(v){return String(v==null?'':v).replace(/[<>"'`]/g,'');};
+    return '<div style="margin-top:4px;font-size:9.5px;color:var(--gold);">'
+      +(le.buys.length>1?'Those buys are':'That buy is')+' on '+esc(exs.join(' and '))
+      +' — the tab above is showing '+esc(view)+', which is why nothing appears below.</div>';
+  }catch(e){ return ''; }
+}
 function _apStatusBanner(){
   try{
     const esc=v=>String(v==null?'':v).replace(/[<>"'`]/g,'');
@@ -5525,7 +5568,9 @@ function _apStatusBanner(){
     let decision='';
     if(le){
       if(Array.isArray(le.buys)&&le.buys.length)
-        decision='<b style="color:var(--green)">bought '+le.buys.length+' share'+(le.buys.length>1?'s':'')+'</b> — '+le.buys.map(x=>esc(String(x.tk||''))).join(', ')+' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+        decision='<b style="color:var(--green)">bought '+le.buys.length+' share'+(le.buys.length>1?'s':'')+'</b> — '
+          +le.buys.map(function(x){ var ex=_apBuyExch(x); return esc(String(x.tk||''))+(ex?' <span style="color:var(--dim)">· '+esc(ex)+'</span>':''); }).join(', ')
+          +' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
       else if(le.err)
         decision='<span style="color:#ff9caa">error: '+esc(String(le.err))+'</span> <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
       else if(Array.isArray(le.skips)&&le.skips.length)
@@ -5546,7 +5591,7 @@ function _apStatusBanner(){
       bg='rgba(255,210,0,.08)'; bd='var(--gold)'; icon='⏳';
       head='<b>Hasn\'t run yet today</b> — '+esc(String(s.why||''))+'.'+(s.pct!=null?' <span style="color:var(--gold)">'+s.pct+'% ready</span>':'')+' It fires by itself the moment it\'s ready — nothing to press.';
     }
-    const decisionLine=decision?'<div style="margin-top:5px;font-size:9.5px;color:var(--muted);">Its last decision: '+decision+'</div>':'';
+    const decisionLine=decision?'<div style="margin-top:5px;font-size:9.5px;color:var(--muted);">Its last decision: '+decision+'</div>'+_apExchNote(le):'';
     const lastRunLine=(s.state!=='ran'&&s.state!=='off')
       ? '<div style="margin-top:3px;font-size:9px;color:var(--dim);">Last completed run: '+(s.lastRun?'<b style="color:var(--muted)">'+esc(String(s.lastRun))+'</b>':'none recorded yet')+'.</div>'
       : '';
@@ -6117,7 +6162,7 @@ function _apRunPicks(r,ent,maxN){
     if(!s||!(s.price>0)){ ent.skips.push(k.tk+': not in loaded data'); continue; }
     const res=_apPlacePick(s,r,k);
     if(res.ok){ if(k.repeat===true){ k.cycles=(k.cycles||0)+1; changed=true; }
-      ent.buys.push({tk:k.tk,qty:res.qty,cost:res.cost,px:+k.buyAt,limit:true,trim:res.trim===true,cycle:(k.repeat===true?k.cycles:0),score:(s.watchScore!=null?s.watchScore:null)}); }
+      ent.buys.push({tk:k.tk,ex:String(s.exchange||currentExch||'').toUpperCase(),qty:res.qty,cost:res.cost,px:+k.buyAt,limit:true,trim:res.trim===true,cycle:(k.repeat===true?k.cycles:0),score:(s.watchScore!=null?s.watchScore:null)}); }
     else if(ent.skips.length<6)ent.skips.push(k.tk+': '+res.why);
   }
   if(changed)_apPicksSave(picks);
@@ -6324,7 +6369,7 @@ function _autoPilotRun(manual){
       for(const s of cands){
         if(made>=want)break;
         const res=_apBuy(s,r);
-        if(res.ok){ made++; ent.buys.push({tk:s.ticker,qty:res.qty,cost:res.cost,px:res.px,trim:res.trim===true,score:(s.watchScore!=null?s.watchScore:null)}); }
+        if(res.ok){ made++; ent.buys.push({tk:s.ticker,ex:String(s.exchange||currentExch||'').toUpperCase(),qty:res.qty,cost:res.cost,px:res.px,trim:res.trim===true,score:(s.watchScore!=null?s.watchScore:null)}); }
         else if(ent.skips.length<5)ent.skips.push(s.ticker+': '+res.why);
         if(!res.ok&&/cash|parcel/.test(res.why))break; // cash exhausted — stop trying
       }
