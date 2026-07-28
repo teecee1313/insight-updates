@@ -1563,7 +1563,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
   <div class="stats" id="statsBar" style="display:none">
     <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button></div>
     <div class="radar-grp"><div class="rg-l">Market</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div><div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div><div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div><div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column. A data summary, not advice."><div class="sv gold" id="sS7">0</div><div class="sl">Score 7+</div></div></div></div>
-    <div class="radar-grp rg-ev" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — 200+ fires over the replayed year, the 🧪 All-scans card's top tier. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. A share below your 💧 grading floor is never tested at all — when that happens the line underneath says so, because a skipped share is not the same as an honest zero."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — 50+ fires in the replayed year. Worth watching, not yet proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares flagged today ONLY by unproven signals — under 50 fires, so luck can still explain their record. Curiosity, not evidence: research with extra care. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ TOO EARLY</div></div><div id="evSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div><div id="evRuleNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
+    <div class="radar-grp rg-ev" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — its edge over the replayed year is at least 2.5 times its own margin of error, counted one observation per DAY rather than one per firing, and measured against a market you could actually buy. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. A share below your 💧 grading floor is never tested at all — when that happens the line underneath says so, because a skipped share is not the same as an honest zero."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — its edge is at least 1.5 times its own margin of error over the replayed year. Worth watching, not proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares firing graded signals today where NOT ONE of them has a record worth standing behind — over the replayed year their edge was smaller than its own margin of error. This is not 'too little data' and it is not 'a bad record': we looked properly and found nothing either way, which on one year of history is the honest answer for almost every scan. Curiosity, not evidence. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ NOT PROVEN</div></div><div id="evSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div><div id="evRuleNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
     <div class="radar-grp rg-more" id="sigGrp"><div class="rg-l">🔬 Signals</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('sghi52')" title="Closed above every close of the past year, on volume — no trapped sellers overhead from the last 250 days. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgHi52">–</div><div class="sl">📏 52wk High</div></div><div class="stat statclick" onclick="statFilter('sggold')" title="The 50-day average crossed UP through the 200-day TODAY — fires on the cross day only, so it is rare by design. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgGold">–</div><div class="sl">✝️ Golden Cross</div></div><div class="stat statclick" onclick="statFilter('sgrsirec')" title="RSI crossed back UP through 30 — the bounce beginning, not merely "oversold" (which can stay oversold for months). Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsi">–</div><div class="sl">🌀 RSI Recovery</div></div><div class="stat statclick" onclick="statFilter('sgsqueeze')" title="Tightest 10-day range in about three months on dry volume — a coiled spring. Direction unknown: it can break either way. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgSqz">–</div><div class="sl">🤏 Squeeze</div></div><div class="stat statclick" onclick="statFilter('sgrsl')" title="The strongest slice of the WHOLE market by recent return, caught on a breather — beating the market, not just rising with it. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsl">–</div><div class="sl">🏁 Rel-Strength</div></div><div class="stat statclick" onclick="statFilter('sgnewsvol')" title="A CONFIRMED material headline landing on a day of unusually heavy volume. Fail-closed: where there is no news coverage it never fires. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgNews">–</div><div class="sl">📰 News + Vol</div></div><div id="sigSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Volume</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="sV">0</div><div class="sl">Vol ≥200%</div></div><div class="stat statclick" onclick="statFilter('vol50')" title="Show shares with volume moderately above their average — an early pick-up in interest, below the big ≥200% surge."><div class="sv" id="sV50">0</div><div class="sl">Vol 50–100%</div></div><div class="stat statclick" onclick="statFilter('vs2')" title="Volume above its own average 2+ days in a row — persistent interest, not a one-day spike."><div class="sv" id="sVS">0</div><div class="sl">Vol Streak 2+</div></div><div class="stat statclick" onclick="statFilter('vrec')" title="🥇 Volume record — today’s volume is the highest in its stored history. An estimate, not advice. Fills in as technical data is prepared during load."><div class="sv gold" id="sVR">0</div><div class="sl">🥇 Vol Record</div></div><div class="stat statclick" onclick="statFilter('blk')" title="🔷 Block day — today’s volume is more than double its average (a possible large / block trade). An estimate, not advice."><div class="sv gold" id="sBlk">0</div><div class="sl">🔷 Block Day</div></div><div class="stat statclick" onclick="statFilter('qm')" title="Quiet movers: up 3%+ today on volume at least double its average, with NO likely news in 5 days — a possible 'someone may know something' pattern. An estimate from price/volume, not advice."><div class="sv gold" id="sQM">0</div><div class="sl">🤫 Quiet Mover</div></div><div class="stat statclick" onclick="statFilter('t250k')" title="Liquidity floor — at least $250,000 of value changed hands today (today’s close × today’s volume), in the exchange’s own currency. Below this a share can be hard to sell without moving the price against you. NOTE this measures TODAY — the 🧪 Evidence floor measures a share's THREE-MONTH AVERAGE turnover, so a share that just woke up can light this tile and still be skipped by the evidence check. A liquidity measure, not advice."><div class="sv" id="sT250">0</div><div class="sl">$250k+ Traded</div></div><div class="stat statclick" onclick="statFilter('t1m')" title="Liquidity floor — at least $1,000,000 of value changed hands today (today’s close × today’s volume), in the exchange’s own currency. The stricter of the two turnover tiles: every $1M day is also a $250k day, so tapping both is the same as tapping this one. NOTE this is TODAY's turnover; the 🧪 Evidence floor uses the THREE-MONTH AVERAGE, so the two can disagree about the same share on the same day. A liquidity measure, not advice."><div class="sv gold" id="sT1M">0</div><div class="sl">$1M+ Traded</div></div></div></div>
     <div class="radar-grp rg-more"><div class="rg-l">Trend</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('up2')" title="Show only shares up 2+ days in a row"><div class="sv"      id="sC">0</div><div class="sl">Up 2+ Days</div></div><div class="stat statclick" onclick="statFilter('hi52')" title="Within 5% of its 52-week high — breakout territory. Needs technical data (prepared during load)."><div class="sv" id="sHi">0</div><div class="sl">Near 52wk High</div></div><div class="stat statclick" onclick="statFilter('ma200')" title="Trading above its 200-day moving average — in a long-term uptrend. Needs technical data (prepared during load)."><div class="sv g" id="sMA">0</div><div class="sl">Above MA200</div></div><div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns: accumulating, buying pressure, or an up-streak. A data summary, not advice."><div class="sv g" id="sBull">0</div><div class="sl">Bullish</div></div><div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest close of the stored history on above-average volume. An estimate from price/volume, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sBrk">0</div><div class="sl">🚀 Breakout</div></div><div class="stat statclick" onclick="statFilter('cross')" title="↗ Golden cross — the 20-day average moved above the 50-day today. An estimate from closes, not advice. Fills in as technical data is prepared during load."><div class="sv g" id="sCx">0</div><div class="sl">↗ MA Cross</div></div><div class="stat statclick" onclick="statFilter('inst')" title="🏛️ Possible institutional interest — up today on strong turnover, well above its own average. An estimate, NOT a confirmed filing, not advice."><div class="sv g" id="sInst">0</div><div class="sl">🏛️ Inst?</div></div><div class="stat statclick" onclick="statFilter('dir')" title="Show shares with a possible-accumulation pattern (price+volume estimate, not confirmed director filings)"><div class="sv"      id="sD">0</div><div class="sl">Accum?</div></div></div></div>
@@ -1688,7 +1688,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-499-open';
+const APP_VERSION='2026.07.28-500-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9705,7 +9705,7 @@ function _statPass(s){
     var _evT=(s._evD===_evDD())?s._evTier:null, _evOk=false;
     if(_statOn.tsolid&&_evT==='SOLID')_evOk=true;
     if(_statOn.tprom&&_evT==='PROMISING')_evOk=true;
-    if(_statOn.tearly&&_evT==='TOO EARLY')_evOk=true;
+    if(_statOn.tearly&&!_evT&&s._evUnp)_evOk=true;   // v500: the tile now means NOT PROVEN
     if(!_evOk)return false;
   }
   return true;
@@ -9849,7 +9849,12 @@ function statsBar(){
     if(s.sigBreakout)_brk++; if(s.sigVolRecord)_vrec++; if(s.sigCross)_cross++; if(s.instBuy)_inst++; if(s.blockTrade)_blk++; if(s.sigDist)_dist++; // v358
     const _tov=(s.price||0)*(s.volume||0);           // v458: value traded today
     if(_tov>=250000){ _t250++; if(_tov>=1000000)_t1m++; }
-    if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; else if(s._evTier==='PROMISING')_evp++; else if(s._evTier==='TOO EARLY')_eve++;
+    // v500 — the third bucket used to be TOO EARLY, which v498 made unreachable:
+    // a share only reached it by having a badge-earning signal ranked below
+    // PROMISING, and badges are now SOLID-or-PROMISING only. It counts the real
+    // thing instead — shares firing graded signals where none has a record we
+    // can stand behind.
+    if(s._evD===_evD0){ _evAny=true; if(s._evTier==='SOLID')_evs++; else if(s._evTier==='PROMISING')_evp++; else if(s._evUnp)_eve++;
       if(!s._evTier&&s._evSkip==='liq')_evSkipL++; else if(!s._evTier&&s._evSkip==='hist')_evSkipH++;
       if(s._evThin&&s._evSkip!=='hist')_evThinN++;   // v465: only count the thin shares we actually CHECKED — the label says so
       if(s._evNeg)_evNegN++;
@@ -9884,17 +9889,23 @@ function statsBar(){
     var _rn=document.getElementById('evRuleNote');
     if(_rs&&_rn){
       var _bits=[];
+      // v500 — NOT PROVEN was counted and never printed, so the line accounted
+      // for 6 of 19 signals and the headline finding of the whole grading
+      // change was the one number missing from the screen.
       if(_rs.solid)_bits.push(_rs.solid+' proven');
       if(_rs.prom)_bits.push(_rs.prom+' promising');
-      if(_rs.early)_bits.push(_rs.early+' unproven');
+      if(_rs.unproven)_bits.push(_rs.unproven+' not proven');
+      if(_rs.early)_bits.push(_rs.early+' too early');
       if(_rs.losing)_bits.push(_rs.losing+' losing');
       var _rt='Your '+_rs.total+' graded signals, sorted by their own records: '
-        +_rs.solid+' proven (200+ fires and beating the market), '+_rs.prom+' promising (50+), '
-        +_rs.early+' unproven'+(_rs.silent?' — '+_rs.silent+' of which have not fired ONCE all year':'')
-        +(_rs.losing?', and '+_rs.losing+' that fire often but LOSE to the market, so they earn no badge':'')+'. '
+        +_rs.solid+' proven (edge at least 2.5x its own margin of error), '
+        +_rs.prom+' promising (at least 1.5x), '
+        +(_rs.unproven||0)+' NOT PROVEN — enough history to have found an edge, and none was found, which is a different statement from having too little data'
+        +', '+_rs.early+' too early to say'+(_rs.silent?' — '+_rs.silent+' of which have not fired ONCE all year':'')
+        +(_rs.losing?', and '+_rs.losing+' proven to LOSE to the market by more than their own margin of error, so they earn no badge':'')+'. '
         +'WHY THIS DIFFERS FROM THE TILES ABOVE: those count SHARES, this counts SIGNALS. '
         +'A signal earns a high tier by firing a lot — and firing a lot is exactly what makes it tag a lot of shares. '
-        +'So the share-tiles lean heavily to SOLID no matter what, while the unproven signals tag almost nothing BECAUSE they are unproven. '
+        +'So a signal that fires often tags a lot of shares whatever its record. '
         +'That is not a fault; it is the two counts measuring different things. Lesson 46 explains it.';
       _evSetNote(_rn,_bits.length?(_rs.total+' signals: '+_bits.join(' · ')):'',_rt);
       // v470: and where the grading was done. Not decoration — if the server
@@ -18151,7 +18162,7 @@ function _evMark(shares){
     // v474: there is no separate day request any more, so "we could not score
     // today" is simply "the replay did not come back with an answer".
     var _failed=(!_F&&(window._scanSrc==='unavailable'||!!window._scDayFail));
-    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=(_F||_failed)?dd:''; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; } });
+    shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=(_F||_failed)?dd:''; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; s._evUnp=false; s._evWhyUnp=''; } });
     // Same phases as _apRuleFilter (one _scStats per share, the day's
     // rel-strength cut, confirmed-news stamp) — all 18 predicates run against
     // the one stats object instead of 18 full sweeps.
@@ -18192,12 +18203,15 @@ function _evMark(shares){
       // rule counts at all. A rule with 4,520 fires and a −0.33% edge has
       // excellent evidence — that following it loses to the market. It must
       // not hand a share a green badge.
-      var best=-1,solid=0,prom=0,parts=[],negParts=[],bestEdge=null,anyFired=false;
+      var best=-1,solid=0,prom=0,parts=[],negParts=[],loseParts=[],bestEdge=null,anyFired=false;
       s._evKeys.forEach(function(k){
         var t=_evRuleTier(k); if(!t)return;
         anyFired=true;
         var lbl=_evRuleName(k)+' — '+t[0]+' ('+t[2]+' fires'+(t[3]!=null?', '+_evPct(t[3])+' vs market':'')+')';
-        if(!_evRuleEarnsBadge(t)){ negParts.push(lbl); return; }
+        // v500 — a rule that earns no badge lands in one of two lists: PROVEN to
+        // lose, or simply not proven. They are different claims and the row
+        // must not blur them.
+        if(!_evRuleEarnsBadge(t)){ negParts.push(lbl); if(t[0]==='LOSING'||(t[7]!==true&&t[3]!=null&&t[3]<=0))loseParts.push(lbl); return; }
         var rank=t[0]==='SOLID'?2:t[0]==='PROMISING'?1:0;
         if(rank>best){ best=rank; }
         if(bestEdge==null||t[3]>bestEdge)bestEdge=t[3];
@@ -18208,8 +18222,15 @@ function _evMark(shares){
       s._evSolidN=solid; s._evPromN=prom; s._evWhy=parts.join(' · ');
       s._evEdge=bestEdge;
       // fired, but every firing signal has a losing record — say so, don't blank
-      s._evNeg=(!s._evTier&&anyFired&&negParts.length>0);
-      s._evWhyNeg=negParts.join(' · ');
+      // v500 — "earned no badge" is now two different statements. Before v498 the
+      // only way to miss a badge was a NEGATIVE edge, so one flag covered it.
+      // Now a signal also misses by being merely unproven, and calling that
+      // "underperforms" claims more than the data supports — the exact fault
+      // v498 existed to remove, pointing the other way.
+      s._evNeg=(!s._evTier&&anyFired&&loseParts.length>0);
+      s._evWhyNeg=loseParts.join(' · ');
+      s._evUnp=(!s._evTier&&anyFired&&!s._evNeg&&negParts.length>0);
+      s._evWhyUnp=negParts.join(' · ');
     });
     return true;
   }catch(e){ return false; }
@@ -18283,6 +18304,14 @@ function _evRowChip(s){
     if(!s._evTier&&s._evD===_evDD()&&s._evNeg){
       var nt='⚠️ This share IS firing graded signals today — but every one of them has a record of UNDERPERFORMING the market, so it earns no tier. Firing now: '+(s._evWhyNeg||'')+'. The 🤖 auto-pilot will not act on these either. A record can be big enough to prove a signal reliably loses, and that is good evidence about a bad signal — but a small negative number inside its own margin of error proves nothing either way, and since v498 only the first of those two is called LOSING.';
       return '<span class="tag" style="border:1px solid var(--red);color:#ff9caa;font-weight:800;letter-spacing:.3px" title="'+nt.replace(/"/g,'&quot;')+'">⚠️ underperforms</span>';
+    }
+    // v500 — fired, but every signal firing is merely UNPROVEN rather than
+    // proven to lose. That is a real state and it deserves its own words: the
+    // app has something to say about this share, and what it has to say is that
+    // it does not know.
+    if(!s._evTier&&s._evD===_evDD()&&s._evUnp){
+      var ut='⚪ NOT PROVEN — this share IS firing graded signals today, but not one of them has a record worth standing behind: over the replayed year their edge was smaller than its own margin of error. Firing now: '+(s._evWhyUnp||'')+'. That is NOT the same as a bad record, and NOT the same as too little data — we looked properly and found nothing either way. The 🤖 auto-pilot will not act on these. Research, not advice.';
+      return '<span class="tag" style="border:1px solid var(--border2);color:var(--dim);font-weight:700;letter-spacing:.3px" title="'+ut.replace(/"/g,'&quot;')+'">⚪ not proven</span>';
     }
     if(!s._evTier||s._evD!==_evDD())return '';
     var col=s._evTier==='SOLID'?'var(--green)':s._evTier==='PROMISING'?'var(--gold)':'var(--dim)';
