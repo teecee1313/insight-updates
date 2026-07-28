@@ -1688,7 +1688,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-497-open';
+const APP_VERSION='2026.07.28-498-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5955,7 +5955,15 @@ function _apCandidates(r){
     }else if(r.apProvenOnly){
       const _row=_G?_apGradeRow(_G,_apSrcKey(r.apSource),'5'):null;
       if(!_G){ _evKey='__none__'; _evNote='🧪 evidence gate: no grading available yet — standing aside (a gate that cannot check must not wave buys through). Preparing the report in the background.'; _apWarmGrades(); }
-      else if(!_row||!_row.solid){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan has fired '+((_row&&_row.fires)||0)+' times — the bot wants '+_AP_MIN_FIRES+'+ before it will act on a grade — standing aside'; }
+      else if(!_row||!_row.solid){ _evKey='__none__';
+        // v498 — the gate is no longer about how often a scan fired. It asks
+        // whether the record is bigger than its own margin of error, counted by
+        // days. On one year almost nothing clears that, and a robot that only
+        // acts on proven signals should then do nothing — so say so plainly
+        // rather than let it look broken.
+        _evNote=(_row&&_row.honest)
+          ? '🧪 evidence gate: this scan is NOT PROVEN — over '+(_row.days||0)+' days its record is '+((_row.edge>=0?'+':'')+(_row.edge||0).toFixed(2))+'% a trade, which is only '+Math.abs(_row.t||0).toFixed(1)+'× its own margin of error (the bot wants 2.5×). It is holding rather than acting on a coin toss — standing aside.'
+          : '🧪 evidence gate: your scan has fired '+((_row&&_row.fires)||0)+' times — the bot wants '+_AP_MIN_FIRES+'+ before it will act on a grade — standing aside'; }
       else if(!(_row.edge>0)){ _evKey='__none__'; _evNote='🧪 evidence gate: your scan is losing to the market ('+_row.edge.toFixed(2)+'% edge over '+_row.fires+' fires) — standing aside'; }
       else { _evNote='🧪 evidence gate passed — edge +'+_row.edge.toFixed(2)+'% over '+_row.fires+' fires'; }
     }
@@ -17922,7 +17930,14 @@ function _apGradeRow(R,key,win){
     var g=R.G[key]; if(!g)return null;
     var m=g[win]; if(!m||!m.n)return null;
     var b=R.G.all[win], bavg=b.n?b.sum/b.n:0;
-    return {key:key,edge:(m.sum/m.n)-bavg,fires:m.n,solid:m.n>=_AP_MIN_FIRES};
+    // v498 — the robot and the radar must not give opposite verdicts on the same
+    // signal, so "solid" here is the same test the badge uses. Where w403's
+    // honest tally exists it decides; otherwise the old fire count stands.
+    var _h=(R.T&&R.T[key])||null;
+    if(_h&&_h.days!=null&&_h.days>=_EV_MIN_DAYS)
+      return {key:key,edge:_h.edge,fires:m.n,t:_h.t,days:_h.days,
+              solid:(_h.t>=_EV_T_SOLID&&_h.edge>0),honest:true};
+    return {key:key,edge:(m.sum/m.n)-bavg,fires:m.n,solid:m.n>=_AP_MIN_FIRES,honest:false};
   }catch(e){ return null; }
 }
 // the bot's own source names → the card's rule keys
@@ -17937,8 +17952,27 @@ var _EV_MIN_SOLID=200,_EV_MIN_OK=50;
 // around the three report cards (#cardCards); that one stands.
 var _EV_ON_BETA=true;
 function _evBetaBlocked(){ try{ return !_EV_ON_BETA&&APP_VERSION.indexOf('-beta')>=0; }catch(e){ return false; } }
+// v498 — a tier is a statement about EVIDENCE, not about how often something
+// fired. The old rule was `200 fires = SOLID`, which credits 🫧 Quiet Movers
+// with 200,893 observations when it really has 274: every share it picks on a
+// Tuesday rides Tuesday's market, so that is one experiment, not 733. Measured,
+// that overstated its confidence 11.4 times over.
+//
+// `t` below is how many times bigger a rule's edge is than its own margin of
+// error, counted by DAYS, after allowing for the overlap that comes from buying
+// daily and holding five days. 2.5 rather than the textbook 2 because eighteen
+// rules are being tested at once, and testing eighteen things finds one by luck.
+var _EV_T_SOLID=2.5, _EV_T_OK=1.5, _EV_T_LOSE=-2.5, _EV_MIN_DAYS=100;
 function _evTierOf(n){ return n>=_EV_MIN_SOLID?['SOLID','var(--green)']:n>=_EV_MIN_OK?['PROMISING','var(--gold)']:['TOO EARLY','var(--dim)']; }
-var _EV_TIP={'SOLID':'SOLID — fired 200+ times in the replayed year. Enough experiments that the record is unlikely to be luck.','PROMISING':'PROMISING — 50+ fires. Worth watching; not yet proven.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the numbers look like, luck can still explain them.'};
+// The honest tier, from w403's day-counted tally. `h` is {n,days,edge,t}.
+function _evTierFromT(h){
+  if(!h||h.days==null||h.days<_EV_MIN_DAYS)return ['TOO EARLY','var(--dim)'];
+  if(h.t>=_EV_T_SOLID&&h.edge>0)return ['SOLID','var(--green)'];
+  if(h.t>=_EV_T_OK&&h.edge>0)return ['PROMISING','var(--gold)'];
+  if(h.t<=_EV_T_LOSE&&h.edge<0)return ['LOSING','var(--red)'];
+  return ['NOT PROVEN','var(--dim)'];
+}
+var _EV_TIP={'SOLID':'SOLID — its edge is at least 2.5 times its own margin of error, counted by DAYS rather than by firings, measured against the same tradeable market it picks from and bought a day after the signal. Unlikely to be luck.','PROMISING':'PROMISING — its edge is at least 1.5 times its margin of error. Worth watching; not proven.','NOT PROVEN':'NOT PROVEN — there is enough history to have found an edge and none was found. This is NOT the same as "too early": we looked properly, and there is nothing here to act on. On one year of data that is the honest answer for almost every scan.','LOSING':'LOSING — the record is negative by more than 2.5 times its own margin of error. Good evidence about a bad signal. The 🤖 auto-pilot will not act on it.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the numbers look like, luck can still explain them.'};
 function _evDD(){ try{ return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||''); }catch(e){ return ''; } }
 // Which graded rule is the "twin" of a named scan? (Composite scans map to nothing.)
 function _evKeyForLabel(lb){
@@ -17964,11 +17998,22 @@ function _evRuleTier(key){
   try{
     var R=_apGrades(); if(!R)return null;
     var g=R.G&&R.G[key]; if(!g)return null;
-    var m=g['5'], n=(m&&m.n)||0, t=_evTierOf(n);
-    var edge=null;
+    var m=g['5'], n=(m&&m.n)||0;
+    // v498 — prefer w403's honest tally. It measures the rule against the same
+    // tradeable market it picks from, buys a day after the signal (you cannot
+    // trade a close you have only just been shown), and counts one observation
+    // per day rather than one per firing.
+    var h=(R.T&&R.T[key])||null;
+    if(h&&h.days!=null){
+      var ht=_evTierFromT(h);
+      return [ht[0],ht[1],n,h.edge,h.t,h.days,h.perDay,true];
+    }
+    // no T: an older worker, or a market too thin to grade. Fall back to the
+    // count-based tier, flagged so nothing pretends to be what it is not.
+    var t=_evTierOf(n), edge=null;
     try{ var b=R.G.all&&R.G.all['5'];
       if(n&&b&&b.n)edge=(m.sum/m.n)-(b.sum/b.n); }catch(e){}
-    return [t[0],t[1],n,edge];
+    return [t[0],t[1],n,edge,null,null,null,false];
   }catch(e){ return null; }
 }
 // v466 — the distribution people expect to see, and the one the tiles cannot
@@ -17981,12 +18026,18 @@ function _evRuleSpread(){
   try{
     if(!_apGrades())return null;
     var keys=_SCAN_RULES.map(function(x){return x.k;}).concat(['top20']);
-    var out={total:keys.length,solid:0,prom:0,early:0,silent:0,losing:0};
+    var out={total:keys.length,solid:0,prom:0,early:0,silent:0,losing:0,unproven:0};
     keys.forEach(function(k){
       var t=_evRuleTier(k); if(!t)return;
       if(!t[2]){ out.silent++; out.early++; return; }      // never fired all year
-      if(t[3]!=null&&t[3]<=0){ out.losing++; return; }      // fires, but loses to the market
-      if(t[0]==='SOLID')out.solid++; else if(t[0]==='PROMISING')out.prom++; else out.early++;
+      // v498 — "loses to the market" now needs the same evidence "beats the
+      // market" does. A negative number inside its own margin of error is not a
+      // losing record, it is no record.
+      if(t[0]==='LOSING'){ out.losing++; return; }
+      if(t[7]!==true&&t[3]!=null&&t[3]<=0){ out.losing++; return; }
+      if(t[0]==='SOLID')out.solid++; else if(t[0]==='PROMISING')out.prom++;
+      else if(t[0]==='NOT PROVEN'){ out.unproven=(out.unproven||0)+1; }
+      else out.early++;
     });
     return out;
   }catch(e){ return null; }
@@ -17994,7 +18045,16 @@ function _evRuleSpread(){
 // Does this rule's record justify a badge at all? Same test the auto-pilot
 // uses before it will act (`_apBestScan`: solid && edge > 0) — the radar and
 // the robot must not give opposite verdicts on the same signal.
-function _evRuleEarnsBadge(t){ return !!(t && t[3]!=null && t[3]>0); }
+// v498 — a positive edge is not enough. Half of eighteen rules will show a
+// positive edge on any year by luck alone; the question is whether it is bigger
+// than its own margin of error. Where the honest tally is available the badge
+// follows the TIER, which already contains that test. Where it is not, the old
+// edge>0 rule stands so an older worker behaves exactly as before.
+function _evRuleEarnsBadge(t){
+  if(!t)return false;
+  if(t[7]===true)return t[0]==='SOLID'||t[0]==='PROMISING';
+  return t[3]!=null&&t[3]>0;
+}
 function _evPct(x){ return (x>0?'+':'')+x.toFixed(2)+'%'; }
 // The small tier chip that rides on a scan banner / report header.
 function _evBannerChip(key){
