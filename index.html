@@ -1029,7 +1029,16 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
           </div>
           <button onclick="refreshLiveFromApi()" style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 10px var(--sans);cursor:pointer;">🔄 Refresh live from API <span style="font-weight:400;font-size:9px;">(re-fetch fresh, ignore saved data)</span></button>
           <button onclick="testConnectionSpeed()" style="width:100%;margin-top:6px;padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🔎 Test connection speed <span style="font-weight:400;font-size:9px;">(loading slow? see which route is the problem)</span></button>
-          <button onclick="serverReportCheck()" style="width:100%;margin-top:6px;padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">🔬 Check the server's reports <span style="font-weight:400;font-size:9px;">(compares its answers with this device's — changes nothing)</span></button>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
+            <div style="font:700 9px var(--sans);color:var(--dim);letter-spacing:.5px;margin-bottom:5px;">🛠 OWNER TOOLS</div>
+            <!-- v502 — the two jobs standing between here and moving the scans to
+                 the server, side by side so neither has to be hunted for. The
+                 52-week build deliberately OPENS THE ADMIN PANEL rather than
+                 running from here: this file is the file customers run, and the
+                 admin password must never be typed into it. -->
+            <button onclick="serverReportCheck()" style="width:100%;padding:7px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 10px var(--sans);cursor:pointer;" title="Runs all twelve reports twice — once here on your device and once on the server — over 300 of your real shares, and compares them share by share, position by position. This is the check that has to come back green before any scan's thresholds move to the server. Nothing is changed by pressing it.">🔬 Check the server's reports <span style="font-weight:400;font-size:9px;">(compares its answers with this device's — changes nothing)</span></button>
+            <button onclick="window.open(DATA_PROXY.replace(/\/+$/,'')+'/admin/panel','_blank','noopener')" style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;" title="Opens the server's own pantry page in a new tab — where the market history is stored and topped up, where the backups are downloaded, and where Build the 52-week table lives. It asks for the admin password, which is deliberately NOT held in this app, because this is the same app your customers run.">🗄 Open the pantry <span style="font-weight:400;font-size:9px;">(server admin — needs your admin password)</span></button>
+          </div>
           <div id="srvChkOut" style="font-size:9px;color:var(--muted);margin-top:5px;line-height:1.6;"></div>
           <div id="speedTestOut" style="font-size:9px;color:var(--muted);margin-top:5px;line-height:1.6;"></div>
           <div id="lpMsg" style="font-size:9px;color:var(--dim);margin-top:5px;min-height:11px;"></div>
@@ -1688,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-501-open';
+const APP_VERSION='2026.07.28-502-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9903,11 +9912,11 @@ function statsBar(){
         +(_rs.unproven||0)+' NOT PROVEN — enough history to have found an edge, and none was found, which is a different statement from having too little data'
         +', '+_rs.early+' too early to say'+(_rs.silent?' — '+_rs.silent+' of which have not fired ONCE all year':'')
         +(_rs.losing?', and '+_rs.losing+' proven to LOSE to the market by more than their own margin of error, so they earn no badge':'')+'. '
-        +'WHY THIS DIFFERS FROM THE TILES ABOVE: those count SHARES, this counts SIGNALS. '
+        +'This line is labelled SIGNALS and the one above it SHARES because they count different things and their numbers are not comparable. '
         +'A signal earns a high tier by firing a lot — and firing a lot is exactly what makes it tag a lot of shares. '
         +'So a signal that fires often tags a lot of shares whatever its record. '
         +'That is not a fault; it is the two counts measuring different things. Lesson 46 explains it.';
-      _evSetNote(_rn,_bits.length?(_rs.total+' signals: '+_bits.join(' · ')):'',_rt);
+      _evSetNote(_rn,_bits.length?('<b style="color:var(--dim);font-weight:800;letter-spacing:.4px">SIGNALS</b> '+_rs.total+' graded · '+_bits.join(' · ')):'',_rt);
       // v470: and where the grading was done. Not decoration — if the server
       // is answering, the numbers on screen were computed somewhere the user
       // cannot inspect, and they are entitled to know that at a glance.
@@ -9995,7 +10004,11 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   }
   if(!bits.length){ _evSetNote(el,''); _evSetNote(sg,''); return; }
   tip+='These describe WHAT WAS COUNTED \u2014 the difference between "we looked and found nothing" and "we never looked" is the whole point.';
-  _evSetNote(el,bits.join(' \u00b7 '),tip);
+  // v502 — one word of gutter label. Until now the ONLY thing telling a reader
+  // that this line counts SHARES while the line under it counts SIGNALS was a
+  // tooltip, and nobody hovers a tooltip to discover that two numbers are not
+  // comparable. Two words do what a paragraph was failing to do.
+  _evSetNote(el,'<b style="color:var(--dim);font-weight:800;letter-spacing:.4px">SHARES</b> '+bits.join(' \u00b7 '),tip);
   // The \ud83d\udd2c counts only need a denominator when something was genuinely EXCLUDED.
   var nOut=(nHist||0)+(nLiq||0), tested=Math.max(0,(nSeen||0)-nOut);
   if(nOut){
