@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-496",
+  "version": "2026.07.28-497",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v496 \u2014 the \ud83d\udcd6 Help guide button was a wide purple pill parked in the bottom-right corner of every screen, sitting on top of whatever was underneath it \u2014 the small print at the bottom of the page, and on a phone two of the Simple-view cards. It is now a small round \ud83d\udcd6 button in the same spot, about a third of the size. Point at it and it opens back out to the full \"Help guide\" so it is never a mystery icon; on a phone it stays a circle. The fully-worded Help guide row in your account menu (top-left) is unchanged. Hard-refresh (Ctrl+F5) to update."
+  "notes": "v497 \u2014 the \ud83d\udcd6 Help guide button was still sitting on the small print at the bottom of the page. Making it smaller in v496 wasn't enough: on a wide screen that bar IS the bottom of the window, so anything pinned to the bottom corner lands on it no matter how small. The button now measures the bar and parks itself just above it, so every word is readable. On a phone, where the page scrolls and that bar is far below the fold, it stays in the easy-reach corner. Hard-refresh (Ctrl+F5) to update."
 }
