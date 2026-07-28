@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-493-open';
+const APP_VERSION='2026.07.28-494-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6009,6 +6009,19 @@ function _apBuy(s,r){
   if(cost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
   const tgt=r.targetPct>0?_tickRound(px*(1+r.targetPct/100),s.exchange):0; // v394: snap target to a valid tick
   const stop=r.stopPct>0?_tickRound(px*(1-r.stopPct/100),s.exchange):0;     // v394: snap stop to a valid tick
+  // v494 — the snap can land back ON the entry price. At $0.002 with a $0.001
+  // step, +20% and −8% both round to $0.002; at $0.006 the stop does. A stop
+  // equal to the buy price is sold at breakeven the first morning the share
+  // opens there, minus brokerage. The MANUAL buy path already refuses both of
+  // these ("target should be above your buy price" / "stop should be below"),
+  // so without this the bot could create a position a person could not.
+  // Nudging by a tick instead would be worse: at $0.002 one tick is 50%, so
+  // "20%" would become a different order wearing the user's number.
+  { const _dp=(px<0.01)?4:(px<1?3:2);
+    if(tgt>0&&tgt<=px)
+      return {ok:false,why:'its price steps are too coarse for a '+r.targetPct+'% target — $'+px.toFixed(_dp)+' rounds up to $'+tgt.toFixed(_dp)+', which is not above the buy price. Use a wider target for shares this cheap.'};
+    if(stop>0&&stop>=px)
+      return {ok:false,why:'its price steps are too coarse for a '+r.stopPct+'% stop — $'+px.toFixed(_dp)+' rounds down to $'+stop.toFixed(_dp)+', which would sell at breakeven. Use a wider stop for shares this cheap.'}; }
   const note='🤖 Auto-pilot (practice)';
   if(r.apEntry==='dip'&&r.apDipPct>0){
     // 🎣 v313 patient entry — practice LIMIT buy under the last close (same
@@ -6020,6 +6033,13 @@ function _apBuy(s,r){
     if(dcost+fee>p.cash+0.005)return {ok:false,why:'not enough practice cash'};
     const dtgt=(r.targetPct>0)?_tickRound(lim*(1+r.targetPct/100),s.exchange):0; // v394: snap
     const dstop=(r.stopPct>0)?_tickRound(lim*(1-r.stopPct/100),s.exchange):0;     // v394: snap
+    // v494 — same guard as the market-entry branch above, measured against the
+    // LIMIT price this order would actually fill at.
+    { const _dp=(lim<0.01)?4:(lim<1?3:2);
+      if(dtgt>0&&dtgt<=lim)
+        return {ok:false,why:'its price steps are too coarse for a '+r.targetPct+'% target at a $'+lim.toFixed(_dp)+' limit — it rounds to $'+dtgt.toFixed(_dp)+', not above the buy price.'};
+      if(dstop>0&&dstop>=lim)
+        return {ok:false,why:'its price steps are too coarse for a '+r.stopPct+'% stop at a $'+lim.toFixed(_dp)+' limit — it rounds to $'+dstop.toFixed(_dp)+', which would sell at breakeven.'}; }
     p.cash=+(p.cash-dcost).toFixed(2); _chargeFee(p); p.orders=p.orders||[];
     p.orders.push({id:'o'+Date.now()+'d'+Math.floor(Math.random()*1000),ticker:s.ticker,exchange:s.exchange,name:s.name||'',currency:s.currency,
       limit:lim,qty:dq,reserved:dcost,placedDate:today,checkedDate:today,preOpen:_orderPreOpen(s.exchange),expiry:_orderExpiry(today),
@@ -7652,9 +7672,20 @@ function paperSell(id){
     const q=document.getElementById('sellQty');
     const upd=()=>{
       const n=Math.min(totQty,Math.max(0,parseInt(q.value)||0));
-      const cost=n*avg, proc=n*px, pl=proc-cost, plp=cost>0?(pl/cost)*100:0;
+      // v494 — the preview used to compute proceeds−cost while the trade it
+      // records computes proceeds−cost−fees. On a $500 parcel with $10
+      // brokerage that is "+$12.00" on screen and −$8.00 in the ledger: a sign
+      // flip between the promise and the record. Same arithmetic now.
+      const cost=n*avg, proc=n*px;
+      // Brokerage is a flat charge (`brokerageFee`): one on the sale, plus the
+      // share of the ORIGINAL buy fee that belongs to the shares being sold —
+      // which is exactly how paperSellConfirm apportions it.
+      const _sFee=+((typeof brokerageFee==='function')?brokerageFee():0)||0;
+      const _bFeeAll=lots.reduce((a,l)=>a+(+l.buyFee||0),0);
+      const _fees=+((_sFee+_bFeeAll*(n/Math.max(1,totQty))).toFixed(2));
+      const pl=proc-cost-_fees, plp=cost>0?(pl/cost)*100:0;
       const pv=document.getElementById('sellPrev');
-      if(pv)pv.innerHTML=n>0?`Proceeds ${fmtP(proc,cur)} · P/L <span style="color:${pl>=0?'var(--green)':'var(--red)'}">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(2)}%)</span>${n<totQty?` · keeps ${(totQty-n).toLocaleString()} shares`:' · closes the position'}`:'';
+      if(pv)pv.innerHTML=n>0?`Proceeds ${fmtP(proc,cur)} · P/L <span style="color:${pl>=0?'var(--green)':'var(--red)'}">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(2)}%)</span>${_fees>0?` <span style="color:var(--dim)">after ${fmtP(_fees,cur)} brokerage</span>`:''}${n<totQty?` · keeps ${(totQty-n).toLocaleString()} shares`:' · closes the position'}`:'';
     };
     if(q){q.oninput=upd;upd();q.focus();q.select();}
   },80);
@@ -11524,8 +11555,13 @@ async function _computeSignalsFromSeries(){
       if(typeof countStreakBoth==='function')s.daysUpVol=countStreakBoth(hist);
       const avg3=computeVolAvg(hist,effVolWindow());
       if(avg3>0){s.avg3mo=avg3;s.avgVol=avg3;s.volPct=Math.round(((s.volume-avg3)/avg3)*100);s.volCalced=true;s.volWindow=effVolWindowLabel();}
+      // v494 — sorted ONCE and reused. computeTechnicals takes an optional
+      // third argument for exactly this, and was being called with two, so
+      // every share's history was mapped and sorted twice per prepare.
+      // Measured over 4,300 shares: 1,697 ms → 184 ms.
+      let _rows=null;
       try{
-        const rows=_sortedCloses(hist);
+        const rows=_sortedCloses(hist); _rows=rows;
         const older=rows.slice(0,-5);
         let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
         const avgV=vn>0?vs/vn:(s.avgVol||0);
@@ -11533,7 +11569,7 @@ async function _computeSignalsFromSeries(){
         if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
         s.volDays=vrun; s.volStreakCalced=true;
       }catch(e){}
-      try{computeTechnicals(s,hist);}catch(e){}
+      try{computeTechnicals(s,hist,_rows||undefined);}catch(e){}
       if(typeof accumDays==='function')s.accum10=accumDays(s,10);
       if(typeof watchScore10==='function')s.watchScore=watchScore10(s).score;
       n++;
@@ -12411,11 +12447,24 @@ async function smartMoneyScan(minDays,scanAll){
   // Clear stale calc flags from any previous run, then bulkVolume() below
   // repopulates BOTH the 1-month volume average AND the days-up streak for the
   // whole exchange in one pass (~22 calls), so the scan starts from fresh data.
-  allData.forEach(s=>{s.streakCalced=false;s.daysUp=0;});
-
-  // Step 1: whole-exchange volume average + days-up streak (fast date-range method)
-  st.textContent='Step 1/3 · loading volume & streaks…';
-  if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
+  // v494 — this used to clear the streaks and recompute unconditionally, so
+  // pressing 🎯 Smart Money twice cost 4.3 seconds twice and produced the same
+  // numbers. Every other scan guards its recompute; this one now does too.
+  // The intent — start from fresh data — is kept: it still recomputes whenever
+  // the market date has moved or the signals are not there. What is dropped is
+  // redoing it when nothing has changed.
+  const _smDay=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+  const _smFresh=(window._smPrepDay===_smDay+'|'+currentExch)
+    && allData.some(s=>s&&s.volCalced&&s.streakCalced);
+  if(!_smFresh){
+    allData.forEach(s=>{s.streakCalced=false;s.daysUp=0;});
+    // Step 1: whole-exchange volume average + days-up streak (fast date-range method)
+    st.textContent='Step 1/3 · loading volume & streaks…';
+    if(window._offlineMode){ await _computeSignalsFromSeries(); } else { await bulkVolume(); }
+    try{ window._smPrepDay=_smDay+'|'+currentExch; }catch(e){}
+  } else {
+    st.textContent='Step 1/3 · volume & streaks already current…';
+  }
   scanProgSet(10);
 
   // Step 2: pick candidates to verify.
