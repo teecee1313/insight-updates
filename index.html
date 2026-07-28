@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-491-open';
+const APP_VERSION='2026.07.28-492-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6530,7 +6530,7 @@ function updatePaperPrices(acct){
 // ONE named switch, read by the renderers AND the functions, so turning it
 // back off is one word. (v457's lesson: the beta evidence fence was five
 // separate guards and only one of them was visible.)
-const _UNDO_ON_BETA = true;
+const _UNDO_ON_BETA = false;   // v492: Tony's call, 28 Jul — back off in beta
 function _undoOn(){ try{ return _UNDO_ON_BETA || APP_VERSION.indexOf('-beta')<0; }catch(e){ return true; } }
 function undoSale(sellDate,ticker,buyDate){
   if(!_undoOn()){ alert('Undoing a sale is turned off in the beta build.\n\nThe released app can reverse a closed trade; this test copy deliberately cannot, so your test account keeps matching what you have reported.'); return; }
