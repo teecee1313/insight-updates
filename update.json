@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-495",
+  "version": "2026.07.28-496",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v495 \u2014 the last of the audit: speed and a rounding fault. Pressing \ud83c\udfc6 Top 20 used to freeze for about four seconds while the app quietly prepared a year of grading before showing you anything; the twenty shares now appear straight away and the grading catches up a moment later. Big tables draw about a fifth faster. And several \"within 3%\" style tests were being made against the rounded number rather than the real one \u2014 a share 3.4% below its 52-week high read as \"within 3%\", and a 2.5% gap flagged as a 3% gap. The tests now use the exact figure; the number on screen is unchanged. Hard-refresh (Ctrl+F5) to update."
+  "notes": "v496 \u2014 the \ud83d\udcd6 Help guide button was a wide purple pill parked in the bottom-right corner of every screen, sitting on top of whatever was underneath it \u2014 the small print at the bottom of the page, and on a phone two of the Simple-view cards. It is now a small round \ud83d\udcd6 button in the same spot, about a third of the size. Point at it and it opens back out to the full \"Help guide\" so it is never a mystery icon; on a phone it stays a circle. The fully-worded Help guide row in your account menu (top-left) is unchanged. Hard-refresh (Ctrl+F5) to update."
 }
