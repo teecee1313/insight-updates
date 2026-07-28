@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-488-open';
+const APP_VERSION='2026.07.28-489-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5728,7 +5728,12 @@ async function _dipStats(tk){
     table.push({x,fillRate,avgOut,n:withOut.length});
   }
   const suggest=Math.max(0.5,Math.round(medDip*2)/2);
-  return {ok:true,s,nPts:pts.length,medDip,medRng,table,suggest};
+  // v489: the raw daily dips travel with the summary. The table below is built
+  // at 1/1.5/2/2.5/3/4/5% and reading it for any OTHER depth returns the
+  // nearest row's fill rate — which, asked about a 16% dip on a penny stock,
+  // hands back the 5% row's number: several times too optimistic, attached to a
+  // price it does not describe.
+  return {ok:true,s,nPts:pts.length,medDip,medRng,table,suggest,dips:pts.map(p2=>p2.dip)};
 }
 async function dipFinder(code){
   let tk=(code||'').toString().trim().toUpperCase();
@@ -5762,7 +5767,14 @@ async function dipFinderInline(tk){
   const bx=document.getElementById('dipMini'); if(!bx)return; // dialog may have closed meanwhile
   if(!D.ok){ bx.innerHTML='<div style="font-size:9px;color:var(--dim);line-height:1.5;">'+D.why+'</div>'; return; }
   const s=D.s, dec=s.price<1?3:2;
-  const fr=x=>{ const row=D.table.filter(r2=>r2.x<=x).pop(); return row?row.fillRate:null; };
+  // v489: measured against the actual days, not looked up in a coarse table.
+  // Identical to the table at its own steps; correct everywhere else, including
+  // the 0.5% chip (which had no row at or below it and so showed nothing).
+  const fr=x=>{
+    if(!Array.isArray(D.dips)||!D.dips.length){ const row=D.table.filter(r2=>r2.x<=x).pop(); return row?row.fillRate:null; }
+    var n=0; for(var i=0;i<D.dips.length;i++)if(D.dips[i]>=x)n++;
+    return Math.round(n/D.dips.length*100);
+  };
   // v464 — a suggested price has to be a price you can actually type into a
   // broker. Shares don't trade in arbitrary fractions: on the ASX, between
   // 10c and $2 the step is half a cent, so $0.149 simply does not exist.
@@ -5792,13 +5804,35 @@ async function dipFinderInline(tk){
     +(function(){
         var R=_dipChips(depths);
         var html='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">'+R.list.map(chip).join('')+'</div>';
-        if(!R.list.length)
-          html+='<div style="font-size:9px;color:var(--orange);margin-top:4px;">No dip is reachable here — every depth lands on the last close once snapped to this share\'s $'+(_step||0).toFixed((_step||0)<0.01?3:2)+' price step. Bid at the close, or wait for a lower one.</div>';
+        if(!R.list.length){
+          // v489: every depth we offered rounds back to the close — but ONE
+          // STEP LOWER is a real, typable price, and saying "no dip is
+          // reachable" while such a price exists is simply wrong. Offer it, say
+          // what it actually is, and say how often this share has gone there.
+          var _base=_snap(s.price), _one=+((_base-(_step||0)).toFixed(4));
+          var _eff=(_one>0&&s.price>0)?+(((s.price-_one)/s.price)*100).toFixed(1):null;
+          var _hit=(_eff!=null)?fr(_eff):null;
+          html+='<div style="font-size:9px;color:var(--orange);margin-top:4px;">Every depth above lands back on the last close — at $'+s.price+' this share\'s $'+(_step||0).toFixed((_step||0)<0.01?3:2)+' step is too big a jump for a small dip.'
+            +(_eff!=null?' The next real price down is <b>$'+_one.toFixed(dec)+'</b>, which is a <b>'+_eff+'%</b> dip.':'')+'</div>';
+          if(_eff!=null&&_one>0)
+            html+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">'+chip({x:_eff,px:_one,eff:_eff,f:_hit})+'</div>'
+              +'<div style="font-size:9px;color:var(--dim);margin-top:4px;">'
+              +(_hit===0?'It has not dipped that far once in the last '+D.nPts+' sessions, so that bid would most likely just sit there.'
+                       :'It reached that on about '+_hit+'% of the last '+D.nPts+' sessions.')
+              +' Bidding at the close fills far more often.</div>';
+        }
         else if(R.tooFine)
           html+='<div style="font-size:9px;color:var(--dim);margin-top:4px;">Prices snap to this share\'s $'+(_step||0).toFixed((_step||0)<0.01?3:2)+' step, so shallower depths land back on the close and aren\'t shown — the smallest dip you can actually bid is '+R.list[0].eff+'%.</div>';
         return html;
       })()
-    +'<div style="font-size:9px;color:var(--dim);margin-top:4px;">'+D.suggest+'% is its median dip. Deeper = better price but fewer fills, and fills cluster on weak days. Prices shown are snapped to a real tick, so the % beside each is the dip you would truly be bidding. Full table (with the +5-day after-fill test): 📉 Dip Finder in ⚙ bot settings. Estimates, not advice.</div>';
+    +'<div style="font-size:9px;color:var(--dim);margin-top:4px;">'
+    // v489: `suggest` is Math.max(0.5, median) — a FLOOR, so a share that never
+    // dips still gets a usable starting depth. Calling it "its median dip" put
+    // 0.00% and 0.5% on the same screen as the same fact. Say which it is.
+    +((Math.round(D.medDip*2)/2 >= 0.5)
+        ? D.suggest+'% is its median dip.'
+        : 'Its median dip is '+D.medDip.toFixed(2)+'% — this share hardly ever trades below its previous close, so there is no typical dip to aim at. '+D.suggest+'% is just the shallowest depth worth offering.')
+    +' Deeper = better price but fewer fills, and fills cluster on weak days. Prices shown are snapped to a real tick, so the % beside each is the dip you would truly be bidding. Full table (with the +5-day after-fill test): 📉 Dip Finder in ⚙ bot settings. Estimates, not advice.</div>';
 }
 window._useDipPx=function(px){
   try{ if(window._buyType!=='limit')_setBuyType('limit'); }catch(e){} // v320: a dip price IS a limit order — switch mode + reveal the price box
