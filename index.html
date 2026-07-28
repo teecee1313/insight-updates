@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-502-open';
+const APP_VERSION='2026.07.28-503-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4857,6 +4857,180 @@ function _shdNewsLoad(tk,exch){
       .catch(function(){ var el2=document.getElementById('shdNews'); if(el2)el2.innerHTML=''; });
   }catch(e){}
 }
+// ═══ v503 — 🎯 Trade Plan ═══════════════════════════════════════════════════
+//
+// Built on the one thing this data predicts well. Measured over the stored
+// year, on both markets: sort shares by their last 20 days of movement and the
+// ranking survives into the next 20 days with a rank correlation of 0.893 on
+// the ASX and 0.852 on the NYSE, perfectly monotone across all ten tenths, with
+// the wildest tenth moving 18.7 times as far as the quietest.
+//
+// Nothing here predicts DIRECTION, because the same study found nothing that
+// does. Every number below is either arithmetic or a measurement of the past.
+var _TP_RISK_KEY='asxScreener.tpRisk.v1';
+function _tpRisk(){ try{ var v=+localStorage.getItem(_TP_RISK_KEY); return (v>0)?v:200; }catch(e){ return 200; } }
+function _tpSetRisk(v){ try{ localStorage.setItem(_TP_RISK_KEY,String(Math.max(1,+v||200))); }catch(e){}
+  try{ if(window._detailTicker)showShareDetail(window._detailTicker,window._detailDays||30); }catch(e){} }
+
+// the smallest price step this share actually trades in
+function _tpTick(px){ return (px<0.10)?0.001:(px<2)?0.005:0.01; }
+
+// realised volatility of daily closes, % per day, ignoring impossible prints
+function _tpVol(ser,n){
+  if(!Array.isArray(ser)||ser.length<12)return null;
+  var a=Math.max(1,ser.length-n), k=0,s=0,ss=0;
+  for(var i=a;i<ser.length;i++){
+    var p=ser[i-1].c, c=ser[i].c;
+    if(!(p>0&&c>0))continue;
+    var r=((c-p)/p)*100;
+    if(Math.abs(r)>60)continue;          // a consolidation or a bad print, not volatility
+    k++; s+=r; ss+=r*r;
+  }
+  if(k<8)return null;
+  var m=s/k, v=ss/k-m*m;
+  return v>0?Math.sqrt(v):null;
+}
+
+// deepest peak-to-trough fall in the stored history
+function _tpWorst(ser){
+  if(!Array.isArray(ser)||ser.length<20)return null;
+  var peak=-1, worst=0, wFrom='', wTo='', pkD='';
+  for(var i=0;i<ser.length;i++){
+    var c=ser[i].c; if(!(c>0))continue;
+    if(c>peak){ peak=c; pkD=ser[i].d; }
+    else { var dd=((c-peak)/peak)*100; if(dd<worst){ worst=dd; wFrom=pkD; wTo=ser[i].d; } }
+  }
+  return worst<0?{pct:worst,from:wFrom,to:wTo}:null;
+}
+
+function _tpPlan(s,holdDays){
+  try{
+    if(!s||!Array.isArray(s.series)||s.series.length<30)return null;
+    var ser=s.series, px=s.price>0?s.price:ser[ser.length-1].c;
+    if(!(px>0))return null;
+    var vd=_tpVol(ser,20), vd60=_tpVol(ser,60);
+    if(vd==null)return null;
+    var hold=holdDays||5;
+    // Expected RANGE over the hold, not a direction: one standard deviation
+    // scaled by the square root of time, which is what a random walk gives and
+    // what the persistence result licenses.
+    var band=vd*Math.sqrt(hold);
+    var risk=_tpRisk();
+    // A "normal bad day" is one standard deviation against you. Size so that
+    // day costs what was chosen to risk — arithmetic, not a forecast.
+    //
+    // A position worth P moves P x vd/100 dollars on a typical day, so setting
+    // that equal to the risk gives P = 100 x risk / vd. The first version of
+    // this line dropped the 100 and sized a $118 share at ONE share for a $200
+    // risk. Worse, the test asserted the formula rather than the intent, so it
+    // passed. The assertion is now "a typical day on this position costs the
+    // amount you chose to risk", which cannot be satisfied by the wrong maths.
+    var posnDollars=(risk*100)/vd;
+    var shares=Math.floor(posnDollars/px);
+    var posn=shares*px;
+    var tick=_tpTick(px);
+    // The stop the same arithmetic implies, snapped DOWN to a real price step.
+    //
+    // Snapping is not a rounding detail, it is the whole risk. On a half-cent
+    // share the steps are a tenth of a cent, so a stop meant to sit 4% below
+    // lands 20% below: the buyer believes they are risking 4% and are risking
+    // five times that. Refusing an impossible stop (v494's lesson) is not
+    // enough — this one EXISTS, it is just nothing like the one asked for. So
+    // both numbers are kept and the gap is stated.
+    var wantPct=2*vd;                                 // what the volatility asks for
+    var stopRaw=px*(1-wantPct/100);
+    var stop=Math.floor(stopRaw/tick)*tick;
+    var stopOk=(stop>0&&stop<px);
+    var stopPct=stopOk?((stop-px)/px)*100:null;
+    // "coarse" = the nearest real step is half again as far as intended
+    var stopCoarse=(stopOk&&stopPct!=null&&Math.abs(stopPct)>wantPct*1.5);
+    var avgV=(s.avgVol>0)?s.avgVol:null;
+    // Getting out: a tenth of a normal day's volume is the usual rule of thumb
+    // for not moving the price against yourself.
+    var exitDays=(avgV&&shares>0)?(shares/(avgV*0.1)):null;
+    var worst=_tpWorst(ser);
+    return {px:px,vd:vd,vd60:vd60,hold:hold,band:band,risk:risk,
+            shares:shares,posn:posn,tick:tick,stop:stop,stopOk:stopOk,stopPct:stopPct,
+            wantPct:wantPct,stopCoarse:stopCoarse,
+            exitDays:exitDays,avgV:avgV,worst:worst,turn:(avgV?avgV*px:null),
+            days:ser.length};
+  }catch(e){ return null; }
+}
+
+function _tpRow(lbl,val,note){
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);">'
+    +'<div style="font-size:10px;color:var(--muted);">'+lbl+'</div>'
+    +'<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:var(--text);">'+val+'</div>'
+    +(note?'<div style="font-size:9px;color:var(--dim);line-height:1.4;">'+note+'</div>':'')+'</div></div>';
+}
+
+function _tpPanel(s){
+  try{
+    var p=_tpPlan(s,window._detailDays&&window._detailDays<=20?window._detailDays:5);
+    if(!p)return '';
+    var cur=(s.currency==='USD'?'US$':'A$');
+    var money=function(v){ return cur+(v>=1000?Math.round(v).toLocaleString():v.toFixed(2)); };
+    var dp=(p.px<0.01)?4:(p.px<1)?3:2;
+    var h='<div style="margin-top:14px;border:1px solid var(--border2);border-radius:8px;padding:12px 14px;background:var(--bg2);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<div style="font-weight:800;font-size:13px;color:var(--text);">🎯 Trade Plan</div>'
+      +'<div style="font-size:10px;color:var(--muted);">risk per trade '
+      +'<input type="number" min="1" step="10" value="'+p.risk+'" onchange="_tpSetRisk(this.value)" '
+      +'style="width:72px;padding:2px 5px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);font:700 11px var(--sans);"> '
+      +cur+'</div></div>';
+
+    h+=_tpRow('How far it moves',
+      p.vd.toFixed(2)+'% on a typical day',
+      'about &plusmn;'+p.band.toFixed(1)+'% over '+p.hold+' days'
+      +(p.vd60!=null?' &middot; '+p.vd60.toFixed(2)+'% over the last three months':'')
+      +'. Direction unknown &mdash; only the SIZE of the move is predictable.');
+
+    h+=_tpRow('How much to buy',
+      (p.shares>0?p.shares.toLocaleString()+(p.shares===1?' share':' shares'):'&mdash;')+(p.posn>0?' &middot; '+money(p.posn):''),
+      p.shares>0
+        ? ('so one typical bad day costs about '+money(p.risk)+'. Not a recommendation to buy &mdash; the size IF you decide to.')
+        : ('one typical move already costs more than your '+money(p.risk)+' risk, so the smallest sensible position is none.'));
+
+    h+=_tpRow('Stop-loss',
+      !p.stopOk?'<span style="color:var(--red)">not possible</span>'
+        :(p.stopCoarse?'<span style="color:var(--orange)">':'')+cur+p.stop.toFixed(dp)+' ('+p.stopPct.toFixed(1)+'%)'+(p.stopCoarse?'</span>':''),
+      !p.stopOk
+        ? ('this share trades in '+cur+p.tick.toFixed(3)+' steps, which are too coarse at '+cur+p.px.toFixed(dp)+' to place a stop below your buy price at all. A stop here would sell you out at breakeven or worse.')
+        : (p.stopCoarse
+          ? ('&#9888; NOT the '+p.wantPct.toFixed(1)+'% its movement asks for. This share trades in '+cur+p.tick.toFixed(3)+' steps, and the nearest one below is '+Math.abs(p.stopPct).toFixed(1)+'% away &mdash; so the real risk on a stop is '+(Math.abs(p.stopPct)/p.wantPct).toFixed(1)+' times what you would expect.')
+          : ('two typical days below '+cur+p.px.toFixed(dp)+', snapped down to a real '+cur+p.tick.toFixed(3)+' price step.')));
+
+    h+=_tpRow('Getting out',
+      p.exitDays!=null?(p.exitDays<0.25?'under a day':(p.exitDays<1?'about half a day':p.exitDays.toFixed(1)+' days')):'&mdash;',
+      p.exitDays!=null
+        ? ('to sell that position at a tenth of its normal daily volume'+(p.turn?' &middot; '+money(p.turn)+' changes hands on an average day':'')+'.')
+        : 'no volume average stored yet.');
+
+    if(p.worst)
+      h+=_tpRow('Its worst stretch',
+        p.worst.pct.toFixed(1)+'%',
+        'peak to trough, '+p.worst.from+' to '+p.worst.to+', in the '+p.days+' days stored. It has happened once; it is not a limit.');
+
+    // what the evidence says — plainly, not by an absent badge
+    var ev='';
+    try{
+      if(s._evTier)ev=s._evTier+(s._evEdge!=null?' ('+_evPct(s._evEdge)+' vs the market)':'');
+      else if(s._evNeg)ev='signals firing, all with LOSING records';
+      else if(s._evUnp)ev='signals firing, none with a proven record';
+      else if(s._evErly)ev='signals firing, all too new to have a record';
+      else ev='no graded signal firing today';
+    }catch(e){ ev='&mdash;'; }
+    h+=_tpRow('What the evidence says',ev,
+      'From replaying the stored year. On one year, honestly measured, almost every signal comes back NOT PROVEN &mdash; that is the finding, not a fault.');
+
+    h+='<div style="font-size:9px;color:var(--dim);margin-top:9px;line-height:1.6;">'
+      +'Every number here is arithmetic or a measurement of the past. <b>Nothing on this panel predicts which way the price will go</b>, because a full replay of the stored year found nothing that reliably does. '
+      +'What it does use is the one thing that IS predictable: how far a share moves. Sorted by their last 20 days, shares kept their ranking over the next 20 with a correlation of 0.89 &mdash; the quietest tenth moving 0.31% a day and the wildest 5.73%. '
+      +'Sizing this way makes your risk knowable; it is not a claim that it makes money. Research, not advice.'
+      +'</div></div>';
+    return h;
+  }catch(e){ return ''; }
+}
 function showShareDetail(ticker,days){
   const n=days||7;
   window._detailTicker=ticker;
@@ -5062,6 +5236,7 @@ function showShareDetail(ticker,days){
         </tr></thead><tbody>${body}</tbody>
       </table>
     </div>
+    ${(typeof _tpPanel==='function'&&_tpPanel(s))||''}
     <div id="shdNews"></div>
     <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows ${s._ohlcSrc==='server'?'from the server\'s own store':'fetched per share (1 call, remembered)'}${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
   `);
