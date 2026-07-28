@@ -1649,7 +1649,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.27-484-open';
+const APP_VERSION='2026.07.28-485-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9023,16 +9023,9 @@ async function volumeSurgeScan(){
     if(window._offlineMode){ await _computeSignalsFromSeries(); } else if(typeof bulkVolume==='function'){ await bulkVolume(); }
   }
   if(typeof scanProgSet==='function')scanProgSet(70);
-  const rows=[];
-  for(const s of allData){
-    if(!(s.price>0)||!s.volCalced||!isFinite(s.volPct))continue;
-    const r=(typeof volSurgeRating==='function')?volSurgeRating(s.volPct,s.chgPct):null;
-    if(!r)continue;
-    s._surgeKey=r.key; s._surgeLabel=r.label;
-    try{ const w=watchScore10(s); s.watchScore=w.score; }catch(e){}
-    rows.push({s,r});
-  }
-  rows.sort((a,b)=>b.s.volPct-a.s.volPct);
+  // v485 — the deciding moved to _selVolumeSurge. Also thin: the bands live
+  // in volSurgeRating().
+  const rows=_selVolumeSurge(allData);
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=rows.map(x=>x.s);
   lastScanLabel='Volume Surge';
@@ -10830,26 +10823,10 @@ async function speedingTicketScan(){
   }
   scanProgSet(70);
 
-  // Score every share by how abnormal today is FOR ITSELF.
-  const scored=[];
-  for(const s of allData){
-    if(!(s.price>0&&s.volCalced))continue;
-    const move=Math.abs(s.chgPct);
-    if(move<P.minMove)continue;                 // floor: ignore tiny moves regardless
-    const typical=typicalDailyMove(s.series)||move; // fallback if no series
-    const moveMult=typical>0?move/typical:0;    // today's move ÷ its normal daily move
-    const volRatio=s.avgVol>0?s.volume/s.avgVol:0;
-    // Require BOTH the move and the volume to be abnormal for this share.
-    if(moveMult<P.moveMult||volRatio<P.volRatio)continue;
-    // Abnormality score: how many "typical days" of move, times how many times
-    // normal volume — a single number capturing "how hard is this speeding".
-    const score=Math.round(moveMult*Math.min(volRatio,10)*10)/10;
-    s.speedScore=score;
-    s.speedMoveMult=Math.round(moveMult*10)/10;
-    s.speedVolRatio=Math.round(volRatio*10)/10;
-    scored.push(s);
-  }
-  scored.sort((a,b)=>b.speedScore-a.speedScore);
+  // v485 — the deciding now lives in _selSharpMovers (below the scan). This
+  // line is all that is left of it here, because showing and deciding are two
+  // different jobs and only one of them is going to the server.
+  const scored=_selSharpMovers(allData,speedSensitivity);
 
   // News-context split
   const onNews=scored.filter(s=>s.newsFlag==='likely');
@@ -10880,6 +10857,367 @@ async function speedingTicketScan(){
       st.innerHTML=`No sharp movers at "${P.label}" sensitivity. <button onclick="setSpeedSensitivity('loose')" style="padding:2px 8px;border-radius:4px;border:1px solid var(--blue);background:rgba(56,139,253,.12);color:var(--blue);font:600 9px var(--sans);cursor:pointer;">Try looser</button>`;
     }
   }
+}
+
+// ═══ v485 — HOW technical signals rank ════════════════════════════════════
+// Lifted verbatim out of technicalScan. A pure weighting table: twelve tuned
+// adjustments and no entry test at all. These twelve numbers are the entire
+// scan — and unlike an RSI band, there is nothing conventional about deciding a
+// fresh golden cross outweighs a near-high by two to one.
+function _selTechnical(have){
+  // Rank: reward fresh golden cross, near-high momentum, healthy RSI, rising OBV
+  have.forEach(s=>{
+    let sc=0;
+    if(s.cross==='golden')sc+=5; else if(s.cross==='bull')sc+=1.5; else if(s.cross==='death')sc-=4;
+    if(s.nearHigh)sc+=2.5; if(s.nearLow)sc-=1;
+    if(s.aboveMA200)sc+=1.5;
+    if(s.rsiState==='oversold')sc+=1.5; if(s.rsiState==='overbought')sc-=1;
+    if(s.obvTrend==='rising')sc+=1.5; if(s.obvTrend==='falling')sc-=1;
+    if(s.gapUp)sc+=1; if(s.volExpanding)sc+=0.5;
+    s.techScore=Math.round(sc*10)/10;
+  });
+  return have.slice().sort((a,b)=>(b.techScore||0)-(a.techScore||0));
+}
+
+// ═══ v485 — WHICH shares are firing multiple signals at once ══════════════
+// Lifted verbatim out of allSignalsScan. The substantial one of this batch: it
+// re-runs the sharp-mover test inline at normal sensitivity, stacks six more
+// conditions on top, and keeps anything sharp or unusual — or anything with two
+// or more signals stacking. Returns the per-signal totals because the status
+// line breaks them down.
+function _selAllSignals(shares){
+  const P=SPEED_PRESETS.normal;
+  const scored=[];
+  const totals={sharp:0,unusual:0,surge:0,pstreak:0,vstreak:0,accum:0,score:0};
+  for(const s of shares){
+    if(!(s.price>0))continue;
+    const sigs=[];
+    // 🚨 sharp mover (same maths as the Sharp Mover Detector, normal sensitivity)
+    if(s.volCalced){
+      const move=Math.abs(s.chgPct||0);
+      if(move>=P.minMove){
+        const typical=typicalDailyMove(s.series)||move;
+        const moveMult=typical>0?move/typical:0;
+        const volRatio=s.avgVol>0?s.volume/s.avgVol:0;
+        if(moveMult>=P.moveMult&&volRatio>=P.volRatio){sigs.push('🚨 sharp');totals.sharp++;}
+      }
+    }
+    // 🔍 unusual activity (any of the five patterns)
+    const u=(typeof scoreUnusual==='function')?scoreUnusual(s):null;
+    if(u&&u.score>0){sigs.push('🔍 unusual');totals.unusual++;}
+    // core signals
+    if(s.volCalced&&s.volPct>=50){sigs.push('📊 vol+50%');totals.surge++;}
+    if((s.daysUp||0)>=3){sigs.push('📈 streak3+');totals.pstreak++;}
+    if((s.volDays||0)>=3){sigs.push('🔵 volstrk3+');totals.vstreak++;}
+    if((s.accum10||0)>=5){sigs.push('🔥 accum5+');totals.accum++;}
+    if((s.watchScore||0)>=7){sigs.push('⭐ 7+/10');totals.score++;}
+    // Keep anything sharp/unusual, or with 2+ core signals stacking up.
+    if(sigs.length&&(sigs.some(x=>x.includes('sharp')||x.includes('unusual'))||sigs.length>=2)){
+      s.allSigN=sigs.length;s.allSigList=sigs.join(' · ');
+      scored.push(s);
+    }else{s.allSigN=0;s.allSigList='';}
+  }
+  scored.sort((a,b)=>b.allSigN-a.allSigN||(b.watchScore||0)-(a.watchScore||0));
+  return {rows:scored,totals:totals};
+}
+
+// ═══ v485 — WHICH shares show unusual activity ════════════════════════════
+// Lifted verbatim out of unusualScan. HONESTLY THIN: this loop only walks the
+// market and calls scoreUnusual(s). Every threshold is inside that helper. The
+// seam exists so all twelve scans share one shape, not because anything moved.
+function _selUnusual(shares){
+  const scored=[];
+  for(const s of shares){
+    const r=scoreUnusual(s);
+    if(r){s.unusualScore=r.score;s.unusualHits=r.hits;s.unusualMeta=r;scored.push(s);}
+    else{s.unusualScore=0;s.unusualHits=null;}
+  }
+  scored.sort((a,b)=>b.unusualScore-a.unusualScore || b.volPct-a.volPct);
+  return scored;
+}
+
+// ═══ v485 — WHICH shares are surging on volume ════════════════════════════
+// Lifted verbatim out of volumeSurgeScan. Thin for the same reason as Unusual:
+// volSurgeRating(volPct, chgPct) holds the bands; this only walks the market.
+function _selVolumeSurge(shares){
+  const rows=[];
+  for(const s of shares){
+    if(!(s.price>0)||!s.volCalced||!isFinite(s.volPct))continue;
+    const r=(typeof volSurgeRating==='function')?volSurgeRating(s.volPct,s.chgPct):null;
+    if(!r)continue;
+    s._surgeKey=r.key; s._surgeLabel=r.label;
+    try{ const w=watchScore10(s); s.watchScore=w.score; }catch(e){}
+    rows.push({s,r});
+  }
+  rows.sort((a,b)=>b.s.volPct-a.s.volPct);
+  return rows;
+}
+
+// ═══ v485 — WHICH shares score highest out of ten ═════════════════════════
+// Lifted verbatim out of topTenScan. ASYNC on purpose — v335 chunked this pass
+// so a phone does not freeze while it scores several thousand shares, and that
+// yield has to survive the move.
+async function _selTopTen(shares){
+  const scored=[];
+  for(let _j=0;_j<shares.length;_j++){
+    if((_j&255)===0&&_j>0)await new Promise(_r=>setTimeout(_r,0)); // v335: chunk the scoring pass too — keep the phone responsive
+    const s=shares[_j];
+    if(!(s.price>0))continue;
+    const r=watchScore10(s);
+    s.watchScore=r.score;      // /10 for the table column + sorting
+    s.watchParts=r.parts;
+    if(r.score>0)scored.push({s,r});
+  }
+  scored.sort((a,b)=>b.r.score-a.r.score || (b.r.acc-a.r.acc));
+  return scored;
+}
+
+// ═══ v485 — WHICH shares gapped, and whether the gap held ═════════════════
+// Lifted verbatim out of gapScan. Returns `priced` and `noOpen` alongside the
+// rows because the scan uses them to tell the truth about an empty result: if
+// most shares have no stored opening price, the honest message is "we have no
+// opens yet", not "there were no gaps today".
+//
+// The 0.75 / 0.35 thresholds are the report: they are what separates a gap that
+// HELD from one that FADED, which is the only question this scan exists to ask.
+function _selGaps(shares){
+  let priced=0,noOpen=0;
+  const rows=[];
+  for(const s of shares){
+    if(!(s.price>0))continue; priced++;
+    if(!_liqPass(s))continue;
+    const q=s._q||null;
+    const o=(q&&q.o!=null&&isFinite(q.o)&&q.o>0)?q.o:null;
+    if(o==null){noOpen++;continue;}
+    // yesterday's close: series (freshened = today is last row), else derive from day change
+    let pc=null;
+    if(Array.isArray(s.series)&&s.series.length>=2){
+      const L=s.series[s.series.length-1],P=s.series[s.series.length-2];
+      if(q&&q.d&&L&&L.d===q.d){ if(P&&P.c>0)pc=P.c; }
+      else if(L&&L.c>0)pc=L.c;
+    }
+    if(!(pc>0)&&s.chgAbs!=null&&isFinite(s.chgAbs)){const g=s.price-s.chgAbs;if(g>0)pc=g;}
+    if(!(pc>0)||pc<0.05)continue;                        // micro-price tick noise isn't a gap
+    if(((s.volume||0)*(s.price||0))<20000)continue;      // near-zero turnover — not meaningful
+    const gapPct=((o-pc)/pc)*100;
+    if(Math.abs(gapPct)<3||Math.abs(gapPct)>60)continue; // 3%+ is a real gap; >60% ≈ data glitch
+    const kept=(o!==pc)?((s.price-pc)/(o-pc)):0;         // 1 = kept the whole gap, 0 = back to yesterday
+    let bucket,seq;
+    if(gapPct>0){ bucket=kept>=0.75?'heldUp':(kept<=0.35?'fadedUp':'partUp'); seq=bucket==='heldUp'?0:(bucket==='partUp'?1:2); }
+    else{ bucket=kept<=0.35?'downRec':(kept>=0.75?'downWeak':'downPart'); seq=bucket==='downRec'?3:(bucket==='downPart'?4:5); }
+    s._gapPct=Math.round(gapPct*10)/10; s._gapKept=Math.max(-99,Math.min(199,Math.round(kept*100))); s._gapBucket=bucket;
+    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
+    rows.push({s,seq,gap:gapPct});
+  }
+  rows.sort((a,b)=>a.seq-b.seq||Math.abs(b.gap)-Math.abs(a.gap));
+  return {rows:rows,priced:priced,noOpen:noOpen};
+}
+
+// ═══ v485 — WHICH shares are Smart Money CANDIDATES ═══════════════════════
+// Lifted verbatim out of smartMoneyScan's step 2. Only the candidate picking
+// lives here; the per-share history fetch that follows it is network work and
+// stays in the scan.
+//
+// The three-tier fallback is as much a part of the product as the numbers are:
+// strict gate first, then drop the streak requirement if the streak data is
+// thin, then fall back to "up today, most traded" — so a quiet day returns
+// something to look at instead of an empty screen. Returns the gate label
+// because the status line tells the user which tier answered.
+function _selSmartCandidates(shares,minDays,scanAll){
+  minDays=minDays||2;
+  const CAND=60;
+  let candidates=shares
+    .filter(s=>s.price>0 && (scanAll? Math.abs(s.chgPct)>0.5 : s.chgPct>0.5)
+      && s.volCalced && isFinite(s.volPct) && s.volPct>=30
+      && (scanAll? true : (s.streakCalced && s.daysUp>=minDays)))
+    .sort((a,b)=>b.volPct-a.volPct)
+    .slice(0,CAND);
+  let gate=scanAll?'all+vol':'vol+up+streak';
+  if(!candidates.length){
+    // Relax the streak gate (keep up+volume) in case the streak data is thin
+    candidates=shares
+      .filter(s=>s.price>0 && (scanAll? Math.abs(s.chgPct)>0.5 : s.chgPct>0.5) && s.volCalced && isFinite(s.volPct) && s.volPct>=30)
+      .sort((a,b)=>b.volPct-a.volPct).slice(0,CAND);
+    gate=scanAll?'all+vol':'vol+up';
+  }
+  if(!candidates.length){
+    candidates=shares.filter(s=>s.price>0 && (scanAll? s.chgPct!==0 : s.chgPct>0))
+      .sort((a,b)=>(b.volume||0)-(a.volume||0)).slice(0,CAND);
+    gate=scanAll?'all-only':'up-only';
+  }
+  return {candidates:candidates,gate:gate};
+}
+
+// ═══ v485 — WHICH shares are pulling back inside an uptrend ═══════════════
+// Lifted verbatim out of pullbackScan. Eight numbers, and only the RSI 35–55
+// band is conventional. The −5%/+8% window around the 20-day is deliberately
+// asymmetric, which is the giveaway that it was chosen rather than assumed.
+function _selPullback(shares){
+  const scored=[];
+  for(const s of shares){
+    if(!(s.price>0))continue;
+    if(s.ma20==null||s.ma50==null)continue;                       // need at least a 50-day structure
+    const px=s.price;
+    // established uptrend: prefer 200-day confirmation, else fall back to the 50-day
+    const up=(s.ma200!=null)?(px>s.ma200 && s.ma50>s.ma200):(px>s.ma50);
+    if(!up)continue;
+    // momentum cooled into the buy-the-dip band
+    if(!(s.rsi!=null && s.rsi>=35 && s.rsi<=55))continue;
+    // pulled back to hug the 20-day line
+    const dMa20=((px-s.ma20)/s.ma20)*100;
+    if(!(dMa20>=-5 && dMa20<=8))continue;
+    // shallow, healthy pullback — not collapsed through the 50-day
+    const dMa50=((px-s.ma50)/s.ma50)*100;
+    if(dMa50<-7)continue;
+    const near=Math.abs(dMa20);
+    const rsiMid=Math.abs(s.rsi-45);
+    const trend=(s.ma200!=null&&s.ma200>0)?((s.ma50-s.ma200)/s.ma200)*100:0;
+    const score=Math.max(0,3-near/3)+Math.max(0,2-rsiMid/5)+Math.min(2,Math.max(0,trend)/5)+(s.aboveMA50?1:0)+Math.min(2,(s.accum10||0)*0.2);
+    s._pbDma20=Math.round(dMa20*10)/10; s._pbRsi=Math.round(s.rsi);
+    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
+    scored.push({s,score});
+  }
+  scored.sort((a,b)=>b.score-a.score);
+  return scored;
+}
+
+// ═══ v485 — WHICH shares are in a full trend stack, and how they rank ═════
+// Lifted verbatim out of trendScan. The entry test is textbook and stays
+// readable by design (v480: every book has price > 20 > 50 > 200). The five-term
+// ranking underneath it is not textbook, and is the reason this one moves.
+function _selStrongTrends(shares){
+  let have200=0,nearStack=0;
+  const scored=[];
+  for(const s of shares){
+    if(!(s.price>0))continue;
+    if(!_liqPass(s))continue;
+    const px=s.price;
+    if(s.ma200!=null&&s.ma200>0)have200++;
+    const short=(s.ma20!=null&&s.ma50!=null&&px>s.ma20&&s.ma20>s.ma50);
+    if(short&&!(s.ma200!=null&&s.ma200>0))nearStack++;
+    if(!(s.ma20!=null&&s.ma50!=null&&s.ma200!=null&&s.ma200>0))continue;
+    if(!(px>s.ma20&&s.ma20>s.ma50&&s.ma50>s.ma200))continue;   // the full stack
+    const trend=((s.ma50-s.ma200)/s.ma200)*100;                // slope of the big structure
+    const ext=((px-s.ma20)/s.ma20)*100;                        // stretch above the 20-day
+    const score=Math.min(4,Math.max(0,trend)/4)
+              + Math.max(0,2-Math.abs(ext)/4)                  // orderly beats overstretched
+              + Math.min(2,(s.accum10||0)*0.2)
+              + (s.nearHigh?1:0)
+              + ((s.rsi!=null&&s.rsi>=50&&s.rsi<=70)?1:0);     // healthy, not overbought
+    s._tsTrend=Math.round(trend*10)/10; s._tsExt=Math.round(ext*10)/10;
+    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
+    scored.push({s,score});
+  }
+  scored.sort((a,b)=>b.score-a.score);
+  return {rows:scored,have200:have200,nearStack:nearStack};
+}
+
+// ═══ v485 — WHICH shares are recovery candidates ══════════════════════════
+// Lifted verbatim out of recoveryScan. The 40-share cap is part of the answer,
+// not a display detail: a list capped at 40 is a different list, and whatever
+// computes this has to return the same 40 in the same order.
+function _selRecovery(shares){
+  // Primary: been falling 2+ consecutive days, volume elevated, price stabilising
+  let rows=shares.filter(s=>{
+    if(!(s.price>0))return false;
+    if(!s.volCalced||!isFinite(s.volPct))return false;
+    const falling=(s.streakCalced&&(s.daysDown||0)>=2);   // v447: the primary branch finally works — daysUp<=-2 was never true
+    const volumeUp=(s.volPct>=50);
+    const stabilising=(s.chgPct>=-2);  // not accelerating downward
+    return falling&&volumeUp&&stabilising;
+  });
+  // Fallback: very high volume + small price move = possible basing after a fall
+  if(rows.length<5){
+    rows=shares.filter(s=>{
+      if(!(s.price>0))return false;
+      if(!s.volCalced||!isFinite(s.volPct))return false;
+      return s.volPct>=100&&s.chgPct>=-1&&s.chgPct<=3;
+    });
+  }
+  // Sort: shares turning positive today first, then by volume lift
+  rows.sort((a,b)=>{
+    const aUp=(a.chgPct>0)?1:0,bUp=(b.chgPct>0)?1:0;
+    if(bUp!==aUp)return bUp-aUp;
+    return (b.volPct||0)-(a.volPct||0);
+  });
+  return rows.slice(0,40);
+}
+
+// ═══ v485 — WHICH shares are quiet movers, and how they rank ══════════════
+// Lifted verbatim out of quietMoversScan. This one carries a scoring FORMULA,
+// not just entry thresholds: five weighted terms, each capped. That formula is
+// the most valuable thing in the scan and the clearest reason this migration is
+// worth doing.
+//
+// Returns the fade count alongside the rows because the status line reports it,
+// and this release is not allowed to change anything the user sees.
+function _selQuietMovers(shares){
+  const LO=-5,HI=5;                     // "small net move today" band
+  const scored=[]; let fadeCount=0;
+  for(const s of shares){
+    if(!(s.price>0))continue;
+    const chg=s.chgPct||0;
+    if(!(chg>=LO&&chg<=HI))continue;    // must be a small move today
+    // recent trend (5-day gain from the close series)
+    let gain5=0;
+    if(Array.isArray(s.series)&&s.series.length>=6){
+      const c0=s.series[s.series.length-1].c, c5=s.series[s.series.length-6].c;
+      if(c5>0)gain5=((c0-c5)/c5)*100;
+    }
+    const upStreak=!!(s.streakCalced&&s.daysUp>=2);
+    const accum=(s.accum10!=null&&s.accum10>=4);
+    const coiling=(gain5>=3)||upStreak||accum;                 // quietly building
+    // intraday fade: high well above the close while the day finished flat/down
+    let fade=0; const hi=(s._q&&s._q.h)||0, cl=s.price;
+    if(hi>0&&cl>0){ const hp=((hi-cl)/cl)*100; if(hp>=3 && chg<=1.5) fade=hp; }
+    const volUp=!!(s.volCalced&&s.volPct>=80);                 // heavy volume, flat price
+    if(!(coiling||fade>0||volUp))continue;                     // needs SOMETHING underneath
+    if(fade>0)fadeCount++;
+    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
+    s._qmFade=Math.round(fade*10)/10; s._qmGain5=Math.round(gain5*10)/10;
+    const score=Math.min(3,(accum?s.accum10*0.3:0))
+              + Math.min(2,Math.max(0,gain5)/5)
+              + (upStreak?1:0)
+              + Math.min(2,(s.volCalced?Math.max(0,s.volPct):0)/150)
+              + Math.min(2.5,fade/3);
+    scored.push({s,score});
+  }
+  scored.sort((a,b)=>b.score-a.score);
+  return {rows:scored,fadeCount:fadeCount};
+}
+
+// ═══ v485 — WHICH shares are sharp movers ═════════════════════════════════
+// Lifted verbatim out of speedingTicketScan. It is deliberately pure: give it
+// a list of shares and a sensitivity name, get back the qualifying shares in
+// rank order. No DOM, no globals it does not receive, nothing to render.
+//
+// That purity is the point. A function shaped like this can be cut into the
+// server engine by build_scan_engine.py — the same way _SCAN_RULES already is
+// — and an agreement test can then prove the server picks exactly these shares.
+// Until that happens this changes nothing: same numbers, same order, same
+// output as the block it replaced.
+function _selSharpMovers(shares,sensitivity){
+  const P=SPEED_PRESETS[sensitivity]||SPEED_PRESETS.normal;
+  const scored=[];
+  for(const s of shares){
+    if(!(s.price>0&&s.volCalced))continue;
+    const move=Math.abs(s.chgPct);
+    if(move<P.minMove)continue;                 // floor: ignore tiny moves regardless
+    const typical=typicalDailyMove(s.series)||move; // fallback if no series
+    const moveMult=typical>0?move/typical:0;    // today's move ÷ its normal daily move
+    const volRatio=s.avgVol>0?s.volume/s.avgVol:0;
+    // Require BOTH the move and the volume to be abnormal for this share.
+    if(moveMult<P.moveMult||volRatio<P.volRatio)continue;
+    // Abnormality score: how many "typical days" of move, times how many times
+    // normal volume — a single number capturing "how hard is this speeding".
+    const score=Math.round(moveMult*Math.min(volRatio,10)*10)/10;
+    s.speedScore=score;
+    s.speedMoveMult=Math.round(moveMult*10)/10;
+    s.speedVolRatio=Math.round(volRatio*10)/10;
+    scored.push(s);
+  }
+  scored.sort((a,b)=>b.speedScore-a.speedScore);
+  return scored;
 }
 
 // ── Scan progress bar (% complete) ──────────────────────────
@@ -11104,17 +11442,9 @@ async function topTenScan(){
   if(typeof scanProgSet==='function')scanProgSet(70);
   if(st)st.textContent='Scoring every share…';
   // Score all out of 10 (accumulation-weighted), keep those with signal, top 10.
-  const scored=[];
-  for(let _j=0;_j<allData.length;_j++){
-    if((_j&255)===0&&_j>0)await new Promise(_r=>setTimeout(_r,0)); // v335: chunk the scoring pass too — keep the phone responsive
-    const s=allData[_j];
-    if(!(s.price>0))continue;
-    const r=watchScore10(s);
-    s.watchScore=r.score;      // /10 for the table column + sorting
-    s.watchParts=r.parts;
-    if(r.score>0)scored.push({s,r});
-  }
-  scored.sort((a,b)=>b.r.score-a.r.score || (b.r.acc-a.r.acc));
+  // v485 — the deciding moved to _selTopTen. It stays async: it yields every
+  // 256 shares so a phone stays responsive while scoring the whole market.
+  const scored=await _selTopTen(allData);
   // v282: sticky 💧 Liquidity floor — Top 20 picks its 20 from shares that pass it.
   const _ranked=(typeof _liqPass==='function')?scored.filter(x=>_liqPass(x.s)):scored;
   const topPairs=_ranked.slice(0,20);
@@ -11313,18 +11643,9 @@ async function technicalScan(){
   }
   const have=allData.filter(s=>s.techCalced);
   if(!have.length){alert('Technical signals need price history — tap ⚡ Load, then the 3-month refresh.');return;}
-  // Rank: reward fresh golden cross, near-high momentum, healthy RSI, rising OBV
-  have.forEach(s=>{
-    let sc=0;
-    if(s.cross==='golden')sc+=5; else if(s.cross==='bull')sc+=1.5; else if(s.cross==='death')sc-=4;
-    if(s.nearHigh)sc+=2.5; if(s.nearLow)sc-=1;
-    if(s.aboveMA200)sc+=1.5;
-    if(s.rsiState==='oversold')sc+=1.5; if(s.rsiState==='overbought')sc-=1;
-    if(s.obvTrend==='rising')sc+=1.5; if(s.obvTrend==='falling')sc-=1;
-    if(s.gapUp)sc+=1; if(s.volExpanding)sc+=0.5;
-    s.techScore=Math.round(sc*10)/10;
-  });
-  filtered=have.slice().sort((a,b)=>(b.techScore||0)-(a.techScore||0));
+  // v485 — the twelve weights moved to _selTechnical. The counts below run over
+  // the returned list; they do not care about its order.
+  filtered=_selTechnical(have);
   sortKey='techScore';sortDir=-1;
   render();_scanDone();
   const gc=have.filter(s=>s.cross==='golden').length, nh=have.filter(s=>s.nearHigh).length, ob=have.filter(s=>s.rsiState==='oversold').length;
@@ -11832,38 +12153,10 @@ async function allSignalsScan(){
   }
   scanProgSet&&scanProgSet(60);
   if(st)st.textContent='Scoring every signal…';
-  const P=SPEED_PRESETS.normal;
-  const scored=[];
-  const totals={sharp:0,unusual:0,surge:0,pstreak:0,vstreak:0,accum:0,score:0};
-  for(const s of allData){
-    if(!(s.price>0))continue;
-    const sigs=[];
-    // 🚨 sharp mover (same maths as the Sharp Mover Detector, normal sensitivity)
-    if(s.volCalced){
-      const move=Math.abs(s.chgPct||0);
-      if(move>=P.minMove){
-        const typical=typicalDailyMove(s.series)||move;
-        const moveMult=typical>0?move/typical:0;
-        const volRatio=s.avgVol>0?s.volume/s.avgVol:0;
-        if(moveMult>=P.moveMult&&volRatio>=P.volRatio){sigs.push('🚨 sharp');totals.sharp++;}
-      }
-    }
-    // 🔍 unusual activity (any of the five patterns)
-    const u=(typeof scoreUnusual==='function')?scoreUnusual(s):null;
-    if(u&&u.score>0){sigs.push('🔍 unusual');totals.unusual++;}
-    // core signals
-    if(s.volCalced&&s.volPct>=50){sigs.push('📊 vol+50%');totals.surge++;}
-    if((s.daysUp||0)>=3){sigs.push('📈 streak3+');totals.pstreak++;}
-    if((s.volDays||0)>=3){sigs.push('🔵 volstrk3+');totals.vstreak++;}
-    if((s.accum10||0)>=5){sigs.push('🔥 accum5+');totals.accum++;}
-    if((s.watchScore||0)>=7){sigs.push('⭐ 7+/10');totals.score++;}
-    // Keep anything sharp/unusual, or with 2+ core signals stacking up.
-    if(sigs.length&&(sigs.some(x=>x.includes('sharp')||x.includes('unusual'))||sigs.length>=2)){
-      s.allSigN=sigs.length;s.allSigList=sigs.join(' · ');
-      scored.push(s);
-    }else{s.allSigN=0;s.allSigList='';}
-  }
-  scored.sort((a,b)=>b.allSigN-a.allSigN||(b.watchScore||0)-(a.watchScore||0));
+  // v485 — the deciding moved to _selAllSignals; the status line still needs
+  // the per-signal totals, so they come back with the rows.
+  const _as=_selAllSignals(allData);
+  const scored=_as.rows, totals=_as.totals;
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   filtered=scored;
   window._evWantMark=true;   // v452: this view carries per-share evidence chips
@@ -11909,13 +12202,9 @@ async function unusualScan(){
   scanProgSet&&scanProgSet(60);
   if(st)st.textContent='Step 2/2 · scoring unusual activity…';
   // Score every share that has a usable series.
-  const scored=[];
-  for(const s of allData){
-    const r=scoreUnusual(s);
-    if(r){s.unusualScore=r.score;s.unusualHits=r.hits;s.unusualMeta=r;scored.push(s);}
-    else{s.unusualScore=0;s.unusualHits=null;}
-  }
-  scored.sort((a,b)=>b.unusualScore-a.unusualScore || b.volPct-a.volPct);
+  // v485 — the deciding moved to _selUnusual. Thin by nature: all of the
+  // product lives in scoreUnusual(), which is where the real work will be.
+  const scored=_selUnusual(allData);
   // Show them: reset filters to neutral and display the scored set directly.
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;
   filtered=scored;
@@ -11970,26 +12259,11 @@ async function smartMoneyScan(minDays,scanAll){
   // so the slow per-share loop only runs on shares already meeting the streak.
   // Default: gainers up minDays+ days with a volume lift.
   // scanAll: any share (gainers AND losers) with a volume lift.
-  const CAND=60;
-  let candidates=allData
-    .filter(s=>s.price>0 && (scanAll? Math.abs(s.chgPct)>0.5 : s.chgPct>0.5)
-      && s.volCalced && isFinite(s.volPct) && s.volPct>=30
-      && (scanAll? true : (s.streakCalced && s.daysUp>=minDays)))
-    .sort((a,b)=>b.volPct-a.volPct)
-    .slice(0,CAND);
-  let gate=scanAll?'all+vol':'vol+up+streak';
-  if(!candidates.length){
-    // Relax the streak gate (keep up+volume) in case the streak data is thin
-    candidates=allData
-      .filter(s=>s.price>0 && (scanAll? Math.abs(s.chgPct)>0.5 : s.chgPct>0.5) && s.volCalced && isFinite(s.volPct) && s.volPct>=30)
-      .sort((a,b)=>b.volPct-a.volPct).slice(0,CAND);
-    gate=scanAll?'all+vol':'vol+up';
-  }
-  if(!candidates.length){
-    candidates=allData.filter(s=>s.price>0 && (scanAll? s.chgPct!==0 : s.chgPct>0))
-      .sort((a,b)=>(b.volume||0)-(a.volume||0)).slice(0,CAND);
-    gate=scanAll?'all-only':'up-only';
-  }
+  // v485 — the candidate picking moved to _selSmartCandidates. Steps 3 and 4
+  // below still run here: they fetch real history per candidate, which is
+  // network work and cannot be part of a pure selector.
+  const _sm=_selSmartCandidates(allData,minDays,scanAll);
+  let candidates=_sm.candidates; let gate=_sm.gate;
   if(!candidates.length){
     if(btn){btn.disabled=false;btn.style.opacity='1';}
     scanProgHide();
@@ -14710,30 +14984,8 @@ async function recoveryScan(){
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{if(st)st.textContent='Loading volume & streaks…';if(typeof bulkVolume==='function')await bulkVolume();}
   }
-  // Primary: been falling 2+ consecutive days, volume elevated, price stabilising
-  let rows=allData.filter(s=>{
-    if(!(s.price>0))return false;
-    if(!s.volCalced||!isFinite(s.volPct))return false;
-    const falling=(s.streakCalced&&(s.daysDown||0)>=2);   // v447: the primary branch finally works — daysUp<=-2 was never true
-    const volumeUp=(s.volPct>=50);
-    const stabilising=(s.chgPct>=-2);  // not accelerating downward
-    return falling&&volumeUp&&stabilising;
-  });
-  // Fallback: very high volume + small price move = possible basing after a fall
-  if(rows.length<5){
-    rows=allData.filter(s=>{
-      if(!(s.price>0))return false;
-      if(!s.volCalced||!isFinite(s.volPct))return false;
-      return s.volPct>=100&&s.chgPct>=-1&&s.chgPct<=3;
-    });
-  }
-  // Sort: shares turning positive today first, then by volume lift
-  rows.sort((a,b)=>{
-    const aUp=(a.chgPct>0)?1:0,bUp=(b.chgPct>0)?1:0;
-    if(bUp!==aUp)return bUp-aUp;
-    return (b.volPct||0)-(a.volPct||0);
-  });
-  filtered=rows.slice(0,40);
+  // v485 — the deciding moved to _selRecovery.
+  filtered=_selRecovery(allData);
   lastScanLabel='Recovery watch';
   _resetStatsForNewView();
 }
@@ -14761,37 +15013,10 @@ async function quietMoversScan(){
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading volume & streaks…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
-  const LO=-5,HI=5;                     // "small net move today" band
-  const scored=[]; let fadeCount=0;
-  for(const s of allData){
-    if(!(s.price>0))continue;
-    const chg=s.chgPct||0;
-    if(!(chg>=LO&&chg<=HI))continue;    // must be a small move today
-    // recent trend (5-day gain from the close series)
-    let gain5=0;
-    if(Array.isArray(s.series)&&s.series.length>=6){
-      const c0=s.series[s.series.length-1].c, c5=s.series[s.series.length-6].c;
-      if(c5>0)gain5=((c0-c5)/c5)*100;
-    }
-    const upStreak=!!(s.streakCalced&&s.daysUp>=2);
-    const accum=(s.accum10!=null&&s.accum10>=4);
-    const coiling=(gain5>=3)||upStreak||accum;                 // quietly building
-    // intraday fade: high well above the close while the day finished flat/down
-    let fade=0; const hi=(s._q&&s._q.h)||0, cl=s.price;
-    if(hi>0&&cl>0){ const hp=((hi-cl)/cl)*100; if(hp>=3 && chg<=1.5) fade=hp; }
-    const volUp=!!(s.volCalced&&s.volPct>=80);                 // heavy volume, flat price
-    if(!(coiling||fade>0||volUp))continue;                     // needs SOMETHING underneath
-    if(fade>0)fadeCount++;
-    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
-    s._qmFade=Math.round(fade*10)/10; s._qmGain5=Math.round(gain5*10)/10;
-    const score=Math.min(3,(accum?s.accum10*0.3:0))
-              + Math.min(2,Math.max(0,gain5)/5)
-              + (upStreak?1:0)
-              + Math.min(2,(s.volCalced?Math.max(0,s.volPct):0)/150)
-              + Math.min(2.5,fade/3);
-    scored.push({s,score});
-  }
-  scored.sort((a,b)=>b.score-a.score);
+  // v485 — the deciding moved to _selQuietMovers. The status line still needs
+  // the fade count, so the selector hands it back rather than recomputing it.
+  const _qm=_selQuietMovers(allData);
+  const scored=_qm.rows, fadeCount=_qm.fadeCount;
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=scored.map(x=>x.s);
   lastScanLabel='Quiet Movers';
@@ -14832,35 +15057,10 @@ async function gapScan(){
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
-  let priced=0,noOpen=0;
-  const rows=[];
-  for(const s of allData){
-    if(!(s.price>0))continue; priced++;
-    if(!_liqPass(s))continue;
-    const q=s._q||null;
-    const o=(q&&q.o!=null&&isFinite(q.o)&&q.o>0)?q.o:null;
-    if(o==null){noOpen++;continue;}
-    // yesterday's close: series (freshened = today is last row), else derive from day change
-    let pc=null;
-    if(Array.isArray(s.series)&&s.series.length>=2){
-      const L=s.series[s.series.length-1],P=s.series[s.series.length-2];
-      if(q&&q.d&&L&&L.d===q.d){ if(P&&P.c>0)pc=P.c; }
-      else if(L&&L.c>0)pc=L.c;
-    }
-    if(!(pc>0)&&s.chgAbs!=null&&isFinite(s.chgAbs)){const g=s.price-s.chgAbs;if(g>0)pc=g;}
-    if(!(pc>0)||pc<0.05)continue;                        // micro-price tick noise isn't a gap
-    if(((s.volume||0)*(s.price||0))<20000)continue;      // near-zero turnover — not meaningful
-    const gapPct=((o-pc)/pc)*100;
-    if(Math.abs(gapPct)<3||Math.abs(gapPct)>60)continue; // 3%+ is a real gap; >60% ≈ data glitch
-    const kept=(o!==pc)?((s.price-pc)/(o-pc)):0;         // 1 = kept the whole gap, 0 = back to yesterday
-    let bucket,seq;
-    if(gapPct>0){ bucket=kept>=0.75?'heldUp':(kept<=0.35?'fadedUp':'partUp'); seq=bucket==='heldUp'?0:(bucket==='partUp'?1:2); }
-    else{ bucket=kept<=0.35?'downRec':(kept>=0.75?'downWeak':'downPart'); seq=bucket==='downRec'?3:(bucket==='downPart'?4:5); }
-    s._gapPct=Math.round(gapPct*10)/10; s._gapKept=Math.max(-99,Math.min(199,Math.round(kept*100))); s._gapBucket=bucket;
-    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
-    rows.push({s,seq,gap:gapPct});
-  }
-  rows.sort((a,b)=>a.seq-b.seq||Math.abs(b.gap)-Math.abs(a.gap));
+  // v485 — the deciding moved to _selGaps. The six bucket counts below are
+  // derived from these rows, so they did not have to move with it.
+  const _gp=_selGaps(allData);
+  const rows=_gp.rows; const priced=_gp.priced, noOpen=_gp.noOpen;
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=rows.map(x=>x.s);
   lastScanLabel='Gap Report';
@@ -14912,29 +15112,10 @@ async function trendScan(){
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
   if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
-  let have200=0,nearStack=0;
-  const scored=[];
-  for(const s of allData){
-    if(!(s.price>0))continue;
-    if(!_liqPass(s))continue;
-    const px=s.price;
-    if(s.ma200!=null&&s.ma200>0)have200++;
-    const short=(s.ma20!=null&&s.ma50!=null&&px>s.ma20&&s.ma20>s.ma50);
-    if(short&&!(s.ma200!=null&&s.ma200>0))nearStack++;
-    if(!(s.ma20!=null&&s.ma50!=null&&s.ma200!=null&&s.ma200>0))continue;
-    if(!(px>s.ma20&&s.ma20>s.ma50&&s.ma50>s.ma200))continue;   // the full stack
-    const trend=((s.ma50-s.ma200)/s.ma200)*100;                // slope of the big structure
-    const ext=((px-s.ma20)/s.ma20)*100;                        // stretch above the 20-day
-    const score=Math.min(4,Math.max(0,trend)/4)
-              + Math.max(0,2-Math.abs(ext)/4)                  // orderly beats overstretched
-              + Math.min(2,(s.accum10||0)*0.2)
-              + (s.nearHigh?1:0)
-              + ((s.rsi!=null&&s.rsi>=50&&s.rsi<=70)?1:0);     // healthy, not overbought
-    s._tsTrend=Math.round(trend*10)/10; s._tsExt=Math.round(ext*10)/10;
-    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
-    scored.push({s,score});
-  }
-  scored.sort((a,b)=>b.score-a.score);
+  // v485 — the deciding moved to _selStrongTrends. The status line still needs
+  // have200 and nearStack to explain an empty result honestly.
+  const _ts=_selStrongTrends(allData);
+  const scored=_ts.rows, have200=_ts.have200, nearStack=_ts.nearStack;
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=scored.map(x=>x.s);
   lastScanLabel='Strong Trends';
@@ -14970,31 +15151,8 @@ async function pullbackScan(){
   }
   // Pullback needs moving averages + RSI; make sure they've been computed.
   if(!allData.some(s=>s.ma50!=null||s.rsi!=null)){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
-  const scored=[];
-  for(const s of allData){
-    if(!(s.price>0))continue;
-    if(s.ma20==null||s.ma50==null)continue;                       // need at least a 50-day structure
-    const px=s.price;
-    // established uptrend: prefer 200-day confirmation, else fall back to the 50-day
-    const up=(s.ma200!=null)?(px>s.ma200 && s.ma50>s.ma200):(px>s.ma50);
-    if(!up)continue;
-    // momentum cooled into the buy-the-dip band
-    if(!(s.rsi!=null && s.rsi>=35 && s.rsi<=55))continue;
-    // pulled back to hug the 20-day line
-    const dMa20=((px-s.ma20)/s.ma20)*100;
-    if(!(dMa20>=-5 && dMa20<=8))continue;
-    // shallow, healthy pullback — not collapsed through the 50-day
-    const dMa50=((px-s.ma50)/s.ma50)*100;
-    if(dMa50<-7)continue;
-    const near=Math.abs(dMa20);
-    const rsiMid=Math.abs(s.rsi-45);
-    const trend=(s.ma200!=null&&s.ma200>0)?((s.ma50-s.ma200)/s.ma200)*100:0;
-    const score=Math.max(0,3-near/3)+Math.max(0,2-rsiMid/5)+Math.min(2,Math.max(0,trend)/5)+(s.aboveMA50?1:0)+Math.min(2,(s.accum10||0)*0.2);
-    s._pbDma20=Math.round(dMa20*10)/10; s._pbRsi=Math.round(s.rsi);
-    try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
-    scored.push({s,score});
-  }
-  scored.sort((a,b)=>b.score-a.score);
+  // v485 — the deciding moved to _selPullback.
+  const scored=_selPullback(allData);
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=scored.map(x=>x.s);
   lastScanLabel='Pullback in Uptrend';
