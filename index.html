@@ -444,6 +444,41 @@ body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-
   body.sheet-printing .modal-scroll{overflow:visible!important;max-height:none!important;height:auto!important;padding:0!important;margin:0!important;}
   body.sheet-printing .rpt-sheet{max-height:none!important;overflow:visible!important;border-radius:0!important;}
 }
+
+/* ══ v486 — PRINT IS ALWAYS LIGHT ══════════════════════════════════════════
+   Tony: "when printing reports can they all have white back ground as hard to
+   read on dark." The page was already white — v226 saw to that — but the TEXT
+   was not. Every colour in this app comes from a variable, and in the dark
+   theme --text is #f2f6fc, which is near white. White text on white paper.
+
+   So print adopts the light theme the app already ships. Not a new palette: the
+   same variables, the same values as body.theme-light, which is already tuned
+   to be readable. Applies whichever theme is on screen — what you print does
+   not depend on what you happen to be looking at. */
+@media print{
+  :root,body,body.theme-light,html{
+    --bg:#ffffff;--bg2:#ffffff;--bg3:#f4f6fa;--bg4:#e9eef6;
+    --border:#d4deec;--border2:#b3c2d8;
+    --text:#0e1c30;--muted:#3a4a63;--dim:#5f7089;
+    --gold:#8a6c00;--gold2:#6f5600;--glow:rgba(0,0,0,0);
+    --green:#12772a;--green2:#0f5d21;--gbg:rgba(18,119,42,.10);
+    --red:#b3122b;--rbg:rgba(179,18,43,.10);
+    --blue:#1552c0;--purple:#6d3bb0;--orange:#a8530a;--amber:#8f5a06;
+    color-scheme:light;
+  }
+  /* browsers drop background colours when printing unless told otherwise —
+     without this the tier badges keep their text colour and lose their fill */
+  /* body.theme-light sets a gradient with !important, and it outranks a plain
+     `body` rule — so the print override has to match its specificity or the
+     page background stays whatever the theme decided. */
+  html,body,body.theme-light{background:#fff!important;background-image:none!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  /* the few panels with hard-coded dark hexes do not read the variables */
+  [style*="#0d1b33"],[style*="#05152e"],[style*="#0c1a38"]{background:#fff!important;color:#0e1c30!important;}
+  #helpPanel,#lessonPanel,#certOverlay,.tt-pop{background:#fff!important;color:#0e1c30!important;}
+  /* faint fills read as smudges on paper */
+  .stat.z0{opacity:1!important;}
+}
 /* v481 — a number stacked over its caption is two lines where one will do.
    v484 — and the number gets its own right-aligned sub-column with tabular
    figures, so the digits form a clean edge and every caption starts together.
@@ -1649,7 +1684,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-485-open';
+const APP_VERSION='2026.07.28-486-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
