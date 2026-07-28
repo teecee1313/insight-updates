@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-487-open';
+const APP_VERSION='2026.07.28-488-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15737,14 +15737,19 @@ function saveAutoDownloadDays(){
   const days=[...document.querySelectorAll('#autoDlDays input[data-day]')].filter(c=>c.checked).map(c=>parseInt(c.getAttribute('data-day')));
   try{localStorage.setItem(AUTODL_DAYS,JSON.stringify(days));}catch(e){}
 }
-// Is a scheduled fetch due right now? (enabled · today is a selected day · current
-// time ≥ scheduled time · not already run today · have API key · not running)
+// Is a scheduled fetch due right now? (enabled · today is a selected day ·
+// current time ≥ scheduled time · not already run today · not already running ·
+// and there is SOMETHING to fetch from — a customer key or the Worker.)
 function autoDownloadDue(){
   if(!autoDownloadOn())return false;
   if(window._bulkRunning)return false;
   let key=((document.getElementById('apiKey')||{}).value||'').trim();
   if(!key){ try{ key=(localStorage.getItem('asxScreener.apiKey')||'').trim(); }catch(e){} } // v362: box may be empty at startup while the key is saved
-  if(!key)return false;
+  // v488: the SAME test downloadEverything() uses. Since v382 the Worker
+  // supplies the data and no customer key is needed, so demanding one here
+  // meant the scheduled fetch could never fire for anyone who arrived after
+  // v382 — it just returned false, every minute, in silence.
+  if(!key && !_serverData())return false;
   const now=new Date();
   const days=autoDownloadDays();
   if(days.length && !days.includes(now.getDay()))return false;
@@ -15757,9 +15762,28 @@ function autoDownloadDue(){
 }
 function markAutoDownloadRun(){ try{localStorage.setItem(AUTODL_LAST,new Date().toISOString().slice(0,10));}catch(e){} }
 function runScheduledDownloadIfDue(){
-  if(autoDownloadDue()){
-    try{ if(!window._bulkRunning){ markAutoDownloadRun(); const ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--gold)">🔄 Scheduled fetch starting…</span>'; downloadEverything(); } }catch(e){}
+  if(!autoDownloadDue())return;
+  if(window._bulkRunning)return;
+  const ls=document.getElementById('loadStatus');
+  // v488: downloadEverything() asks "you are viewing SAVED shares — re-save the
+  // same ones?" in a confirm() box. That is a fair question to put to someone
+  // who just pressed a button, and an unanswerable one at the scheduled time
+  // with nobody watching — the run would sit on a modal until someone came
+  // back. So say what we are waiting for and stay due: the startup fetches
+  // today's live prices a few seconds after opening, and the next minute's
+  // check then finds a live list and runs properly.
+  if(window._offlineMode){
+    if(ls)ls.innerHTML='<span style="color:var(--gold)">🔄 Scheduled fetch is waiting for today\'s live prices — it will start on its own once they arrive.</span>';
+    return;
   }
+  // v488: stamp the day only when a download actually STARTS. It used to be
+  // stamped first, so any bail inside downloadEverything() spent the day and
+  // the fetch would not try again until tomorrow.
+  try{
+    markAutoDownloadRun();
+    if(ls)ls.innerHTML='<span style="color:var(--gold)">🔄 Scheduled fetch starting…</span>';
+    downloadEverything();
+  }catch(e){}
 }
 // While the app is open, check every minute whether the scheduled time has passed.
 let _autoDlTimer=null;
