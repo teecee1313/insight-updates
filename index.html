@@ -1686,7 +1686,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-492-open';
+const APP_VERSION='2026.07.28-493-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4853,6 +4853,22 @@ function showShareDetail(ticker,days){
   // of caching '—' forever (the old behaviour behind the all-dashes Open column).
   if(!s._ohlcMap && !s._ohlcLoading && !(s._ohlcRetryAt&&Date.now()<s._ohlcRetryAt)){
     const apiKey=(document.getElementById('apiKey')||{}).value||'';
+    // v493 — the server first. It holds a year of full bars for every share, it
+    // needs no customer key, and the days it is surest about are the newest
+    // ones — which are exactly the days the provider route was leaving blank,
+    // because the daily heal appends close-and-volume rows with no highs.
+    (function(){
+      if(s._ohlcSrvTried)return;
+      s._ohlcSrvTried=true; s._ohlcLoading=true;
+      _ohlcFromServer(s.exchange||currentExch,ticker,400).then(function(map){
+        s._ohlcLoading=false;
+        if(map&&Object.keys(map).length){
+          s._ohlcMap=map; s._ohlcSrc='server'; s._ohlcRetryAt=0;
+          var _m=document.getElementById('appModal');
+          if(_m&&_m.style.display!=='none'&&window._detailTicker===ticker)showShareDetail(ticker,window._detailDays||n);
+        }
+      }).catch(function(){ s._ohlcLoading=false; });
+    })();
     if(apiKey.trim()){
       const _ohlcFetch=(forceNet)=>{
         s._ohlcLoading=true;
@@ -4899,7 +4915,11 @@ function showShareDetail(ticker,days){
         }).catch(()=>{s._ohlcMap=null;s._ohlcLoading=false;s._ohlcRetryAt=Date.now()+60000;});
       };
       _ohlcFetch(false);
-    }else{s._ohlcMap=null;s._ohlcRetryAt=Date.now()+60000;}
+    }else if(!_serverData()){
+      // No key AND no server: nothing can answer, so back off rather than
+      // asking again on every re-render.
+      s._ohlcMap=null;s._ohlcRetryAt=Date.now()+60000;
+    }
   }
   window._detailDays=n;
   // v323: mark history days that had an ASX announcement. Fetch this share's
@@ -5021,7 +5041,7 @@ function showShareDetail(ticker,days){
       </table>
     </div>
     <div id="shdNews"></div>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows fetched per share (1 call, remembered)${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows ${s._ohlcSrc==='server'?'from the server\'s own store':'fetched per share (1 call, remembered)'}${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
   `);
   try{ _shdNewsLoad(ticker,s.exchange); }catch(e){}   // v448: real headlines, async, cached
 }
@@ -10098,6 +10118,23 @@ async function fetchHistoryUpdate(exch,ticker,apiKey,fullDays){
     }
   }catch(e){}
   return await fetchHistory(exch,ticker,apiKey,fullDays,true);  // full fetch
+}
+// v493 — opens, highs and lows from the server's own store. This used to be a
+// per-share call to the data provider that REQUIRED the customer's API key, so
+// on any install without one (every beta install, since beta namespaces its
+// storage separately) every open, high and low was a dash for ever. The store
+// now holds a year of full bars for every share, so we ask it first.
+async function _ohlcFromServer(exch,ticker,days){
+  try{
+    if(!DATA_PROXY)return null;
+    var u=DATA_PROXY.replace(/\/+$/,'')+'/ohlc?exch='+encodeURIComponent(exch||currentExch||'ASX')
+      +'&ticker='+encodeURIComponent(ticker)+'&days='+Math.max(1,Math.min(400,+days||400));
+    var r=await fetch(u);
+    if(!r||!r.ok)return null;
+    var j=await r.json();
+    if(!j||!j.ok||!j.held||!j.ohlc)return null;
+    return j.ohlc;
+  }catch(e){ return null; }
 }
 async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   // Lookback window (days) is user-selectable. The average volume baseline is
