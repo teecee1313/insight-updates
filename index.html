@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-543-open';
+const APP_VERSION='2026.07.28-544-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10753,7 +10753,7 @@ function statsBar(){
       try{
         if(_rn&&window._scanSrc&&window._scanSrc!=='unavailable'){
           var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
-          if(!_fromDev&&!_dayDev){ _rn.textContent=_rn.textContent+'  ·  scored on our server'; }
+          if(!_fromDev&&!_dayDev){ _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?' + card lines incl. combos':''); }
           else {
             var _w=[];
             if(_fromDev)_w.push('graded from the replay saved on this device'+(window._scanGradedOn?' ('+window._scanGradedOn+')':''));
@@ -19518,6 +19518,43 @@ function _evMark(shares){
       s._evErly=(!s._evTier&&anyFired&&!s._evNeg&&!s._evUnp&&earlyParts.length>0);
       s._evWhyErly=earlyParts.join(' · ');
     });
+    // ── v544: second pass — the CARD's badge-holding lines, combos included.
+    // The rule tally above grades only the 19 scan-tile rules; the card grades
+    // 54 lines and the ⚖ self-test proved the durable edge lives in the
+    // COMBOS the radar had never seen. Same selector as 🎯 Best Evidence,
+    // same 5-day grades, upgrade-only, and the why-string names the source.
+    try{
+      var _C=window._auditCache;
+      var _A=(_C&&_C.A&&_C.A.M&&_C.ex===currentExch&&_C.d===_evDD())?_C.A:null;
+      if(_A&&typeof _bevSelect==='function'&&typeof _nurFireToday==='function'){
+        var _bl=_bevSelect(_A);
+        if(_bl.length){
+          var _nmK=function(k){ return k.split('+').map(function(x){ return (_A.defs&&_A.defs[x]&&_A.defs[x].name)||x; }).join(' + '); };
+          shares.forEach(function(s2){
+            if(!s2||s2._evD!==_evDD())return;
+            if(!Array.isArray(s2.series)||s2.series.length<30)return;
+            var bestR=-1,bestL=null,bestE=null;
+            for(var bi=0;bi<_bl.length;bi++){
+              var it=_bl[bi];
+              if(_nurFireToday(s2,it.k)!==true)continue;
+              var r2=(it.m.tier==='solid')?2:1;
+              if(r2>bestR){ bestR=r2; bestL=it; }
+              if(bestE==null||it.m.edge>bestE)bestE=it.m.edge;
+            }
+            if(bestR<0)return;
+            var cur=(s2._evTier==='SOLID')?2:(s2._evTier==='PROMISING')?1:(s2._evTier==='TOO EARLY')?0:-1;
+            if(bestR>cur){
+              s2._evTier=(bestR===2)?'SOLID':'PROMISING';
+              if(bestE!=null&&(s2._evEdge==null||bestE>s2._evEdge))s2._evEdge=bestE;
+              var tag=_nmK(bestL.k)+' — card line'+(bestL.k.indexOf('+')>=0?' (combo)':'')+', '+bestL.m.tier.toUpperCase()+' ('+bestL.m.n.toLocaleString()+' fires)';
+              s2._evWhy=(s2._evWhy?s2._evWhy+' · ':'')+tag;
+              if(bestR===2)s2._evSolidN=(s2._evSolidN||0)+1; else s2._evPromN=(s2._evPromN||0)+1;
+              s2._evUnp=false; s2._evNeg=false; s2._evErly=false;
+            }
+          });
+        }
+      }
+    }catch(e){}
     return true;
   }catch(e){ return false; }
 }
