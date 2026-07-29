@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-550-open';
+const APP_VERSION='2026.07.28-551-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -13935,7 +13935,7 @@ async function prepareAllSignals(auto){
       }
     }
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
-  finally{window._prepRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function')_auditWarmIdle();}catch(e){}
+  finally{window._prepRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function'){ var _wi=function(){ try{_auditWarmIdle();}catch(e2){} }; if(window.requestIdleCallback)requestIdleCallback(_wi,{timeout:3500}); else setTimeout(_wi,1200); }}catch(e){}/* v551: auto-warm stays automatic but yields to first paint */
   try{ if(!window._prepAbort&&typeof _evWarm==='function')setTimeout(function(){ try{_evWarm();}catch(e){} },1200); }catch(e){}   // v463: grade the day once the data is ready, so the radar fills itself in
   try{ if(window._prepQueued){ window._prepQueued=false; if(!window._prepAbort)setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400); } }catch(e){}}
 }
