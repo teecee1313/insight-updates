@@ -1715,7 +1715,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-528-open';
+const APP_VERSION='2026.07.28-529-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2407,11 +2407,41 @@ function _gateCheck(){
   })();
   return _gatePromise;
 }
+// v529: phone keyboards and message apps inject characters you cannot see.
+// Repair the ones that are never legitimately part of a typed password, and
+// SAY when a repair happened — a silent fix teaches nothing.
+function _gateClean(raw){
+  var v=String(raw||'');
+  var before=v;
+  v=v.replace(/[\u200B-\u200D\uFEFF]/g,'');            // zero-width junk
+  v=v.replace(/[\u00A0\u2007\u202F]/g,' ');             // non-breaking spaces
+  v=v.replace(/[\u2018\u2019\u201B]/g,"'");             // curly single quotes
+  v=v.replace(/[\u201C\u201D]/g,'"');                   // curly double quotes
+  v=v.replace(/[\u2010-\u2015]/g,'-');                   // en/em dashes → hyphen
+  v=v.trim();
+  return { v:v, repaired:(v!==before.trim()), had:(before!==before.trim()) };
+}
+function _gateReveal(){
+  var inp=document.getElementById('_gateInput'), b=document.getElementById('_gateEye');
+  if(!inp)return;
+  var show=(inp.type==='password');
+  inp.type=show?'text':'password';
+  if(b)b.textContent=show?'\uD83D\uDE48 hide':'\uD83D\uDC41 show';
+  try{ inp.focus(); }catch(e){}
+}
+function _gateCount(){
+  var inp=document.getElementById('_gateInput'), c=document.getElementById('_gateCount');
+  if(!inp||!c)return;
+  var n=String(inp.value||'').length;
+  c.textContent=n?(n+' character'+(n===1?'':'s')):'';
+}
 function _gateTry(){
   const inp=document.getElementById('_gateInput'), msg=document.getElementById('_gateMsg'), btn=document.getElementById('_gateBtn');
-  const key=((inp&&inp.value)||'').trim();
+  const _cl=_gateClean(inp&&inp.value);
+  const key=_cl.v;
   const say=function(t,c){ if(msg){ msg.style.color=c||'#ff9caa'; msg.textContent=t; } };
   if(!key){ say('Please enter the password.'); return; }
+  if(_cl.repaired){ try{ inp.value=key; }catch(e){} } // v529: show what is actually being sent
   say('Checking…','var(--muted)'); if(btn)btn.disabled=true;
   const b=_gateBase();
   window.fetch(b+'/gate',{headers:{'X-Insight-Access':key}}).then(function(r){
@@ -2420,7 +2450,12 @@ function _gateTry(){
     // server pauses this connection and refuses to even CHECK the password —
     // showing "didn't work" for that made a correct password look wrong.
     if(r&&r.status===429){ say('⏳ Too many attempts — the lock is paused for up to 15 minutes and is not checking passwords right now. Wait it out (or switch between Wi‑Fi and mobile data), then try ONCE.','var(--orange)'); if(btn)btn.disabled=false; return; }
-    if(r&&r.status===401){ say('That password didn’t work. Check capitals, symbols and a hidden space at the end, then try again.'); if(btn)btn.disabled=false; return; }
+    if(r&&r.status===401){
+      // v529: on a phone the box is usually filled by AUTOFILL with an old
+      // saved password — so \"check your typing\" is the wrong advice.
+      say((_cl.repaired?'Your keyboard had added hidden characters — those were removed and it still didn\u2019t work. ':'')
+        +'That password didn\u2019t work. On a phone, tap \uD83D\uDC41 show to SEE what is really in the box — it is often an old password your browser filled in. Clear it, type the new one by hand, then Unlock.');
+      if(btn)btn.disabled=false; return; }
     say('The server answered unexpectedly ('+((r&&r.status)||'no reply')+'). Try again in a moment.'); if(btn)btn.disabled=false;
   }).catch(function(){ say('Couldn’t reach the server. Check your connection and try again.'); if(btn)btn.disabled=false; });
 }
@@ -2437,7 +2472,11 @@ function _gateLock(){
     +'<div style="font-size:42px;margin-bottom:10px;">🔒</div>'
     +'<div style="font:800 20px var(--sans,sans-serif);color:var(--text,#e8eef7);margin-bottom:6px;">Insight Trading'+(beta?' <span style="font-size:12px;color:var(--gold,#ffd200);">🧪 BETA</span>':'')+'</div>'
     +'<div style="font-size:13px;color:var(--muted,#93a1b5);line-height:1.6;margin-bottom:18px;">This preview is private. Enter the tester password to continue.</div>'
-    +'<input id="_gateInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Password" style="width:100%;box-sizing:border-box;padding:13px 14px;font-size:15px;border:1px solid var(--border,#26303c);border-radius:10px;background:var(--bg2,#12171f);color:var(--text,#e8eef7);text-align:center;letter-spacing:1px;outline:none;">'
+    +'<input id="_gateInput" type="password" name="ins_'+Math.random().toString(36).slice(2,9)+'" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" placeholder="Password" style="width:100%;box-sizing:border-box;padding:13px 14px;font-size:15px;border:1px solid var(--border,#26303c);border-radius:10px;background:var(--bg2,#12171f);color:var(--text,#e8eef7);text-align:center;letter-spacing:1px;outline:none;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">'
+      +'<button id="_gateEye" type="button" style="background:none;border:none;color:var(--muted,#93a1b5);font-size:12px;cursor:pointer;padding:2px 0;">\uD83D\uDC41 show</button>'
+      +'<span id="_gateCount" style="font-size:11px;color:var(--dim,#5f6b7a);"></span>'
+    +'</div>'
     +'<div id="_gateMsg" style="min-height:18px;font-size:12px;color:#ff9caa;margin:10px 0 4px;"></div>'
     +'<button id="_gateBtn" type="button" style="width:100%;padding:13px;font:700 14px var(--sans,sans-serif);border:none;border-radius:10px;background:var(--gold,#ffd200);color:#1a1205;cursor:pointer;">Unlock</button>'
     +'<div style="font-size:11px;color:var(--dim,#5f6b7a);margin-top:16px;line-height:1.5;">Don’t have the password? Ask the person who invited you.</div>'
@@ -2445,6 +2484,11 @@ function _gateLock(){
   document.body.appendChild(o);
   const inp=document.getElementById('_gateInput'), btn=document.getElementById('_gateBtn');
   if(btn)btn.addEventListener('click',_gateTry);
+  const eye=document.getElementById('_gateEye');
+  if(eye)eye.addEventListener('click',_gateReveal);
+  // v529: browsers autofill saved passwords into ANY password box on load.
+  // Blank it once after paint so a stale saved key can't be submitted blind.
+  if(inp){ inp.addEventListener('input',_gateCount); setTimeout(function(){ try{ if(inp.value){ inp.value=''; _gateCount(); } }catch(e){} },400); }
   if(inp){ inp.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.keyCode===13)_gateTry(); }); setTimeout(function(){ try{ inp.focus(); }catch(e){} },60); }
 }
 // At startup, ask the server whether a password is required; if so, lock now.
