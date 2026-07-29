@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-524",
+  "version": "2026.07.28-525",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v524 \u2014 clearer era labels. The durability marks now read \u201c1\u20132 yrs ago\u201d and \u201c2\u20133 yrs ago\u201d instead of confusing overlapping date ranges. Why: each share is judged over its OWN stored history, so shares with shallower records sit earlier in calendar time and pooled dates smear together. The label now names the window honestly; hover any mark to see the actual pooled dates and the full explanation. Same maths, same verdicts \u2014 only the naming changed. Hard-refresh (Ctrl+F5)."
+  "notes": "v525 \u2014 \ud83c\udf31 Climbers Today: a new report button in the sidebar (green, beside Top 20). It finds the shares that fired a CLIMBING signal today \u2014 a line from the report card's nursery: moving toward SOLID but not proven \u2014 and puts the top 10 straight into your table, ranked by how close their strongest climber is to the bar. An explainer names each climbing line and exactly what it still needs (\u201c~6 more fires\u201d, \u201cstrength 1.6 of 2.0\u201d). Be clear-eyed about what this is: every line behind the list is UNPROVEN \u2014 it's a scepticism shortlist for your watching, never picks, and the \ud83e\udd16 auto-pilot ignores it entirely. Sequence signals are excluded (they'd need yesterday's flags, and this app doesn't guess). Needs today's grades \u2014 open the \ud83d\udccb Signal report card once first if it asks. Hard-refresh (Ctrl+F5)."
 }

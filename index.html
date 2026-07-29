@@ -1537,6 +1537,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume clearly above its own average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeScan()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Shows every share trading above its normal volume, biggest surge first, right in your table — so you can chart, research or practice-buy any of them exactly like the other scans. Volume is the crowd's attention: a share doing 3× its usual business is being looked at by someone. A 🖨 full report button appears with the results if you want the printable document version, with its Warm → Hot → Red-hot → Extreme bands. A data summary, not advice."><span>📈 Volume Surge</span> <span class="scan-tag">above-normal volume · biggest first</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-top20"><span class="drag-h">⠿</span><button id="top10Btn" onclick="topTenScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.14);font-weight:700;" title="Scans every share, scores each out of 10 (accumulation-weighted — same as the ⭐ Score column), and shows the 20 highest. A data summary, not advice."><span>🏆 Top 20 to Watch</span> <span class="scan-tag">highest score /10 · estimate</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-climbers"><span class="drag-h">⣿</span><button id="climbBtn" onclick="climbersScan()" class="scan-alt" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,.10);" title="🌱 Shares firing a CLIMBING signal today — a line from the report card’s nursery: moving toward SOLID but not there yet. Top 10, ranked by how close its strongest climber is. Every line behind this list is UNPROVEN — a scepticism shortlist, not picks. The 🤖 bot never reads it. Needs today’s grades (open the 📋 card once if asked).">🌱 Climbers Today</button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-sharp"><span class="drag-h">⠿</span><button onclick="speedingTicketScan()" class="scan-alt" title="Ranks shares by the SIZE of today's move compared to that share's own normal day — a 4% jump is nothing for a wild penny stock but a siren for a sleepy blue chip. Split by whether news likely explains it. Estimate — not advice."><span>🚨 Sharp Mover Detector</span> <span class="scan-tag">abnormal SIZE of move · for that share</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-unusual"><span class="drag-h">⠿</span><button id="unusualBtn" onclick="unusualScan()" class="scan-alt" style="border-color:var(--orange);color:var(--orange);background:rgba(255,165,0,.1);" title="Looks for suspicious PATTERNS in HOW a share traded — five end-of-day patterns like heavy volume with no price move, or a price jump on thin volume. About the shape of the trading, not the size of the move. Estimate only — not manipulation detection, not advice."><span>🔍 Unusual Activity Scan</span> <span class="scan-tag">5 suspicious patterns · HOW it traded</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-allsig"><span class="drag-h">⠿</span><button id="allSigBtn" onclick="allSignalsScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.08);" title="Runs EVERYTHING in one pass — sharp-mover abnormality, the five unusual-activity patterns, volume surge, price & volume streaks, accumulation and the /10 score — and ranks shares by how many signals they trigger at once. Estimate — not advice."><span>🧩 All Signals Scan</span> <span class="scan-tag">sharp + unusual + streaks + accum · estimate</span></button></div>
@@ -1714,7 +1715,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-524-open';
+const APP_VERSION='2026.07.28-525-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -17497,7 +17498,7 @@ const TRAIN_HELP={
   "streakBtn":{t:"Refresh / redownload data",d:"Re-fetches fresh history and recomputes signals for the shares currently shown (not the whole exchange). Updates what you're looking at."},
   "privateChk":{t:"Private mode",d:"Hides the explanatory hover tooltips for a cleaner screen or screen-sharing. In the customer app this is locked on."},
   "smartBtn":{t:"Smart Money Scan",d:"Finds shares rising several days in a row on volume well above their average — the classic 'quiet accumulation' footprint. The flagship report."},
-  "top10Btn":{t:"Top 20 to Watch",d:"Scores every share out of 10 (accumulation-weighted) and shows the 20 highest. A quick 'what's most interesting today' summary. The report opens in a new tab with clickable tickers and 📰 News links."},
+  "climbBtn":{t:"🌱 Climbers Today",d:"Shares firing a signal from the nursery — lines moving toward SOLID but not proven. A scepticism shortlist (top 10), never picks; the bot ignores it."},"top10Btn":{t:"Top 20 to Watch",d:"Scores every share out of 10 (accumulation-weighted) and shows the 20 highest. A quick 'what's most interesting today' summary. The report opens in a new tab with clickable tickers and 📰 News links."},
   "quietBtn":{t:"Quiet Movers",d:"Shares that made only a small net move today (−5% to +5%) but are quietly building underneath — a paused up-trend, heavy volume on a flat price, or a run that faded into the close. Ranked by accumulation. An estimate, not advice."},
   "pullbackBtn":{t:"Pullback in Uptrend",d:"Shares in an established up-trend (above their key moving averages) that have dipped back to drift back toward their short-term average with momentum cooled but not broken — the classic 'buy the dip' setup, served as a research list. An estimate, not advice."},
   "gCap":{t:"Liquidity — $ traded/day",d:"Average daily volume × price = how much money actually changes hands on a normal day. Set a floor (≥$50k / ≥$250k / ≥$1M) to skip thinly-traded shares that are hard to buy or sell at a fair price. Replaces the old market-cap filter — the data feed can't supply real market caps, so this is the honest alternative."},
@@ -18721,6 +18722,106 @@ function _apWarmGrades(){
       if(R){ window._scCache={ex:ex0,d:dd,liq:liq0,R:R}; try{ if(typeof _evAfterWarm==='function')_evAfterWarm(); }catch(e){} }
     }).catch(function(){ window._apWarming=false; });
   }catch(e){ window._apWarming=false; }
+}
+
+// ── v525: nursery selection, GLOBAL — the 📋 card and the 🌱 Climbers Today
+// report both call this, so they can never disagree about what "climbing"
+// means. Logic unchanged from v521.
+function _nurSelect(A){
+  return Object.keys(A.M).map(k=>({k,m:A.M[k]})).filter(it=>{
+    const m=it.m; if(!m||!m.n)return false;
+    const at=m.dirNeg?-m.tstat:m.tstat;
+    const goodDir=m.dirNeg?m.edge<0:m.edge>0;
+    if(m.tier==='solid')return false;
+    if(m.n<10)return false;
+    if(!goodDir||!(at>0))return false;
+    if(m.n>=50&&at<1)return false;
+    return true;
+  }).map(it=>{
+    const m=it.m, at=m.dirNeg?-m.tstat:m.tstat;
+    const fGap=Math.max(0,50-m.n), sGap=Math.max(0,2-at);
+    return Object.assign(it,{at,fGap,sGap,dist:Math.max(fGap/50,sGap/2)});
+  }).sort((a,b)=>a.dist-b.dist);
+}
+// Does this climbing key fire on this share TODAY? Reads the flags
+// _setPatternFlags already stamps (same formulas as the audit predicates).
+// Sequences return null: rows carry no yesterday-flags, and guessing is
+// exactly what this app does not do.
+function _nurFireToday(sh,k){
+  if(k.indexOf('>')>=0)return null;
+  const one=p=>{
+    switch(p){
+      case 'bo': return !!sh.sigBreakout;
+      case 'inf': return !!sh.dirBuy;
+      case 'inst': return !!sh.instBuy;
+      case 'cx': return !!sh.sigCross;
+      case 'di': return !!sh.sigDist;
+      case 'vr': return !!sh.sigVolRecord;
+      case 'blk': return !!sh.blockTrade;
+      case 'vr+': return !!sh.sigVolRecord&&sh.chgPct>0;
+      case 'vr-': return !!sh.sigVolRecord&&sh.chgPct<0;
+      case 'blk+': return !!sh.blockTrade&&sh.chgPct>0;
+      case 'blk-': return !!sh.blockTrade&&sh.chgPct<0;
+      default: return false;
+    }
+  };
+  if(/^(vr|blk)[+-]$/.test(k))return one(k); // signed singles: the '+' is the name, not a join
+  return k.split('+').every(one);
+}
+
+// ── v525: 🌱 Climbers Today — shares firing a climbing (nursery) line ─────
+function climbersScan(){
+  try{
+    if(!Array.isArray(allData)||!allData.length){ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Load your market data first — tap ⚡ Load.</div>','🌱 Climbers Today'); return; }
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    var C=window._auditCache;
+    var A=(C&&C.A&&C.d===dd&&C.ex===currentExch)?C.A:null;
+    if(!A||!A.M){
+      try{ if(typeof _auditWarm==='function')_auditWarm(); }catch(e){}
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Today\u2019s signal grades aren\u2019t on this device yet \u2014 open the \ud83d\udccb <b style="color:var(--text)">Signal report card</b> once (it fetches them), then run this report again.</div>','🌱 Climbers Today');
+      return;
+    }
+    var climbers=_nurSelect(A).filter(function(it){ return it.k.indexOf('>')<0; });
+    var seqDropped=_nurSelect(A).length-climbers.length;
+    if(!climbers.length){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">🌱 Nothing is genuinely climbing right now — no unproven line has both a positive edge and momentum toward the bar. That\u2019s information too: be extra sceptical of flags this week.</div>','🌱 Climbers Today');
+      return;
+    }
+    var nameK=function(k){ return k.split('+').map(function(x){return (A.defs&&A.defs[x]&&A.defs[x].name)||x;}).join(' + '); };
+    var univ=allData.filter(function(sh){ return sh&&(typeof _cardLiqPass!=='function'||_cardLiqPass(sh)); });
+    var items=[];
+    for(var i=0;i<univ.length;i++){
+      var sh=univ[i], firing=[];
+      for(var c=0;c<climbers.length;c++){ if(_nurFireToday(sh,climbers[c].k)===true)firing.push(climbers[c]); }
+      if(firing.length)items.push({s:sh,firing:firing,best:firing[0].dist});
+    }
+    if(!items.length){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">🌱 There ARE climbing lines on the card ('+climbers.length+'), but none of them fired on any tradeable share today. An empty day is a normal day.</div>','🌱 Climbers Today');
+      return;
+    }
+    items.sort(function(a,b){ return (a.best-b.best)||(b.firing.length-a.firing.length)||(((b.s.watchScore||0))-((a.s.watchScore||0))); });
+    var top=items.slice(0,10);
+    // into the MAIN TABLE, topTenScan-style — chips, charts, Buy all work
+    F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+    filtered=top.map(function(x){return x.s;});
+    lastScanLabel='🌱 Climbers Today';
+    _resetStatsForNewView();
+    render();statsBar();try{dots&&dots();mkBadges&&mkBadges();}catch(e){}
+    document.getElementById('statsBar').style.display='';
+    document.getElementById('toolbar').style.display='flex';
+    // the explainer — the honesty lives here, and it names each line's gap
+    var lines=climbers.slice(0,8).map(function(it){
+      var need=it.fGap>0?('needs ~'+it.fGap+' more fires'):('strength '+it.at.toFixed(1)+' of 2.0');
+      return '<div style="padding:4px 0;border-bottom:1px dashed var(--border);font-size:11px;"><b style="color:var(--text)">'+nameK(it.k)+'</b> <span style="color:var(--muted)">— '+need+' · fired '+it.m.n.toLocaleString()+'× · edge '+((it.m.dirNeg?-it.m.edge:it.m.edge)>=0?'+':'')+(it.m.dirNeg?-it.m.edge:it.m.edge).toFixed(2)+'%</span></div>';
+    }).join('');
+    showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
+      +'<div style="font-weight:800;color:var(--text);font-size:13px;margin-bottom:4px;">🌱 Climbers Today — '+top.length+' share'+(top.length===1?'':'s')+' now in the table</div>'
+      +'<div style="color:var(--gold);font-size:11px;margin-bottom:8px;"><b>A nursery, not a menu.</b> Every line behind this list is UNPROVEN — the whole point is scepticism with a shortlist. Watch, don\u2019t lean. The 🤖 auto-pilot never reads it.</div>'
+      +'<div style="font-size:11px;margin-bottom:4px;">These shares fired at least one <b style="color:var(--text)">climbing</b> signal today — a line moving toward SOLID but not there. Ranked by how close its strongest climber is. The climbing lines and what each still needs:</div>'
+      +lines
+      +'<div style="font-size:10px;color:var(--dim);margin-top:8px;">'+(seqDropped>0?('Sequences ('+seqDropped+') are excluded — they need yesterday\u2019s flags, which today\u2019s rows don\u2019t carry, and this app does not guess. ' ):'')+'Universe: tradeable shares only (same 💧 floor as the grading). Close this to see the table.</div>'
+      +'</div>','🌱 Climbers Today');
+  }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Climbers report hit a snag: '+e.message+'</div>','🌱 Climbers Today'); }catch(_){} }
 }
 function _apGrades(){
   try{
@@ -20181,20 +20282,7 @@ function _renderReportCard(A){
       if(d<-0.15)return `<span style="color:#ff9caa" title="Strength ${first.toFixed(1)} on the earliest saved card → ${atNow.toFixed(1)} now, across ${n} cards. Moving AWAY from the bar.">📉 strength fading (${first.toFixed(1)} → ${atNow.toFixed(1)} over ${n} cards)</span>`;
       return `<span style="color:var(--muted)" title="Strength has moved less than ±0.15 across ${n} saved cards.">➡ holding (~${atNow.toFixed(1)} across ${n} cards)</span>`;
     };
-    const _nurRows=Object.keys(A.M).map(k=>({k,m:A.M[k]})).filter(it=>{
-      const m=it.m; if(!m||!m.n)return false;
-      const at=m.dirNeg?-m.tstat:m.tstat;
-      const goodDir=m.dirNeg?m.edge<0:m.edge>0;
-      if(m.tier==='solid')return false;              // already home
-      if(m.n<10)return false;                        // too thin to say anything
-      if(!goodDir||!(at>0))return false;             // not even pointing at the bar
-      if(m.n>=50&&at<1)return false;                 // had its fires, never found strength — question answered
-      return true;
-    }).map(it=>{
-      const m=it.m, at=m.dirNeg?-m.tstat:m.tstat;
-      const fGap=Math.max(0,50-m.n), sGap=Math.max(0,2-at);
-      return Object.assign(it,{at,fGap,sGap,dist:Math.max(fGap/50,sGap/2)});
-    }).sort((a,b)=>a.dist-b.dist).slice(0,8);
+    const _nurRows=_nurSelect(A).slice(0,8); // v525: shared selection — see _nurSelect
     const _nurRow=it=>{
       const m=it.m, at=it.at;
       const need=[];
