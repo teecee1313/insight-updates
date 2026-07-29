@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-572-open';
+const APP_VERSION='2026.07.28-573-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10777,12 +10777,12 @@ function statsBar(){
       try{
         if(_rn&&window._scanSrc&&window._scanSrc!=='unavailable'){
           var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
-          if(!_fromDev&&!_dayDev){ var _lqL=function(k){ try{ for(var q=0;q<_CARD_LIQ.length;q++)if(_CARD_LIQ[q][0]===k)return _CARD_LIQ[q][1]; }catch(e3){} return k||'?'; }; var _cGr=(window._auditCache&&window._auditCache.liq)||''; var _cNow=(typeof _cardLiqKey==='function')?_cardLiqKey():''; var _cl=_lqL(_cGr||_cNow); var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{ if(window._auditCache&&window._auditCache.A&&_cl.indexOf('Any')===0)_rn.textContent=_rn.textContent+'  ·  ⚠ the 💧 floor is wide open, so these counts lean on micro-caps — set $250k or $1m on the 📋 card for decision-grade evidence'; }catch(e2){} try{
+          if(!_fromDev&&!_dayDev){ var _lqL=function(k){ try{ for(var q=0;q<_CARD_LIQ.length;q++)if(_CARD_LIQ[q][0]===k)return _CARD_LIQ[q][1]; }catch(e3){} return k||'?'; }; var _cGr=(window._auditCache&&window._auditCache.liq)||''; var _cNow=(typeof _cardLiqKey==='function')?_cardLiqKey():''; var _cl=_lqL(_cGr||_cNow); var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{
             var _wsSt=window._warmState||'';
             if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading '+(window._warmN||'')+' shares in the background… the evidence counts will fill in when it finishes';
             else if(_wsSt==='failed'&&!(window._auditCache&&window._auditCache.A))_rn.textContent=_rn.textContent+'  ·  ⚠ background grading could not reach the server — retrying once; open the 📋 report card to force it';
           }catch(e5){}
-          try{ if(window._auditCache&&window._auditCache.A&&_cGr&&_cNow&&_cGr!==_cNow)_rn.textContent=_rn.textContent+'  ·  ⚠ these counts were graded at 💧 '+_lqL(_cGr)+', but the 📋 card is now set to '+_lqL(_cNow)+' — open the report card to re-grade before trusting them'; }catch(e4){} }
+          try{ if(window._auditCache&&window._auditCache.A&&_cGr&&_cNow&&_cGr!==_cNow)_rn.textContent=_rn.textContent+'  ·  ⚠ these counts were graded at 💧 '+_lqL(_cGr)+', but the 📋 card is now set to '+_lqL(_cNow)+' — open the report card to re-grade before trusting them'; }catch(e4){}try{ if(window._auditCache&&window._auditCache.A&&_cl.indexOf('Any')===0){ var _esc=function(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }; var _btn=function(k,lbl){ return '<button onclick="_evSetFloor(\''+k+'\')" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">'+lbl+'</button>'; }; _rn.innerHTML=_esc(_rn.textContent)+'  ·  ⚠ the 💧 floor is wide open, so these counts lean on micro-caps — measure on shares you could actually trade:'+_btn('250k','set $250k')+_btn('1m','set $1m'); } }catch(e2){}  }
           else {
             var _w=[];
             if(_fromDev)_w.push('graded from the replay saved on this device'+(window._scanGradedOn?' ('+window._scanGradedOn+')':''));
@@ -19913,6 +19913,17 @@ function _cardLiqKey(){
 }
 function _cardLiqNeed(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][2]; return 0; }
 function _cardLiqLabel(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][1]; return 'Any'; }
+function _evSetFloor(k){
+  /* v573: change the grading floor from wherever the user is standing — the
+     radar, not just the card. Same setter as the card's chips, then an
+     immediate background re-grade so the counts follow within seconds. */
+  try{
+    _cardLiqSet(k,'');
+    if(typeof statsBar==='function')statsBar();
+    window._warmRetried=false; window._warmState='';
+    if(typeof _auditWarmIdle==='function')setTimeout(function(){ try{_auditWarmIdle();}catch(e){} },60);
+  }catch(e){}
+}
 function _cardLiqSet(k,fn){
   window._cardLiq=k; try{ localStorage.setItem('asxScreener.cardLiq.v1',k); }catch(e){}
   try{ window._scCache=null; window._t20Cache=null; window._smCache=null; window._auditCache=null; window._auditCacheAlt={}; }catch(e){}
