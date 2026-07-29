@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-557",
+  "version": "2026.07.28-558",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v557 \u2014 tidy-up: the three \ud83c\udf93 Graded evidence buttons (\ud83c\udfaf Best Evidence, \ud83c\udf31 Climbers, \u2696 grading check) now sit three-across in one neat row, matching the Start-your-day trio, instead of two-plus-an-orphan. Hard-refresh (Ctrl+F5)."
+  "notes": "v558 \u2014 the table declutter you asked for. ONE \ud83d\udcca VOLUME column now tells the whole volume story: the surge bar and %, then \u2018today 73.0M \u00b7 vs 3-month avg 1.1M\u2019 on one line, the buying-pressure badge, and a small \ud83d\udcf0 chip when news likely explains the spike (hover it for why that matters). ONE STREAKS column stacks the price dots over the volume dots, labelled \u2018d px\u2019 and \u2018d vol\u2019. The separate News 5d column is gone \u2014 the chip carries the signal, and \ud83d\uddde Filter by news plus each share's report keep the detail. Thirteen columns are now ten, every one earning its width, with \ud83d\udcb0 PN Edge front and centre. All sort options still work (Sort by \u2192 Volume / Vol Streak / News still there). Hard-refresh (Ctrl+F5)."
 }

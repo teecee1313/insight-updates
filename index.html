@@ -1686,13 +1686,10 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
         <th onclick="sb('price')" data-i18n="colPrice">Price</th>
         <th onclick="sb('chgPct')" data-i18n="colChange">Change</th>
         <th onclick="sb('pnEdge')" title="💰 The Paula–Ninó Edge (PN Edge) — money made per $100 invested by the strongest PROVEN line firing on this share today, measured beyond the market, before costs. Tap to sort the whole table by it. ‘—’ means no proven line fired on that share today — which is normal: most days, most shares fire nothing proven.">💰 PN Edge</th>
-        <th onclick="sb('volPct')" data-i18n="colVolSurge" title="Today's volume compared with this share's historical average, as a percentage above or below. +100% means today is double the average. The deeper the cached history (shown under each figure), the more reliable this is.">Vol Surge</th>
-        <th onclick="sb('volume')" data-i18n="colVolume">Volume</th>
-        <th onclick="sb('daysUp')" data-i18n="colStreak" title="Consecutive days the price closed higher">📈 Price Streak</th>
-        <th onclick="sb('volDays')" title="Consecutive recent days volume ran above its average">📊 Vol Streak</th>
+        <th onclick="sb('volPct')" title="One volume story: the surge (today vs this share's average, +100% = double), today's raw turnover, the buying/selling pressure read, and a 📰 chip when news likely explains it. Tap sorts by surge; use Sort by → Volume for raw turnover.">📊 Volume</th>
+        <th onclick="sb('daysUp')" title="Persistence, both kinds: top dots = consecutive days the PRICE closed higher; bottom dots = consecutive days VOLUME ran above average. Tap sorts by price streak; Sort by → Vol Streak for the other.">Streaks</th>
         <th onclick="sb('accum10')" title="Days in the last 10 with price up AND volume well above average (running total)">🔥 Accum 10d</th>
         <th onclick="sb('watchScore')" title="Accumulation-weighted watch score out of 10 (price+volume up days, blended with streaks & momentum). Data summary, not advice.">⭐ Score /10</th>
-        <th onclick="sb('newsRank')" data-i18n="colNews" title="Sort by news estimate (likely first)">News 5d</th>
         <th onclick="sb('sigRank')" data-i18n="colSignals" title="Sort by signal strength (scan scores &amp; flags)">Signals</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
@@ -1710,7 +1707,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-557-open';
+const APP_VERSION='2026.07.28-558-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4616,13 +4613,11 @@ function renderRows(rows){
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)}</span></td>
 <td style="text-align:center;">${_pnEdgeCell(s)}</td>
 <td><div class="vw"><div class="vbg"><div class="vfl" style="width:${s.volCalced?bp:0}%"></div></div>
-    <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'?'}</span></div>${s.volCalced&&s.avgVol?`<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}</div>`:''}${_srBadge}</td>
-<td><span style="font-family:var(--mono);font-size:11px">${fmtV(s.volume)}</span>${s.volCalced?`<br><span style="font-family:var(--mono);font-size:9px;color:${volDepthGood(s.volWindow)?'var(--green)':'var(--muted)'}">avg ${fmtV(s.avgVol)} · ${s.volWindow||''}</span>`:''}</td>
-<td><div class="str">${dts}</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">${s.streakCalced?s.daysUp+'d':'?'}</div></td>
-<td><div class="str">${vds}</div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">${s.volStreakCalced?(s.volDays||0)+'d':'?'}</div></td>
+    <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'–'}</span></div><div style="font-family:var(--mono);font-size:9px;color:${volDepthGood(s.volWindow)?'var(--green)':'var(--muted)'};margin-top:2px">today ${fmtV(s.volume)}${s.volCalced&&s.avgVol?` · vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}`:''}${(s.newsFlag==='likely')?` <span title="News likely in the last 5 days — a volume spike WITH news is a different animal from one without. Use Filter by news or the share's report for the detail." style="cursor:help;">📰</span>`:''}</div>${_srBadge}</td>
+<td title="Top: price up-days in a row. Bottom: volume above its average in a row."><div class="str">${dts}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.streakCalced?s.daysUp+'d px':'–'}</div><div class="str" style="margin-top:2px">${vds}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.volStreakCalced?(s.volDays||0)+'d vol':'–'}</div></td>
 <td style="text-align:center;">${s.accum10!=null?`<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${s.accum10>=5?'var(--gold)':s.accum10>=3?'var(--green)':'var(--muted)'}">${s.accum10}</span><span style="font-size:9px;color:var(--dim)">/10</span>`:'<span style="color:var(--dim)">?</span>'}</td>
 <td style="text-align:center;">${s.watchScore!=null?`<span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${s.watchScore>=7?'var(--green)':s.watchScore>=4?'var(--gold)':s.watchScore>=2?'var(--orange)':'var(--muted)'}">${s.watchScore}</span><span style="font-size:9px;color:var(--dim)">/10</span>`:'<span style="color:var(--dim)">?</span>'}</td>
-<td>${newsTag}</td><td>${sg}</td></tr>`;
+<td>${sg}</td></tr>`;
   }
   return out;
   };
