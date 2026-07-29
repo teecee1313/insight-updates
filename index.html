@@ -1715,7 +1715,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-529-open';
+const APP_VERSION='2026.07.28-530-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2375,6 +2375,7 @@ function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PRO
 (function(){
   if(typeof window==='undefined'||!window.fetch||window._gateFetchWrapped)return;
   const _raw=window.fetch.bind(window);
+  window._gateRawFetch=_raw; // v530: the unlock attempt must bypass the wrapper entirely
   window._gateFetchWrapped=true;
   window.fetch=function(input,init){
     let url=''; try{ url=(typeof input==='string')?input:((input&&input.url)||''); }catch(e){}
@@ -2387,7 +2388,11 @@ function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PRO
     if(!isWorker)return _raw(input,init);
     init=init||{};
     const k=_gateKey();
-    if(k){ try{ const h=new Headers((init&&init.headers)||{}); h.set('X-Insight-Access',k); init.headers=h; }catch(e){} }
+    // v530 BUGFIX: only ADD the stored key — never overwrite one the caller set.
+    // The unlock attempt sends the password you TYPED; this line used to replace
+    // it with the stale stored key, so a device holding an old password could
+    // never be unlocked with the new one no matter what you entered.
+    if(k){ try{ const h=new Headers((init&&init.headers)||{}); if(!h.get('X-Insight-Access'))h.set('X-Insight-Access',k); init.headers=h; }catch(e){} }
     return _raw(input,init).then(function(r){ try{ if(r&&r.status===401)_gateLock(); }catch(e){} return r; });
   };
 })();
@@ -2444,7 +2449,8 @@ function _gateTry(){
   if(_cl.repaired){ try{ inp.value=key; }catch(e){} } // v529: show what is actually being sent
   say('Checking…','var(--muted)'); if(btn)btn.disabled=true;
   const b=_gateBase();
-  window.fetch(b+'/gate',{headers:{'X-Insight-Access':key}}).then(function(r){
+  const _f=(window._gateRawFetch||window.fetch);
+  _f(b+'/gate',{headers:{'X-Insight-Access':key}}).then(function(r){
     if(r&&r.ok){ _gateSet(key); say('Unlocked ✓','var(--green)'); setTimeout(function(){ try{ location.reload(); }catch(e){} },250); return; }
     // v520: tell the truth about WHY. After 12 wrong tries in 15 minutes the
     // server pauses this connection and refuses to even CHECK the password —

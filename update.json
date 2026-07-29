@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-529",
+  "version": "2026.07.28-530",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v529 \u2014 the lock screen now works properly on phones. If the password kept being refused on a phone while the same word worked on a computer, the cause was almost always your browser silently AUTOFILLING an old saved password into the box. Now: a \ud83d\udc41 show button so you can SEE exactly what is in the field, a character count, the box is cleared of anything autofilled, and hidden characters your keyboard can add (curly quotes, en-dashes, non-breaking or zero-width spaces) are repaired before sending \u2014 and the app says when it had to repair something. The \u201cwrong password\u201d message now names autofill as the likely culprit instead of blaming your typing. Hard-refresh (Ctrl+F5)."
+  "notes": "v530 \u2014 BUGFIX: a device holding an OLD password could never be unlocked with the new one. Every request to the server carries the saved password, and that attachment was overwriting the password you typed on the unlock screen \u2014 so the app kept sending the old key and the server kept refusing it, no matter what you entered. On a device that had never been unlocked before, or whose saved password was still current, everything looked fine, which is why this only showed up on some devices. The unlock attempt now always sends exactly what you type. Hard-refresh (Ctrl+F5) \u2014 on a phone, fully close the tab and reopen it."
 }
