@@ -1714,7 +1714,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-521-open';
+const APP_VERSION='2026.07.28-522-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20008,6 +20008,30 @@ function _renderReportCard(A){
       return ` · <span title="Across the last ${past.length} report cards this app saved, this line was working on ${w} of them. Persistence across weeks is the only evidence that deserves real capital." style="cursor:help;color:${w>=past.length*0.6?'var(--green)':'var(--muted)'}">📜 beat in ${w} of last ${past.length} cards</span>`; };
     const halves=m=>(m.held===null)?'':(m.held?` · <span title="The graded window was split in two and the edge showed up in BOTH halves — a sign it is not a single hot streak." style="cursor:help;color:var(--green)">✓ held up in both halves</span>`:` · <span title="The edge appeared in only ONE half of the window — weaker; it may have been one good run rather than a durable edge." style="cursor:help;color:#ff9caa">✗ faded in one half</span>`);
     const tape=m=>(m.ron.n||m.roff.n)?` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work." style="cursor:help;">tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})</span>`:'';
+    // ── v522: three-year era verdicts (w410 study, served with the grades) ──
+    const ERAS=(A.eras&&A.eras.eras)||null, ERA_BUILT=(A.eras&&A.eras.built)||'';
+    const _eraYears=es=>{ if(!es||!es.from||!es.to)return ''; const a=es.from.slice(0,4), b=es.to.slice(2,4); return a+'–'+b; };
+    const _eraMark=(m,st)=>{
+      if(!st||st.n<10)return {ch:'·',col:'var(--dim)',word:'too few fires in this era to say ('+((st&&st.n)||0)+')'};
+      const dirT=m.dirNeg?-st.t:st.t, working=m.dirNeg?st.e<0:st.e>0;
+      if(working&&dirT>=1)return {ch:'✓',col:'var(--green)',word:'edge in the right direction AND clear of noise (t '+dirT.toFixed(1)+') across '+st.n+' fires'};
+      if(working)return {ch:'~',col:'var(--gold)',word:'edge pointed the right way but too weak to separate from luck (t '+dirT.toFixed(1)+', '+st.n+' fires)'};
+      return {ch:'✗',col:'#ff9caa',word:'edge went the WRONG way in this era ('+f1(m.dirNeg?-st.e:st.e)+' across '+st.n+' fires)'};
+    };
+    const _eraRow=(k,m)=>{
+      if(!ERAS)return '';
+      const bits=[];
+      for(const e of ['2','3']){
+        const es=ERAS[e]; if(!es)continue;
+        const st=es.perKey&&es.perKey[k], mk=_eraMark(m,st);
+        bits.push(`<span title="${_eraYears(es)}: ${mk.word}. Graded by the same maths as the live card, over that era's own tradeable market." style="cursor:help;">${_eraYears(es)} <b style="color:${mk.col}">${mk.ch}</b>${(st&&st.n>=10)?(' '+f1(m.dirNeg?-st.e:st.e)):''}</span>`);
+      }
+      if(!bits.length)return '';
+      const s2=ERAS['2']&&ERAS['2'].perKey&&ERAS['2'].perKey[k], s3=ERAS['3']&&ERAS['3'].perKey&&ERAS['3'].perKey[k];
+      const both=s2&&s3&&_eraMark(m,s2).ch==='✓'&&_eraMark(m,s3).ch==='✓';
+      const crown=(both&&(m.tier==='solid'||m.tier==='promising'))?` <span title="This line's edge shows in the CURRENT year (its live tier) AND earned a ✓ in both earlier stored years — the strongest durability evidence this card can offer. Still never a guarantee." style="cursor:help;color:var(--gold);font-weight:700;">🏛 held across all three years</span>`:'';
+      return ` · <span style="color:var(--dim)">earlier years:</span> ${bits.join(' · ')}${crown}`;
+    };
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
       if(_snews!=='all'){
@@ -20029,7 +20053,7 @@ function _renderReportCard(A){
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}</div>`;
       }
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
-      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}</div>`;
+      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}${_eraRow(k,m)}</div>`;
     };
     const _flagTip={
       bo:'🚀 Breakout — the share closed at its highest price of the stored year, on above-average volume: buyers pushed it into fresh territory (an estimate from price & volume).',
@@ -20070,7 +20094,10 @@ function _renderReportCard(A){
     const _srcBadge=(window._gradeSrc==='server')
       ?'<div style="margin-bottom:8px;"><span title="These grades were computed on YOUR server — the scoring formula runs there, not in this page." style="display:inline-block;border:1px solid var(--green);color:var(--green);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">⚡ GRADED ON YOUR SERVER</span></div>'
       :'<div style="margin-bottom:8px;"><span title="Computed on this device — the app graded here because your server was not reachable this time." style="display:inline-block;border:1px solid var(--gold);color:var(--gold);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">🖥 COMPUTED ON THIS DEVICE</span></div>';
-    const head=_srcBadge+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`;
+    const eraNote=ERAS
+      ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5;">🏛 <b>Three-year durability study</b> (built ${ERA_BUILT}): each line below also shows how it fared in ${['2','3'].map(e=>_eraYears(ERAS[e])).filter(Boolean).join(' and ')} — graded by the same maths, against each era's own market. Tiers are still decided by the RECENT year: an edge that died cannot hide inside old averages.</div>`
+      : `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.5;">🏛 The three-year durability study hasn't been built on the server yet — every grade below covers the recent year only, and says nothing about earlier years.</div>`;
+    const head=eraNote+_srcBadge+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`;
     // rank helper for combo/sequence sections
     const tierRank={solid:2,promising:1,early:0};
     const lines=Object.keys(A.M).map(k=>({k,m:A.M[k]}));
@@ -20172,7 +20199,7 @@ function _renderReportCard(A){
       return `<div style="padding:6px 8px;border:1px solid var(--border2);border-radius:7px;margin-bottom:5px;background:rgba(74,222,128,.03);">
         <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;align-items:center;"><span title="${_flagTip[it.k]||''}" style="cursor:help;font-weight:700;color:var(--text)">${nameOf(it.k)}${m.dirNeg?' <span style="font-size:9px;color:#9fb2cc">· warning line</span>':''}</span>${chip(m)}</div>
         <div style="font-size:10.5px;color:var(--muted);margin-top:3px;">${need.join(' · ')} · edge ${f1(m.dirNeg?-m.edge:m.edge)}</div>
-        <div style="font-size:9.5px;color:var(--dim);margin-top:2px;">${_nurTraj(it.k,at)}${halves(m)||''}${track(it.k)||''}</div>
+        <div style="font-size:9.5px;color:var(--dim);margin-top:2px;">${_nurTraj(it.k,at)}${halves(m)||''}${track(it.k)||''}${_eraRow(it.k,m)}</div>
       </div>`;
     };
     const nurserySec=`<div style="margin-top:16px;padding-top:11px;border-top:2px solid var(--border2);">
