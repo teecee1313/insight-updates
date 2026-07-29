@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-561-open';
+const APP_VERSION='2026.07.28-562-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18747,7 +18747,8 @@ function _cardScore10(m){
   if(!m||!m.n)return 0;
   const e=(m.dirNeg?-m.edge:m.edge);              // edge in the flag's own direction; >0 = working
   if(!(e>0))return Math.max(0,+(0.5+e*0.5).toFixed(1)); // v368: not working → 0–0.5, CONTINUOUS with the working band's 0.5 floor (removes the old dip where a hair of edge scored below a zero edge)
-  const band=(m.tier==='solid')?[7,10]:(m.tier==='promising')?[4,7]:[0.5,4];
+  const _t10=(typeof _tierAdj==='function'&&window._cardHoldNow)?_tierAdj(m,window._cardHoldNow):m.tier; // v562: score honours the window-scaled tier
+  const band=(_t10==='solid')?[7,10]:(_t10==='promising')?[4,7]:[0.5,4];
   const frac=Math.min(1,e/3);                     // a ~3% market-beating edge over the window tops the band
   return +(band[0]+(band[1]-band[0])*frac).toFixed(1);
 }
@@ -19029,6 +19030,29 @@ function bestEvidenceScan(){
 }
 
 
+// ── v562: window-scaled tiers ─────────────────────────────────
+// The server marks tiers with fixed bars (n≥50 & t≥2 = solid, n≥30 & t≥1 =
+// promising). Fine at one window — but edge grows with the window and t grows
+// with it (≈√hold), so the SAME line drifts up a tier just for being judged
+// over more days. That is how Tony's 10d card filled with SOLIDs. We scale the
+// t bars by √(hold/5): at hold 5 the answer is bit-identical to the server's,
+// so nothing else in the app can disagree; at 10d/30d a longer window must
+// earn proportionally stronger evidence.
+function _tierAdj(m,hold){
+  try{
+    if(!m||!m.n)return (m&&m.tier)||'early';
+    var h=+hold||5; if(h<=5)return m.tier;               // 5d: server's own verdict, untouched
+    var f=Math.sqrt(h/5);
+    var t=Math.abs(+m.tstat||0);
+    if(m.n>=50&&t>=2*f)return 'solid';
+    if(m.n>=30&&t>=1*f)return 'promising';
+    return 'early';
+  }catch(e){ return (m&&m.tier)||'early'; }
+}
+function _tierWinTip(hold){
+  var h=+hold||5;
+  return (h<=5)?'':' · Judged over a '+h+'-day window: because a longer window accumulates a bigger edge, the pass mark is raised in proportion (t≥'+(2*Math.sqrt(h/5)).toFixed(1)+' for SOLID instead of 2). Tiers from different windows are NOT comparable.';
+}
 // ── v542: the money scale ──────────────────────────────────────────────────
 // Edge is dollars per $100 invested, and it ALWAYS ships with its yardstick:
 // a fixed 0–$3.50 scale (the realistic ceiling for end-of-day price signals),
@@ -20525,7 +20549,8 @@ function _renderReportCard(A){
     const baseAvg=A.base.sum/A.base.n, baseUp=pct(A.base.up,A.base.n);
     const TIER={solid:['SOLID','var(--green)'],promising:['PROMISING','var(--gold)'],early:['TOO EARLY','var(--dim)']};
     const _tierTip={solid:'SOLID — 50+ fires with a consistent edge (t≥2). The firmest evidence on the card, though still never a guarantee.',promising:'PROMISING — 30+ fires with a decent edge (t≥1). Worth watching; not yet proven.',early:'TOO EARLY — too few fires to tell a real edge from luck yet, whatever the edge looks like.'};
-    const chip=m=>{const t=TIER[m.tier];return `<span title="${_tierTip[m.tier]||''}" style="cursor:help;border:1px solid ${t[1]};color:${t[1]};border-radius:4px;padding:0 4px;font-size:9px;font-weight:800;letter-spacing:.5px;">${t[0]}</span>`;};
+    try{window._cardHoldNow=A.hold;}catch(e){}
+    const chip=m=>{const _tj=_tierAdj(m,A.hold);const t=TIER[_tj];return `<span title="${(_tierTip[_tj]||'')+_tierWinTip(A.hold)}" style="cursor:help;border:1px solid ${t[1]};color:${t[1]};border-radius:4px;padding:0 4px;font-size:9px;font-weight:800;letter-spacing:.5px;">${t[0]}${(A.hold>5)?`·${A.hold}d`:``}</span>`;};
     const nameOf=k=>{
       if(A.defs[k])return A.defs[k].name;
       if(k==='vr+')return '🥇 Vol record · up day'; if(k==='vr-')return '🥇 Vol record · down day';
@@ -20640,7 +20665,7 @@ function _renderReportCard(A){
       }
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">seen <b title="How many times this signal appeared across every share, on every day, in the graded year." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b> times · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${beatTxt}${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}${_eraRow(k,m)}
-      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${(()=>{const g=_edgeGauge(m.dirNeg?-m.edge:m.edge,m.n);return `<span title="The Paula–Ninó Edge — this app’s money measure. Named in memory of Paula and Ninó." style="cursor:help;">PN Edge</span> — about <b style="color:${g.col}">${g.money} extra per $100 invested</b> ${g.bar} <span style="color:${g.col}">${g.word}</span> — on average, measured ${_winWords(A.hold)} after each signal, beyond the market, before costs`;})()}</div></div>`;
+      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${(()=>{const g=_edgeGauge(m.dirNeg?-m.edge:m.edge,m.n);return `<span title="The Paula–Ninó Edge — this app’s money measure. Named in memory of Paula and Ninó." style="cursor:help;">PN Edge</span> — about <b style="color:${g.col}">${g.money} extra per $100 invested</b> ${g.bar} <span style="color:${g.col}">${g.word}</span> — on average, measured ${_winWords(A.hold)} after each signal, beyond the market, before costs${(m.median===0&&m.n>=200)?` <span title="Half of these ${m.n.toLocaleString()} sightings finished EXACTLY level — the fingerprint of shares too thin to trade, where any average edge is really the buy–sell spread. Raise the 💧 tradeable-shares floor to $250k or $1m and re-run before trusting this line." style="cursor:help;color:#ff6b6b;font-weight:700;">· half these sightings never moved — check the 💧 floor</span>`:''}`;})()}</div></div>`;
     };
     const _flagTip={
       bo:'🚀 Breakout — the share closed at its highest price of the stored year, on above-average volume: buyers pushed it into fresh territory (an estimate from price & volume).',
@@ -20794,7 +20819,7 @@ function _renderReportCard(A){
     const cMax=comboShown.length?Math.max.apply(null,comboShown.map(x=>Math.abs(x.dir))):0;
     const _ladBadge=m=>{
       const working=(m.dirNeg?m.edge<0:m.edge>0);
-      if(!working){ const t=TIER[m.tier]||['','']; const dir=m.dirNeg?'catch falls':'beat the market'; return `<span title="Measured well enough (${t[0]}) — but on your data it did NOT ${dir}, so there's no usable edge." style="border:1px solid #ff9caa;color:#ff9caa;border-radius:4px;padding:0 4px;font-size:9px;font-weight:800;letter-spacing:.5px;">NO EDGE</span>`; }
+      if(!working){ const t=TIER[_tierAdj(m,A.hold)]||['','']; const dir=m.dirNeg?'catch falls':'beat the market'; return `<span title="Measured well enough (${t[0]}) — but on your data it did NOT ${dir}, so there's no usable edge." style="border:1px solid #ff9caa;color:#ff9caa;border-radius:4px;padding:0 4px;font-size:9px;font-weight:800;letter-spacing:.5px;">NO EDGE</span>`; }
       return chip(m);
     };
     const ladRow=(it,i,mx)=>{ const sc=_cardScore10(it.m); const scCol=sc>=7?'var(--green)':sc>=4?'var(--gold)':(it.m.dirNeg?'#9fb2cc':'#ff9caa'); const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const _dt=it.m.dirNeg?'A WARNING — it scores by how well it caught FALLS (a high score means it warned well, NOT that you buy it).':'A buy-side flag — it scores by how well price ROSE after it fired.'; const pl=(nm.replace(/<[^>]+>/g,'').replace(/"/g,''))+' — Strength '+sc+'/10. '+(TIER[it.m.tier]?TIER[it.m.tier][0]:'')+' · edge '+f1(it.m.edge)+' vs market over '+A.hold+' days · '+it.m.n.toLocaleString()+' fires. '+_dt+' Score: the badge sets the band (TOO EARLY 0-4 / PROMISING 4-7 / SOLID 7-10) and the edge size places it inside — so a proven small edge outscores a big unproven one.';
