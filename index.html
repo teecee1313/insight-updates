@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-576-open';
+const APP_VERSION='2026.07.28-577-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18781,7 +18781,7 @@ function _cardScore10(m){
   // gauge — the score must not simultaneously crown it. Cap it out of the
   // green band so the two never contradict each other.
   const _imp=(e>3.5);
-  const band=_imp?[0.6,4.9]:(_t10==='solid')?[7,10]:(_t10==='promising')?[4,7]:[0.5,4];
+  const band=_imp?[0.6,4.9]:(_t10==='tiny')?[0.6,3.9]:(_t10==='solid')?[7,10]:(_t10==='promising')?[4,7]:[0.5,4];
   const frac=Math.min(1,e/3);                     // a ~3% market-beating edge over the window tops the band
   return +(band[0]+(band[1]-band[0])*frac).toFixed(1);
 }
@@ -19074,12 +19074,23 @@ function bestEvidenceScan(){
 function _tierAdj(m,hold){
   try{
     if(!m||!m.n)return (m&&m.tier)||'early';
-    var h=+hold||5; if(h<=5)return m.tier;               // 5d: server's own verdict, untouched
-    var f=Math.sqrt(h/5);
-    var t=Math.abs(+m.tstat||0);
-    if(m.n>=50&&t>=2*f)return 'solid';
-    if(m.n>=30&&t>=1*f)return 'promising';
-    return 'early';
+    var h=+hold||5;
+    var _tr;
+    if(h<=5){ _tr=m.tier; }                              /* 5d: the server's own statistical verdict */
+    else {
+      var f=Math.sqrt(h/5);
+      var t=Math.abs(+m.tstat||0);
+      _tr=(m.n>=50&&t>=2*f)?'solid':((m.n>=30&&t>=1*f)?'promising':'early');
+    }
+    /* v577: the money test. The gauge calls anything under $0.50 per $100 "too
+       small" because brokerage and spread eat it. A line can be beyond doubt
+       statistically and still be worth nothing to trade — those are reported as
+       PROVEN · TOO SMALL, never as a badge. */
+    if(_tr!=='early'){
+      var _e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
+      if(!(Math.abs(_e)>=0.5)||_e<0)return 'tiny';
+    }
+    return _tr;
   }catch(e){ return (m&&m.tier)||'early'; }
 }
 function _tierWinTip(hold){
@@ -19618,7 +19629,9 @@ function _evMark(shares){
             for(var bi=0;bi<_bl.length;bi++){
               var it=_bl[bi];
               if(_nurFireToday(s2,it.k)!==true)continue;
-              var r2=(it.m.tier==='solid')?2:1;
+              var _t2=(typeof _tierAdj==='function')?_tierAdj(it.m,(_A&&_A.hold)||5):it.m.tier;
+              if(_t2!=='solid'&&_t2!=='promising')continue; /* v577: too-small edges don't badge shares */
+              var r2=(_t2==='solid')?2:1;
               if(r2>bestR){ bestR=r2; bestL=it; }
               if(bestE==null||it.m.edge>bestE)bestE=it.m.edge;
             }
@@ -20645,8 +20658,8 @@ function _renderReportCard(A){
     const pct=(x,n)=>n?Math.round((x/n)*100):0;
     const f1=(x)=>((x>=0?'+':'')+x.toFixed(2))+'%';
     const baseAvg=A.base.sum/A.base.n, baseUp=pct(A.base.up,A.base.n);
-    const TIER={solid:['SOLID','var(--green)'],promising:['PROMISING','var(--gold)'],early:['TOO EARLY','var(--dim)']};
-    const _tierTip={solid:'SOLID — 50+ fires with a consistent edge (t≥2). The firmest evidence on the card, though still never a guarantee.',promising:'PROMISING — 30+ fires with a decent edge (t≥1). Worth watching; not yet proven.',early:'TOO EARLY — too few fires to tell a real edge from luck yet, whatever the edge looks like.'};
+    const TIER={solid:['SOLID','var(--green)'],promising:['PROMISING','var(--gold)'],early:['TOO EARLY','var(--dim)'],tiny:['PROVEN · TOO SMALL','var(--muted)']};
+    const _tierTip={solid:'SOLID — 50+ fires with a consistent edge (t≥2). The firmest evidence on the card, though still never a guarantee.',promising:'PROMISING — 30+ fires with a decent edge (t≥1). Worth watching; not yet proven.',early:'TOO EARLY — too few fires to tell a real edge from luck yet, whatever the edge looks like.',tiny:'PROVEN \u00b7 TOO SMALL \u2014 this line has enough sightings and is statistically clear of luck, but the money is under \u00240.50 per \u0024100, which brokerage and the buy\u2013sell spread would eat. Real, and not worth trading.'};
     try{window._cardHoldNow=A.hold;}catch(e){}
     const chip=m=>{const _tj=_tierAdj(m,A.hold);const t=TIER[_tj];return `<span title="${(_tierTip[_tj]||'')+_tierWinTip(A.hold)}" style="cursor:help;border:1px solid ${t[1]};color:${t[1]};border-radius:4px;padding:0 4px;font-size:9px;font-weight:800;letter-spacing:.5px;">${t[0]}${(A.hold>5)?`·${A.hold}d`:``}</span>`;};
     const nameOf=k=>{
