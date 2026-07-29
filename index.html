@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-508-open';
+const APP_VERSION='2026.07.28-509-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4976,6 +4976,98 @@ function _tpRow(lbl,val,note){
     +(note?'<div style="font-size:9px;color:var(--dim);line-height:1.4;">'+note+'</div>':'')+'</div></div>';
 }
 
+// ═══ v509 — 📏 Know Your Share: the movement passport ══════════════════════
+// Ranks this share's measured movement against every share loaded, and states
+// what that movement costs. Direction is not predicted anywhere on this panel,
+// because the 28 July study found nothing that predicts it — movement SIZE is
+// the one property that provably persists (rank corr 0.893 ASX / 0.852 NYSE).
+var _kysCache=null;
+function _kysRanks(){
+  try{
+    var key=currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||'')+'|'+allData.length;
+    if(_kysCache&&_kysCache.key===key)return _kysCache;
+    var vs=[];
+    for(var i=0;i<allData.length;i++){
+      var s=allData[i];
+      if(!s||!Array.isArray(s.series)||s.series.length<21)continue;
+      var v=_tpVol(s.series,20);
+      if(v!=null&&isFinite(v))vs.push(v);
+    }
+    vs.sort(function(a,b){return a-b;});
+    _kysCache={key:key,vols:vs};
+    return _kysCache;
+  }catch(e){ return {key:'',vols:[]}; }
+}
+function _kysDecile(vd){
+  var R=_kysRanks(); if(!R.vols.length)return null;
+  // rank by binary search — below() = count of shares quieter than vd
+  var lo=0,hi=R.vols.length;
+  while(lo<hi){var mid=(lo+hi)>>1; if(R.vols[mid]<vd)lo=mid+1; else hi=mid;}
+  var pct=lo/R.vols.length;
+  return {dec:Math.min(10,1+Math.floor(pct*10)),pct:pct,n:R.vols.length};
+}
+function _kysPanel(s){
+  try{
+    var p=_tpPlan(s,5); if(!p||!(p.px>0)||p.vd==null)return '';
+    var N=(typeof _tpBuyNums==='function')?_tpBuyNums(s):null;
+    var cur=(s.currency==='USD')?'US$':'A$';
+    var M=function(v){ return (v==null||!isFinite(v))?'—':cur+(v>=1000?Math.round(v).toLocaleString():v.toFixed(2)); };
+    var row=function(l,v,n){ return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="font-size:10px;color:var(--muted);">'+l+'</div>'
+      +'<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:var(--text);">'+v+'</div>'
+      +(n?'<div style="font-size:9px;color:var(--dim);line-height:1.4;">'+n+'</div>':'')+'</div></div>'; };
+    var h='<div style="margin-top:14px;border:1px solid var(--border2);border-radius:8px;padding:12px 14px;background:var(--bg2);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<div style="font-weight:800;font-size:13px;color:var(--text);">📏 Know Your Share</div>'
+      +'<div style="font-size:9px;color:var(--muted);">movement, measured — not direction, which nothing measures</div></div>';
+    // ── movement decile ──
+    var D=_kysDecile(p.vd);
+    var isUS=(s.currency==='USD');
+    var corr=isUS?'0.852':'0.893', mkt=isUS?'NYSE':'ASX';
+    if(D&&D.n>=200){
+      var band=(D.dec<=3?'quiet':D.dec<=7?'middling':'wild');
+      h+=row('Movement decile','<span style="font-size:16px;">'+D.dec+'</span> <span style="font-size:10px;color:var(--muted);">of 10 · '+band+'</span>',
+        'moves more than '+(D.pct*100).toFixed(0)+'% of the '+D.n.toLocaleString()+' shares loaded here. Over the stored year this ranking held into the next month with a correlation of '+corr+' on the '+mkt+' — the one property of a share that reliably persists.');
+    }else{
+      h+=row('Typical movement',p.vd.toFixed(2)+'% a day','not enough shares loaded to rank a decile — the raw measurement stands on its own.');
+    }
+    // ── what movement costs, per $1,000 ──
+    var day=1000*p.vd/100, wk=1000*p.vd*Math.sqrt(7)/100, mo=1000*p.vd*Math.sqrt(30)/100;
+    h+=row('What movement costs',M(day)+' / day · '+M(wk)+' / week · '+M(mo)+' / month',
+      'on every '+cur+'1,000 invested, at this share\'s measured pace (same √-scaling as the Trade Plan). Direction unknown — this is the SIZE of the swing, either way.');
+    // ── the two honest parcels ──
+    if(N&&N.dayShares>0){
+      var pr='<b>'+N.dayShares.toLocaleString()+'</b> sh ('+M(N.dayPosn)+') — a typical day costs '+M(N.risk)+', a stop-out about <b style="color:var(--orange)">'+M(N.dayAtStop)+'</b>';
+      if(N.stopShares>0)pr+='<br><b>'+N.stopShares.toLocaleString()+'</b> sh ('+M(N.stopPosn)+') — a stop-out costs '+M(N.risk)+', a typical day about '+M(N.stopAtDay);
+      h+=row('Two sizes for "risk '+cur+p.risk+'"',pr,
+        'sized to an ordinary day, or sized to being wrong. They are different trades — the 🛒 buy ticket lets you pick per trade. The 🤖 auto-pilot sizes the second way.');
+    }
+    // ── tick + exit reality ──
+    var dp=(p.px<0.01)?4:(p.px<1)?3:2;
+    h+=row('The finest stop that exists',(p.stopOk?cur+p.stop.toFixed(dp)+' ('+p.stopPct.toFixed(1)+'%)':'—'),
+      'prices here move in '+cur+p.tick+' steps'+(p.stopCoarse?' — <b style="color:var(--orange)">coarse at this price: the nearest real stop sits well past the intended '+p.wantPct.toFixed(1)+'%</b>':', fine enough for the intended stop')+'.');
+    if(p.exitDays!=null)
+      h+=row('Time to get out',p.exitDays<1?'under a day':p.exitDays.toFixed(1)+' days',
+        'selling the typical-day parcel at a tenth of normal turnover ('+M(p.turn)+' changes hands on an average day).');
+    if(p.worst&&p.worst.pct!=null)
+      h+=row('Its worst stretch',p.worst.pct.toFixed(1)+'%','deepest close-to-close fall in the '+p.days+' days stored. It has happened once; it is not a limit.');
+    // ── what is true today — measurements already on the row ──
+    var facts=[];
+    try{
+      if(s.accum10>0)facts.push(s.accum10+'/10 accumulation days');
+      if(s.daysUp>1)facts.push(s.daysUp+'-day price streak');
+      if(s.volDays>1)facts.push(s.volDays+'-day volume streak');
+      if(s.rsi!=null)facts.push('RSI '+Math.round(s.rsi)+' ('+(s.rsiState||'neutral')+')');
+      if(s.cross==='golden')facts.push('golden cross');
+      if(s.nearHigh)facts.push('near its 52-week high');
+    }catch(e){}
+    if(facts.length)
+      h+=row('True today',facts.join(' · '),'measurements of the past, shown because they are what the scans read — the stored-year replay found none of them predicts direction.');
+    h+='<div style="font-size:8.5px;color:var(--dim);line-height:1.45;margin-top:7px;border-top:1px solid var(--border);padding-top:6px;">'
+      +'Every number is arithmetic on stored prices. The decile ranks only the shares loaded on this device. Research, not advice.</div>';
+    return h+'</div>';
+  }catch(e){ return ''; }
+}
 function _tpPanel(s){
   try{
     var p=_tpPlan(s,window._detailDays&&window._detailDays<=20?window._detailDays:5);
@@ -5249,6 +5341,7 @@ function showShareDetail(ticker,days){
       </table>
     </div>
     ${(typeof _tpPanel==='function'&&_tpPanel(s))||''}
+    ${(typeof _kysPanel==='function'&&_kysPanel(s))||''}
     <div id="shdNews"></div>
     <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows ${s._ohlcSrc==='server'?'from the server\'s own store':'fetched per share (1 call, remembered)'}${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
   `);
