@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-575",
+  "version": "2026.07.28-576",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v575 \u2014 when the app falls back to the grading replay saved on your device (what you're seeing now), it now says the two things that matter: the counts are A DAY OLD, and which \ud83d\udca7 universe they were measured on. It also finally gives you the buttons in that state \u2014 TRY AGAIN, and SET $250K if your floor is wide open. That was the worst state to be stranded in, because the numbers look live but aren't: your 254 SOLID came from yesterday's replay on the micro-cap universe. Hard-refresh (Ctrl+F5), tap SET $250K, then TRY AGAIN."
+  "notes": "v576 \u2014 the evidence counts now tell you how many LINES they come from. \u2018254 SOLID\u2019 does not mean 254 good opportunities: a share wears its best line's badge, so ONE proven line firing widely (block day fired on 240 shares today) badges hundreds of shares in a single stroke. The radar now says it outright \u2014 \u2018those share counts come from 2 proven and 3 building lines \u2014 one common line can badge hundreds of shares at once\u2019 \u2014 and the line count uses the same window-scaled tier as the report card, so the two can never disagree. This is the confusion behind every shock number this morning: the honest quantity is the number of proven LINES (a handful), not the number of badged shares (hundreds). Hard-refresh (Ctrl+F5)."
 }
