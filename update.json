@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-556",
+  "version": "2026.07.28-557",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v556 \u2014 THE PAULA\u2013NIN\u00d3 EDGE TAKES THE MAIN TABLE. The Range column's seat now belongs to \ud83d\udcb0 PN Edge: for every share whose strongest PROVEN line fired today, you see the money \u2014 \u2018+$2.42/$100\u2019 in its gauge colour with the mini bar on the fixed $0\u2013$3.50 scale. Hover it and the tooltip names the exact lines (combos included), the tier, and the plain meaning. Shares with nothing proven firing show an honest \u2018\u2014\u2019 \u2014 hover it and the app tells you that's normal. TAP THE COLUMN HEADER (or pick \ud83d\udcb0 PN Edge in Sort by) to rank the entire market by proven money \u2014 probably the most useful single click in the app. Range didn't die: it moved into the same cell's hover, and the range picker is retired. The column reads the very same grades as the radar and \ud83c\udfaf Best Evidence, so all three always agree. Hard-refresh (Ctrl+F5)."
+  "notes": "v557 \u2014 tidy-up: the three \ud83c\udf93 Graded evidence buttons (\ud83c\udfaf Best Evidence, \ud83c\udf31 Climbers, \u2696 grading check) now sit three-across in one neat row, matching the Start-your-day trio, instead of two-plus-an-orphan. Hard-refresh (Ctrl+F5)."
 }

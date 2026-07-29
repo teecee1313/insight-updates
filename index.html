@@ -1710,7 +1710,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-556-open';
+const APP_VERSION='2026.07.28-557-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -17152,7 +17152,7 @@ function _groupScans(){
       const open=g.pinned||st[g.id]!==0;
       const h=document.createElement('div'); h.className='sg-h';
       h.innerHTML='<span>'+g.title+'<span class="sg-hint">'+g.hint+'</span></span>'+(g.pinned?'':'<span class="sg-ch">'+(open?'▾':'▸')+'</span>');
-      const body=document.createElement('div'); body.className='sg-b'+(g.pinned?' sg-trio':''); if(!open)body.style.display='none';
+      const body=document.createElement('div'); body.className='sg-b'+((g.pinned||g.id==='sgGrade')?' sg-trio':''); if(!open)body.style.display='none'; // v557: three graded tiles sit three-across like the trio — no orphan
       if(!g.pinned){ h.style.cursor='pointer'; h.title='Tap to show or hide this group';
         h.onclick=function(){ const now=body.style.display==='none'; body.style.display=now?'grid':'none';
           const c=h.querySelector('.sg-ch'); if(c)c.textContent=now?'▾':'▸';
