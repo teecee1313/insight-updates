@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-574",
+  "version": "2026.07.28-575",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v574 \u2014 \u2018could not reach our server\u2019 is no longer a dead end. That message now carries a TRY AGAIN button that clears the session's give-up latches and immediately re-attempts both halves of the evidence system, plus a SET $250K FIRST button when your floor is wide open (a smaller, tradeable universe is a far smaller upload and much likelier to succeed). If it keeps failing: your grading server is genuinely unreachable \u2014 check it in a browser at /health, and give it a minute between attempts rather than reloading repeatedly. Hard-refresh (Ctrl+F5)."
+  "notes": "v575 \u2014 when the app falls back to the grading replay saved on your device (what you're seeing now), it now says the two things that matter: the counts are A DAY OLD, and which \ud83d\udca7 universe they were measured on. It also finally gives you the buttons in that state \u2014 TRY AGAIN, and SET $250K if your floor is wide open. That was the worst state to be stranded in, because the numbers look live but aren't: your 254 SOLID came from yesterday's replay on the micro-cap universe. Hard-refresh (Ctrl+F5), tap SET $250K, then TRY AGAIN."
 }

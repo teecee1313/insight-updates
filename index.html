@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-574-open';
+const APP_VERSION='2026.07.28-575-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10787,7 +10787,9 @@ function statsBar(){
             var _w=[];
             if(_fromDev)_w.push('graded from the replay saved on this device'+(window._scanGradedOn?' ('+window._scanGradedOn+')':''));
             if(_dayDev)_w.push("today's signals from the copy saved on this device");
-            _rn.textContent=_rn.textContent+'  ·  \u26a0\ufe0f '+_w.join(' \u00b7 ')+' \u2014 could not reach our server';
+            var _escD=function(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+            var _flD=(typeof _cardLiqLabel==='function')?_cardLiqLabel():'';
+            _rn.innerHTML=_escD(_rn.textContent)+'  ·  \u26a0\ufe0f '+_escD(_w.join(' \u00b7 '))+' \u2014 could not reach our server, so these counts are a DAY OLD and were measured on the 💧 '+_escD(_flD)+' universe of that run'+_evActions(true);
           }
         }
       }catch(e){}
@@ -19913,6 +19915,15 @@ function _cardLiqKey(){
 }
 function _cardLiqNeed(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][2]; return 0; }
 function _cardLiqLabel(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][1]; return 'Any'; }
+function _evActions(withFloor){
+  /* v575: the button strip shared by every degraded evidence state. */
+  try{
+    var b=function(js,lbl,solid){ return '<button onclick="'+js+'" style="border:1px solid var(--gold);color:var(--gold);background:'+(solid?'rgba(255,210,0,.08)':'transparent')+';border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:5px;">'+lbl+'</button>'; };
+    var out=b('_evRetryServer()','try again',true);
+    if(withFloor&&typeof _cardLiqKey==='function'&&_cardLiqKey()==='any')out+=b("_evSetFloor('250k')",'set \u0024250k',false);
+    return out;
+  }catch(e){ return ''; }
+}
 function _evRetryServer(){
   /* v574: a pressable retry for the unreachable-server state. Clears the
      session latches that stop the app asking again (_SCAN_SERVER_OFF), re-arms
