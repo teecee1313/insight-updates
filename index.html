@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-568-open';
+const APP_VERSION='2026.07.28-569-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2542,13 +2542,21 @@ async function _serverGrades(shares, dataDate, exch, hold){
     const h=(hold===10||hold===30)?hold:5;
     const n=(shares&&shares.length)||0;
     const ck=(dataDate||'')+(n?('_n'+n):'')+(h!==5?('_h'+h):'');
-    const _post=async(body)=>{
-      const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(!r.ok)return null;
-      const j=await r.json();
-      return (j&&j.A&&j.A.M)?j.A:null;
+    /* v569: a hang is not an answer. Without this, a request that never
+       returns left the card on "Grading every signal…" indefinitely. The
+       probe gets 20s (it is a cache lookup), a real grade 90s (it uploads a
+       market), and a timeout is treated as a failure so the card can say so. */
+    const _post=async(body,ms)=>{
+      const ctl=(typeof AbortController==='function')?new AbortController():null;
+      const tm=setTimeout(function(){ try{ ctl&&ctl.abort(); }catch(e){} },(ms||60000));
+      try{
+        const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined});
+        if(!r.ok)return null;
+        const j=await r.json();
+        return (j&&j.A&&j.A.M)?j.A:null;
+      } finally { clearTimeout(tm); }
     };
-    if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:[]}); if(cached)return cached; }catch(e){} } // probe the window-specific cache
+    if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:[]},20000); if(cached)return cached; }catch(e){} } // probe the window-specific cache
     // v538: upload only what the maths reads. The engine grades the last 250
     // days, holds ≤30, and looks back ≤250 bars for the breakout reference —
     // 540 bars covers every window with slack. With three years now stored,
@@ -2560,7 +2568,7 @@ async function _serverGrades(shares, dataDate, exch, hold){
     if(shares&&shares.length){ try{
       const TAIL=540;
       const slim=shares.map(function(sh){ var ser=Array.isArray(sh.series)?sh.series:[]; if(ser.length>TAIL)ser=ser.slice(-TAIL); return {ticker:sh.ticker,series:ser.map(function(b){return {d:b.d,c:b.c,v:b.v};})}; });
-      const fresh=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:slim}); if(fresh)return fresh; }catch(e){} }
+      const fresh=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:slim},90000); if(fresh)return fresh; }catch(e){} }
     return null;
   }catch(e){ return null; }
 }

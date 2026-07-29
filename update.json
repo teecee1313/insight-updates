@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-568",
+  "version": "2026.07.28-569",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v568 \u2014 speed + consistency fix. The background grading ignored your \ud83d\udca7 tradeable-shares floor when deciding whether it needed to re-run, while the report card and the grade fetcher both respected it. Two consequences you felt: after changing the floor the radar sat on the OLD floor's grades until you manually opened the card, and the card then had to do a FULL re-grade the moment you opened it \u2014 the slow wait. Now all three agree: change the floor and the app re-grades itself once, quietly, in the background. A higher floor is also a much smaller job (about 478 shares at $1m versus 1,295 at the server floor), so it should feel quicker, not slower. Hard-refresh (Ctrl+F5)."
+  "notes": "v569 \u2014 the \ud83d\udccb report card can no longer hang on \u2018Grading every signal\u2026\u2019. There was no time limit on the grading request: if the server never answered, the card waited forever with nothing to show and no way to tell you it had died. Now the quick cache check gives up after 20 seconds and a full grade after 90, and either failure shows the card's plain \u2018couldn't reach the server\u2019 message with a retry instead of an endless spinner. If you DO see that message, the grading server is genuinely unreachable \u2014 wait a minute and try again rather than reloading repeatedly. Hard-refresh (Ctrl+F5)."
 }
