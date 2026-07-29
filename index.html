@@ -1718,7 +1718,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-540-open';
+const APP_VERSION='2026.07.28-541-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18909,6 +18909,7 @@ function _bevSelect(A){
   }).sort(function(a,b){ return _cardScore10(b.m)-_cardScore10(a.m); });
 }
 function bestEvidenceScan(){
+  var f1=function(x){ var t=(+x).toFixed(2); return (t==='0.00'||t==='-0.00')?'0.00%':(((+x)>=0?'+':'')+t+'%'); }; // v541: the card's formatter is card-local — these reports need their own
   try{
     if(!Array.isArray(allData)||!allData.length){ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Load your market data first \u2014 tap \u2b07 Load All Shares, then run this again.</div>','\ud83c\udfaf Best Evidence Today'); return; }
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
@@ -18995,6 +18996,7 @@ function bestEvidenceScan(){
 // line's verdict in an earlier window and reports what that line did NEXT.
 function _gcTier(n,t){ return (n>=50&&t>=2)?'solid':((n>=30&&t>=1)?'promising':'early'); }
 function gradingCheckReport(){
+  var f1=function(x){ var t=(+x).toFixed(2); return (t==='0.00'||t==='-0.00')?'0.00%':(((+x)>=0?'+':'')+t+'%'); }; // v541: the card's formatter is card-local — these reports need their own
   try{
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
     var C=window._auditCache;
