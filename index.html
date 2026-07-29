@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-552-open';
+const APP_VERSION='2026.07.28-553-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18999,7 +18999,7 @@ function bestEvidenceScan(){
         +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,30):'')
           +'<div style="font-size:10px;color:var(--muted);margin-top:2px;"><b style="color:var(--text)">'+nameK(best.k)+'</b>'+more
           +'<br>'+(best.m.tier==='solid'?'<span style="color:var(--green);font-weight:700;">SOLID</span>':'<span style="color:var(--gold);font-weight:700;">PROMISING</span>')
-          +' \u00b7 edge '+f1(best.m.edge)+' \u00b7 fired '+best.m.n.toLocaleString()+'\u00d7'+eraBit(best)+'</div></span>'
+          +(function(){var g=_edgeGauge(best.m.dirNeg?-best.m.edge:best.m.edge);return ' \u00b7 <span title="The Paula\u2013Nino Edge \u2014 money made per \u0024100 invested, on average, beyond the market, before costs. '+g.tip.replace(/"/g,'&quot;')+'" style="cursor:help;color:'+g.col+';font-weight:700;">PN Edge '+g.money+'/\u0024100</span> '+g.bar;})()+' \u00b7 seen '+best.m.n.toLocaleString()+' times'+eraBit(best)+'</div></span>'
         +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
         +'<span style="flex:0 0 52px;text-align:right;font-family:var(--mono);font-weight:800;font-size:13px;color:'+scCol+';">'+sc+'<span style="font-size:9px;color:var(--dim);">/10</span></span>'
         +'</div>';

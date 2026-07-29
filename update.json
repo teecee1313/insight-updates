@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-552",
+  "version": "2026.07.28-553",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v552 \u2014 the compact radar's evidence counts are now buttons: tap \u2018109 promising\u2019 (or \u2018solid\u2019 or \u2018not proven\u2019) to instantly filter the table to just those shares \u2014 identical to tapping the tiles on the full radar. The dotted underline marks them as tappable. Hard-refresh (Ctrl+F5)."
+  "notes": "v553 \u2014 \ud83c\udfaf Best Evidence Today now speaks the Paula\u2013Nino Edge. Each row shows PN Edge as money with its gauge \u2014 \u2018PN Edge +$2.42/$100\u2019 on the fixed $0\u2013$3.50 scale \u2014 instead of a bare percentage, plus \u2018seen 1,122 times\u2019 in plain words. Hover any PN Edge figure for the full definition. (\ud83c\udf31 Climbers keeps its strength wording on purpose \u2014 those lines are unproven, so money claims there would overstate.) Hard-refresh (Ctrl+F5)."
 }
