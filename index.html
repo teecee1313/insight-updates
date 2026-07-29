@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-514-open';
+const APP_VERSION='2026.07.28-515-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6560,7 +6560,7 @@ function botScoreboard(){
   const p=_paper();
   const isBot=x=>/Auto-pilot/.test(String(x&&x.note||''));
   const closed=(p.history||[]).filter(isBot).slice().reverse(); // oldest → newest
-  const openH=(p.holdings||[]).filter(isBot).length, openO=(p.orders||[]).filter(isBot).length;
+  const openH=(p.holdings||[]).filter(isBot).length, openO=(p.orders||[]).filter(o=>isBot(o)&&o.side!=='sell').length; // v515: a pending SELL's shares are still in holdings — counting the order too would double-count
   let html='<div style="font-weight:700;font-size:15px;color:var(--text);">📊 Auto-pilot scoreboard <span style="font-size:10px;color:var(--dim);font-weight:400;">practice trades the bot made itself</span></div>';
   if(!closed.length){
     html+='<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px;">No closed bot trades yet — '+(openH+openO?('it has <b>'+(openH+openO)+'</b> open position'+(openH+openO===1?'':'s')+'/order'+(openH+openO===1?'':'s')+' working. '):'')+'give it a few data days. Every closed trade lands here automatically, and this panel is the honest judge of whether your rule-set earns its keep.</div>';
@@ -6685,7 +6685,7 @@ function _apRunPicks(r,ent,maxN){
       if(last&&last.trigger==='stop'){ k.armed=false; k.pausedWhy='stopped out'; changed=true;
         ent.skips.push(k.tk+': last cycle STOPPED OUT \u2014 repeat paused (re-add to try again)'); continue; }
     }
-    if(((p.holdings||[]).length+(p.orders||[]).length)>=maxN){ ent.skips.push(k.tk+': at your max open positions'); continue; }
+    if(((p.holdings||[]).length+(p.orders||[]).filter(o=>o.side!=='sell').length)>=maxN){ ent.skips.push(k.tk+': at your max open positions'); continue; } // v515: sell orders excluded
     const s=(allData||[]).find(x=>x.ticker===k.tk);
     if(!s||!(s.price>0)){ ent.skips.push(k.tk+': not in loaded data'); continue; }
     const res=_apPlacePick(s,r,k);
@@ -6868,7 +6868,7 @@ function _autoPilotRun(manual){
     // Lane 1 — 🎯 My picks (your prices come first)
     _apRunPicks(r,ent,maxN);
     // Lane 2 — the scanner
-    const p=_paper(); const openN=(p.holdings||[]).length+(p.orders||[]).length;
+    const p=_paper(); const openN=(p.holdings||[]).length+(p.orders||[]).filter(o=>o.side!=='sell').length; // v515: sell orders excluded
     if(openN>=maxN){ ent.skips.push('at your max of '+maxN+' open positions — scanner made no buys'); }
     else{
       const want=Math.min(r.apMaxBuys,maxN-openN);
@@ -7168,7 +7168,7 @@ async function checkAutoSellTargets(acct){
   const _isAuto=(ACCT==='auto');
   const _trailG=_isAuto&&R302.enabled&&R302.trailPct>0, _beG=_isAuto&&R302.enabled&&R302.bePct>0, _timeG=_isAuto&&R302.enabled&&R302.maxHoldDays>0;
   const _ladG=R302.enabled&&R302.lockLadderOn&&R302.lockStep>0; // v514: 🔒 ladder available (per-holding it needs a live trail)
-  const targeted=(p.holdings||[]).filter(h=>h.target>0||h.stop>0||(+h.trail>0)||_trailG||_beG||_timeG);
+  const targeted=(p.holdings||[]).filter(h=>!h.sellOrd&&(h.target>0||h.stop>0||(+h.trail>0)||_trailG||_beG||_timeG)); // v515: lots queued for a market sell are locked — the exits must not double-sell them
   if(!targeted.length)return [];
   window._tgtChecking=true;
   const autoSold=[];let changed=false;
@@ -7898,6 +7898,14 @@ async function checkLimitOrders(acct){
     const key=((document.getElementById('apiKey')||{}).value||'').trim();
     for(const o of orders.slice()){
       if(o.expiry&&todayL>o.expiry){
+        if(o.side==='sell'){
+          // v515: an expired sell just releases its lots — nothing was reserved.
+          (p.holdings||[]).forEach(h=>{ if(h.sellOrd===o.id){ delete h.sellOrd; delete h.sellQueued; } });
+          p.orders=p.orders.filter(x=>x.id!==o.id);
+          changed=true;
+          filled.push(`${o.ticker} pending sell expired after ${ORDER_EXPIRY_DAYS} days — the shares stay in your holdings`);
+          continue;
+        }
         p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
         if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
         p.orders=p.orders.filter(x=>x.id!==o.id);
@@ -7957,6 +7965,41 @@ async function checkLimitOrders(acct){
         }} // v366: s.price>0 guard — a suspended share's zero quote minted free shares
       if(hit){
         changed=true;
+        if(o.side==='sell'){
+          // v515: pending market SELL fills — same per-lot bookkeeping as the
+          // old instant sell, at the honest next-open price with slippage.
+          const fillPx=_slipSell(hit.fill);
+          const sellFee=brokerageFee();
+          const sLots=(p.holdings||[]).filter(h=>h.sellOrd===o.id);
+          if(!sLots.length){ p.orders=p.orders.filter(x=>x.id!==o.id); continue; }
+          const grossProceeds=sLots.reduce((a,l)=>a+Math.min(l.qty,+l.sellQueued||l.qty),0)*fillPx;
+          p.history=p.history||[];
+          let totalProceeds=0, soldQ=0;
+          for(const l of sLots){
+            const take=Math.min(l.qty,+l.sellQueued||l.qty);
+            if(take<1){ delete l.sellOrd; delete l.sellQueued; continue; }
+            const soldCost=+(take*l.buyPrice).toFixed(2);
+            const proceeds=+(take*fillPx).toFixed(2);
+            const buyFeePart=+((l.buyFee||0)*(take/l.qty)).toFixed(2);
+            const sellFeePart=+(grossProceeds>0?sellFee*(proceeds/grossProceeds):0).toFixed(2);
+            const lFees=+(buyFeePart+sellFeePart).toFixed(2);
+            const plAbs=+(proceeds-soldCost-lFees).toFixed(2);
+            p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
+              buyDate:l.buyDate,buyPrice:l.buyPrice,qty:take,invested:soldCost,
+              sellDate:hit.date,sellPrice:fillPx,proceeds,fees:lFees,plAbs,plPct:+(soldCost>0?(plAbs/soldCost)*100:0).toFixed(2),
+              partial:take<l.qty||sLots.length>1,trigger:'market',note:l.note||null,tgtLog:l.tgtLog||null,stopLog:l.stopLog||null});
+            totalProceeds+=proceeds; soldQ+=take;
+            if(take>=l.qty){ l._sellAll=true; }
+            else { l.qty-=take; l.invested=+(l.qty*l.buyPrice).toFixed(2); l.buyFee=+(Math.max(0,(l.buyFee||0)-buyFeePart)).toFixed(2); }
+            delete l.sellOrd; delete l.sellQueued;
+          }
+          p.holdings=(p.holdings||[]).filter(h=>!h._sellAll);
+          p.cash=+((p.cash||0)+(+totalProceeds.toFixed(2))).toFixed(2);
+          _chargeFee(p);
+          p.orders=p.orders.filter(x=>x.id!==o.id);
+          filled.push(`${o.ticker} SOLD ${soldQ.toLocaleString()} @ ${fmtP(fillPx,o.currency)} on ${hit.date} (at the day\u2019s open)`);
+          continue;
+        }
         const qtyF=o.market?Math.floor((o.amount||o.reserved)/hit.fill):o.qty;
         if(qtyF<1){
           p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
@@ -7983,6 +8026,13 @@ async function checkLimitOrders(acct){
 // Cancel a pending limit order and refund the reserved cash.
 function paperCancelOrder(id){
   const _fs=_pfFindStore(pp=>((pp.orders||[]).find(x=>x.id===id))||null);if(!_fs)return;const p=_fs.p,o=_fs.hit; // v409: act on the store this order lives in
+  if(o.side==='sell'){
+    if(!confirm(`Cancel the pending market sell of ${o.qty.toLocaleString()} ${o.ticker}?\nThe shares stay in your holdings and your stops/targets take over again.`))return;
+    (p.holdings||[]).forEach(h=>{ if(h.sellOrd===o.id){ delete h.sellOrd; delete h.sellQueued; } });
+    p.orders=p.orders.filter(x=>x.id!==id);
+    _paperSave(p,_fs.acct,_fs.exch);showPortfolio();
+    return;
+  }
   if(!confirm(`Cancel ${o.market?'market':'limit'} buy order: ${o.market?fmtP(o.amount||o.reserved,o.currency)+' of '+o.ticker+' at next open':o.qty+' '+o.ticker+' @ '+fmtP(o.limit,o.currency)}?\nThe reserved ${fmtP(o.reserved,o.currency)}${o.fee>0?' (and the $'+o.fee.toFixed(2)+' brokerage)':''} returns to cash.`))return;
   p.cash=+((p.cash||0)+(o.reserved||0)+(o.fee||0)).toFixed(2);
   if(o.fee>0)p.feesPaid=+(Math.max(0,(p.feesPaid||0)-o.fee)).toFixed(2);
@@ -8224,10 +8274,26 @@ function paperDeleteHolding(id){
   showPortfolio();
 }
 // One-click: sell the ENTIRE holding at the last close, no dialog.
+// v515: queue a market SELL — the honest twin of the queued market buy.
+// Lots are stamped oldest-first so nothing else can double-sell the shares;
+// the order fills at the next trading day's open in checkLimitOrders.
+function _queueMarketSell(_fs,p,lots,qty){
+  let rem=qty; const oid='s'+Date.now()+Math.random().toString(36).slice(2,5);
+  for(const l of lots){ if(rem<=0)break; const take=Math.min(l.qty,rem); if(take>0){ l.sellOrd=oid; l.sellQueued=take; rem-=take; } }
+  const L=lots[0]; const today=_todayLocal();
+  p.orders=p.orders||[];
+  p.orders.push({id:oid,side:'sell',market:true,limit:0,qty:qty,amount:0,reserved:0,fee:0,
+    ticker:L.ticker,exchange:L.exchange,name:L.name||'',currency:L.currency,
+    placedDate:today,checkedDate:today,preOpen:_orderPreOpen(L.exchange),expiry:_orderExpiry(today),estPx:(L.lastPrice||L.buyPrice)});
+  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
+  try{closeModal();}catch(e){}
+  showPortfolio();
+}
 function paperSellMarket(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
+  if(lots.some(l=>l.sellOrd)){alert('A market sell for this holding is already queued — it fills at the next open. Cancel it from ⏳ Pending orders first if you want to change it.');return;}
   const tk=lots[0].ticker, cur=lots[0].currency, exch=lots[0].exchange, nm=lots[0].name;
   const px=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
@@ -8239,26 +8305,9 @@ function paperSellMarket(id){
   const avg=totQty>0?totInv/totQty:0;
   const _stale=_staleDays(lots[0].lastDate);
   const lotNote=lots.length>1?`\n(combining ${lots.length} lots · average buy ${fmtP(avg,cur)})`:'';
-  if(!confirm(`Sell all ${totQty} ${tk} at ${fmtP(px,cur)}?${lotNote}${_stale>1?`\n\u26a0 Price is ${_stale} trading days old (${lots[0].lastDate}) \u2014 refresh data first for accuracy.`:''}\nProceeds ${fmtP(proceeds,cur)} · P/L ${plAbs>=0?'+':''}${plAbs}${(sellFee+buyFees)>0?' (net of '+(sellFee+buyFees).toFixed(2)+' brokerage)':''}`))return;
-  const plPct=+(totInv>0?(plAbs/totInv)*100:0).toFixed(2);
-  p.history=p.history||[];
-  // One history entry per underlying lot, so each purchase's date & note is kept.
-  const today=_todayLocal();
-  for(const l of lots){
-    const lProc=+(l.qty*px).toFixed(2), lInv=(l.invested!=null?l.invested:l.qty*l.buyPrice);
-    const lFees=+(((l.buyFee||0)+(proceeds>0?sellFee*(lProc/proceeds):0))).toFixed(2);
-    const lPl=+(lProc-lInv-lFees).toFixed(2);
-    p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
-      buyDate:l.buyDate,buyPrice:l.buyPrice,qty:l.qty,invested:+lInv.toFixed(2),
-      sellDate:today,sellPrice:px,proceeds:lProc,fees:lFees,plAbs:lPl,plPct:+(lInv>0?(lPl/lInv)*100:0).toFixed(2),
-      trigger:'market',note:l.note||null,tgtLog:l.tgtLog||null,stopLog:l.stopLog||null});
-  }
-  p.cash=+((p.cash||0)+proceeds).toFixed(2);
-  _chargeFee(p);
-  const ids=new Set(lots.map(l=>l.id));
-  p.holdings=p.holdings.filter(x=>!ids.has(x.id));
-  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
-  showPortfolio();
+  if(!confirm(`⏭ Queue a market sell of all ${totQty} ${tk}?${lotNote}\n\nIt fills at the NEXT trading day's open — estimated around ${fmtP(px,cur)} (the last close); the actual fill may gap either way.${_stale>1?`\n\u26a0 That estimate is ${_stale} trading days old (${lots[0].lastDate}).`:''}\nEst. proceeds ${fmtP(proceeds,cur)} · est. P/L ${plAbs>=0?'+':''}${plAbs}${(sellFee+buyFees)>0?' (net of '+(sellFee+buyFees).toFixed(2)+' brokerage)':''}\n\nYou can cancel it from ⏳ Pending orders until it fills.`))return;
+  // v515: honest fill — nothing sells tonight; the order queues for the next open.
+  _queueMarketSell(_fs,p,lots,totQty);
 }
 
 // v364 (customer): manual DELETE tools for fixing the portfolio by hand. Both keep the
@@ -8313,6 +8362,7 @@ function paperSell(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
   if(!lots.length)return;
+  if(lots.some(l=>l.sellOrd)){alert('A market sell for this holding is already queued — it fills at the next open. Cancel it from ⏳ Pending orders first if you want to change it.');return;}
   const tk=lots[0].ticker, cur=lots[0].currency;
   const px=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
@@ -8330,7 +8380,7 @@ function paperSell(id){
     </div>
     <div id="sellPrev" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:13px;"></div>
     <button onclick="paperSellConfirm('${id}')" style="width:100%;margin-top:10px;padding:10px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 13px var(--sans);cursor:pointer;">Sell (paper)</button>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">Simulated at the last end-of-day close${slippagePct()>0?' with '+slippagePct()+'% slippage':''}.${_staleDays(lots[0].lastDate)>1?' ⚠ Price is '+_staleDays(lots[0].lastDate)+' trading days old — refresh data first.':''} Practice only, not advice.${lots.length>1?' Sells from your oldest lot first.':''}</div>
+    <div style="font-size:9px;color:var(--orange);margin-top:8px;">⏭ Realistic fills (locked) — the sell queues and fills at the NEXT trading day\u2019s open, so you can\u2019t sell at a close you\u2019ve already seen${slippagePct()>0?'; slippage '+slippagePct()+'% applies':''}. The numbers above are ESTIMATES at the last close.${_staleDays(lots[0].lastDate)>1?' ⚠ Price is '+_staleDays(lots[0].lastDate)+' trading days old — refresh data first.':''} Practice only, not advice.${lots.length>1?' Sells from your oldest lot first.':''}</div>
   `);
   setTimeout(()=>{
     const q=document.getElementById('sellQty');
@@ -8349,7 +8399,7 @@ function paperSell(id){
       const _fees=+((_sFee+_bFeeAll*(n/Math.max(1,totQty))).toFixed(2));
       const pl=proc-cost-_fees, plp=cost>0?(pl/cost)*100:0;
       const pv=document.getElementById('sellPrev');
-      if(pv)pv.innerHTML=n>0?`Proceeds ${fmtP(proc,cur)} · P/L <span style="color:${pl>=0?'var(--green)':'var(--red)'}">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(2)}%)</span>${_fees>0?` <span style="color:var(--dim)">after ${fmtP(_fees,cur)} brokerage</span>`:''}${n<totQty?` · keeps ${(totQty-n).toLocaleString()} shares`:' · closes the position'}`:'';
+      if(pv)pv.innerHTML=n>0?`Est. proceeds ${fmtP(proc,cur)} · est. P/L <span style="color:${pl>=0?'var(--green)':'var(--red)'}">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(2)}%)</span>${_fees>0?` <span style="color:var(--dim)">after ${fmtP(_fees,cur)} brokerage</span>`:''}${n<totQty?` · keeps ${(totQty-n).toLocaleString()} shares`:' · closes the position'}`:'';
     };
     if(q){q.oninput=upd;upd();q.focus();q.select();}
   },80);
@@ -8358,42 +8408,14 @@ function paperSellConfirm(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);        // oldest-first; one lot for a plain id, all for a group
   if(!lots.length)return;
+  if(lots.some(l=>l.sellOrd)){alert('A market sell for this holding is already queued — cancel it from ⏳ Pending orders first.');return;}
   const totQty=lots.reduce((a,l)=>a+l.qty,0);
   let qty=Math.min(totQty,Math.max(0,parseInt((document.getElementById('sellQty')||{}).value)||0));
   if(qty<1){alert('Enter at least 1 share to sell.');return;}
-  const px=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
-  const sellFee=brokerageFee();
-  const grossProceeds=qty*px;
-  const today=_todayLocal();
-  p.history=p.history||[];
-  let remaining=qty, totalProceeds=0;
-  // Draw the requested shares from the oldest lot first, then the next, etc.
-  for(const l of lots){
-    if(remaining<=0)break;
-    const take=Math.min(l.qty,remaining);
-    if(take<=0)continue;
-    const soldCost=+(take*l.buyPrice).toFixed(2);
-    const proceeds=+(take*px).toFixed(2);
-    const buyFeePart=+((l.buyFee||0)*(take/l.qty)).toFixed(2);
-    const sellFeePart=+(grossProceeds>0?sellFee*(proceeds/grossProceeds):0).toFixed(2);
-    const lFees=+(buyFeePart+sellFeePart).toFixed(2);
-    const plAbs=+(proceeds-soldCost-lFees).toFixed(2);
-    const plPct=+(soldCost>0?(plAbs/soldCost)*100:0).toFixed(2);
-    p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
-      buyDate:l.buyDate,buyPrice:l.buyPrice,qty:take,invested:soldCost,
-      sellDate:today,sellPrice:px,proceeds,fees:lFees,plAbs,plPct,
-      partial:take<l.qty||lots.length>1,trigger:'market',note:l.note||null});
-    totalProceeds+=proceeds;
-    if(take>=l.qty){ l._sellAll=true; }
-    else { l.qty-=take; l.invested=+(l.qty*l.buyPrice).toFixed(2); l.buyFee=+(Math.max(0,(l.buyFee||0)-buyFeePart)).toFixed(2); }
-    remaining-=take;
-  }
-  p.cash=+((p.cash||0)+(+totalProceeds.toFixed(2))).toFixed(2);
-  _chargeFee(p);
-  const dropIds=new Set(lots.filter(l=>l._sellAll).map(l=>l.id));
-  p.holdings=p.holdings.filter(x=>!dropIds.has(x.id));
-  _paperSave(_paperPrune(p),_fs.acct,_fs.exch);
-  showPortfolio();
+  // v515: honest fill — queue the market sell; it fills at the NEXT trading day's open.
+  const est=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
+  if(!confirm(`⏭ Queue a market sell of ${qty.toLocaleString()} ${lots[0].ticker}?\n\nIt fills at the NEXT trading day's open — estimated around ${fmtP(est,lots[0].currency)} (the last close); the actual fill may gap either way. You can cancel it from ⏳ Pending orders until it fills.`))return;
+  _queueMarketSell(_fs,p,lots,qty);
 }
 // Share the portfolio & trade history as plain text (clipboard or email).
 function _portfolioText(){
@@ -8922,7 +8944,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${(+h.ladderLock>0)?`<br><span style="font-size:9px;color:var(--gold)" title="🔒 profit ladder — this floor was welded when a close cleared the rung + your margin. It can only ever step UP; a brutal overnight gap still fills at the open.">🔒 +${h.ladderLock}% profit locked</span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${(+h.ladderLock>0)?`<br><span style="font-size:9px;color:var(--gold)" title="🔒 profit ladder — this floor was welded when a close cleared the rung + your margin. It can only ever step UP; a brutal overnight gap still fills at the open.">🔒 +${h.ladderLock}% profit locked</span>`:''}${h.sellOrd?`<br><span style="font-size:9px;color:#ff9caa" title="⏳ a market sell is queued — it fills at the NEXT trading day's open. Your stops/targets are paused for these shares; cancel from ⏳ Pending orders to release them.">⏳ market sell queued — fills at the next open</span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:9px;color:var(--dim)">${h.lastDate||''}</span></td>
@@ -8946,7 +8968,7 @@ function showPortfolio(exSel){
         <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${h.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${h.ticker} 🖨</a></strong>
         <span class="pf-pl" style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(1)}%)</span>
       </div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}${(+h.trail>0)?' · 🪤 '+h.trail+'%':''}${(+h.ladderLock>0)?' · 🔒 +'+h.ladderLock+'%':''}</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}${(+h.trail>0)?' · 🪤 '+h.trail+'%':''}${(+h.ladderLock>0)?' · 🔒 +'+h.ladderLock+'%':''}${h.sellOrd?' · ⏳ sell queued':''}</div>
       <div class="pf-card-grid">
         <div><span>Qty</span> <b>${h.qty.toLocaleString()}</b></div>
         <div><span>Buy</span> <b>${fmtP(h.buyPrice,h.currency)}</b></div>
@@ -9059,10 +9081,10 @@ ${_undoOn()?`<div class="pf-card-actions">
       const ords=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex);
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
-        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:var(--muted)">${o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${fmtP(o.reserved,o.currency)} held</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;">✕ cancel</button></div>
+        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;">✕ cancel</button></div>
       </div>`).join('');
-      return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market orders fill at the next day's open. Reserved cash returns on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
+      return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market buys AND sells fill at the next day's open. Reserved cash (buys) returns — and queued shares (sells) unlock — on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
 
     </div>
