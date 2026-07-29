@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-504-open';
+const APP_VERSION='2026.07.28-505-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7242,6 +7242,97 @@ function _exitLogText(row,kind){
   return L.map((e,i)=>{const v=(e.to==null?'removed':e.to);return (i===0?'set ':'→ ')+v+' ('+String(e.d||e.ts||'').slice(0,10)+')';}).join('   ');
 }
 function _exitChangeCount(row,kind){const key=(kind==='stop')?'stopLog':'tgtLog';const L=(row&&Array.isArray(row[key]))?row[key]:[];return L.length>1?(L.length-1):0;}
+// ═══ v505 — the 🎯 Trade Plan, inside the buy ticket ═══════════════════════
+// Two parcels, not one. `_tpPlan` sizes so a TYPICAL DAY costs the chosen risk;
+// the stop it prints is two typical days away, so a stop-out costs about twice
+// that. Both are honest measurements and they are not the same claim, so the
+// ticket shows both and lets the buyer choose. See build_v505 for the full note.
+function _tpBuyNums(s){
+  try{
+    var p=_tpPlan(s,5); if(!p||!(p.px>0))return null;
+    var risk=p.risk;
+    // sized to a typical day — the panel's own number
+    var dayShares=p.shares, dayPosn=p.posn;
+    // sized to the stop — what a full stop-out costs equals the chosen risk
+    var gap=(p.stopOk&&p.stop>0)?(p.px-p.stop):null;
+    var stopShares=(gap>0)?Math.floor(risk/gap):null;
+    var stopPosn=(stopShares!=null)?stopShares*p.px:null;
+    // and what each ACTUALLY costs if the stop is hit
+    var dayAtStop=(gap>0)?dayShares*gap:null;
+    var stopAtDay=(stopShares!=null)?stopPosn*(p.vd/100):null;
+    return {p:p,risk:risk,dayShares:dayShares,dayPosn:dayPosn,
+            stopShares:stopShares,stopPosn:stopPosn,
+            dayAtStop:dayAtStop,stopAtDay:stopAtDay,gap:gap};
+  }catch(e){ return null; }
+}
+// Fill the ticket from the plan. 'day' = the typical-day parcel, 'stop' = the
+// parcel whose full stop-out costs the chosen risk. Both set the same stop.
+function _tpUsePlan(ticker,mode){
+  try{
+    var s=allData.find(function(x){return x.ticker===ticker;}); if(!s)return;
+    var N=_tpBuyNums(s); if(!N)return;
+    var amt=(mode==='stop')?N.stopPosn:N.dayPosn;
+    var a=document.getElementById('paperAmt');
+    if(a&&amt>0){ a.value=(Math.round(amt*100)/100); if(a.oninput)a.oninput(); }
+    if(N.p.stopOk&&N.p.stop>0){
+      var sp=document.getElementById('paperStop');
+      if(sp){ sp.value=N.p.stop; if(typeof _paperPctSync==='function')_paperPctSync('stopPrice'); }
+    }
+    if(typeof _paperRiskPrev==='function')_paperRiskPrev();
+    var m=document.getElementById('tpBuyMsg');
+    if(m)m.innerHTML=(mode==='stop')
+      ? '✓ Filled the parcel whose full stop-out costs about '+_tpMoney(s,N.risk)+'. A typical day on it moves about '+_tpMoney(s,N.stopAtDay)+'.'
+      : '✓ Filled the parcel whose typical DAY costs about '+_tpMoney(s,N.risk)+'. If the stop is hit it costs about '+_tpMoney(s,N.dayAtStop)+' — the bigger number is the one to be comfortable with.';
+  }catch(e){}
+}
+function _tpMoney(s,v){
+  if(v==null||!isFinite(v))return '—';
+  var cur=(s&&s.currency==='USD')?'US$':'A$';
+  return cur+(v>=1000?Math.round(v).toLocaleString():v.toFixed(2));
+}
+// The block itself. Returns '' when there is not enough history to plan — a
+// missing plan is never faked.
+function _tpBuyBlock(s){
+  try{
+    var N=_tpBuyNums(s); if(!N)return '';
+    var p=N.p, M=function(v){ return _tpMoney(s,v); };
+    var dp=(p.px<0.01)?4:(p.px<1)?3:2;
+    var cur=(s.currency==='USD')?'US$':'A$';
+    var row=function(l,v,n){ return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;">'
+      +'<div style="font-size:9.5px;color:var(--muted);">'+l+'</div>'
+      +'<div style="text-align:right;"><div style="font-size:11.5px;font-weight:700;color:var(--text);">'+v+'</div>'
+      +(n?'<div style="font-size:8.5px;color:var(--dim);line-height:1.35;">'+n+'</div>':'')+'</div></div>'; };
+    var h='<div style="border:1px solid var(--border2);border-radius:8px;padding:9px 11px;margin:0 0 11px;background:var(--bg2);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">'
+      +'<div style="font-weight:800;font-size:11.5px;color:var(--text);">🎯 Trade Plan</div>'
+      +'<div style="font-size:9px;color:var(--muted);">risk per trade '+cur+p.risk+'</div></div>'
+      +row('How far it moves',p.vd.toFixed(2)+'% on a typical day',
+           'Direction unknown — only the SIZE of the move is predictable.');
+    // the two parcels, side by side, each with BOTH costs
+    h+='<div style="display:flex;gap:6px;margin:7px 0 3px;">';
+    h+='<button type="button" onclick="_tpUsePlan(\''+s.ticker+'\',\'day\')" style="flex:1;text-align:left;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font:inherit;">'
+      +'<div style="font-size:10.5px;font-weight:800;">'+N.dayShares.toLocaleString()+' shares · '+M(N.dayPosn)+'</div>'
+      +'<div style="font-size:8.5px;color:var(--dim);line-height:1.4;margin-top:2px;">sized to a typical DAY<br>typical day '+M(N.risk)+' · <b style="color:var(--orange)">stop-out '+M(N.dayAtStop)+'</b></div></button>';
+    if(N.stopShares>0){
+      h+='<button type="button" onclick="_tpUsePlan(\''+s.ticker+'\',\'stop\')" style="flex:1;text-align:left;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font:inherit;">'
+        +'<div style="font-size:10.5px;font-weight:800;">'+N.stopShares.toLocaleString()+' shares · '+M(N.stopPosn)+'</div>'
+        +'<div style="font-size:8.5px;color:var(--dim);line-height:1.4;margin-top:2px;">sized to the STOP<br>typical day '+M(N.stopAtDay)+' · <b style="color:var(--green)">stop-out '+M(N.risk)+'</b></div></button>';
+    }
+    h+='</div>';
+    h+='<div style="font-size:8.5px;color:var(--dim);line-height:1.45;margin:2px 0 6px;">'
+      +'Two honest answers to "risk '+cur+p.risk+'", and they are not the same trade. The left parcel is sized so an ORDINARY day costs that much; the right so being WRONG costs that much. '
+      +'Tap either to fill the ticket. The 🤖 auto-pilot sizes the right-hand way.</div>';
+    h+=row('Stop-loss',(p.stopOk?(cur+p.stop.toFixed(dp)+' ('+p.stopPct.toFixed(1)+'%)'):'—'),
+        p.stopOk?('two typical days below '+cur+p.px.toFixed(dp)+', snapped down to a real '+cur+p.tick+' price step.'
+          +(p.stopCoarse?' <b style="color:var(--orange)">The steps are coarse here: the nearest real stop is much further than the '+p.wantPct.toFixed(1)+'% intended.</b>':'')):'no valid stop at this price step.');
+    if(p.worst&&p.worst.pct!=null)
+      h+=row('Its worst stretch',p.worst.pct.toFixed(1)+'%','peak to trough in the '+p.days+' days stored. It has happened once; it is not a limit.');
+    h+='<div id="tpBuyMsg" style="font-size:9px;color:var(--green);margin-top:5px;min-height:11px;line-height:1.4;"></div>';
+    h+='<div style="font-size:8.5px;color:var(--dim);line-height:1.45;margin-top:5px;border-top:1px solid var(--border);padding-top:5px;">'
+      +'Every number here is arithmetic or a measurement of the past. <b>Nothing here predicts which way the price will go.</b> Research, not advice.</div>';
+    return h+'</div>';
+  }catch(e){ return ''; }
+}
 function paperBuy(ticker){
   window._pfCtx='main'; // v312: manual buys always land in 👤 My trading, never the bot's account
   const s=allData.find(x=>x.ticker===ticker);
@@ -7251,6 +7342,7 @@ function paperBuy(ticker){
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper buy — ${s.ticker}</div>
     <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">${s.name||''} · last close ${fmtP(s.price,s.currency)}${(s._q&&s._q.d)?` <span style="color:var(--dim)">(${s._q.d})</span>`:''} · 💵 cash available: <strong style="color:var(--green)">${_paper().cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
     ${(function(){const qd=(s._q&&s._q.d)||s.lastDate;const n=_staleDays(qd);return n>1?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:6px;padding:5px 8px;margin:0 0 10px;font-size:9px;color:var(--orange);">⚠ This price is ${n} trading days old (${qd}). Tap ⚡ fresh prices first so your practice buy uses today’s price.</div>`:'';})()}
+    ${_tpBuyBlock(s)}
     <label style="display:block;font-size:10px;color:var(--muted);margin-bottom:4px;">Amount to invest (${s.currency})</label>
     <input type="number" id="paperAmt" min="0" step="any" placeholder="e.g. 1000" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;box-sizing:border-box;">
     <div id="paperBuyPrev" style="font-size:10px;color:var(--muted);margin-top:6px;min-height:13px;"></div>
