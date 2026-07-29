@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-545-open';
+const APP_VERSION='2026.07.28-546-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18681,7 +18681,7 @@ function _auditWarmIdle(){
     window._auditWarming=true;
     const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
     _serverGrades(payload,dd,currentExch).then(function(A){
-      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,liq:_cardLiqKey(),A:A}; /* v436: keyed like the card's own write */ window._gradeSrc='server'; }catch(e){} }
+      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,liq:_cardLiqKey(),A:A}; /* v436: keyed like the card's own write */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} }catch(e){} }
       window._auditWarming=false;
     }).catch(function(){ window._auditWarming=false; });
   }catch(e){ window._auditWarming=false; }
@@ -19705,6 +19705,21 @@ function _evMarkWatch(){
 // hoping some earlier code path asked for it, ask here — this runs from
 // statsBar(), so every view gets covered, including ones nobody anticipated.
 // Cheap when already done: samples three rows instead of scanning the list.
+function _evCardArrived(){
+  // v546: the card's grades just landed. The radar marked its shares before
+  // they existed, and the per-day stamp would have hidden them until
+  // tomorrow. Clear the stamps ONCE per day+exchange and re-mark, so the
+  // v544 combo pass finally sees what it was built to see.
+  try{
+    var C=window._auditCache; if(!C||!C.A||!C.A.M)return;
+    var key=(C.d||'')+'|'+(C.ex||'');
+    if(window._evCardMerged===key)return;
+    window._evCardMerged=key;
+    try{ (Array.isArray(allData)?allData:[]).forEach(function(s){ if(s)s._evD=''; }); }catch(e){}
+    try{ if(typeof _evEnsureMarked==='function')_evEnsureMarked(); }catch(e){}
+    try{ if(typeof render==='function')render(); }catch(e){}
+  }catch(e){}
+}
 function _evEnsureMarked(){
   try{
     if(window._evMarking)return false;
@@ -20427,7 +20442,7 @@ function signalReportCard(){
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
   var _show=function(A){
-    try{ if(A&&A.M)window._auditCache={d:_dd,ex:currentExch,liq:_cardLiqKey(),A:A}; }catch(e){}
+    try{ if(A&&A.M){window._auditCache={d:_dd,ex:currentExch,liq:_cardLiqKey(),A:A}; try{_evCardArrived();}catch(e2){}} }catch(e){}
     var m=document.getElementById('appModal');
     if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
       try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
