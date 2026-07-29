@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-563-open';
+const APP_VERSION='2026.07.28-564-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10768,7 +10768,7 @@ function statsBar(){
       try{
         if(_rn&&window._scanSrc&&window._scanSrc!=='unavailable'){
           var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
-          if(!_fromDev&&!_dayDev){ _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?' + card lines incl. combos':''); }
+          if(!_fromDev&&!_dayDev){ var _cl=(typeof _cardLiqLabel==='function')?_cardLiqLabel():''; var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{ if(window._auditCache&&window._auditCache.A&&_cl.indexOf('Any')===0)_rn.textContent=_rn.textContent+'  ·  ⚠ the 💧 floor is wide open, so these counts lean on micro-caps — set $250k or $1m on the 📋 card for decision-grade evidence'; }catch(e2){} }
           else {
             var _w=[];
             if(_fromDev)_w.push('graded from the replay saved on this device'+(window._scanGradedOn?' ('+window._scanGradedOn+')':''));
