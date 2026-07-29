@@ -1715,7 +1715,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-525-open';
+const APP_VERSION='2026.07.28-526-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7227,7 +7227,10 @@ async function checkAutoSellTargets(acct){
       // holding only if you opted it in (🪤 h.trail%). A manual 🛑 stop still overrides everything.
       const _trPct=_isAuto?(_trailG?R302.trailPct:0):(+h.trail>0?+h.trail:0);
       const _trailOn=_trPct>0, _beOn=_beG, _timeOn=_timeG;
-      const _ladOn=_ladG&&_trailOn; // v514: the ladder runs wherever a trail runs — bot globally, your account only where you added 🪤
+      const _ladShare=(h.ladderOn===true&&+h.ladStep>0); // v526: 🪜 opted in on THIS holding from the ⋯ menu
+      const _ladOn=(_ladG||_ladShare)&&_trailOn; // v514 semantics kept: the ladder rides a live trail
+      const _ldStep=_ladShare?Math.min(25,Math.max(1,+h.ladStep)):R302.lockStep;
+      const _ldMargin=_ladShare?(+h.ladMargin>=0?Math.min(15,+h.ladMargin):R302.lockMargin):R302.lockMargin;
       let hit=null; // {date, fill}
       if(apiKey){
         try{
@@ -7298,7 +7301,7 @@ async function checkAutoSellTargets(acct){
               if(cOK){ if(day.c>_peak)_peak=day.c;
                 if(_beOn&&!_beArmed&&h.buyPrice>0&&day.c>=h.buyPrice*(1+R302.bePct/100))_beArmed=true;
                 // v514: 🔒 a CLOSE clearing rung+margin welds the rung — effective from tomorrow, hindsight-free like the trail
-                if(_ladOn&&h.buyPrice>0){ const _g=100*(day.c/h.buyPrice-1); const _R=_ladderLockPct(_g,R302.lockStep,R302.lockMargin); if(_R>_lock)_lock=_R; } }
+                if(_ladOn&&h.buyPrice>0){ const _g=100*(day.c/h.buyPrice-1); const _R=_ladderLockPct(_g,_ldStep,_ldMargin); if(_R>_lock)_lock=_R; } }
             }
             if(!hit&&days.length){ h.tgtChecked=days[days.length-1].d; changed=true; // scanned through here (v366: persist the watermark explicitly)
               // persist the ratchet so the portfolio shows the live trailed stop
@@ -7318,7 +7321,7 @@ async function checkAutoSellTargets(acct){
       if(_lpSane&&(_trailOn||_beOn||_ladOn)){
         if(h.lastPrice>(h.peakClose||0)){ h.peakClose=h.lastPrice; changed=true; }
         if(_beOn&&h.beArmed!==true&&h.buyPrice>0&&h.lastPrice>=h.buyPrice*(1+R302.bePct/100)){ h.beArmed=true; changed=true; }
-        if(_ladOn&&h.buyPrice>0){ const _g=100*(h.lastPrice/h.buyPrice-1); const _R=_ladderLockPct(_g,R302.lockStep,R302.lockMargin); if(_R>(+h.ladderLock||0)){ h.ladderLock=_R; changed=true; } } // v514
+        if(_ladOn&&h.buyPrice>0){ const _g=100*(h.lastPrice/h.buyPrice-1); const _R=_ladderLockPct(_g,_ldStep,_ldMargin); if(_R>(+h.ladderLock||0)){ h.ladderLock=_R; changed=true; } } // v514
       }
       const _fbStop=(function(){ let s=(h.stop>0?h.stop:0);
         if(_mo)return s; // v351: manual stop governs
@@ -8163,6 +8166,32 @@ function paperSetStop(id){
 }
 // v352: give ONE holding a trailing stop (opt-in). Your other shares are never auto-sold
 // unless you add a stop, a target, or a trailing stop like this.
+function paperLadder(id){ // v525: 🪜 per-share profit ladder — welds a rising floor under gains
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p;
+  const lots=_lotsFor(p,id);
+  if(!lots.length)return;
+  const cur=(lots[0].ladderOn===true&&+lots[0].ladStep>0)?+lots[0].ladStep:null;
+  const many=lots.length>1?`\n(applies to all ${lots.length} lots)`:'';
+  const def=cur?String(cur):String(_rules().lockStep||5);
+  const v=prompt(`🪜 Profit ladder for ${lots[0].ticker}${cur?` — now ${cur}% steps`:''}${many}\n\nEvery time the gain climbs another rung of this size, a sell floor is WELDED under it — it only ever rises, so a proven gain can never fully round-trip. The ladder rides the 🪤 trailing stop.\n\nRung size in % (blank to remove):`,def);
+  if(v===null)return;
+  const t=String(v).trim();
+  if(t===''){ lots.forEach(l=>{ delete l.ladderOn; delete l.ladStep; delete l.ladMargin; delete l.ladderLock; }); _paperSave(p,_fs.acct,_fs.exch); showPortfolio(); return; }
+  const pct=parseFloat(t.replace('%',''));
+  if(!(isFinite(pct)&&pct>=1&&pct<=25)){ alert('Enter a rung size between 1 and 25 — for example 5.'); return; }
+  lots.forEach(l=>{ l.ladderOn=true; l.ladStep=+pct; delete l.noAuto; });
+  const hasTrail=lots.some(l=>+l.trail>0);
+  if(!hasTrail){
+    const tv=prompt(`The ladder only acts while a 🪤 trailing stop runs on this share (v514 rule — the floor is applied through the trail machinery).\n\nSwitch the trail on now? Enter a trail % (blank = leave OFF; the ladder stays saved but DORMANT until you add a trail):`,String(_rules().trailPct||8));
+    if(tv!==null&&String(tv).trim()!==''){
+      const tp=parseFloat(String(tv).trim().replace('%',''));
+      if(isFinite(tp)&&tp>0&&tp<90){ lots.forEach(l=>{ l.trail=+tp; delete l.stopManual; if(l.stopSrc==='manual')delete l.stopSrc; if(!(+l.peakClose>0))l.peakClose=Math.max(+l.buyPrice||0,+l.lastPrice||0); }); }
+      else alert('That trail % was not valid — ladder saved, but it stays dormant until a 🪤 trail is set.');
+    } else alert('Ladder saved — but it stays DORMANT until you set a 🪤 trailing stop on this share.');
+  }
+  _paperSave(p,_fs.acct,_fs.exch);
+  showPortfolio();
+}
 function paperTrail(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
@@ -8930,7 +8959,7 @@ function _pfRowMenu(id,ev,hex){
   const m=document.createElement('div');
   m.id='pfRowMenu';
   m.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:190px;';
-  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
+  m.innerHTML=item('paperSetTarget','🎯 Set / change target','var(--gold)')+item('paperSetStop','🛑 Set / change stop','#ff9caa')+item('paperTrail','🪤 Trailing stop (this share)','var(--green)')+item('paperLadder','🪜 Profit ladder (this share)','var(--gold)')+item('paperSetNote','📝 Add / edit note','var(--blue)')+item('paperSellMarket','💵 Sell all @ market','#ff9caa')+item('paperSell','✂ Sell part…','var(--muted)');
   document.body.appendChild(m);
   try{ const r=m.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
     m.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';
@@ -8981,7 +9010,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${(+h.ladderLock>0)?`<br><span style="font-size:9px;color:var(--gold)" title="🔒 profit ladder — this floor was welded when a close cleared the rung + your margin. It can only ever step UP; a brutal overnight gap still fills at the open.">🔒 +${h.ladderLock}% profit locked</span>`:''}${h.sellOrd?`<br><span style="font-size:9px;color:#ff9caa" title="⏳ a market sell is queued — it fills at the NEXT trading day's open. Your stops/targets are paused for these shares; cancel from ⏳ Pending orders to release them.">⏳ market sell queued — fills at the next open</span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${(h.ladderOn===true&&+h.ladStep>0)?`<br><span style="font-size:9px;color:var(--gold)">🪜 ladder ${h.ladStep}% steps <span style="color:var(--dim)">(only this share${(+h.trail>0)?'':' — dormant: needs 🪤 trailing'})</span></span>`:''}${(+h.ladderLock>0)?`<br><span style="font-size:9px;color:var(--gold)" title="🔒 profit ladder — this floor was welded when a close cleared the rung + your margin. It can only ever step UP; a brutal overnight gap still fills at the open.">🔒 +${h.ladderLock}% profit locked</span>`:''}${h.sellOrd?`<br><span style="font-size:9px;color:#ff9caa" title="⏳ a market sell is queued — it fills at the NEXT trading day's open. Your stops/targets are paused for these shares; cancel from ⏳ Pending orders to release them.">⏳ market sell queued — fills at the next open</span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:9px;color:var(--dim)">${h.lastDate||''}</span></td>
