@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-564",
+  "version": "2026.07.28-565",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v564 \u2014 the Market Radar now tells you WHICH evidence it is counting. The \u2696 EVIDENCE line names the outcome window and the \ud83d\udca7 tradeable-shares floor it inherited from the \ud83d\udccb report card \u2014 because that setting is remembered between visits and silently changes the counts. If the floor is wide open (\u2018Any\u2019), the line now warns that the counts lean on micro-caps and tells you to set $250k or $1m for decision-grade evidence. Nothing about the maths changed \u2014 the radar just stopped keeping its own settings secret. Hard-refresh (Ctrl+F5)."
+  "notes": "v565 \u2014 URGENT FIX: the \ud83d\udccb report card wouldn't open (\u2018md is not defined\u2019). My fault, introduced in v563: a code comment was added inside a one-line piece of code, which silently switched off the rest of that line \u2014 the ladder's row builder. The card works again, and a new check now fails the build if that shape ever appears anywhere in the file. Everything from v562\u2013v564 (window-scaled tiers, the score cap, the honest \u2018Any\u2019 label, the radar declaring its window and floor) is intact. Hard-refresh (Ctrl+F5)."
 }
