@@ -1533,6 +1533,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <!-- STEP 2 · INSTANT REPORTS -->
     <div class="step-hdr"><span class="step-num">2</span> <span data-i18n="instantReports">Instant Reports</span> <span class="step-sub">drag ⠿ to reorder</span></div>
     <div id="whatsNewCardAdv" style="display:none;"></div>
+    <div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🌱 Climbers Today</span> is built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
     <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume clearly above its own average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeScan()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Shows every share trading above its normal volume, biggest surge first, right in your table — so you can chart, research or practice-buy any of them exactly like the other scans. Volume is the crowd's attention: a share doing 3× its usual business is being looked at by someone. A 🖨 full report button appears with the results if you want the printable document version, with its Warm → Hot → Red-hot → Extreme bands. A data summary, not advice."><span>📈 Volume Surge</span> <span class="scan-tag">above-normal volume · biggest first</span></button></div>
@@ -1715,7 +1716,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-532-open';
+const APP_VERSION='2026.07.28-533-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20285,6 +20286,12 @@ function _renderReportCard(A){
     };
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
+      // v533 (audit A6): "% higher" is a RAW count of up-moves, while the edge
+      // is measured against that day's market — two different scales reading
+      // as one. This is the win rate the edge actually belongs to: the share
+      // of fires that BEAT the market. Absent on older server replies, so it
+      // only appears when the server sends it.
+      const beatTxt=(m.upEx!=null&&m.n)?`<span title="The share of fires whose move BEAT the market that day — the win rate that matches the edge. The '${m.dirNeg?'% lower':'% higher'}' figure beside it is a raw count of moves, measured against nothing." style="cursor:help;"> · <b style="color:var(--text)">${pct(m.upEx,m.n)}%</b> beat the market</span>`:'';
       if(_snews!=='all'){
         const na=A.ann&&A.ann[k];
         const g=na&&(_snews==='news'?na.news:na.quiet);
@@ -20303,7 +20310,7 @@ function _renderReportCard(A){
         return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b style="color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="How many of those fires ended ${isUp?'HIGHER':'LOWER'} ${_h} trading days later." style="cursor:help;color:${isUp?'var(--green)':'#ff9caa'}">${cnt.toLocaleString()} ${isUp?'up':'down'} (${share}%)</b> · <span title="The average size of those ${isUp?'winning':'losing'} fires — the payoff when it ${isUp?'works':'fails'}.">average ${isUp?'win':'loss'} <b style="color:${isUp?'var(--green)':'#ff9caa'}">${f1(avg)}</b></span> ${chip(m)}</div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}${_eraRow(k,m)}</div>`;
       }
-      return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
+      return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${beatTxt}${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}${_eraRow(k,m)}</div>`;
     };
     const _flagTip={
