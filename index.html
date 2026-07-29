@@ -1718,7 +1718,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-537-open';
+const APP_VERSION='2026.07.28-538-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2561,7 +2561,18 @@ async function _serverGrades(shares, dataDate, exch, hold){
       return (j&&j.A&&j.A.M)?j.A:null;
     };
     if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:[]}); if(cached)return cached; }catch(e){} } // probe the window-specific cache
-    if(shares&&shares.length){ try{ const fresh=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares}); if(fresh)return fresh; }catch(e){} }
+    // v538: upload only what the maths reads. The engine grades the last 250
+    // days, holds ≤30, and looks back ≤250 bars for the breakout reference —
+    // 540 bars covers every window with slack. With three years now stored,
+    // shipping the whole series tripled the first-grade upload for zero gain
+    // (proven byte-identical: verify_v538_equivalence.js, both holds). Bars
+    // are also slimmed to the three fields the engine touches. NOTE: this is
+    // only equivalent because w415+ uses FIXED lookbacks — under the old
+    // since-start maxima a trim would have changed the answers.
+    if(shares&&shares.length){ try{
+      const TAIL=540;
+      const slim=shares.map(function(sh){ var ser=Array.isArray(sh.series)?sh.series:[]; if(ser.length>TAIL)ser=ser.slice(-TAIL); return {ticker:sh.ticker,series:ser.map(function(b){return {d:b.d,c:b.c,v:b.v};})}; });
+      const fresh=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:slim}); if(fresh)return fresh; }catch(e){} }
     return null;
   }catch(e){ return null; }
 }
