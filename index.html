@@ -1715,7 +1715,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-526-open';
+const APP_VERSION='2026.07.28-527-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18829,7 +18829,8 @@ function climbersScan(){
       return;
     }
     items.sort(function(a,b){ return (a.best-b.best)||(b.firing.length-a.firing.length)||(((b.s.watchScore||0))-((a.s.watchScore||0))); });
-    var top=items.slice(0,10);
+    var CLIMB_MAX=20; // v527: Tony asked for a top 20 — one constant drives the list AND the sentence
+    var top=items.slice(0,CLIMB_MAX);
     // into the MAIN TABLE, topTenScan-style — chips, charts, Buy all work
     F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
     filtered=top.map(function(x){return x.s;});
@@ -18844,7 +18845,7 @@ function climbersScan(){
       return '<div style="padding:4px 0;border-bottom:1px dashed var(--border);font-size:11px;"><b style="color:var(--text)">'+nameK(it.k)+'</b> <span style="color:var(--muted)">— '+need+' · fired '+it.m.n.toLocaleString()+'× · edge '+((it.m.dirNeg?-it.m.edge:it.m.edge)>=0?'+':'')+(it.m.dirNeg?-it.m.edge:it.m.edge).toFixed(2)+'%</span></div>';
     }).join('');
     showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
-      +'<div style="font-weight:800;color:var(--text);font-size:13px;margin-bottom:4px;">🌱 Climbers Today — '+top.length+' share'+(top.length===1?'':'s')+' now in the table</div>'
+      +'<div style="font-weight:800;color:var(--text);font-size:13px;margin-bottom:4px;">🌱 Climbers Today — '+top.length+' share'+(top.length===1?'':'s')+' now in the table'+(items.length>top.length?(' <span style="font-weight:400;color:var(--dim);font-size:11px;">(closest '+top.length+' of '+items.length+' firing today)</span>'):'')+'</div>'
       +'<div style="color:var(--gold);font-size:11px;margin-bottom:8px;"><b>A nursery, not a menu.</b> Every line behind this list is UNPROVEN — the whole point is scepticism with a shortlist. Watch, don\u2019t lean. The 🤖 auto-pilot never reads it.</div>'
       +'<div style="font-size:11px;margin-bottom:4px;">These shares fired at least one <b style="color:var(--text)">climbing</b> signal today — a line moving toward SOLID but not there. Ranked by how close its strongest climber is. The climbing lines and what each still needs:</div>'
       +lines

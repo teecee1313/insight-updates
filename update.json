@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-526",
+  "version": "2026.07.28-527",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v526 \u2014 \ud83e\ude9c Profit ladder for a single share. The \u22ef menu on any holding now has \u201c\ud83e\ude9c Profit ladder (this share)\u201d next to the trailing stop: pick a rung size and every time the gain climbs another rung, a sell floor is welded underneath \u2014 it only ever rises, so a proven gain can never fully round-trip. Works exactly like the auto-pilot's ladder, but on just the shares you choose, with your own rung size. The ladder rides the \ud83e\udea4 trailing stop \u2014 if the share doesn't have one, the app offers to switch it on, or tells you plainly the ladder stays dormant until you do. Blank removes it. Hard-refresh (Ctrl+F5)."
+  "notes": "v527 \u2014 \ud83c\udf31 Climbers Today now lists the top 20 shares (was 10). Same ranking: closest to the SOLID bar first, then shares firing more than one climbing line, then today's watch score. When more than 20 shares are firing a climbing signal the header says so \u2014 e.g. \u201cclosest 20 of 63 firing today\u201d \u2014 so you always know you're seeing a shortlist, not the whole set. Everything else unchanged: still a nursery, not a menu \u2014 every line behind the list is UNPROVEN. Hard-refresh (Ctrl+F5)."
 }
