@@ -368,6 +368,12 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
    were being clipped, which is worse than being misaligned. */
 .radar-grp .rg-t{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));align-items:center;row-gap:1px;}
 .stats.r-less .radar-grp.rg-more{display:none;}
+/* v518 Option B: r-less is now a true one-line headline strip. */
+.stats.r-less .radar-grp{display:none;}
+#radarCompact{display:none;grid-column:1/-1;flex-wrap:wrap;gap:1px 8px;align-items:stretch;padding:1px 0 0;}
+.stats.r-less #radarCompact{display:flex;}
+#evCompact{display:none;grid-column:1/-1;font-size:9px;color:var(--muted);padding:0 0 2px;line-height:1.5;cursor:default;}
+.stats.r-less #evCompact{display:block;}
 /* v479 — folded is a different density, not just fewer groups. About 40% of the
    folded radar's height was padding and margin; the table needs it more. */
 .stats.r-less{padding:3px 14px 4px;}
@@ -1571,6 +1577,17 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 <div class="right">
   <div class="stats" id="statsBar" style="display:none">
     <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button></div>
+    <div id="radarCompact">
+      <div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="cTot">0</div><div class="sl">Showing</div></div>
+      <div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g" id="cG">0</div><div class="sl">Gainers</div></div>
+      <div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r" id="cL">0</div><div class="sl">Losers</div></div>
+      <div class="stat statclick" onclick="statFilter('bullish')" title="Shares showing bullish price/volume patterns today. A data summary, not advice."><div class="sv g" id="cBull">0</div><div class="sl">Bullish</div></div>
+      <div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="cBear">0</div><div class="sl">Bearish</div></div>
+      <div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="cV">0</div><div class="sl">Vol ≥200%</div></div>
+      <div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest stored close on above-average volume. An estimate, not advice."><div class="sv" id="cBrk">0</div><div class="sl">Breakout</div></div>
+      <div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch. A data summary, not advice."><div class="sv gold" id="cS7">0</div><div class="sl">Score 7+</div></div>
+    </div>
+    <div id="evCompact"></div>
     <div class="radar-grp"><div class="rg-l">Market</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="sTot">0</div><div class="sl">Showing</div></div><div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g"    id="sG">0</div><div class="sl">Gainers</div></div><div class="stat statclick" onclick="statFilter('losers')" title="Show only shares down today"><div class="sv r"    id="sL">0</div><div class="sl">Losers</div></div><div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch and the ⭐ Score column. A data summary, not advice."><div class="sv gold" id="sS7">0</div><div class="sl">Score 7+</div></div></div></div>
     <div class="radar-grp rg-ev" id="evGrp"><div class="rg-l">🧪 Evidence</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('tsolid')" title="Shares whose STRONGEST signal firing today has a SOLID record — its edge over the replayed year is at least 2.5 times its own margin of error, counted one observation per DAY rather than one per firing, and measured against a market you could actually buy. Some days this shows nothing: an honest &quot;no strong evidence today&quot;, not a fault. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. A share below your 💧 grading floor is never tested at all — when that happens the line underneath says so, because a skipped share is not the same as an honest zero."><div class="sv g" id="sEvS">–</div><div class="sl">🟢 SOLID</div></div><div class="stat statclick" onclick="statFilter('tprom')" title="Shares whose strongest signal firing today is PROMISING — its edge is at least 1.5 times its own margin of error over the replayed year. Worth watching, not proven. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it."><div class="sv gold" id="sEvP">–</div><div class="sl">🟡 PROMISING</div></div><div class="stat statclick" onclick="statFilter('tearly')" title="Shares firing graded signals today where NOT ONE of them has a record worth standing behind — over the replayed year their edge was smaller than its own margin of error. This is not 'too little data' and it is not 'a bad record': we looked properly and found nothing either way, which on one year of history is the honest answer for almost every scan. Shares whose only signals are too NEW to have a record are NOT counted here — that is a missing test, not a finding, and they carry a ⏳ too early mark on their own row instead. Curiosity, not evidence. Tap tiles to combine buckets. Shows – until this view has been evidence-checked — tapping checks it. Research, not advice."><div class="sv" id="sEvE">–</div><div class="sl">⚪ NOT PROVEN</div></div><div id="evSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div><div id="evRuleNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
     <div class="radar-grp rg-more" id="sigGrp"><div class="rg-l">🔬 Signals</div><div class="rg-t"><div class="stat statclick" onclick="statFilter('sghi52')" title="Closed above every close of the past year, on volume — no trapped sellers overhead from the last 250 days. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgHi52">–</div><div class="sl">📏 52wk High</div></div><div class="stat statclick" onclick="statFilter('sggold')" title="The 50-day average crossed UP through the 200-day TODAY — fires on the cross day only, so it is rare by design. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgGold">–</div><div class="sl">✝️ Golden Cross</div></div><div class="stat statclick" onclick="statFilter('sgrsirec')" title="RSI crossed back UP through 30 — the bounce beginning, not merely "oversold" (which can stay oversold for months). Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsi">–</div><div class="sl">🌀 RSI Recovery</div></div><div class="stat statclick" onclick="statFilter('sgsqueeze')" title="Tightest 10-day range in about three months on dry volume — a coiled spring. Direction unknown: it can break either way. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgSqz">–</div><div class="sl">🤏 Squeeze</div></div><div class="stat statclick" onclick="statFilter('sgrsl')" title="The strongest slice of the WHOLE market by recent return, caught on a breather — beating the market, not just rising with it. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgRsl">–</div><div class="sl">🏁 Rel-Strength</div></div><div class="stat statclick" onclick="statFilter('sgnewsvol')" title="A CONFIRMED material headline landing on a day of unusually heavy volume. Fail-closed: where there is no news coverage it never fires. Counts shares firing it TODAY. Reads – until this view has been evidence-checked; tapping does the check. Its record so far is on the 🧪 All-scans card — these six are graded from birth and most are still TOO EARLY, so treat them as somewhere to look, not a reason to act. Research, not advice."><div class="sv" id="sgNews">–</div><div class="sl">📰 News + Vol</div></div><div id="sigSkipNote" style="display:none;font-size:9.5px;color:var(--dim);padding:2px 4px 0;letter-spacing:.2px;cursor:help;"></div></div></div>
@@ -1697,7 +1714,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-517-open';
+const APP_VERSION='2026.07.28-518-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10470,14 +10487,37 @@ window._radarMore=function(){
   try{ localStorage.setItem('asxScreener.radarLess.v1',less?'1':'0'); }catch(e){}
   _radarBtnLabel(less);
 };
+// v518: the compact strip never counts anything itself — it mirrors the
+// canonical tiles, so the two views can never disagree. Called at the end of
+// statsBar() and whenever the evidence note is rewritten.
+function _radarCompactSync(){
+  try{
+    var map={cTot:'sTot',cG:'sG',cL:'sL',cBull:'sBull',cBear:'sBear',cV:'sV',cBrk:'sBrk',cS7:'sS7'};
+    for(var k in map){ var c=document.getElementById(k), o=document.getElementById(map[k]);
+      if(c&&o){ c.textContent=o.textContent; c.className=o.className; c.id=k; } }
+    var ev=document.getElementById('evCompact'); if(!ev)return;
+    var so=document.getElementById('sEvS'), pr=document.getElementById('sEvP'), np=document.getElementById('sEvE');
+    var t=function(el){ var v=el?String(el.textContent||'').trim():''; return v; };
+    var vs=t(so), vp=t(pr), vn=t(np);
+    if(vs===''&&vp===''&&vn===''){ ev.style.display='none'; ev.textContent=''; return; }
+    var dash=(vs==='–'||vs==='-')&&(vp==='–'||vp==='-');
+    ev.innerHTML=dash
+      ? '🧪 evidence not checked for this view yet — open ▸ full radar and tap a tier tile to check it'
+      : ('🧪 evidence: <b style="color:var(--green)">'+(vs||'0')+' solid</b> · <b style="color:var(--gold)">'+(vp||'0')+' promising</b> · '+(vn||'0')+' not proven — the detail lives in ▸ full radar');
+    var rn=document.getElementById('evRuleNote');
+    var tip=rn?String(rn.textContent||'').trim():'';
+    if(tip)ev.setAttribute('title',tip); else ev.removeAttribute('title');
+    ev.style.display='';
+  }catch(e){}
+}
 // A fold you cannot see the size of is a fold people forget they set.
 function _radarBtnLabel(less){
   try{
     var b=document.getElementById('radarMoreBtn'); if(!b)return;
     var n=document.querySelectorAll('#statsBar .radar-grp.rg-more').length;
-    b.textContent=less?('▸ details ('+n+' group'+(n===1?'':'s')+')'):'▾ details';
-    b.title=less?('Show the '+n+' hidden tile groups — 🔬 Signals, Volume, Trend and ⚠ Caution. Folded by default so the share table gets the room.')
-                :'Fold the detail groups away and give the table more room. 🧪 Evidence never folds.';
+    b.textContent=less?'▸ full radar':'▾ compact radar'; // v518: the fold is the whole radar now, not just detail groups
+    b.title=less?'Open today\u2019s full radar — every group (Market, \ud83e\uddea Evidence, \ud83d\udd2c Signals, Volume, Trend, \u26a0 Caution), every tile, dimmed zeros included. Nothing is hidden in the full view.'
+                :'Fold the radar to the one-line headline strip \u2014 eight counts and a one-sentence evidence line. Everything stays one tap away.';
   }catch(e){}
 }
 (function(){ try{
@@ -10618,6 +10658,7 @@ function statsBar(){
     _evSetNote(document.getElementById('evSkipNote'),'🧪 grading the stored year…','The signals are being replayed against your stored history — a few seconds. The ⚖️ and 🔬 tiles fill in on their own when it finishes; there is nothing to click.');
   }catch(e){}
   try{ _radarDim(); }catch(e){}
+  try{_radarCompactSync();}catch(e){}
 }
 // v484 — a radar where half the tiles read 0 in the same weight as the ones
 // reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
@@ -10640,6 +10681,7 @@ function _evSetNote(el,htmlTxt,tip){
   if(!htmlTxt){ el.style.display='none'; el.innerHTML=''; el.removeAttribute('title'); el.removeAttribute('data-ttip'); return; }
   el.style.display='block'; el.innerHTML=htmlTxt; el.setAttribute('title',tip);
   try{ if(typeof privateOn==='function'&&privateOn()){ el.dataset.ttip=tip; el.removeAttribute('title'); } }catch(e){}
+  try{_radarCompactSync();}catch(e){} // v518: keep the compact evidence sentence current
 }
 function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   var el=document.getElementById('evSkipNote');
