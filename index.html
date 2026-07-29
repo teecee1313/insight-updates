@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-505-open';
+const APP_VERSION='2026.07.28-506-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4878,16 +4878,28 @@ function _tpTick(px){ return (px<0.10)?0.001:(px<2)?0.005:0.01; }
 // realised volatility of daily closes, % per day, ignoring impossible prints
 function _tpVol(ser,n){
   if(!Array.isArray(ser)||ser.length<12)return null;
-  var a=Math.max(1,ser.length-n), k=0,s=0,ss=0;
+  // v506 — three corrections to the number every parcel is sized from, each
+  // measured before it was made (claude/numerical-verification-2026-07-29.md):
+  //   · WINSORISE, don't drop. Discarding any day beyond ±60% made the wildest
+  //     shares look calm to the one function whose whole job is to know they
+  //     are not — 10.27%/day became 16.99% on a share with two such days once
+  //     they were clamped and KEPT. Same treatment w403's tally gives returns.
+  //   · SAMPLE variance (k-1), not population (k): the old form understated the
+  //     typical move ~2.5% at the 20-day window, oversizing every parcel by the
+  //     inverse — always in the unsafe direction.
+  //   · Welford's recurrence, because ss/k − m² cancels catastrophically when
+  //     the mean dominates the spread.
+  var a=Math.max(1,ser.length-n), k=0, mean=0, M2=0;
   for(var i=a;i<ser.length;i++){
     var p=ser[i-1].c, c=ser[i].c;
     if(!(p>0&&c>0))continue;
     var r=((c-p)/p)*100;
-    if(Math.abs(r)>60)continue;          // a consolidation or a bad print, not volatility
-    k++; s+=r; ss+=r*r;
+    if(r>60)r=60; else if(r<-60)r=-60;   // clamp the print, keep the day
+    k++;
+    var d=r-mean; mean+=d/k; M2+=d*(r-mean);
   }
   if(k<8)return null;
-  var m=s/k, v=ss/k-m*m;
+  var v=M2/(k-1);
   return v>0?Math.sqrt(v):null;
 }
 
@@ -10877,7 +10889,11 @@ function _rsi(closes,period){
     al=(al*(period-1)+(d<0?-d:0))/period;
   }
   if(al===0)return ag===0?50:100; // no losses: flat → neutral, gains → 100
-  const rs=ag/al;return Math.round(100-(100/(1+rs)));
+  // v506 — RAW, no rounding. The server's st.rsi is the raw float, and rounding
+  // before a threshold test made every device-side band one point wider than
+  // the same band on the server (0.499 max deviation, measured). Rounding is a
+  // display concern; every display site now rounds for itself.
+  const rs=ag/al;return 100-(100/(1+rs));
 }
 // Compute every technical signal for a share from its history rows.
 function computeTechnicals(s,history,preRows){
@@ -12598,7 +12614,7 @@ function deepDive(ticker){
     html+=sub('Technical indicators');
     const crossTxt=s.cross==='golden'?'<span style="color:var(--green)">✨ Golden cross</span>':s.cross==='death'?'<span style="color:#ff6b6b">💀 Death cross</span>':s.cross==='bull'?'<span style="color:var(--green)">Bullish</span>':s.cross==='bear'?'<span style="color:#ff9caa">Bearish</span>':'—';
     html+=row('MA trend (50 vs 200)',crossTxt);
-    if(s.rsi!=null)html+=row('RSI (14)',s.rsi+' '+(s.rsiState==='overbought'?'<span style="color:#ff6b6b">overbought</span>':s.rsiState==='oversold'?'<span style="color:var(--green)">oversold</span>':'<span style="color:var(--muted)">neutral</span>'));
+    if(s.rsi!=null)html+=row('RSI (14)',Math.round(s.rsi)+' '+(s.rsiState==='overbought'?'<span style="color:#ff6b6b">overbought</span>':s.rsiState==='oversold'?'<span style="color:var(--green)">oversold</span>':'<span style="color:var(--muted)">neutral</span>'));
     if(s.pctFromHigh!=null)html+=row('From 52-wk high',s.pctFromHigh+'%'+(s.nearHigh?' <span style="color:var(--gold)">near high</span>':''));
     if(s.obvTrend)html+=row('Volume trend (OBV)',s.obvTrend==='rising'?'<span style="color:var(--green)">Rising</span>':s.obvTrend==='falling'?'<span style="color:#ff9caa">Falling</span>':'Flat');
   }else{
@@ -12655,7 +12671,7 @@ function showTechnicals(ticker){
   const row=(label,val,note)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);"><span style="color:var(--muted);font-size:11px;">${label}</span><span style="font-size:11px;color:var(--text);text-align:right;">${val}${note?` <span style="color:var(--dim);font-size:9px;">${note}</span>`:''}</span></div>`;
   const px=s.price;
   const crossTxt=s.cross==='golden'?'<span style="color:var(--green)">✨ Golden cross</span>':s.cross==='death'?'<span style="color:#ff6b6b">💀 Death cross</span>':s.cross==='bull'?'<span style="color:var(--green)">Bullish (50>200)</span>':s.cross==='bear'?'<span style="color:#ff9caa">Bearish (50<200)</span>':'—';
-  const rsiTxt=s.rsi==null?'—':`${s.rsi} `+(s.rsiState==='overbought'?'<span style="color:#ff6b6b">overbought</span>':s.rsiState==='oversold'?'<span style="color:var(--green)">oversold</span>':'<span style="color:var(--muted)">neutral</span>');
+  const rsiTxt=s.rsi==null?'—':`${Math.round(s.rsi)} `+(s.rsiState==='overbought'?'<span style="color:#ff6b6b">overbought</span>':s.rsiState==='oversold'?'<span style="color:var(--green)">oversold</span>':'<span style="color:var(--muted)">neutral</span>');
   window._modalLabel='📈 Technical Signals';
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">📐 ${s.ticker} <span style="font-size:11px;color:var(--muted)">${s.name||''}</span></div>
