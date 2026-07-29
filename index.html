@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-503-open';
+const APP_VERSION='2026.07.28-504-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10091,7 +10091,16 @@ function statsBar(){
         +'A signal earns a high tier by firing a lot — and firing a lot is exactly what makes it tag a lot of shares. '
         +'So a signal that fires often tags a lot of shares whatever its record. '
         +'That is not a fault; it is the two counts measuring different things. Lesson 46 explains it.';
-      _evSetNote(_rn,_bits.length?('<b style="color:var(--dim);font-weight:800;letter-spacing:.4px">SIGNALS</b> '+_rs.total+' graded · '+_bits.join(' · ')):'',_rt);
+      // v504 — when any rule fell back, say so on the line itself. A screen that
+      // knows less must LOOK like it knows less; the previous build printed the
+      // same confident wording either way, which is how a fire count came to be
+      // read out as a margin-of-error test.
+      var _fb=(window._evFellBack===true);
+      if(_fb)_rt+=' NOTE: the honest day-counted tally was not available for every signal, '
+        +'so the tiers above are UNAVAILABLE rather than negative — nothing here has been '
+        +'proven or disproven. Open the app with a connection, or press 🔄 Refresh, to grade properly.';
+      _evSetNote(_rn,_bits.length?('<b style="color:var(--dim);font-weight:800;letter-spacing:.4px">SIGNALS</b> '+_rs.total+' graded · '+_bits.join(' · ')
+        +(_fb?' · <span style="color:var(--gold)">not graded on the honest tally</span>':'')):'',_rt);
       // v470: and where the grading was done. Not decoration — if the server
       // is answering, the numbers on screen were computed somewhere the user
       // cannot inspect, and they are entitled to know that at a glance.
@@ -18123,7 +18132,12 @@ function _apGrades(){
   try{
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
     var c=window._scCache;
-    if(c&&c.R&&c.ex===currentExch&&c.d===dd&&c.liq===_cardLiqKey())return c.R;
+    // v504 — the key knew the exchange, the day and the 💧 floor, but not WHICH
+    // GRADER answered. A reply collected before the honest tally shipped stayed
+    // valid for the rest of the data day and drove the whole screen down the
+    // fallback path. The tally version is now part of what makes it valid.
+    if(c&&c.R&&c.ex===currentExch&&c.d===dd&&c.liq===_cardLiqKey()
+       &&_evTallyOk(c.R))return c.R;
   }catch(e){}
   return null;
 }
@@ -18166,6 +18180,12 @@ function _evBetaBlocked(){ try{ return !_EV_ON_BETA&&APP_VERSION.indexOf('-beta'
 // daily and holding five days. 2.5 rather than the textbook 2 because eighteen
 // rules are being tested at once, and testing eighteen things finds one by luck.
 var _EV_T_SOLID=2.5, _EV_T_OK=1.5, _EV_T_LOSE=-2.5, _EV_MIN_DAYS=100;
+// v504 — the oldest tally a tier may be built from. w403 is the first worker
+// that measures a rule against the market it picks from, buys a day late and
+// counts by DAYS rather than by firings; anything older answers a different
+// question and must not be reused just because it arrived on the same date.
+var _EV_MIN_TV=403;
+function _evTallyOk(R){ try{ return !!(R&&R.T&&(R.tv||0)>=_EV_MIN_TV); }catch(e){ return false; } }
 function _evTierOf(n){ return n>=_EV_MIN_SOLID?['SOLID','var(--green)']:n>=_EV_MIN_OK?['PROMISING','var(--gold)']:['TOO EARLY','var(--dim)']; }
 // The honest tier, from w403's day-counted tally. `h` is {n,days,edge,t}.
 function _evTierFromT(h){
@@ -18211,12 +18231,15 @@ function _evRuleTier(key){
       var ht=_evTierFromT(h);
       return [ht[0],ht[1],n,h.edge,h.t,h.days,h.perDay,true];
     }
-    // no T: an older worker, or a market too thin to grade. Fall back to the
-    // count-based tier, flagged so nothing pretends to be what it is not.
-    var t=_evTierOf(n), edge=null;
-    try{ var b=R.G.all&&R.G.all['5'];
-      if(n&&b&&b.n)edge=(m.sum/m.n)-(b.sum/b.n); }catch(e){}
-    return [t[0],t[1],n,edge,null,null,null,false];
+    // v504 — no T: an older worker, a stale stored grading, or a market too
+    // thin to grade. The old code fell back to a COUNT-based tier here and let
+    // a non-positive edge become LOSING, which meant an ungraded rule still
+    // came out of this function wearing a verdict. Fire counts measure how
+    // OFTEN a rule speaks, never whether it is right, so no tier can honestly
+    // be built from them. An ungraded rule is a missing test: TOO EARLY, no
+    // edge, no badge, and t[7]=false so every caller can see it was not graded.
+    window._evFellBack=true;
+    return ['TOO EARLY','var(--dim)',n,null,null,null,null,false];
   }catch(e){ return null; }
 }
 // v466 — the distribution people expect to see, and the one the tiles cannot
@@ -18237,7 +18260,10 @@ function _evRuleSpread(){
       // market" does. A negative number inside its own margin of error is not a
       // losing record, it is no record.
       if(t[0]==='LOSING'){ out.losing++; return; }
-      if(t[7]!==true&&t[3]!=null&&t[3]<=0){ out.losing++; return; }
+      // v504 — the second line here used to call an UNGRADED rule losing on the
+      // sign of a raw edge. "Proven to lose" needs the same evidence "beats the
+      // market" does; without the honest tally there is no such evidence, and
+      // the rule falls through to TOO EARLY below where it belongs.
       if(t[0]==='SOLID')out.solid++; else if(t[0]==='PROMISING')out.prom++;
       else if(t[0]==='NOT PROVEN'){ out.unproven=(out.unproven||0)+1; }
       else out.early++;
@@ -18256,7 +18282,9 @@ function _evRuleSpread(){
 function _evRuleEarnsBadge(t){
   if(!t)return false;
   if(t[7]===true)return t[0]==='SOLID'||t[0]==='PROMISING';
-  return t[3]!=null&&t[3]>0;
+  // v504 — an ungraded rule earns nothing. The old edge>0 rule here was the
+  // last route by which a rule that had never been tested could paint a badge.
+  return false;
 }
 function _evPct(x){ return (x>0?'+':'')+x.toFixed(2)+'%'; }
 // The small tier chip that rides on a scan banner / report header.
@@ -18406,7 +18434,7 @@ function _evMark(shares){
         // this app has always refused to collapse.
         if(!_evRuleEarnsBadge(t)){
           negParts.push(lbl);
-          if(t[0]==='LOSING'||(t[7]!==true&&t[3]!=null&&t[3]<=0))loseParts.push(lbl);
+          if(t[0]==='LOSING')loseParts.push(lbl);   // v504: ungraded is not losing
           else if(t[0]==='TOO EARLY')earlyParts.push(lbl);
           else npParts.push(lbl);
           return;
@@ -18936,14 +18964,17 @@ async function _scReplay(){
   try{ R=await _scServerReplay(shares,_cardLiqNeed()); }catch(e){ R=null; }
   if(R&&R.G){
     window._scanSrc='server'; window._scanGradedOn='';
-    try{ _scStash('replay|'+currentExch+'|'+_cardLiqKey(),{d:_scToday(),R:R}); }catch(e){}
+    try{ _scStash('replay|'+_EV_MIN_TV+'|'+currentExch+'|'+_cardLiqKey(),{d:_scToday(),R:R}); }catch(e){}
     return R;
   }
   // v472: a year-long record does not change materially overnight, so an older
   // replay is a reasonable answer — as long as we say which day it is from.
   try{
-    var st=await _scStashGet('replay|'+currentExch+'|'+_cardLiqKey());
-    if(st&&st.R&&st.R.G){
+    // v504 — the stash key carries the tally version, so a replay stored by an
+    // older worker is orphaned rather than served. A year-long record does not
+    // change overnight; how it was MEASURED does, and that is the whole point.
+    var st=await _scStashGet('replay|'+_EV_MIN_TV+'|'+currentExch+'|'+_cardLiqKey());
+    if(st&&st.R&&st.R.G&&_evTallyOk(st.R)){
       window._scanSrc='device'; window._scanGradedOn=st.d||'';
       return st.R;
     }
