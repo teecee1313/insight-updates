@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-560-open';
+const APP_VERSION='2026.07.28-561-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7163,13 +7163,13 @@ const _UNDO_ON_BETA = false;   // v492: Tony's call, 28 Jul — back off in beta
 // One switch, every build. The renderers AND the functions read this, so the
 // feature is genuinely gone — not a hidden button with a console back-door.
 // The 🗑 delete-trade tools remain the honest repair path for a bad record.
-function _undoOn(){ return false; }
+function _undoOn(){ return window._pfUnlock===true; } // v561: vault — 5 taps on the portfolio heading unlock; closing the portfolio relocks
 // v517 — Tony's call, 29 Jul: the 🗑 delete tools go the same way, every
 // build. Their buttons were removed in v389; the functions stayed callable
 // from the console, and deleting a holding refunds cash with NO record —
 // the widest manipulation door in the app. One switch, read by both
 // functions. Honest repair: 💾 export backups / restore / a repaired export.
-function _delOn(){ return false; }
+function _delOn(){ return window._pfUnlock===true; } // v561: same vault as undo
 function undoSale(sellDate,ticker,buyDate){
   if(!_undoOn()){ alert('Undoing a sale is turned off.\n\nA closed trade stays closed — your ledger is a record, not a draft. If a record is genuinely wrong (a bad print, a corporate action), restore a \ud83d\udcbe export taken before it, or export the account file and have it repaired.'); return; }
   // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
@@ -9043,6 +9043,17 @@ function _pfRowMenu(id,ev,hex){
   }catch(e){}
   setTimeout(()=>document.addEventListener('click',_pfCloseMenu,{once:true}),0);
 }
+function _pfVaultTap(){
+  // v561: five quick taps (≤1.6s apart) on the heading unlock the
+  // maintenance tools for THIS visit only. Silent until it opens.
+  try{
+    var now=Date.now();
+    if(window._pfUnlock)return;
+    if(!window._pfTapT||now-window._pfTapT>1600)window._pfTapN=0;
+    window._pfTapT=now; window._pfTapN=(window._pfTapN||0)+1;
+    if(window._pfTapN>=5){ window._pfUnlock=true; window._pfTapN=0; try{ showPortfolio(); }catch(e){} }
+  }catch(e){}
+}
 function showPortfolio(exSel){
   try{document.body.classList.toggle('pf-hideprofit',_pfHideProfit());}catch(e){}
   if(exSel)window._pfExSel=exSel;
@@ -9158,7 +9169,7 @@ function showPortfolio(exSel){
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);font-size:9px;">${t.buyDate} → ${t.sellDate}<br><span style="color:var(--dim)">${tradingDaysHeld(t.buyDate,t.sellDate)} trading days</span></td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${t.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:4px 6px;font-family:var(--mono);">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}${sinceHtml}</td>
-      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:9px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}${_undoOn()?`<br><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>`:''}</td>
+      <td style="text-align:right;padding:4px 6px;font-family:var(--mono);color:${c};">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)${t.fees>0?`<br><span style="font-size:9px;color:var(--dim)">incl. ${fmtP(t.fees,t.currency)} fees</span>`:''}${_undoOn()?`<br><button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from the ledger — it will ask you to confirm and explain what it rewrites." style="border:1px solid var(--red);color:var(--red);background:transparent;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;margin-right:6px;">🗑 delete</button><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="margin-top:3px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">↩ Undo</button>`:''}</td>
     </tr>`;
   }).join('');
   // v388: mobile card version of each closed trade — the wide history TABLE is
@@ -9181,7 +9192,7 @@ function showPortfolio(exSel){
         <div><span>Fees</span> <b>${t.fees>0?fmtP(t.fees,t.currency):'—'}</b></div>
       </div>${t.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-bottom:4px;">📝 ${String(t.note).slice(0,60)}${t.note.length>60?'…':''}</div>`:''}
 ${_undoOn()?`<div class="pf-card-actions">
-        <button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">↩ Undo</button>
+        <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from the ledger — it will ask you to confirm and explain what it rewrites." style="border:1px solid var(--red);color:var(--red);background:transparent;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;margin-right:6px;">🗑 delete</button><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">↩ Undo</button>
       </div>`:''}
     </div>`;
   }).join('');
@@ -9191,7 +9202,7 @@ ${_undoOn()?`<div class="pf-card-actions">
   window._modalBig=true;                    // portfolio opens large by default
   window._modalLabel='💼 Portfolio (paper trading)';
   showModal(`
-    <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Paper Trading Portfolio <span style="font-size:9px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
+    <div style="font-weight:700;font-size:15px;color:var(--text);"><span onclick="_pfVaultTap()" style="cursor:default;user-select:none;">💼 Paper Trading Portfolio</span>${window._pfUnlock?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 5px;" title="Maintenance tools visible — undo and delete buttons are shown. They lock again when you close the portfolio.">🔓 maintenance</span>`:``} <span style="font-size:9px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
     ${paperBalanceInconsistent()?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.10);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--orange);">⚠ <strong>Your cash is ${(function(){const d=_paperLedgerDiff(_paper())-((_paper().ledgerBase)||0);return (d>=0?'+$':'-$')+Math.abs(d).toLocaleString(undefined,{minimumFractionDigits:2});})()} off what the trade ledger expects</strong>, so the return % may mislead. Usually this is history from an older version or a restore — not today's trades. If the balance shown IS what you expect, accept it and the app only warns again if something NEW drifts: <button onclick="paperAcceptBalance()" style="margin-left:6px;padding:4px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font:700 10px var(--sans);cursor:pointer;">✓ This balance is right — stop warning</button> <span style="color:var(--dim)">or</span> <button onclick="paperRepairBalance()" style="margin-left:4px;padding:4px 10px;border-radius:5px;border:1px solid var(--orange);background:rgba(255,165,0,.15);color:var(--orange);font:700 10px var(--sans);cursor:pointer;">💰 Set starting balance</button> <span style="color:var(--dim)">(tip: use ➕ add cash when adding money — it keeps the % honest)</span></div>`:''}
     ${acctTabs}${_isAuto?_apStatusBanner():''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
@@ -9699,6 +9710,7 @@ function _syncStatOverTop(){
 }
 window.addEventListener('resize',function(){try{_syncStatOverTop();}catch(e){}});
 function closeModal(){
+  try{ window._pfUnlock=false; window._pfTapN=0; }catch(_){} // v561: the maintenance vault relocks the moment the portfolio closes
   const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
   // v365: bring the parked share table back exactly where it was
   try{

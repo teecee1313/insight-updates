@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-560",
+  "version": "2026.07.28-561",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v560 \u2014 the last stack: \u2b50 Score /10 now sits over \ud83d\udd25 Accum 10d in one column, same treatment as the streaks \u2014 they're cousins (both quick data summaries, not graded evidence). Ten columns are now NINE. Tap the header to sort by Score; Sort by \u2192 Accumulation 10d still there for the other. Hard-refresh (Ctrl+F5)."
+  "notes": "v561 \u2014 undo and delete are back in the Paper Trading Portfolio \u2014 behind a lock. Tap the \ud83d\udcbc Paper Trading Portfolio heading FIVE times quickly and a \ud83d\udd13 maintenance chip appears: \u21a9 undo returns on every closed trade (plus restore for auto-sells), and a red \ud83d\uddd1 delete appears beside it. Every action still asks you to confirm and explains exactly what it rewrites \u2014 the lock controls who sees the buttons, not how careful they are. Close the portfolio and it locks itself again, every time. Nothing is shown or hinted while locked. Hard-refresh (Ctrl+F5)."
 }
