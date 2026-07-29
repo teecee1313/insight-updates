@@ -1714,7 +1714,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-520-open';
+const APP_VERSION='2026.07.28-521-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19994,8 +19994,11 @@ function _renderReportCard(A){
     let ledger=[]; try{ ledger=JSON.parse(localStorage.getItem(LKEY)||'[]')||[]; }catch(e){ ledger=[]; }
     const dd=A.to||'';
     if(dd){
-      const snap={d:dd,e:{}};
-      for(const k in A.M){ const m=A.M[k]; if(m.n>=10) snap.e[k]=(m.dirNeg?(m.edge<0):(m.edge>0))?1:0; }
+      const snap={d:dd,e:{},t:{},f:{}};
+      // v521: strength (directional t) and fire count travel with each card,
+      // so the 🌱 nursery's "rising / fading" is measured against saved
+      // cards, never guessed. Additive — old snapshots stay readable.
+      for(const k in A.M){ const m=A.M[k]; if(m.n>=10){ snap.e[k]=(m.dirNeg?(m.edge<0):(m.edge>0))?1:0; snap.t[k]=+((m.dirNeg?-m.tstat:m.tstat).toFixed(2)); snap.f[k]=m.n; } }
       ledger=ledger.filter(x=>x&&x.d&&x.d!==dd); ledger.push(snap);
       ledger.sort((a,b)=>a.d<b.d?-1:1); if(ledger.length>26)ledger=ledger.slice(-26);
       try{ localStorage.setItem(LKEY,JSON.stringify(ledger)); }catch(e){}
@@ -20134,6 +20137,50 @@ function _renderReportCard(A){
         annSec=`<div style="margin-top:12px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;font-size:10px;color:var(--dim);line-height:1.5;">📢 <b style="color:var(--muted)">Announcement split — building.</b> From this version the app records each day's confirmed price-sensitive announcements (log started ${A.annStart}). As the log grows to overlap the graded window, every flag above will split into <b>news-driven</b> vs <b>quiet</b> fires, and this box will answer: of the winners, how many had announcements?</div>`;
       }
     }
+    // ── v521: 🌱 Climbing the ladder — the nursery ─────────────────────────
+    // Same audit, one question: of the lines NOT yet solid, which are
+    // genuinely moving toward the bar, and what exactly is missing?
+    const _nurTraj=(k,atNow)=>{
+      const past=ledger.filter(x=>x&&x.t&&x.t[k]!=null&&x.d!==dd);
+      if(past.length<2)return `<span style="color:var(--dim)" title="Trajectory is only ever claimed against cards this app has SAVED. This line needs a few more saved cards carrying the new strength field before rising/fading can honestly be measured.">building its history — save a few more cards</span>`;
+      const first=past[0].t[k], d=+(atNow-first).toFixed(2);
+      const n=past.length+1;
+      if(d>0.15)return `<span style="color:var(--green)" title="Strength ${first.toFixed(1)} on the earliest saved card → ${atNow.toFixed(1)} now, across ${n} cards.">📈 strength rising (${first.toFixed(1)} → ${atNow.toFixed(1)} over ${n} cards)</span>`;
+      if(d<-0.15)return `<span style="color:#ff9caa" title="Strength ${first.toFixed(1)} on the earliest saved card → ${atNow.toFixed(1)} now, across ${n} cards. Moving AWAY from the bar.">📉 strength fading (${first.toFixed(1)} → ${atNow.toFixed(1)} over ${n} cards)</span>`;
+      return `<span style="color:var(--muted)" title="Strength has moved less than ±0.15 across ${n} saved cards.">➡ holding (~${atNow.toFixed(1)} across ${n} cards)</span>`;
+    };
+    const _nurRows=Object.keys(A.M).map(k=>({k,m:A.M[k]})).filter(it=>{
+      const m=it.m; if(!m||!m.n)return false;
+      const at=m.dirNeg?-m.tstat:m.tstat;
+      const goodDir=m.dirNeg?m.edge<0:m.edge>0;
+      if(m.tier==='solid')return false;              // already home
+      if(m.n<10)return false;                        // too thin to say anything
+      if(!goodDir||!(at>0))return false;             // not even pointing at the bar
+      if(m.n>=50&&at<1)return false;                 // had its fires, never found strength — question answered
+      return true;
+    }).map(it=>{
+      const m=it.m, at=m.dirNeg?-m.tstat:m.tstat;
+      const fGap=Math.max(0,50-m.n), sGap=Math.max(0,2-at);
+      return Object.assign(it,{at,fGap,sGap,dist:Math.max(fGap/50,sGap/2)});
+    }).sort((a,b)=>a.dist-b.dist).slice(0,8);
+    const _nurRow=it=>{
+      const m=it.m, at=it.at;
+      const need=[];
+      need.push(it.fGap>0?`fired <b style="color:var(--text)">${m.n.toLocaleString()}×</b> — needs ~<b style="color:var(--gold)">${it.fGap}</b> more`:`fires <b style="color:var(--green)">✓ ${m.n.toLocaleString()}</b> (50+ met)`);
+      const sPct=Math.max(4,Math.min(100,Math.round((at/2)*100)));
+      need.push(`strength <b style="color:${it.sGap>0?'var(--gold)':'var(--green)'}">${at.toFixed(1)}</b> of the 2.0 required <span style="display:inline-block;width:44px;height:5px;border:1px solid var(--border);border-radius:3px;vertical-align:middle;overflow:hidden;background:var(--bg3);"><span style="display:block;width:${sPct}%;height:100%;background:${it.sGap>0?'var(--gold)':'var(--green)'};"></span></span>`);
+      return `<div style="padding:6px 8px;border:1px solid var(--border2);border-radius:7px;margin-bottom:5px;background:rgba(74,222,128,.03);">
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;align-items:center;"><span title="${_flagTip[it.k]||''}" style="cursor:help;font-weight:700;color:var(--text)">${nameOf(it.k)}${m.dirNeg?' <span style="font-size:9px;color:#9fb2cc">· warning line</span>':''}</span>${chip(m)}</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:3px;">${need.join(' · ')} · edge ${f1(m.dirNeg?-m.edge:m.edge)}</div>
+        <div style="font-size:9.5px;color:var(--dim);margin-top:2px;">${_nurTraj(it.k,at)}${halves(m)||''}${track(it.k)||''}</div>
+      </div>`;
+    };
+    const nurserySec=`<div style="margin-top:16px;padding-top:11px;border-top:2px solid var(--border2);">
+      <div title="Of the lines NOT yet SOLID: which are genuinely moving toward the bar, and what exactly is missing? SOLID needs BOTH 50+ fires AND strength (directional t) of 2.0 — a line can be close in two different ways, and this list says which. Lines that already had their 50+ fires and never found strength are excluded: they answered the question." style="cursor:help;font-size:13px;font-weight:800;color:var(--text);">🌱 Climbing the ladder <span style="font-size:10px;color:var(--muted);font-weight:400">— moving toward SOLID</span></div>
+      <div style="font-size:10px;color:var(--gold);margin:3px 0 6px;line-height:1.5;"><b>A nursery, not a menu.</b> Nothing here is proven — watch, don't lean. The 🤖 auto-pilot never reads this section; its SOLID-only gate is unchanged.</div>
+      ${_nurRows.length?_nurRows.map(_nurRow).join(''):`<div style="font-size:10.5px;color:var(--dim);padding:6px 2px;line-height:1.5;">Nothing is genuinely climbing right now — no unproven line has both a positive edge and momentum toward the bar over this window. That's information too: be extra sceptical of flags this week.</div>`}
+      <div style="font-size:9px;color:var(--dim);margin-top:2px;">Ranked by whichever gap is more limiting — fires toward 50, or strength toward 2.0. Well-tested lines that never found strength are not shown: they answered the question.</div>
+    </div>`;
     const foot=`<div style="font-size:10px;color:var(--dim);margin-top:12px;line-height:1.55;border-top:1px solid var(--border);padding-top:8px;">How to read the tiers: <b style="color:var(--green)">SOLID</b> = many fires with a consistent edge · <b style="color:var(--gold)">PROMISING</b> = decent evidence, keep watching · <b>TOO EARLY</b> = not enough fires to distinguish from luck. ✓/✗ shows whether the edge appeared in BOTH halves of the window. 🟩/🟥 = the edge in risk-on vs risk-off tape (day's breadth above/below 50% gainers). 📜 = this line's record across your recent cards — persistence across weeks is the only evidence that deserves capital. 🥇/🔷 fire in both directions and are graded both ways: price-UP fires as a bullish signal, price-DOWN fires as a warning (LOWER = working, like 📉 Dist?). The app grading its own estimates, honestly — a good period proves nothing about the future. A data summary, not advice.</div>`;
     // v324: 🪜 the ladder — a top-to-bottom leaderboard of singles and combos,
     // ranked by edge in each flag's own direction (re-uses the same audit).
@@ -20181,7 +20228,7 @@ function _renderReportCard(A){
       </div>
     </div>`;
     window._modalBig=false;
-    var _cardInner=deepDive+head+rows+comboSec+seqSec+annSec+ladderSec+foot;
+    var _cardInner=deepDive+head+rows+comboSec+seqSec+annSec+nurserySec+ladderSec+foot;
     try{ window._lastCardHTML=_cardInner; window._lastCardA=A; }catch(e){}
     // v398: outcome-window switch. 5d is the standard the 🤖 bot trades on; 10d/30d
     // are research views computed fresh on the server ("does the edge last?").
