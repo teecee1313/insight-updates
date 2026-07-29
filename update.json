@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-549",
+  "version": "2026.07.28-550",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v549 \u2014 found it. The radar's link to the card compared two dates written in different formats (one said \u201830 July\u2019, the other \u2018ASX|30 July\u2019) \u2014 they could never match, so the connection has been dead since it was built, on every device, every day. Your three identical screenshots were the proof that forced the find. Fixed and verified end-to-end with the exact formats the page really uses. THE TEST, final: hard-refresh (Ctrl+F5) \u2192 v549 \u2192 open the \ud83d\udccb report card once, close it \u2192 the \u2696 EVIDENCE tiles should light up with the proven counts within a couple of seconds. Thank you for not letting this go."
+  "notes": "v550 \u2014 the Instant Reports menu now follows the workflow instead of fighting it. New order: \u2b50 Start your day \u2192 \ud83d\udccb REPORT CARDS (open this first \u2014 it loads today's grades) \u2192 \ud83c\udf93 GRADED EVIDENCE (Best Evidence, Climbers, the self-test \u2014 which all read those grades) \u2192 the pattern searches. No more scrolling to the bottom for the report card and back up again. Hard-refresh (Ctrl+F5)."
 }
