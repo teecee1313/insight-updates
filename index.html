@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-570-open';
+const APP_VERSION='2026.07.28-571-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10777,7 +10777,12 @@ function statsBar(){
       try{
         if(_rn&&window._scanSrc&&window._scanSrc!=='unavailable'){
           var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
-          if(!_fromDev&&!_dayDev){ var _lqL=function(k){ try{ for(var q=0;q<_CARD_LIQ.length;q++)if(_CARD_LIQ[q][0]===k)return _CARD_LIQ[q][1]; }catch(e3){} return k||'?'; }; var _cGr=(window._auditCache&&window._auditCache.liq)||''; var _cNow=(typeof _cardLiqKey==='function')?_cardLiqKey():''; var _cl=_lqL(_cGr||_cNow); var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{ if(window._auditCache&&window._auditCache.A&&_cl.indexOf('Any')===0)_rn.textContent=_rn.textContent+'  ·  ⚠ the 💧 floor is wide open, so these counts lean on micro-caps — set $250k or $1m on the 📋 card for decision-grade evidence'; }catch(e2){} try{ if(window._auditCache&&window._auditCache.A&&_cGr&&_cNow&&_cGr!==_cNow)_rn.textContent=_rn.textContent+'  ·  ⚠ these counts were graded at 💧 '+_lqL(_cGr)+', but the 📋 card is now set to '+_lqL(_cNow)+' — open the report card to re-grade before trusting them'; }catch(e4){} }
+          if(!_fromDev&&!_dayDev){ var _lqL=function(k){ try{ for(var q=0;q<_CARD_LIQ.length;q++)if(_CARD_LIQ[q][0]===k)return _CARD_LIQ[q][1]; }catch(e3){} return k||'?'; }; var _cGr=(window._auditCache&&window._auditCache.liq)||''; var _cNow=(typeof _cardLiqKey==='function')?_cardLiqKey():''; var _cl=_lqL(_cGr||_cNow); var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{ if(window._auditCache&&window._auditCache.A&&_cl.indexOf('Any')===0)_rn.textContent=_rn.textContent+'  ·  ⚠ the 💧 floor is wide open, so these counts lean on micro-caps — set $250k or $1m on the 📋 card for decision-grade evidence'; }catch(e2){} try{
+            var _wsSt=window._warmState||'';
+            if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading '+(window._warmN||'')+' shares in the background… the evidence counts will fill in when it finishes';
+            else if(_wsSt==='failed'&&!(window._auditCache&&window._auditCache.A))_rn.textContent=_rn.textContent+'  ·  ⚠ background grading could not reach the server — retrying once; open the 📋 report card to force it';
+          }catch(e5){}
+          try{ if(window._auditCache&&window._auditCache.A&&_cGr&&_cNow&&_cGr!==_cNow)_rn.textContent=_rn.textContent+'  ·  ⚠ these counts were graded at 💧 '+_lqL(_cGr)+', but the 📋 card is now set to '+_lqL(_cNow)+' — open the report card to re-grade before trusting them'; }catch(e4){} }
           else {
             var _w=[];
             if(_fromDev)_w.push('graded from the replay saved on this device'+(window._scanGradedOn?' ('+window._scanGradedOn+')':''));
@@ -18699,6 +18704,16 @@ body.tbl-tighter .tick-name{max-width:80px;}
 var _AUD={MINROWS:70};
 // Pre-compute the audit in idle time once data has loaded, so the 📋 card and the
 // bot open instantly. Once per data-day; never competes with an active load.
+function _warmRetry(){
+  /* v571: one automatic second attempt. Before this, a single failed warm left
+     the radar reading "not proven" for every share for the whole session, with
+     nothing on screen to say the grading had died. */
+  try{
+    if(window._warmRetried)return;
+    window._warmRetried=true;
+    setTimeout(function(){ try{ if(!(window._auditCache&&window._auditCache.A))_auditWarmIdle(); }catch(e){} },30000);
+  }catch(e){}
+}
 function _auditWarmIdle(){
   try{
     if(window._prepRunning||window._auditWarming)return;
@@ -18708,11 +18723,13 @@ function _auditWarmIdle(){
     if(_sh.length<3)return;
     if(!(typeof DATA_PROXY==='string' && DATA_PROXY))return; // v378: grading is server-side — nothing to warm without the server
     window._auditWarming=true;
+    try{ window._warmState='running'; window._warmAt=Date.now(); window._warmN=_sh.length; if(typeof statsBar==='function')setTimeout(function(){try{statsBar();}catch(e){}},50); }catch(e){}
     const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
     _serverGrades(payload,dd,currentExch).then(function(A){
       if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,liq:_cardLiqKey(),A:A}; /* v436: keyed like the card's own write */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} }catch(e){} }
       window._auditWarming=false;
-    }).catch(function(){ window._auditWarming=false; });
+      try{ window._warmState=(window._auditCache&&window._auditCache.A)?'done':'failed'; if(window._warmState==='failed')_warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){}
+    }).catch(function(){ window._auditWarming=false; try{ window._warmState='failed'; _warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){} });
   }catch(e){ window._auditWarming=false; }
 }
 // v329 — in training mode (body.training-on) turn every titled element on the
