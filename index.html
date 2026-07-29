@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-513-open';
+const APP_VERSION='2026.07.28-514-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5677,6 +5677,13 @@ function _startCap(p){return (typeof p.startCap==='number'&&isFinite(p.startCap)
 function _reservedSum(p){return (p.orders||[]).reduce((a,o)=>a+(o.reserved||0)+(o.fee||0),0);}
 
 // ═══ v286 — My Rules: the customer's own trading plan (practice discipline) ═══
+// v514: 🔒 profit ladder — highest rung locked for a given peak gain.
+// One-step-behind arming: a rung R locks once gain has cleared R + margin.
+function _ladderLockPct(gainPct,step,margin){
+  if(!(step>0)||!isFinite(gainPct))return 0;
+  const r=Math.floor((gainPct-(margin>0?margin:0))/step)*step;
+  return r>=step?r:0;
+}
 const RULES_KEY='asxScreener.rules.v1';
 function _rules(){
   let raw=null; try{ raw=localStorage.getItem(RULES_KEY); }catch(e){}
@@ -5686,6 +5693,7 @@ function _rules(){
   return { enabled:(r.enabled!==false), targetPct:num(r.targetPct,20), stopPct:num(r.stopPct,8), maxPosPct:num(r.maxPosPct,10),
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
     trailPct:num(r.trailPct,fresh?8:0), bePct:num(r.bePct,fresh?5:0), maxHoldDays:Math.round(num(r.maxHoldDays,fresh?10:0)),
+    lockLadderOn:(r.lockLadderOn===true), lockStep:Math.min(25,Math.max(1,num(r.lockStep,5))), lockMargin:Math.min(15,Math.max(0,num(r.lockMargin,3))), // v514: 🔒 profit ladder
     apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:(fresh?'best':'smart'); }catch(e){ return (v==='top20')?'top20':(fresh?'best':'smart'); } })(r.apSource), apProvenOnly:(fresh?true:(r.apProvenOnly===true)),
     apMinScore:num(r.apMinScore,0), apMinPrice:num(r.apMinPrice,0), apMaxPrice:num(r.apMaxPrice,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(num(r.apMaxBuys,1)))),
@@ -5700,6 +5708,7 @@ function _rulesSave(r){
   const clean={ enabled:(r.enabled!==false), targetPct:+r.targetPct||0, stopPct:+r.stopPct||0, maxPosPct:+r.maxPosPct||0,
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
     trailPct:+r.trailPct||0, bePct:+r.bePct||0, maxHoldDays:Math.max(0,Math.round(+r.maxHoldDays||0)),
+    lockLadderOn:(r.lockLadderOn===true), lockStep:+r.lockStep||0, lockMargin:Math.max(0,+r.lockMargin||0),
     apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'smart'; }catch(e){ return (v==='top20')?'top20':'smart'; } })(r.apSource), apProvenOnly:(r.apProvenOnly===true),
     apMinScore:+r.apMinScore||0, apMinPrice:+r.apMinPrice||0, apMaxPrice:+r.apMaxPrice||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(+r.apMaxBuys||1))),
@@ -5796,6 +5805,8 @@ function showRules(){
       <label style="font-size:10px;color:var(--muted);">🪤 Trailing stop<input type="number" id="rTrail" min="0" step="any" value="${r.trailPct||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % below highest close — stop only ever rises</span></label>
       <label style="font-size:10px;color:var(--muted);">🛡 Break-even at<input type="number" id="rBE" min="0" step="any" value="${r.bePct||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> +% gain → stop moves to your entry (the free trade)</span></label>
       <label style="font-size:10px;color:var(--muted);">⏱ Max hold<input type="number" id="rHold" min="0" step="1" value="${r.maxHoldDays||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> data days — unresolved positions exit at the next open</span></label>
+      <label style="font-size:10px;color:var(--muted);"><input type="checkbox" id="rLockOn" ${r.lockLadderOn?'checked':''} style="width:13px;height:13px;vertical-align:middle;margin-right:3px;">🔒 Profit ladder — rung<input type="number" id="rLockStep" min="1" step="any" value="${r.lockStep||''}" placeholder="5" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % steps — each cleared rung welds a profit floor under the trade that can NEVER drop</span></label>
+      <label style="font-size:10px;color:var(--muted);">🔒 Arm margin<input type="number" id="rLockMargin" min="0" step="any" value="${(r.lockMargin!=null&&r.lockMargin!=='')?r.lockMargin:''}" placeholder="3" style="width:100%;margin-top:3px;padding:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)"> % past a rung before it locks — with 5/3, clearing +13% locks +10%; set 2 for 7→5. Runs wherever a 🪤 trail runs; the strictest stop wins</span></label>
     </div>
     <div style="display:flex;align-items:flex-start;gap:8px;font-size:10.5px;color:var(--muted);margin-top:10px;padding:9px 10px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);">
       <input type="checkbox" id="rScaleOut" ${r.scaleOut?'checked':''} style="width:15px;height:15px;margin-top:1px;cursor:pointer;flex:none;">
@@ -5933,7 +5944,7 @@ function _rulesFromForm(){
   const g=id=>(document.getElementById(id)||{}).value;
   const chk=id=>((document.getElementById(id)||{}).checked===true);
   return { targetPct:g('rTgt'), stopPct:g('rStop'), maxPosPct:g('rMaxPos'), maxPositions:g('rMaxN'), minLiq:0, plan:g('rPlan'),
-    apSource:g('rApSrc')||_rules().apSource, apProvenOnly:(document.getElementById('rApProven')?chk('rApProven'):_rules().apProvenOnly), apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
+    apSource:g('rApSrc')||_rules().apSource, apProvenOnly:(document.getElementById('rApProven')?chk('rApProven'):_rules().apProvenOnly), apMinScore:g('rApScore'), apMinPrice:g('rApMinPx'), apMaxPrice:g('rApMaxPx'), apQuietOnly:chk('rApQuiet'), apMaxBuys:g('rApMax'), apAmt:g('rApAmt'), trailPct:g('rTrail'), bePct:g('rBE'), maxHoldDays:g('rHold'), lockLadderOn:(document.getElementById('rLockOn')?chk('rLockOn'):_rules().lockLadderOn), lockStep:(document.getElementById('rLockStep')?g('rLockStep'):_rules().lockStep), lockMargin:(document.getElementById('rLockMargin')?g('rLockMargin'):_rules().lockMargin), apGreenOnly:chk('rApGreen'), apNoChaseRsi:chk('rApRsi'), apMaxChasePct:g('rApChase'), apCombo:((document.getElementById('rApComboSel')||{}).value||''), apEntry:(((document.getElementById('rApEntrySel')||{}).value)==='dip'?'dip':'open'), apDipPct:g('rApDip'),
     apSignals:(document.getElementById('rApSig_bo')?['bo','inf','inst','cx','dir','vr','blk'].filter(k=>chk('rApSig_'+k)):_rules().apSignals), apLadder:(document.getElementById('rApLadder')?chk('rApLadder'):_rules().apLadder),
     apRegime:(document.getElementById('rApRegime')?chk('rApRegime'):_rules().apRegime), apRiskPct:(document.getElementById('rApRisk')?g('rApRisk'):_rules().apRiskPct),
     scaleOut:(document.getElementById('rScaleOut')?chk('rScaleOut'):_rules().scaleOut), scaleOutPct:(document.getElementById('rScalePct')?g('rScalePct'):_rules().scaleOutPct) };
@@ -7156,6 +7167,7 @@ async function checkAutoSellTargets(acct){
   // your own shares unless you asked for it.
   const _isAuto=(ACCT==='auto');
   const _trailG=_isAuto&&R302.enabled&&R302.trailPct>0, _beG=_isAuto&&R302.enabled&&R302.bePct>0, _timeG=_isAuto&&R302.enabled&&R302.maxHoldDays>0;
+  const _ladG=R302.enabled&&R302.lockLadderOn&&R302.lockStep>0; // v514: 🔒 ladder available (per-holding it needs a live trail)
   const targeted=(p.holdings||[]).filter(h=>h.target>0||h.stop>0||(+h.trail>0)||_trailG||_beG||_timeG);
   if(!targeted.length)return [];
   window._tgtChecking=true;
@@ -7181,6 +7193,7 @@ async function checkAutoSellTargets(acct){
       // holding only if you opted it in (🪤 h.trail%). A manual 🛑 stop still overrides everything.
       const _trPct=_isAuto?(_trailG?R302.trailPct:0):(+h.trail>0?+h.trail:0);
       const _trailOn=_trPct>0, _beOn=_beG, _timeOn=_timeG;
+      const _ladOn=_ladG&&_trailOn; // v514: the ladder runs wherever a trail runs — bot globally, your account only where you added 🪤
       let hit=null; // {date, fill}
       if(apiKey){
         try{
@@ -7210,10 +7223,12 @@ async function checkAutoSellTargets(acct){
             // v302: hindsight-free ratchet state — each day's stop uses PRIOR closes only.
             let _peak=(h.peakClose>0?h.peakClose:(h.buyPrice>0?h.buyPrice:0));
             let _beArmed=(h.beArmed===true);
+            let _lock=(+h.ladderLock>0?+h.ladderLock:0); // v514: welded ladder floor (%), only ever rises
             const _dynStop=function(){ let s=(h.stop>0?h.stop:0);
               if(_mo)return s; // v351: manual stop governs — rules don't override it
               if(_beOn&&_beArmed&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
               if(_trailOn&&_peak>0)s=Math.max(s,+((_peak*(1-_trPct/100))).toFixed(4));
+              if(_ladOn&&_lock>0&&h.buyPrice>0)s=Math.max(s,+((h.buyPrice*(1+_lock/100))).toFixed(4)); // v514: 🔒 the welded profit floor
               return s; };
             for(const day of days){
               // v366: held-days must count from the BUY, not from this fetch
@@ -7247,14 +7262,17 @@ async function checkAutoSellTargets(acct){
               }
               // Survived the day — TODAY'S close may ratchet the trail / arm break-even (effective tomorrow).
               if(cOK){ if(day.c>_peak)_peak=day.c;
-                if(_beOn&&!_beArmed&&h.buyPrice>0&&day.c>=h.buyPrice*(1+R302.bePct/100))_beArmed=true; }
+                if(_beOn&&!_beArmed&&h.buyPrice>0&&day.c>=h.buyPrice*(1+R302.bePct/100))_beArmed=true;
+                // v514: 🔒 a CLOSE clearing rung+margin welds the rung — effective from tomorrow, hindsight-free like the trail
+                if(_ladOn&&h.buyPrice>0){ const _g=100*(day.c/h.buyPrice-1); const _R=_ladderLockPct(_g,R302.lockStep,R302.lockMargin); if(_R>_lock)_lock=_R; } }
             }
             if(!hit&&days.length){ h.tgtChecked=days[days.length-1].d; changed=true; // scanned through here (v366: persist the watermark explicitly)
               // persist the ratchet so the portfolio shows the live trailed stop
               if(_peak>(h.peakClose||0)){ h.peakClose=_peak; changed=true; }
               if(_beArmed&&h.beArmed!==true){ h.beArmed=true; changed=true; }
+              if(_lock>(+h.ladderLock||0)){ h.ladderLock=_lock; changed=true; } // v514: persist the welded rung
               const _ns=_dynStop();
-              if(!_mo&&_ns>(h.stop>0?h.stop:0)){ (h.stopLog=h.stopLog||[]).push({d:days[days.length-1].d,ts:_pfStamp(),from:(h.stop>0?h.stop:null),to:_ns,why:'trail'}); h.stop=_ns; h.stopSrc='trail'; }
+              if(!_mo&&_ns>(h.stop>0?h.stop:0)){ (h.stopLog=h.stopLog||[]).push({d:days[days.length-1].d,ts:_pfStamp(),from:(h.stop>0?h.stop:null),to:_ns,why:((_ladOn&&_lock>0&&h.buyPrice>0&&Math.abs(_ns-h.buyPrice*(1+_lock/100))<0.005)?'ladder':'trail')}); h.stop=_ns; h.stopSrc='trail'; }
             }
           }
         }catch(e){/* fall through to close check */}
@@ -7263,14 +7281,16 @@ async function checkAutoSellTargets(acct){
       // Same sanity guard — a corrupt last price shouldn't trigger a sell.
       const _bp2=(h.buyPrice>0?h.buyPrice:0);
       const _lpSane=isFinite(h.lastPrice)&&h.lastPrice>0&&(_bp2<=0||(h.lastPrice>=_bp2*0.15&&h.lastPrice<=_bp2*6));
-      if(_lpSane&&(_trailOn||_beOn)){
+      if(_lpSane&&(_trailOn||_beOn||_ladOn)){
         if(h.lastPrice>(h.peakClose||0)){ h.peakClose=h.lastPrice; changed=true; }
         if(_beOn&&h.beArmed!==true&&h.buyPrice>0&&h.lastPrice>=h.buyPrice*(1+R302.bePct/100)){ h.beArmed=true; changed=true; }
+        if(_ladOn&&h.buyPrice>0){ const _g=100*(h.lastPrice/h.buyPrice-1); const _R=_ladderLockPct(_g,R302.lockStep,R302.lockMargin); if(_R>(+h.ladderLock||0)){ h.ladderLock=_R; changed=true; } } // v514
       }
       const _fbStop=(function(){ let s=(h.stop>0?h.stop:0);
         if(_mo)return s; // v351: manual stop governs
         if(_beOn&&h.beArmed===true&&h.buyPrice>0)s=Math.max(s,h.buyPrice);
         if(_trailOn&&(h.peakClose||0)>0)s=Math.max(s,+(((h.peakClose)*(1-_trPct/100))).toFixed(4));
+        if(_ladOn&&(+h.ladderLock||0)>0&&h.buyPrice>0)s=Math.max(s,+((h.buyPrice*(1+h.ladderLock/100))).toFixed(4)); // v514
         return s; })();
       if(!hit && _lpSane && h.target>0 && h.lastPrice>=h.target)hit={date:_todayLocal(),fill:h.lastPrice,why:'target'};
       if(!hit && _lpSane && _fbStop>0 && h.lastPrice<=_fbStop)hit={date:_todayLocal(),fill:h.lastPrice,why:((_fbStop>(h.stop>0?h.stop:0)+1e-9)||h.stopSrc==='trail')?'trail':'stop'};
@@ -8902,7 +8922,7 @@ function showPortfolio(exSel){
     totInv+=h.invested;totVal+=val;
     const c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
     return `<tr>
-      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
+      <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">(-${(((h.buyPrice-h.stop)/h.buyPrice)*100).toFixed(1)}%)</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${(+h.ladderLock>0)?`<br><span style="font-size:9px;color:var(--gold)" title="🔒 profit ladder — this floor was welded when a close cleared the rung + your margin. It can only ever step UP; a brutal overnight gap still fills at the open.">🔒 +${h.ladderLock}% profit locked</span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:9px;color:var(--dim)">${h.lastDate||''}</span></td>
@@ -8926,7 +8946,7 @@ function showPortfolio(exSel){
         <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${h.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${h.ticker} 🖨</a></strong>
         <span class="pf-pl" style="font-family:var(--mono);font-weight:800;color:${c};font-size:13px;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(1)}%)</span>
       </div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}${(+h.trail>0)?' · 🪤 '+h.trail+'%':''}</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">${h.exchange} · bought ${h.buyDate}${h.grouped?` · ${h.lotCount} lots avg`:''}${tgt?' · '+tgt:''}${stp?' · '+stp:''}${(+h.trail>0)?' · 🪤 '+h.trail+'%':''}${(+h.ladderLock>0)?' · 🔒 +'+h.ladderLock+'%':''}</div>
       <div class="pf-card-grid">
         <div><span>Qty</span> <b>${h.qty.toLocaleString()}</b></div>
         <div><span>Buy</span> <b>${fmtP(h.buyPrice,h.currency)}</b></div>
