@@ -1716,7 +1716,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-533-open';
+const APP_VERSION='2026.07.28-534-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -13661,7 +13661,15 @@ function _setPatternFlags(s,hist){
       if(n>=60){
         const lastC=rows[n-1].c, price=(s.price>0?s.price:lastC);
         // compare against PRIOR days only — today tying a flat history is not a record
-        let maxC=0,maxV=0; for(let i=0;i<n-1;i++){ if(rows[i].c>maxC)maxC=rows[i].c; if(rows[i].v>maxV)maxV=rows[i].v; }
+        // v534 (audit A4): FIXED lookbacks, matching the grading engine (w415).
+        // These used to scan the whole stored history, so "breakout" silently
+        // meant "highest ever stored" — which got harder every time the pantry
+        // deepened (and had nearly killed 🥇 Vol record off entirely once
+        // three years were stored). Now: a ONE-YEAR price high, a THREE-MONTH
+        // volume record — stable definitions that mean the same thing forever.
+        let maxC=0,maxV=0;
+        for(let i=Math.max(0,n-1-250);i<n-1;i++){ if(rows[i].c>maxC)maxC=rows[i].c; }
+        for(let i=Math.max(0,n-1-60);i<n-1;i++){ if(rows[i].v>maxV)maxV=rows[i].v; }
         s.sigBreakout = price>0 && maxC>0 && price>maxC*1.0005 && ratio>1.5;
         s.sigVolRecord = s.volume>10000 && maxV>0 && s.volume>=maxV*1.05;
         const ma=(len,off)=>{ let t=0,k=0; for(let i=n-1-off;i>=0&&k<len;i--,k++)t+=rows[i].c; return k===len?t/len:0; };
