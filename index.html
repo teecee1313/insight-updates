@@ -1036,7 +1036,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
                  52-week build deliberately OPENS THE ADMIN PANEL rather than
                  running from here: this file is the file customers run, and the
                  admin password must never be typed into it. -->
-            <button onclick="serverReportCheck()" style="width:100%;padding:7px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 10px var(--sans);cursor:pointer;" title="Runs all twelve reports twice — once here on your device and once on the server — over 300 of your real shares, and compares them share by share, position by position. This is the check that has to come back green before any scan's thresholds move to the server. Nothing is changed by pressing it.">🔬 Check the server's reports <span style="font-weight:400;font-size:9px;">(compares its answers with this device's — changes nothing)</span></button>
+            <button onclick="serverReportCheck()" style="width:100%;padding:7px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.10);color:var(--blue);font:700 10px var(--sans);cursor:pointer;" title="Runs TEN reports twice — once here on your device and once on the server — over 300 of your real shares, and compares them share by share, position by position. (The two deep reports, Technical and Strong Trends, are not yet in the comparison.) This is the check that has to come back green before any scan's thresholds move to the server. Nothing is changed by pressing it.">🔬 Check the server's reports <span style="font-weight:400;font-size:9px;">(compares its answers with this device's — changes nothing)</span></button>
             <button onclick="window.open(DATA_PROXY.replace(/\/+$/,'')+'/admin/panel','_blank','noopener')" style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;" title="Opens the server's own pantry page in a new tab — where the market history is stored and topped up, where the backups are downloaded, and where Build the 52-week table lives. It asks for the admin password, which is deliberately NOT held in this app, because this is the same app your customers run.">🗄 Open the pantry <span style="font-weight:400;font-size:9px;">(server admin — needs your admin password)</span></button>
           </div>
           <div id="srvChkOut" style="font-size:9px;color:var(--muted);margin-top:5px;line-height:1.6;"></div>
@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-506-open';
+const APP_VERSION='2026.07.28-507-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15659,6 +15659,31 @@ async function serverReportCheck(){
   var sample=_repSample(300);
   if(sample.length<50){ say('Only '+sample.length+' shares have enough history to compare. Load saved data or run a full load first.'); return; }
   say('Comparing '+sample.length+' shares…');
+  // v507 — measure the sample's history depth HERE, on the exact shares being
+  // compared, so a 🪜 Pullback gap arrives with its own explanation. Both sides
+  // run the identical rule (verified clause-by-clause, 29 July); the rule's
+  // lenient branch passes a share on the 50-day test alone when no 200-day
+  // average exists. The server's pantry is deep, so the strict branch applies
+  // to nearly everything there; shallow downloads here take the lenient branch.
+  // More history = stricter test — which is the whole 42-vs-23 mechanism.
+  var _dep={have200:0,lenientPass:0};
+  try{
+    for(var _di=0;_di<sample.length;_di++){
+      var _ds=sample[_di], _ser=_ds.series||[];
+      var _n=0; for(var _dj=0;_dj<_ser.length;_dj++){ var _dc=_ser[_dj]&&(_ser[_dj].c!=null?_ser[_dj].c:_ser[_dj].close); if(_dc>0)_n++; }
+      if(_n>=200){ _dep.have200++; continue; }
+      // short history: would this share pass 🪜 only because the 200-day test
+      // cannot run? Count it if the device's own selector fires on it today.
+      try{ var _full=allData.find(function(x){return x.ticker===_ds.ticker;});
+        // _selPullback takes the ARRAY and returns the scored picks — call it
+        // with a one-share array and test membership, never as a boolean.
+        if(_full&&_full.ma200==null&&typeof _selPullback==='function'){
+          var _hit=_selPullback([_full]);
+          if(Array.isArray(_hit)&&_hit.length)_dep.lenientPass++;
+        }
+      }catch(e){}
+    }
+  }catch(e){}
   var mine;
   try{ mine=await _repLocal(sample); }catch(e){ say('This device could not run the reports: '+e); return; }
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
@@ -15698,7 +15723,11 @@ async function serverReportCheck(){
   var head=(agree===_REP_OPEN.length)
     ? '<b style="color:var(--green)">All '+agree+' reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
     : '<b style="color:var(--gold)">'+agree+' of '+_REP_OPEN.length+' agree</b> on '+sample.length+' real shares.';
-  say(head+'<div style="margin-top:6px">'+rows.join('')+'</div>'+
+  var _depLine='<div style="margin-top:5px;font-size:9px;color:var(--dim);line-height:1.5;">'
+    +'📏 depth here: <b>'+_dep.have200+'</b> of '+sample.length+' have 200+ days on this device'
+    +(_dep.lenientPass?' · 🪜 <b>'+_dep.lenientPass+'</b> passed Pullback on the short-history branch (no 200-day view to test — the server, holding the full year, tests them strictly and may not agree)':'')
+    +'</div>';
+  say(head+_depLine+'<div style="margin-top:6px">'+rows.join('')+'</div>'+
       '<div style="color:var(--dim);margin-top:5px">Server had opening prices for '+(j.bars||0)+
       ' shares and graded '+(j.graded||0)+'. Nothing on screen changed — this is only a comparison.</div>');
 }
