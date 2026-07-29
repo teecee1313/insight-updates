@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-548-open';
+const APP_VERSION='2026.07.28-549-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19525,7 +19525,11 @@ function _evMark(shares){
     // same 5-day grades, upgrade-only, and the why-string names the source.
     try{
       var _C=window._auditCache;
-      var _A=(_C&&_C.A&&_C.A.M&&_C.ex===currentExch&&_C.d===_evDD())?_C.A:null;
+      // v549: _evDD() is 'EXCH|date'; the cache's d is the bare date. Comparing
+    // them was always false, so this pass had NEVER run — found via Tony's
+    // three identical 1,057 screenshots. Compare like with like.
+    var _cd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    var _A=(_C&&_C.A&&_C.A.M&&_C.ex===currentExch&&_C.d===_cd&&_cd)?_C.A:null;
       if(_A&&typeof _bevSelect==='function'&&typeof _nurFireToday==='function'){
         var _bl=_bevSelect(_A);
         if(_bl.length){
