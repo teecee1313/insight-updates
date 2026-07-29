@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-511-open';
+const APP_VERSION='2026.07.28-512-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5050,6 +5050,128 @@ function _kysDecile(vd){
   var pct=lo/R.vols.length;
   return {dec:Math.min(10,1+Math.floor(pct*10)),pct:pct,n:R.vols.length};
 }
+// ── v512: 📓 the Share Diary ─────────────────────────────────────────────────
+// One dated, price-stamped timeline per share. Words are stored (delete-only);
+// facts (buys/sells, research flags) are merged in at render time from their
+// own sources so the timeline can never drift out of sync with the ledger.
+const DIARY_KEY='shareDiary';
+function _diaryLoad(){ try{ const r=localStorage.getItem(DIARY_KEY); return r?(JSON.parse(r)||{}):{}; }catch(e){ return {}; } }
+function _diarySave(d){ try{ localStorage.setItem(DIARY_KEY,JSON.stringify(d)); }catch(e){} }
+function _diaryImportOnce(d){
+  // One-time: bring the old scattered notes in as day-one entries.
+  if(d._imported)return d;
+  try{
+    Object.keys(researchList||{}).forEach(t=>{
+      const it=researchList[t]; if(it&&it.note){
+        (d[t]=d[t]||[]).push({ts:it.ts||Date.now(),d:'',px:null,src:'research',text:String(it.note)});
+      }
+    });
+  }catch(e){}
+  try{
+    const p=_paper();
+    (p.holdings||[]).concat(p.history||[]).forEach(h=>{
+      if(h&&h.note&&h.ticker){
+        let ts=Date.now(); try{ ts=new Date(h.buyDate).getTime()||ts; }catch(e){}
+        (d[h.ticker]=d[h.ticker]||[]).push({ts,d:h.buyDate||'',px:(+h.buyPrice||null),src:'trade',text:String(h.note)});
+      }
+    });
+  }catch(e){}
+  d._imported=1; _diarySave(d); return d;
+}
+function _diaryAdd(ticker,text){
+  const t=String(ticker||'').toUpperCase(); if(!t)return false;
+  const clean=(typeof _sanText==='function'?_sanText(text,500):String(text||'').slice(0,500))||'';
+  if(!clean.trim())return false;
+  const d=_diaryImportOnce(_diaryLoad());
+  const s=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.find(x=>x.ticker===t):null;
+  const dd=(s&&window._exchDataDate&&window._exchDataDate[s.exchange])||'';
+  (d[t]=d[t]||[]).push({ts:Date.now(),d:dd,px:(s&&+s.price)||null,src:'me',text:clean});
+  if(d[t].length>200)d[t]=d[t].slice(-200);
+  _diarySave(d); return true;
+}
+function _diaryDel(ticker,ts){
+  const d=_diaryLoad(); const a=d[ticker]; if(!Array.isArray(a))return;
+  d[ticker]=a.filter(e=>e.ts!==ts); if(!d[ticker].length)delete d[ticker];
+  _diarySave(d);
+  try{ if(window._detailTicker===ticker)showShareDetail(ticker,window._detailDays||30); }catch(e){}
+  try{ if(window._modalType==='diaryAll')showDiaryAll(document.getElementById('diarySearch')?document.getElementById('diarySearch').value:''); }catch(e){}
+}
+// The merged timeline for one share: stored words + ledger facts, newest first.
+function _diaryEvents(ticker){
+  const out=[]; const d=_diaryImportOnce(_diaryLoad());
+  (d[ticker]||[]).forEach(e=>out.push({ts:e.ts,d:e.d,px:e.px,src:e.src,text:e.text,del:true}));
+  try{
+    const p=_paper();
+    (p.holdings||[]).forEach(h=>{ if(h.ticker===ticker&&h.buyDate){
+      let ts=Date.now(); try{ ts=new Date(h.buyDate).getTime()||ts; }catch(e){}
+      out.push({ts,d:h.buyDate,px:+h.buyPrice||null,src:'buy',text:'▲ bought '+(h.shares||h.qty||'')+' — holding'+(h.note?' · 📝 '+h.note:'')});
+    }});
+    (p.history||[]).forEach(h=>{ if(h.ticker===ticker){
+      if(h.buyDate){ let ts=0; try{ ts=new Date(h.buyDate).getTime(); }catch(e){}
+        if(ts)out.push({ts,d:h.buyDate,px:+h.buyPrice||null,src:'buy',text:'▲ bought '+(h.shares||h.qty||'')+(h.note?' · 📝 '+h.note:'')}); }
+      if(h.sellDate){ let ts=0; try{ ts=new Date(h.sellDate).getTime(); }catch(e){}
+        const tag={target:'🎯 target',stop:'🛑 stop',trail:'🪤 trailing',time:'⏱ time'}[h.trigger]||'sold';
+        if(ts)out.push({ts:ts+1,d:h.sellDate,px:+h.sellPrice||null,src:'sell',text:'▼ sold — '+tag}); }
+    }});
+  }catch(e){}
+  try{ const it=researchList&&researchList[ticker];
+    if(it&&!(d[ticker]||[]).some(e=>e.src==='research'))
+      out.push({ts:it.ts||0,d:'',px:null,src:'research',text:'🔬 flagged for research'+(it.note?' · '+it.note:'')});
+  }catch(e){}
+  out.sort((a,b)=>b.ts-a.ts); return out;
+}
+function _diaryFmt(e,ticker){
+  const cur=(function(){try{const s=allData.find(x=>x.ticker===ticker);return s&&s.currency==='USD'?'US$':'A$';}catch(err){return '$';}})();
+  const when=e.d||(e.ts?new Date(e.ts).toISOString().slice(0,10):'');
+  const px=(e.px!=null&&isFinite(e.px))?(' · '+cur+(+e.px).toFixed(e.px<1?3:2)):'';
+  const ico={me:'📓',research:'🔬',trade:'📝',buy:'▲',sell:'▼'}[e.src]||'📓';
+  const col={buy:'var(--green)',sell:'#ff9caa'}[e.src]||'var(--text)';
+  const del=e.del?`<button onclick="if(confirm('Delete this diary entry? Entries can be deleted but never edited — this cannot be undone.'))_diaryDel('${ticker}',${e.ts})" title="Delete this entry (entries can never be edited — a diary you can rewrite isn't a diary)" style="float:right;border:none;background:none;color:var(--dim);cursor:pointer;font-size:10px;">✕</button>`:'';
+  return `<div style="padding:6px 0;border-bottom:1px solid var(--border);">${del}<div style="font-size:9px;color:var(--dim);">${ico} ${when}${px}</div><div style="font-size:11px;line-height:1.5;color:${col};white-space:pre-wrap;">${String(e.text).replace(/</g,'&lt;')}</div></div>`;
+}
+function _diaryPanel(ticker){
+  const ev=_diaryEvents(ticker);
+  const rows=ev.length?ev.map(e=>_diaryFmt(e,ticker)).join(''):'<div style="font-size:10.5px;color:var(--dim);padding:6px 0;">Nothing written yet. The first honest sentence — why this share caught your eye — is the one future-you will thank you for.</div>';
+  return `<div style="margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);">
+    <div style="font:700 12px var(--sans);color:var(--gold);margin-bottom:2px;">📓 Share diary <span style="font-weight:400;color:var(--dim);font-size:9px;">— your dated record for ${ticker}. Words are yours; ▲▼ lines come from your practice ledger.</span></div>
+    <div style="display:flex;gap:6px;margin:8px 0;">
+      <input id="diaryAdd_${ticker}" placeholder="Add a dated note — it stamps today's date and price automatically" maxlength="500" style="flex:1;padding:7px 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:11px var(--sans);" onkeydown="if(event.key==='Enter'){this.nextElementSibling.click();}">
+      <button onclick="var i=document.getElementById('diaryAdd_${ticker}');if(_diaryAdd('${ticker}',i.value)){i.value='';showShareDetail('${ticker}',window._detailDays||30);}" style="padding:7px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">Add</button>
+    </div>
+    <div style="max-height:220px;overflow-y:auto;">${rows}</div>
+    <a href="#" onclick="showDiaryAll('');return false;" style="display:inline-block;margin-top:8px;font-size:10px;color:var(--blue);text-decoration:underline dotted;">📓 Every share's diary — with search</a>
+  </div>`;
+}
+// The all-diary view: every share with entries, and a live search box that
+// matches the ticker or any words in any entry (stored words AND ledger lines).
+function showDiaryAll(q){
+  q=String(q||'').trim().toLowerCase();
+  const d=_diaryImportOnce(_diaryLoad());
+  const tickers=new Set(Object.keys(d).filter(k=>k!=='_imported'));
+  try{ const p=_paper();
+    (p.holdings||[]).concat(p.history||[]).forEach(h=>{ if(h&&h.ticker)tickers.add(h.ticker); });
+    Object.keys(researchList||{}).forEach(t=>tickers.add(t));
+  }catch(e){}
+  const blocks=[];
+  Array.from(tickers).sort().forEach(t=>{
+    const ev=_diaryEvents(t); if(!ev.length)return;
+    const hit=!q || t.toLowerCase().includes(q) || ev.some(e=>String(e.text).toLowerCase().includes(q));
+    if(!hit)return;
+    const shown=q?ev.filter(e=>t.toLowerCase().includes(q)||String(e.text).toLowerCase().includes(q)):ev;
+    blocks.push({t,latest:shown[0]?shown[0].ts:0,html:`<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);">
+      <div style="font:800 13px var(--sans);color:var(--gold);margin-bottom:4px;"><a href="#" onclick="closeModal();showShareDetail('${t}',30);return false;" style="color:var(--gold);text-decoration:underline dotted;">${t}</a> <span style="font-weight:400;font-size:9px;color:var(--dim);">${shown.length} entr${shown.length===1?'y':'ies'}${q&&shown.length<ev.length?' matching (of '+ev.length+')':''}</span></div>
+      ${shown.slice(0,12).map(e=>_diaryFmt(e,t)).join('')}${shown.length>12?'<div style="font-size:9px;color:var(--dim);padding-top:4px;">…'+(shown.length-12)+' older — open the share to read them all</div>':''}
+    </div>`});
+  });
+  blocks.sort((a,b)=>b.latest-a.latest);
+  const body=`<div style="padding:4px 2px;">
+    <input id="diarySearch" placeholder="🔍 Search every diary — share code or any words you wrote" value="${q.replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--gold);background:var(--bg3);color:var(--text);font:12px var(--sans);margin-bottom:10px;" oninput="clearTimeout(window._diaryQT);window._diaryQT=setTimeout(()=>showDiaryAll(document.getElementById('diarySearch').value),250)">
+    ${blocks.length?blocks.map(b=>b.html).join(''):'<div style="font-size:11px;color:var(--dim);padding:10px 2px;">'+(q?'Nothing matches “'+q.replace(/</g,'&lt;')+'” in any share\'s diary.':'No diary entries yet. Open any share and write the first one — the diary also gathers your trade notes and research notes automatically.')+'</div>'}
+  </div>`;
+  showModal(body,'📓 Share diaries');
+  window._modalType='diaryAll';
+  try{ const i=document.getElementById('diarySearch'); if(q){i.focus();i.setSelectionRange(i.value.length,i.value.length);} }catch(e){}
+}
 function _kysPanel(s){
   try{
     var p=_tpPlan(s,5); if(!p||!(p.px>0)||p.vd==null)return '';
@@ -5386,6 +5508,7 @@ function showShareDetail(ticker,days){
     </div>
     ${(typeof _tpPanel==='function'&&_tpPanel(s))||''}
     ${(typeof _kysPanel==='function'&&_kysPanel(s))||''}
+    ${(typeof _diaryPanel==='function'&&_diaryPanel(s.ticker))||''}
     <div id="shdNews"></div>
     <div style="font-size:9px;color:var(--orange);margin-top:8px;">Streaks, accumulation and score shown <strong>as of each day</strong> · volume compared with this share's ${fmtV(baseAvg)} historical average · opens, highs &amp; lows ${s._ohlcSrc==='server'?'from the server\'s own store':'fetched per share (1 call, remembered)'}${s.exchange==='ASX'?' · 📢 = an ASX announcement was lodged that day (recent announcements only)':''} · estimates from end-of-day data, not advice.</div>
   `);
