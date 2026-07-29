@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-554",
+  "version": "2026.07.28-555",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v554 \u2014 red \u2018check this\u2019 flags now tell you WHY when the sample is tiny. A line like \u2018+$5.45 per $100, seen 13 times\u2019 used to get the generic warning; hovering it now says: \u2018Only 13 sightings \u2014 a number this size from a sample this small is noise, not an edge. One lucky trade drags the whole average.\u2019 Applies on the report card ladder, every signal's money sentence, and \ud83c\udfaf Best Evidence. Bands and maths unchanged \u2014 only the red flag got articulate. Hard-refresh (Ctrl+F5)."
+  "notes": "v555 \u2014 the name is now spelled the way the family spells it: THE PAULA\u2013NIN\u00d3 EDGE. Every place it appears \u2014 the report card ladder, the money sentences, \ud83c\udfaf Best Evidence, Lesson 51 and its dedication, training mode \u2014 now carries Nin\u00f3 with the accent. Hover the name anywhere to see the dedication. Hard-refresh (Ctrl+F5)."
 }
