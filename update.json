@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-573",
+  "version": "2026.07.28-574",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v573 \u2014 you can now set the \ud83d\udca7 floor FROM THE RADAR. Until now that control only existed on the \ud83d\udccb report card, so every warning ended with \u2018go to the card\u2019 \u2014 and it was easy to think you'd changed the floor when you'd changed something else. The radar's \u2018floor is wide open\u2019 warning now carries two buttons: SET $250K and SET $1M. Tapping one saves the floor, throws away the micro-cap grades, and starts a fresh background grading immediately \u2014 the counts follow within seconds, and the label beside them will name the floor they were measured on. Hard-refresh (Ctrl+F5), then tap SET $250K on the radar."
+  "notes": "v574 \u2014 \u2018could not reach our server\u2019 is no longer a dead end. That message now carries a TRY AGAIN button that clears the session's give-up latches and immediately re-attempts both halves of the evidence system, plus a SET $250K FIRST button when your floor is wide open (a smaller, tradeable universe is a far smaller upload and much likelier to succeed). If it keeps failing: your grading server is genuinely unreachable \u2014 check it in a browser at /health, and give it a minute between attempts rather than reloading repeatedly. Hard-refresh (Ctrl+F5)."
 }
