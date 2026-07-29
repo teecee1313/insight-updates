@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-509-open';
+const APP_VERSION='2026.07.28-510-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -13796,39 +13796,58 @@ async function buildListFromOffline(exch){
   if(!_cacheOn)return [];
   const db=await cacheOpen();if(!db)return [];
   const out=[];
-  await new Promise(res=>{
-    try{
-      const store=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE);
-      const req=store.openCursor();
-      req.onsuccess=e=>{
-        const cur=e.target.result;
-        if(!cur){res();return;}
-        const k=String(cur.key); const sep=k.indexOf(':');
-        const kexch=k.slice(0,sep), ticker=k.slice(sep+1);
-        if(kexch===exch){
-          const rec=cur.value;
-          const rows=rec&&Array.isArray(rec.rows)?_sortedCloses(rec.rows):[];
-          if(rows.length){
-            const last=rows[rows.length-1], prev=rows.length>1?rows[rows.length-2]:last;
-            const price=last.c||0, prevC=prev.c||price;
-            out.push({
-              ticker, exchange:exch, name:'',
-              type:'Ordinary',   // offline store has no type; default so type filter passes
-              price, prevClose:prevC,
-              change: price-prevC,
-              chgPct: prevC>0?((price-prevC)/prevC*100):0,
-              volume: last.v||0,
-              currency:'', mc: price*(last.v||0),
-              _history: rec.rows.slice(-260),
-              series: rows.slice(-260).map(r=>({d:r.d,c:r.c,v:r.v}))
-            });
-          }
+  // v510 — the freeze fix, measured twice.
+  // First attempt used a key-ranged cursor with a setTimeout yield — and lost
+  // 94% of the market, because an IndexedDB transaction AUTO-COMMITS the moment
+  // control returns to the event loop; the resumed cursor was dead and the
+  // catch swallowed it. The profile harness caught it (250 shares back from
+  // 4,000 seeded). The correct shape: PAGED getAll, each page in its OWN
+  // transaction, an explicit await between pages so the UI paints.
+  //  · key range bounds the read to THIS market (the old full-store walk made
+  //    NYSE pay for all of ASX first — 16.4s with a 2.15s dead freeze);
+  //  · 150 records per page keeps each page decode under a frame budget.
+  try{
+    const HI=exch+':\uffff';
+    let lo=exch+':', excl=false;
+    for(;;){
+      const page=await new Promise(res=>{
+        try{
+          const st=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE);
+          const range=IDBKeyRange.bound(lo,HI,excl,false);
+          const rq=st.getAllKeys(range,150), rv=st.getAll(range,150);
+          let keys=null,vals=null;
+          rq.onsuccess=()=>{keys=rq.result;if(vals)res({keys,vals});};
+          rv.onsuccess=()=>{vals=rv.result;if(keys)res({keys,vals});};
+          rq.onerror=rv.onerror=()=>res(null);
+        }catch(e){res(null);}
+      });
+      if(!page||!page.keys||!page.keys.length)break;
+      for(let pi=0;pi<page.keys.length;pi++){
+        const k=String(page.keys[pi]); const sep=k.indexOf(':');
+        const ticker=k.slice(sep+1);
+        const rec=page.vals[pi];
+        const rows=rec&&Array.isArray(rec.rows)?_sortedCloses(rec.rows):[];
+        if(rows.length){
+          const last=rows[rows.length-1], prev=rows.length>1?rows[rows.length-2]:last;
+          const price=last.c||0, prevC=prev.c||price;
+          out.push({
+            ticker, exchange:exch, name:'',
+            type:'Ordinary',   // offline store has no type; default so type filter passes
+            price, prevClose:prevC,
+            change: price-prevC,
+            chgPct: prevC>0?((price-prevC)/prevC*100):0,
+            volume: last.v||0,
+            currency:'', mc: price*(last.v||0),
+            _history: rec.rows.slice(-260),
+            series: rows.slice(-260).map(r=>({d:r.d,c:r.c,v:r.v}))
+          });
         }
-        cur.continue();
-      };
-      req.onerror=()=>res();
-    }catch(e){res();}
-  });
+      }
+      if(page.keys.length<150)break;
+      lo=page.keys[page.keys.length-1]; excl=true;   // next page starts after the last key
+      await new Promise(r=>setTimeout(r,0));          // paint between pages
+    }
+  }catch(e){}
   return out;
 }
 async function histCount(){
