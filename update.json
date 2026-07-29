@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-523",
+  "version": "2026.07.28-524",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v523 \u2014 \ud83c\udf93 Lesson 50: SOLID & PROMISING, the two bars \u2014 drawn. A new lesson explains exactly how a signal earns its badge, in plain English with diagrams: the two questions (enough tries? real or luck?), how every fire is scored fairly against its own day's market, the ladder with the exact bars (30+ fires & strength 1.0 for PROMISING; 50+ & 2.0 for SOLID), why \u201cnot proven\u201d is a waiting room rather than a verdict, and the new \ud83c\udfdb three-year crown. Find it at the bottom of \ud83c\udf93 Lessons. Hard-refresh (Ctrl+F5)."
+  "notes": "v524 \u2014 clearer era labels. The durability marks now read \u201c1\u20132 yrs ago\u201d and \u201c2\u20133 yrs ago\u201d instead of confusing overlapping date ranges. Why: each share is judged over its OWN stored history, so shares with shallower records sit earlier in calendar time and pooled dates smear together. The label now names the window honestly; hover any mark to see the actual pooled dates and the full explanation. Same maths, same verdicts \u2014 only the naming changed. Hard-refresh (Ctrl+F5)."
 }

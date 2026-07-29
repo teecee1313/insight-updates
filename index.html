@@ -1714,7 +1714,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-523-open';
+const APP_VERSION='2026.07.28-524-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20010,7 +20010,12 @@ function _renderReportCard(A){
     const tape=m=>(m.ron.n||m.roff.n)?` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work." style="cursor:help;">tape: 🟩 ${m.ron.n?f1(m.ron.sum/m.ron.n):'—'} (${m.ron.n}) / 🟥 ${m.roff.n?f1(m.roff.sum/m.roff.n):'—'} (${m.roff.n})</span>`:'';
     // ── v522: three-year era verdicts (w410 study, served with the grades) ──
     const ERAS=(A.eras&&A.eras.eras)||null, ERA_BUILT=(A.eras&&A.eras.built)||'';
-    const _eraYears=es=>{ if(!es||!es.from||!es.to)return ''; const a=es.from.slice(0,4), b=es.to.slice(2,4); return a+'–'+b; };
+    // v524: eras are RELATIVE windows (bars ~250–500 and ~500–750 back, per
+    // SHARE) — shares with shallower history sit earlier in calendar time, so a
+    // pooled date range smears ("2023–25") and misleads. Name the window for
+    // what it is; the actual pooled dates live in the tooltip.
+    const _eraName=e=>(e==='2'?'1–2 yrs ago':'2–3 yrs ago');
+    const _eraSpan=es=>(es&&es.from&&es.to)?(es.from+' → '+es.to+' pooled across shares — each share is judged over its OWN stored window, so calendar dates overlap between eras'):'';
     const _eraMark=(m,st)=>{
       if(!st||st.n<10)return {ch:'·',col:'var(--dim)',word:'too few fires in this era to say ('+((st&&st.n)||0)+')'};
       const dirT=m.dirNeg?-st.t:st.t, working=m.dirNeg?st.e<0:st.e>0;
@@ -20024,7 +20029,7 @@ function _renderReportCard(A){
       for(const e of ['2','3']){
         const es=ERAS[e]; if(!es)continue;
         const st=es.perKey&&es.perKey[k], mk=_eraMark(m,st);
-        bits.push(`<span title="${_eraYears(es)}: ${mk.word}. Graded by the same maths as the live card, over that era's own tradeable market." style="cursor:help;">${_eraYears(es)} <b style="color:${mk.col}">${mk.ch}</b>${(st&&st.n>=10)?(' '+f1(m.dirNeg?-st.e:st.e)):''}</span>`);
+        bits.push(`<span title="${_eraName(e)} (${_eraSpan(es)}): ${mk.word}. Graded by the same maths as the live card, against that window's own tradeable market." style="cursor:help;">${_eraName(e)} <b style="color:${mk.col}">${mk.ch}</b>${(st&&st.n>=10)?(' '+f1(m.dirNeg?-st.e:st.e)):''}</span>`);
       }
       if(!bits.length)return '';
       const s2=ERAS['2']&&ERAS['2'].perKey&&ERAS['2'].perKey[k], s3=ERAS['3']&&ERAS['3'].perKey&&ERAS['3'].perKey[k];
@@ -20095,7 +20100,7 @@ function _renderReportCard(A){
       ?'<div style="margin-bottom:8px;"><span title="These grades were computed on YOUR server — the scoring formula runs there, not in this page." style="display:inline-block;border:1px solid var(--green);color:var(--green);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">⚡ GRADED ON YOUR SERVER</span></div>'
       :'<div style="margin-bottom:8px;"><span title="Computed on this device — the app graded here because your server was not reachable this time." style="display:inline-block;border:1px solid var(--gold);color:var(--gold);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">🖥 COMPUTED ON THIS DEVICE</span></div>';
     const eraNote=ERAS
-      ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5;">🏛 <b>Three-year durability study</b> (built ${ERA_BUILT}): each line below also shows how it fared in ${['2','3'].map(e=>_eraYears(ERAS[e])).filter(Boolean).join(' and ')} — graded by the same maths, against each era's own market. Tiers are still decided by the RECENT year: an edge that died cannot hide inside old averages.</div>`
+      ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5;">🏛 <b>Three-year durability study</b> (built ${ERA_BUILT}): each line below also shows how it fared <b>1–2 years ago</b> and <b>2–3 years ago</b> (each share judged over its own stored window) — graded by the same maths, against each window's own market. Tiers are still decided by the RECENT year: an edge that died cannot hide inside old averages.</div>`
       : `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.5;">🏛 The three-year durability study hasn't been built on the server yet — every grade below covers the recent year only, and says nothing about earlier years.</div>`;
     const head=eraNote+_srcBadge+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`;
     // rank helper for combo/sequence sections
