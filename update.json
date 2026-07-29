@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-555",
+  "version": "2026.07.28-556",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v555 \u2014 the name is now spelled the way the family spells it: THE PAULA\u2013NIN\u00d3 EDGE. Every place it appears \u2014 the report card ladder, the money sentences, \ud83c\udfaf Best Evidence, Lesson 51 and its dedication, training mode \u2014 now carries Nin\u00f3 with the accent. Hover the name anywhere to see the dedication. Hard-refresh (Ctrl+F5)."
+  "notes": "v556 \u2014 THE PAULA\u2013NIN\u00d3 EDGE TAKES THE MAIN TABLE. The Range column's seat now belongs to \ud83d\udcb0 PN Edge: for every share whose strongest PROVEN line fired today, you see the money \u2014 \u2018+$2.42/$100\u2019 in its gauge colour with the mini bar on the fixed $0\u2013$3.50 scale. Hover it and the tooltip names the exact lines (combos included), the tier, and the plain meaning. Shares with nothing proven firing show an honest \u2018\u2014\u2019 \u2014 hover it and the app tells you that's normal. TAP THE COLUMN HEADER (or pick \ud83d\udcb0 PN Edge in Sort by) to rank the entire market by proven money \u2014 probably the most useful single click in the app. Range didn't die: it moved into the same cell's hover, and the range picker is retired. The column reads the very same grades as the radar and \ud83c\udfaf Best Evidence, so all three always agree. Hard-refresh (Ctrl+F5)."
 }

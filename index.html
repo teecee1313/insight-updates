@@ -1609,6 +1609,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <span class="slbl">Sort by</span>
     <select id="sortSel" onchange="render()">
       <option value="volPct">Volume Surge</option>
+      <option value="pnEdge">💰 PN Edge</option>
       <option value="chgPct">% Change</option>
       <option value="price">Price</option>
       <option value="daysUp">Days Up</option>
@@ -1684,18 +1685,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
         <th onclick="sb('ticker')" data-i18n="colTicker">Ticker / Name</th>
         <th onclick="sb('price')" data-i18n="colPrice">Price</th>
         <th onclick="sb('chgPct')" data-i18n="colChange">Change</th>
-        <th onclick="sb('rangePos')" title="Trading range: the band the share has normally traded in over the chosen window (pick it right here in the header — 3 days up to 3 months), and where the price sits inside it now (0% = at the floor, 100% = at the ceiling). Near the low is highlighted for RESEARCH, not as a buy signal — a floor can hold or break." style="min-width:118px;">
-          <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
-            <span>📊 <span id="rangeColLbl">Range</span></span>
-            <select id="rangeWinSel" onclick="event.stopPropagation();" onchange="event.stopPropagation();setRangeWindow(this.value);" title="Change the window the trading range is measured over" style="font-size:9px;padding:1px 3px;border-radius:4px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted);font-family:var(--sans);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600;">
-              <option value="66">3 months</option>
-              <option value="20">1 month</option>
-              <option value="10">2 weeks</option>
-              <option value="5">1 week</option>
-              <option value="3">3 days</option>
-            </select>
-          </div>
-        </th>
+        <th onclick="sb('pnEdge')" title="💰 The Paula–Ninó Edge (PN Edge) — money made per $100 invested by the strongest PROVEN line firing on this share today, measured beyond the market, before costs. Tap to sort the whole table by it. ‘—’ means no proven line fired on that share today — which is normal: most days, most shares fire nothing proven.">💰 PN Edge</th>
         <th onclick="sb('volPct')" data-i18n="colVolSurge" title="Today's volume compared with this share's historical average, as a percentage above or below. +100% means today is double the average. The deeper the cached history (shown under each figure), the more reliable this is.">Vol Surge</th>
         <th onclick="sb('volume')" data-i18n="colVolume">Volume</th>
         <th onclick="sb('daysUp')" data-i18n="colStreak" title="Consecutive days the price closed higher">📈 Price Streak</th>
@@ -1720,7 +1710,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-555-open';
+const APP_VERSION='2026.07.28-556-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4447,6 +4437,25 @@ function directorAltUrlFor(ticker,exch){
 
 // Compact Range column cell: shows the 4-week band, a position dot, and an
 // HONEST "near low — research" flag (never a buy signal). Grey '?' until computed.
+function _pnEdgeCell(s){
+  // v556: the main table's PN Edge cell. Reads the SAME per-share marks the
+  // radar computes (rule pass + card lines incl. combos), so the table, the
+  // radar and 🎯 Best Evidence can never disagree. Range still lives in
+  // this cell's tooltip — it lost the column, not the app.
+  try{
+    var rng='';
+    if(s.rangeLow!=null&&s.rangeHigh!=null&&s.rangePos!=null){ var cur=s.currency||''; rng='\nRange: '+fmtP(s.rangeLow,cur)+' – '+fmtP(s.rangeHigh,cur)+' (now at '+Math.round(s.rangePos)+'%).'; }
+    var fresh=(s._evD===_evDD());
+    if(fresh&&s._evTier&&s._evTier!=='TOO EARLY'&&s._evEdge!=null){
+      var g=_edgeGauge(s._evEdge);
+      var why=(s._evWhy||'').replace(/"/g,'&quot;');
+      var tip='💰 The Paula–Ninó Edge — money per $100 from the strongest proven line firing on this share today ('+s._evTier+').'+(why?'\nLines: '+why:'')+'\n'+g.tip+rng;
+      return '<span title="'+tip+'" style="cursor:help;white-space:nowrap;"><b style="color:'+g.col+';font-family:var(--mono);">'+g.money+'</b><span style="color:var(--dim);font-size:9px;">/$100</span> '+g.bar+'</span>';
+    }
+    var tipE='No proven line fired on this share today — that’s normal: most days, most shares fire nothing proven. The 📋 report card shows which lines ARE proven right now.'+rng;
+    return '<span title="'+tipE+'" style="cursor:help;color:var(--dim);">—</span>';
+  }catch(e){ return '<span style="color:var(--dim)">—</span>'; }
+}
 function _rangeCell(s){
   if(s.rangeLow==null||s.rangeHigh==null||s.rangePos==null) return '<span style="color:var(--dim)">?</span>';
   const cur=s.currency||'';
@@ -4477,6 +4486,7 @@ function render(){
   const sk=document.getElementById('sortSel').value;sortKey=sk;
   const sv=(s)=>{ // sort value, incl. derived keys for News & Signals columns
     if(sk==='rangePos')return s.rangePos==null?9999:s.rangePos; // low % = near floor, sorts to top ascending
+    if(sk==='pnEdge')return (s._evD===_evDD()&&s._evTier&&s._evTier!=='TOO EARLY'&&s._evEdge!=null)?((s._evTier==='SOLID'?1000:0)+s._evEdge):-9999; // proven first, then by money; unproven sink
     if(sk==='newsRank')return s.newsFlag==='likely'?2:s.newsFlag==='quiet'?1:0;
     if(sk==='sigRank')return (s.allSigN||0)*1000+(s.unusualScore||0)*10+(s.speedScore||0)+((s.annDir5d?1:0)+(s.dirBuy?1:0)+(s.instBuy?1:0)+(s.sigBreakout?1:0)+(s.sigDist?1:0)+(s.sigVolRecord?1:0)+(s.sigCross?1:0))*0.9;
     if(sk==='techScore')return s.techScore||0;
@@ -4604,7 +4614,7 @@ function renderRows(rows){
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)}</span></td>
-<td style="text-align:center;">${_rangeCell(s)}</td>
+<td style="text-align:center;">${_pnEdgeCell(s)}</td>
 <td><div class="vw"><div class="vbg"><div class="vfl" style="width:${s.volCalced?bp:0}%"></div></div>
     <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'?'}</span></div>${s.volCalced&&s.avgVol?`<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}</div>`:''}${_srBadge}</td>
 <td><span style="font-family:var(--mono);font-size:11px">${fmtV(s.volume)}</span>${s.volCalced?`<br><span style="font-family:var(--mono);font-size:9px;color:${volDepthGood(s.volWindow)?'var(--green)':'var(--muted)'}">avg ${fmtV(s.avgVol)} · ${s.volWindow||''}</span>`:''}</td>
