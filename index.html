@@ -1533,9 +1533,10 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <!-- STEP 2 · INSTANT REPORTS -->
     <div class="step-hdr"><span class="step-num">2</span> <span data-i18n="instantReports">Instant Reports</span> <span class="step-sub">drag ⠿ to reorder</span></div>
     <div id="whatsNewCardAdv" style="display:none;"></div>
-    <div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🌱 Climbers Today</span> is built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
+    <div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
-    <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume clearly above its own average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-primary" style="border-color:var(--green);color:var(--green);" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades.">🎯 Best Evidence Today</button></div>
+      <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume clearly above its own average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeScan()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Shows every share trading above its normal volume, biggest surge first, right in your table — so you can chart, research or practice-buy any of them exactly like the other scans. Volume is the crowd's attention: a share doing 3× its usual business is being looked at by someone. A 🖨 full report button appears with the results if you want the printable document version, with its Warm → Hot → Red-hot → Extreme bands. A data summary, not advice."><span>📈 Volume Surge</span> <span class="scan-tag">above-normal volume · biggest first</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-top20"><span class="drag-h">⠿</span><button id="top10Btn" onclick="topTenScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.14);font-weight:700;" title="Scans every share, scores each out of 10 (accumulation-weighted — same as the ⭐ Score column), and shows the 20 highest. A data summary, not advice."><span>🏆 Top 20 to Watch</span> <span class="scan-tag">highest score /10 · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-gradecheck"><span class="drag-h">⠿</span><button onclick="gradingCheckReport()" class="scan-alt" style="border-color:#b39ddb;color:#b39ddb;" title="The app tests its own premise: take each signal line's verdict in an EARLIER year, then look at what that line actually did in the year that followed. Reports the answer whichever way it falls.">⚖ Does the grading work?</button></div>
@@ -1717,7 +1718,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-536-open';
+const APP_VERSION='2026.07.28-537-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18880,6 +18881,103 @@ function _nurFireToday(sh,k){
   return k.split('+').every(one);
 }
 
+
+
+// ══ v537: 🎯 Best Evidence Today — the buy-side door into the evidence ═══
+// Pure selector, testable on its own: which lines qualify for the list.
+function _bevSelect(A){
+  return Object.keys(A.M).map(function(k){ return {k:k,m:A.M[k]}; }).filter(function(it){
+    var m=it.m;
+    if(!m||!m.n)return false;
+    if(m.dirNeg)return false;                          // warnings never on a buy list
+    if(it.k.indexOf('>')>=0)return false;              // sequences: can't be checked today
+    if(/^(vr|blk)-$/.test(it.k))return false;          // down-day singles are warnings too
+    if(m.tier!=='solid'&&m.tier!=='promising')return false;  // the graded bar, unsoftened
+    if(!(m.edge>0))return false;
+    return true;
+  }).sort(function(a,b){ return _cardScore10(b.m)-_cardScore10(a.m); });
+}
+function bestEvidenceScan(){
+  try{
+    if(!Array.isArray(allData)||!allData.length){ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Load your market data first \u2014 tap \u2b07 Load All Shares, then run this again.</div>','\ud83c\udfaf Best Evidence Today'); return; }
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    var C=window._auditCache;
+    var A=(C&&C.A&&C.d===dd&&C.ex===currentExch)?C.A:null;
+    if(!A||!A.M){
+      try{ if(typeof _auditWarm==='function')_auditWarm(); }catch(e){}
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Today\u2019s signal grades aren\u2019t on this device yet \u2014 open the \ud83d\udccb Signal report card once, then run this again.</div>','\ud83c\udfaf Best Evidence Today'); return;
+    }
+    var lines=_bevSelect(A);
+    if(!lines.length){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">\ud83c\udfaf No line currently holds a PROMISING or SOLID badge with a positive edge \u2014 so there is no graded evidence to point at today. That is the honest answer, not an error. The \ud83c\udf31 nursery shows what is climbing toward the bar.</div>','\ud83c\udfaf Best Evidence Today'); return;
+    }
+    var nameK=function(k){ return k.split('+').map(function(x){ return (A.defs&&A.defs[x]&&A.defs[x].name)||x; }).join(' + '); };
+    var univ=allData.filter(function(sh){ return sh&&(typeof _cardLiqPass!=='function'||_cardLiqPass(sh)); });
+    var items=[];
+    for(var i=0;i<univ.length;i++){
+      var sh=univ[i], firing=[];
+      for(var c=0;c<lines.length;c++){ if(_nurFireToday(sh,lines[c].k)===true)firing.push(lines[c]); }
+      if(firing.length)items.push({s:sh,firing:firing,best:_cardScore10(firing[0].m)});
+    }
+    if(!items.length){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">\ud83c\udfaf There ARE '+lines.length+' badge-holding lines right now \u2014 but none of them fired on any tradeable share today. Proven patterns are rare by nature; an empty day is normal and honest. \U0001f331 Climbers Today shows the unproven lines that DID fire.</div>','\ud83c\udfaf Best Evidence Today'); return;
+    }
+    items.sort(function(a,b){ return (b.best-a.best)||(b.firing.length-a.firing.length)||(((b.s.watchScore||0))-((a.s.watchScore||0))); });
+    var BEV_MAX=20;
+    var top=items.slice(0,BEV_MAX);
+    F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+    filtered=top.map(function(x){ return x.s; });
+    lastScanLabel='\ud83c\udfaf Best Evidence Today';
+    _resetStatsForNewView();
+    render();statsBar();try{dots&&dots();mkBadges&&mkBadges();}catch(e){}
+    document.getElementById('statsBar').style.display='';
+    document.getElementById('toolbar').style.display='flex';
+    // era marks + trajectory for a line, same rules the card uses, compactly
+    var ERAS=(A.eras&&A.eras.eras)||null;
+    var eraBit=function(it){
+      if(!ERAS)return '';
+      var m=it.m, out=[];
+      [['2','1\u20132y'],['3','2\u20133y']].forEach(function(pair){
+        var es=ERAS[pair[0]]; var st=es&&es.perKey&&es.perKey[it.k];
+        if(!st||st.n<10){ out.push(pair[1]+' \u00b7'); return; }
+        var dirT=m.dirNeg?-st.t:st.t, working=m.dirNeg?st.e<0:st.e>0;
+        out.push(pair[1]+' '+(working&&dirT>=1?'<b style="color:var(--green)">\u2713</b>':working?'<b style="color:var(--gold)">~</b>':'<b style="color:#ff9caa">\u2717</b>'));
+      });
+      var s2=ERAS['2']&&ERAS['2'].perKey&&ERAS['2'].perKey[it.k], s3=ERAS['3']&&ERAS['3'].perKey&&ERAS['3'].perKey[it.k];
+      var traj='';
+      if(s2&&s3&&s2.n>=10&&s3.n>=10){
+        var d=function(x){ return m.dirNeg?-x:x; };
+        var a=d(s3.e), b=d(s2.e), c=d(m.edge);
+        traj=(c>b&&b>a)?' <span style="color:var(--green)">\u2197</span>':(c<b&&b<a)?' <span style="color:#ff9caa">\u2198</span>':(Math.abs(c-a)<0.3)?' <span style="color:var(--muted)">\u2192</span>':' <span style="color:var(--dim)">\u223f</span>';
+      }
+      return ' \u00b7 '+out.join(' ')+traj;
+    };
+    var shares=top.map(function(x,ix){
+      var sh=x.s, best=x.firing[0];
+      var pv=(sh.price!=null&&isFinite(sh.price))?('$'+(+sh.price<1?(+sh.price).toFixed(4):(+sh.price).toFixed(2))):'';
+      var ch=(sh.chgPct!=null&&isFinite(sh.chgPct))?((sh.chgPct>0?'+':'')+(+sh.chgPct).toFixed(2)+'%'):'';
+      var chc=(sh.chgPct>0?'var(--green)':(sh.chgPct<0?'#ff9caa':'var(--muted)'));
+      var more=(x.firing.length>1)?(' <span style="color:var(--dim);">(+'+(x.firing.length-1)+' more proven line'+(x.firing.length>2?'s':'')+')</span>'):'';
+      var sc=_cardScore10(best.m), scCol=sc>=7?'var(--green)':'var(--gold)';
+      return '<div style="display:flex;align-items:baseline;gap:8px;padding:7px 3px;border-bottom:1px solid var(--border);font-size:11.5px;">'
+        +'<span style="flex:0 0 26px;text-align:right;color:var(--muted);font-weight:700;">'+(ix+1)+'.</span>'
+        +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'
+        +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,30):'')
+          +'<div style="font-size:10px;color:var(--muted);margin-top:2px;"><b style="color:var(--text)">'+nameK(best.k)+'</b>'+more
+          +'<br>'+(best.m.tier==='solid'?'<span style="color:var(--green);font-weight:700;">SOLID</span>':'<span style="color:var(--gold);font-weight:700;">PROMISING</span>')
+          +' \u00b7 edge '+f1(best.m.edge)+' \u00b7 fired '+best.m.n.toLocaleString()+'\u00d7'+eraBit(best)+'</div></span>'
+        +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
+        +'<span style="flex:0 0 52px;text-align:right;font-family:var(--mono);font-weight:800;font-size:13px;color:'+scCol+';">'+sc+'<span style="font-size:9px;color:var(--dim);">/10</span></span>'
+        +'</div>';
+    }).join('');
+    showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
+      +'<div style="font-weight:800;color:var(--text);font-size:13px;margin-bottom:4px;">\ud83c\udfaf Best Evidence Today \u2014 '+top.length+' share'+(top.length===1?'':'s')+' now in the table'+(items.length>top.length?(' <span style="font-weight:400;color:var(--dim);font-size:11px;">(strongest '+top.length+' of '+items.length+' firing a proven line today)</span>'):'')+'</div>'
+      +'<div style="font-size:11px;margin-bottom:8px;">Of everything that fired today, these carry the <b style="color:var(--text)">best graded evidence</b>: each share fired at least one line holding a PROMISING or SOLID badge with a positive market-beating edge, ranked by the strength of the best line it fired. Combinations rank highest because that is where the edge lives.</div>'
+      +shares
+      +'<div style="margin-top:10px;font-size:10px;color:var(--dim);line-height:1.5;border-top:1px solid var(--border);padding-top:7px;">The evidence is about the <b>LINE</b>, not the share \u2014 a proven pattern fired on it today, which is a reason to LOOK, backed by a track record. It says nothing about this company\u2019s news, sector or story, and \u201cDID work\u201d is never \u201cWILL work\u201d. Same maths as the \ud83d\udccb report card \u2014 the two can\u2019t disagree.</div>'
+      +'</div>','\ud83c\udfaf Best Evidence Today');
+  }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Best Evidence hit a snag: '+e.message+'</div>','\ud83c\udfaf Best Evidence Today'); }catch(_){ } }
+}
 
 // ══ v536: does the grading actually work? ════════════════════════════════
 // The app auditing its own premise, from the three-year era study. Takes each
