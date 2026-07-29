@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-558",
+  "version": "2026.07.28-559",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v558 \u2014 the table declutter you asked for. ONE \ud83d\udcca VOLUME column now tells the whole volume story: the surge bar and %, then \u2018today 73.0M \u00b7 vs 3-month avg 1.1M\u2019 on one line, the buying-pressure badge, and a small \ud83d\udcf0 chip when news likely explains the spike (hover it for why that matters). ONE STREAKS column stacks the price dots over the volume dots, labelled \u2018d px\u2019 and \u2018d vol\u2019. The separate News 5d column is gone \u2014 the chip carries the signal, and \ud83d\uddde Filter by news plus each share's report keep the detail. Thirteen columns are now ten, every one earning its width, with \ud83d\udcb0 PN Edge front and centre. All sort options still work (Sort by \u2192 Volume / Vol Streak / News still there). Hard-refresh (Ctrl+F5)."
+  "notes": "v559 \u2014 the \u2018How to read this card\u2019 deep-dive has been rewritten to match today's app. It now teaches the Paula\u2013Nin\u00f3 Edge in money per $100 on the fixed $0\u2013$3.50 scale (including why \u2018too good\u2019 goes red), your real windows (one week / six weeks, bought at the NEXT day's close), badges' good news AND bad news including the 71% fade and why combos rank first, strength counted across days (\u2018one morning is ONE piece of evidence\u2019), the earlier-years marks, and where Lessons 51\u201354 pick up. The old text described an app three eras ago. Hard-refresh (Ctrl+F5)."
 }
