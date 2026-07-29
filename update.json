@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-527",
+  "version": "2026.07.28-528",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v527 \u2014 \ud83c\udf31 Climbers Today now lists the top 20 shares (was 10). Same ranking: closest to the SOLID bar first, then shares firing more than one climbing line, then today's watch score. When more than 20 shares are firing a climbing signal the header says so \u2014 e.g. \u201cclosest 20 of 63 firing today\u201d \u2014 so you always know you're seeing a shortlist, not the whole set. Everything else unchanged: still a nursery, not a menu \u2014 every line behind the list is UNPROVEN. Hard-refresh (Ctrl+F5)."
+  "notes": "v528 \u2014 \ud83c\udf31 Climbers Today now lists the SHARES. The report used to explain the climbing signals and drop the shares quietly into the table behind it; now the twenty shares lead the report by name: rank, ticker (tap for the printable one-pager), price and today's move, which climbing lines each one fired, and what its strongest climber still needs (\u201cneeds ~4 more fires\u201d or \u201cstrength 1.7 of 2.0\u201d). The explanation of the lines is still there, underneath, so you can always see WHY a share made the list. Hard-refresh (Ctrl+F5)."
 }
