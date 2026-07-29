@@ -1715,7 +1715,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-531-open';
+const APP_VERSION='2026.07.28-532-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11329,6 +11329,22 @@ function countStreak(history){
 // volAvgWindow: 0=Auto(all history), 22=1mo, 66=3mo, 132=6mo, 252=1yr.
 function effVolWindow(){ return (typeof volAvgWindow==='number'&&volAvgWindow>0)?volAvgWindow:90; }
 function effVolWindowLabel(){ return (typeof volAvgWindow==='number'&&volAvgWindow>0)?(VOLWIN_LABELS[volAvgWindow]||(volAvgWindow+'d')):'3-month'; }
+// v532 (audit A2): the GRADING ENGINE averages the previous 90 BARS
+// (avgPrev(i,90) in the worker). The app was averaging 90 CALENDAR days —
+// about 62 trading days — then applying the same ×1.5/×1.8/×2.0
+// thresholds to it, so "fired today" was not quite the event the engine had
+// graded. This is the engine's definition, in the app's language.
+function _engineVolAvg(history,bars){
+  if(!Array.isArray(history)||history.length<2)return 0;
+  const getDate=q=>String(qField(q,['dateStamp','date','Date'])||'');
+  const getVol=q=>parseFloat(qField(q,['volume','Volume','v']));
+  const h=history.slice().sort((a,b)=>{const da=getDate(a),db=getDate(b);return da<db?1:da>db?-1:0;});
+  const past=h.slice(1);                       // drop today, like the engine
+  const take=past.slice(0,Math.max(1,bars||90));
+  let sum=0,n=0;
+  for(const q of take){ const v=getVol(q); if(!isNaN(v)&&v>0){sum+=v;n++;} }
+  return n>0?Math.round(sum/n):0;
+}
 function computeVolAvg(history,limitDays){
   // Average daily volume over the window, EXCLUDING today's bar. If limitDays
   // given, only bars within that many days are averaged (the 3-month reference).
@@ -11339,7 +11355,12 @@ function computeVolAvg(history,limitDays){
   const past=h.slice(1); // drop today
   let rows=past;
   if(limitDays){
-    const cutoff=new Date(Date.now()-limitDays*86400000).toISOString().slice(0,10);
+    // v532 (audit A3): anchor on the NEWEST BAR, never on Date.now(). With
+    // stale or restored data the clock-anchored window silently shrank — and
+    // past ~90 days old it returned 0, switching every volume flag off with
+    // no message at all.
+    const anchor=getDate(h[0]).slice(0,10)||new Date().toISOString().slice(0,10);
+    const cutoff=new Date(new Date(anchor+'T12:00:00Z').getTime()-limitDays*86400000).toISOString().slice(0,10);
     rows=past.filter(q=>getDate(q).slice(0,10)>=cutoff);
   }
   let sum=0,n=0;
@@ -13623,7 +13644,7 @@ function _setPatternFlags(s,hist){
   // live-load helpers computed these, so signals never appeared from saved data.
   // v248: plus the pattern pack — Breakout / Dist? / Vol record / MA cross.
   try{
-    const avg90=computeVolAvg(hist,90)||s.avg3mo||s.avgVol||0;
+    const avg90=_engineVolAvg(hist,90)||s.avg3mo||s.avgVol||0; // v532 (A2): engine-identical 90 BARS
     if(!(avg90>0))return;
     if(!s.avg3mo)s.avg3mo=avg90;
     const ratio=s.volume/avg90;
@@ -13912,7 +13933,7 @@ async function calcStreaks(){
       s.newsFlag=newsProxy(hist);
       try{computeTechnicals(s,hist);}catch(e){}
       // The real 3-month average becomes the surge reference.
-      const avg3=computeVolAvg(hist,90);
+      const avg3=_engineVolAvg(hist,90); // v532 (A2): 90 BARS, matching the grading engine
       s.avg3mo=avg3;
       // Displayed volume comparison uses the USER-selected window; the block/
       // unusual signals keep the stable 3-month reference below.
@@ -20217,6 +20238,13 @@ function _renderReportCard(A){
     // pooled date range smears ("2023–25") and misleads. Name the window for
     // what it is; the actual pooled dates live in the tooltip.
     const _eraName=e=>(e==='2'?'1–2 yrs ago':'2–3 yrs ago');
+    // v532 (audit A1): the era study is graded on a FIVE-day outcome window.
+    // The card can be viewed at 5/10/30 — so off the 5-day view these marks
+    // answer a DIFFERENT question from the tier beside them. Say so, and dim
+    // them, rather than letting them read as the same measurement.
+    const ERA_HOLD=5;
+    const _eraWinOff=((A.hold===10||A.hold===30)?A.hold:5)!==ERA_HOLD;
+    const _eraWinNote=_eraWinOff?(' These verdicts are graded on the 5-day outcome window, NOT the '+A.hold+'-day window you are viewing — a different question from the tier beside them.'):'';
     const _eraSpan=es=>(es&&es.from&&es.to)?(es.from+' → '+es.to+' pooled across shares — each share is judged over its OWN stored window, so calendar dates overlap between eras'):'';
     const _eraMark=(m,st)=>{
       if(!st||st.n<10)return {ch:'·',col:'var(--dim)',word:'too few fires in this era to say ('+((st&&st.n)||0)+')'};
@@ -20231,13 +20259,29 @@ function _renderReportCard(A){
       for(const e of ['2','3']){
         const es=ERAS[e]; if(!es)continue;
         const st=es.perKey&&es.perKey[k], mk=_eraMark(m,st);
-        bits.push(`<span title="${_eraName(e)} (${_eraSpan(es)}): ${mk.word}. Graded by the same maths as the live card, against that window's own tradeable market." style="cursor:help;">${_eraName(e)} <b style="color:${mk.col}">${mk.ch}</b>${(st&&st.n>=10)?(' '+f1(m.dirNeg?-st.e:st.e)):''}</span>`);
+        bits.push(`<span title="${_eraName(e)} (${_eraSpan(es)}): ${mk.word}. Graded by the same maths as the live card, against that window's own tradeable market.${_eraWinNote}" style="cursor:help;${_eraWinOff?'opacity:.55;':''}">${_eraName(e)} <b style="color:${mk.col}">${mk.ch}</b>${(st&&st.n>=10)?(' '+f1(m.dirNeg?-st.e:st.e)):''}</span>`);
       }
       if(!bits.length)return '';
       const s2=ERAS['2']&&ERAS['2'].perKey&&ERAS['2'].perKey[k], s3=ERAS['3']&&ERAS['3'].perKey&&ERAS['3'].perKey[k];
       const both=s2&&s3&&_eraMark(m,s2).ch==='✓'&&_eraMark(m,s3).ch==='✓';
-      const crown=(both&&(m.tier==='solid'||m.tier==='promising'))?` <span title="This line's edge shows in the CURRENT year (its live tier) AND earned a ✓ in both earlier stored years — the strongest durability evidence this card can offer. Still never a guarantee." style="cursor:help;color:var(--gold);font-weight:700;">🏛 held across all three years</span>`:'';
-      return ` · <span style="color:var(--dim)">earlier years:</span> ${bits.join(' · ')}${crown}`;
+      const crown=(both&&!_eraWinOff&&(m.tier==='solid'||m.tier==='promising'))?` <span title="This line's edge shows in the CURRENT year (its live tier) AND earned a ✓ in both earlier stored years — the strongest durability evidence this card can offer. Still never a guarantee." style="cursor:help;color:var(--gold);font-weight:700;">🏛 held across all three years</span>`:'';
+      // v532 (improvement B1): three measurements of the same line ARE a
+      // trend. A SOLID line whose edge has faded era-to-era is a different
+      // proposition from one climbing across all three — and until now they
+      // looked identical. Directional edge, oldest → newest.
+      const _traj=(()=>{
+        if(_eraWinOff)return ''; // windows differ — a trend across them is meaningless
+        if(!s2||!s3||s2.n<10||s3.n<10)return '';
+        const d=x=>(m.dirNeg?-x:x);
+        const a=d(s3.e), b=d(s2.e), c=d(m.edge);            // 2–3 yrs → 1–2 yrs → now
+        const up=(c>b&&b>a), down=(c<b&&b<a);
+        const span=Math.abs(c-a);
+        if(span<0.3)return ` · <span title="The edge has stayed within a third of a percent across all three windows (${f1(a)} → ${f1(b)} → ${f1(c)}). Steady is not proof — but it is the least fragile shape a line can have." style="cursor:help;color:var(--muted)">→ steady (${f1(a)} → ${f1(b)} → ${f1(c)})</span>`;
+        if(up)return ` · <span title="The edge has grown in each window (${f1(a)} → ${f1(b)} → ${f1(c)}). Encouraging — but three points is a short trend, and a strengthening edge can still be a crowded trade about to unwind." style="cursor:help;color:var(--green)">↗ strengthening (${f1(a)} → ${f1(b)} → ${f1(c)})</span>`;
+        if(down)return ` · <span title="The edge has SHRUNK in each window (${f1(a)} → ${f1(b)} → ${f1(c)}). A tier earned on the recent year can still be fading — this is exactly the shape that looks good today and disappoints tomorrow." style="cursor:help;color:#ff9caa">↘ fading (${f1(a)} → ${f1(b)} → ${f1(c)})</span>`;
+        return ` · <span title="The edge moved in no consistent direction across the three windows (${f1(a)} → ${f1(b)} → ${f1(c)}) — no trend to read." style="cursor:help;color:var(--dim)">∿ mixed (${f1(a)} → ${f1(b)} → ${f1(c)})</span>`;
+      })();
+      return ` · <span style="color:var(--dim)">earlier years:</span> ${bits.join(' · ')}${_traj}${crown}`;
     };
     const statLine=(k,m)=>{
       const hitTxt=m.dirNeg?`${100-pct(m.up,m.n)}% lower`:`${pct(m.up,m.n)}% higher`;
@@ -20248,7 +20292,7 @@ function _renderReportCard(A){
         const other=na&&(_snews==='news'?na.quiet:na.news);
         const oAvg=(other&&other.n)?f1(other.sum/other.n):'—';
         return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${_snews==='news'?'📢':'🔇'} <b style="color:var(--text)">${g.n.toLocaleString()}</b> ${_snews==='news'?'news-driven':'quiet'} fires · <b title="How often price went the flag's way after these fires." style="cursor:help;color:var(--text)">${pct(g.up,g.n)}% higher</b> · average <b style="color:${(g.sum/g.n)>0?'var(--green)':'#ff9caa'}">${f1(g.sum/g.n)}</b> ${chip(m)} <span style="color:var(--dim)">· the other half averaged ${oAvg}</span></div>
-      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}</div>`;
+      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}${_eraRow(k,m)}</div>`;
       }
       if(_sview!=='all'){
         const isUp=(_sview==='up');
@@ -20257,7 +20301,7 @@ function _renderReportCard(A){
         const share=pct(cnt,m.n);
         if(!m.n||cnt==null||avg==null||!isFinite(avg))return `<div style="font-size:11px;color:var(--dim);margin-top:2px;">no ${isUp?'winning':'losing'} fires recorded</div>`;
         return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b style="color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="How many of those fires ended ${isUp?'HIGHER':'LOWER'} ${_h} trading days later." style="cursor:help;color:${isUp?'var(--green)':'#ff9caa'}">${cnt.toLocaleString()} ${isUp?'up':'down'} (${share}%)</b> · <span title="The average size of those ${isUp?'winning':'losing'} fires — the payoff when it ${isUp?'works':'fails'}.">average ${isUp?'win':'loss'} <b style="color:${isUp?'var(--green)':'#ff9caa'}">${f1(avg)}</b></span> ${chip(m)}</div>
-      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}</div>`;
+      <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${track(k)||' '}${_eraRow(k,m)}</div>`;
       }
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">fired <b title="How many times this flag fired across every share, on every day, in the graded window." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b>× · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}${_eraRow(k,m)}</div>`;
@@ -20302,7 +20346,7 @@ function _renderReportCard(A){
       ?'<div style="margin-bottom:8px;"><span title="These grades were computed on YOUR server — the scoring formula runs there, not in this page." style="display:inline-block;border:1px solid var(--green);color:var(--green);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">⚡ GRADED ON YOUR SERVER</span></div>'
       :'<div style="margin-bottom:8px;"><span title="Computed on this device — the app graded here because your server was not reachable this time." style="display:inline-block;border:1px solid var(--gold);color:var(--gold);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;letter-spacing:.4px;">🖥 COMPUTED ON THIS DEVICE</span></div>';
     const eraNote=ERAS
-      ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5;">🏛 <b>Three-year durability study</b> (built ${ERA_BUILT}): each line below also shows how it fared <b>1–2 years ago</b> and <b>2–3 years ago</b> (each share judged over its own stored window) — graded by the same maths, against each window's own market. Tiers are still decided by the RECENT year: an edge that died cannot hide inside old averages.</div>`
+      ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5;">🏛 <b>Three-year durability study</b> (built ${ERA_BUILT}): each line below also shows how it fared <b>1–2 years ago</b> and <b>2–3 years ago</b> (each share judged over its own stored window) — graded by the same maths, against each window's own market, over a <b>5-day</b> outcome window${_eraWinOff?` — <b style="color:var(--gold)">not the ${A.hold}-day window you are viewing</b>, so they answer a different question from the tiers below and are shown dimmed`:''}. Tiers are still decided by the RECENT year: an edge that died cannot hide inside old averages.</div>`
       : `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.5;">🏛 The three-year durability study hasn't been built on the server yet — every grade below covers the recent year only, and says nothing about earlier years.</div>`;
     const head=eraNote+_srcBadge+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`;
     // rank helper for combo/sequence sections
