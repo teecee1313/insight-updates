@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-567-open';
+const APP_VERSION='2026.07.28-568-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18695,7 +18695,7 @@ function _auditWarmIdle(){
   try{
     if(window._prepRunning||window._auditWarming)return;
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
-    if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd&&window._auditCache.ex===currentExch)return; // v408: re-warm when the exchange changed
+    if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd&&window._auditCache.ex===currentExch&&window._auditCache.liq===_cardLiqKey())return; /* v408: re-warm when the exchange changed · v568: ALSO when the 💧 floor changed — the card and the grade fetcher already keyed on it, so the warm was the odd one out, leaving the radar on stale-floor grades and pushing a full re-grade into the next card open */
     const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS).filter(_cardLiqPass);
     if(_sh.length<3)return;
     if(!(typeof DATA_PROXY==='string' && DATA_PROXY))return; // v378: grading is server-side — nothing to warm without the server

@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-567",
+  "version": "2026.07.28-568",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v567 \u2014 the \ud83d\udcb0 PN Edge column now carries the same honesty marker the SIGNALS pills already had. A share that trades below your \ud83d\udca7 grading floor can still fire a proven line, and the app shows it rather than hiding it \u2014 but its PN Edge figure is now dimmed and prefixed with \ud83d\udca7, and the hover says plainly: the edge was never measured on shares this thin, the buy\u2013sell spread would likely eat it, treat the figure as borrowed rather than earned. Shares that clear your floor are unchanged. Hard-refresh (Ctrl+F5)."
+  "notes": "v568 \u2014 speed + consistency fix. The background grading ignored your \ud83d\udca7 tradeable-shares floor when deciding whether it needed to re-run, while the report card and the grade fetcher both respected it. Two consequences you felt: after changing the floor the radar sat on the OLD floor's grades until you manually opened the card, and the card then had to do a FULL re-grade the moment you opened it \u2014 the slow wait. Now all three agree: change the floor and the app re-grades itself once, quietly, in the background. A higher floor is also a much smaller job (about 478 shares at $1m versus 1,295 at the server floor), so it should feel quicker, not slower. Hard-refresh (Ctrl+F5)."
 }
