@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-551",
+  "version": "2026.07.28-552",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v551 \u2014 grading now starts itself, politely. It already began automatically once your data loaded, but it ran at the worst possible moment \u2014 the exact second the page was first painting, which was part of the pause you felt at load. It now waits for the browser to go idle (a few seconds at most) before grading in the background; the page appears first, the \u2696 EVIDENCE tiles fill themselves shortly after \u2014 no report card visit needed. If loading still pauses or stutters after this, tell me the device and when in the load it happens \u2014 that goes to a proper trace next session. Hard-refresh (Ctrl+F5)."
+  "notes": "v552 \u2014 the compact radar's evidence counts are now buttons: tap \u2018109 promising\u2019 (or \u2018solid\u2019 or \u2018not proven\u2019) to instantly filter the table to just those shares \u2014 identical to tapping the tiles on the full radar. The dotted underline marks them as tappable. Hard-refresh (Ctrl+F5)."
 }

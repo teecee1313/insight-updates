@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-551-open';
+const APP_VERSION='2026.07.28-552-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10613,7 +10613,7 @@ function _radarCompactSync(){
     var dash=(vs==='–'||vs==='-')&&(vp==='–'||vp==='-');
     ev.innerHTML=dash
       ? '🧪 evidence not checked for this view yet — open ▸ full radar and tap a tier tile to check it'
-      : ('🧪 evidence: <b style="color:var(--green)">'+(vs||'0')+' solid</b> · <b style="color:var(--gold)">'+(vp||'0')+' promising</b> · '+(vn||'0')+' not proven — the detail lives in ▸ full radar');
+      : ('🧪 evidence: <b onclick="statFilter(\'tsolid\')" title="Tap to show only shares whose strongest proven line today is SOLID" style="color:var(--green);cursor:pointer;text-decoration:underline dotted;">'+(vs||'0')+' solid</b> · <b onclick="statFilter(\'tprom\')" title="Tap to show only shares firing a PROMISING line today" style="color:var(--gold);cursor:pointer;text-decoration:underline dotted;">'+(vp||'0')+' promising</b> · <b onclick="statFilter(\'tearly\')" title="Tap to show shares whose firing signals hold no badge" style="color:var(--dim);cursor:pointer;text-decoration:underline dotted;">'+(vn||'0')+' not proven</b> — tap a count to filter · detail in ▸ full radar');
     var rn=document.getElementById('evRuleNote');
     var tip=rn?String(rn.textContent||'').trim():'';
     if(tip)ev.setAttribute('title',tip); else ev.removeAttribute('title');
