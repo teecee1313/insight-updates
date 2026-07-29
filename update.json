@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-553",
+  "version": "2026.07.28-554",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v553 \u2014 \ud83c\udfaf Best Evidence Today now speaks the Paula\u2013Nino Edge. Each row shows PN Edge as money with its gauge \u2014 \u2018PN Edge +$2.42/$100\u2019 on the fixed $0\u2013$3.50 scale \u2014 instead of a bare percentage, plus \u2018seen 1,122 times\u2019 in plain words. Hover any PN Edge figure for the full definition. (\ud83c\udf31 Climbers keeps its strength wording on purpose \u2014 those lines are unproven, so money claims there would overstate.) Hard-refresh (Ctrl+F5)."
+  "notes": "v554 \u2014 red \u2018check this\u2019 flags now tell you WHY when the sample is tiny. A line like \u2018+$5.45 per $100, seen 13 times\u2019 used to get the generic warning; hovering it now says: \u2018Only 13 sightings \u2014 a number this size from a sample this small is noise, not an edge. One lucky trade drags the whole average.\u2019 Applies on the report card ladder, every signal's money sentence, and \ud83c\udfaf Best Evidence. Bands and maths unchanged \u2014 only the red flag got articulate. Hard-refresh (Ctrl+F5)."
 }

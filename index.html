@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-553-open';
+const APP_VERSION='2026.07.28-554-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18999,7 +18999,7 @@ function bestEvidenceScan(){
         +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,30):'')
           +'<div style="font-size:10px;color:var(--muted);margin-top:2px;"><b style="color:var(--text)">'+nameK(best.k)+'</b>'+more
           +'<br>'+(best.m.tier==='solid'?'<span style="color:var(--green);font-weight:700;">SOLID</span>':'<span style="color:var(--gold);font-weight:700;">PROMISING</span>')
-          +(function(){var g=_edgeGauge(best.m.dirNeg?-best.m.edge:best.m.edge);return ' \u00b7 <span title="The Paula\u2013Nino Edge \u2014 money made per \u0024100 invested, on average, beyond the market, before costs. '+g.tip.replace(/"/g,'&quot;')+'" style="cursor:help;color:'+g.col+';font-weight:700;">PN Edge '+g.money+'/\u0024100</span> '+g.bar;})()+' \u00b7 seen '+best.m.n.toLocaleString()+' times'+eraBit(best)+'</div></span>'
+          +(function(){var g=_edgeGauge(best.m.dirNeg?-best.m.edge:best.m.edge,best.m.n);return ' \u00b7 <span title="The Paula\u2013Nino Edge \u2014 money made per \u0024100 invested, on average, beyond the market, before costs. '+g.tip.replace(/"/g,'&quot;')+'" style="cursor:help;color:'+g.col+';font-weight:700;">PN Edge '+g.money+'/\u0024100</span> '+g.bar;})()+' \u00b7 seen '+best.m.n.toLocaleString()+' times'+eraBit(best)+'</div></span>'
         +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
         +'<span style="flex:0 0 52px;text-align:right;font-family:var(--mono);font-weight:800;font-size:13px;color:'+scCol+';">'+sc+'<span style="font-size:9px;color:var(--dim);">/10</span></span>'
         +'</div>';
@@ -19019,10 +19019,10 @@ function bestEvidenceScan(){
 // a fixed 0–$3.50 scale (the realistic ceiling for end-of-day price signals),
 // a word, a colour and a little bar. Fixed means fixed — never relative to
 // today's card, so a weak card can't dress its best line up as "strong".
-function _edgeGauge(edgePct){
+function _edgeGauge(edgePct,n){
   var d=+edgePct||0;
   var band = d>3.5 ? {w:'check this', c:'#ff6b6b',
-        tip:'More than $3.50 per $100 on an end-of-day signal is almost never real \u2014 expect a data error, a handful of freak trades, or an edge that would vanish the moment real money touched it. Investigate before believing.'}
+        tip:(n!=null&&n<20)?('Only '+n+' sightings \u2014 a number this size from a sample this small is noise, not an edge. One lucky trade drags the whole average. Wait for more sightings before believing it.'):'More than $3.50 per $100 on an end-of-day signal is almost never real \u2014 expect a data error, a handful of freak trades, or an edge that would vanish the moment real money touched it. Investigate before believing.'}
     : d>=2   ? {w:'strong', c:'var(--green)',
         tip:'$2\u2013$3.50 per $100 is as good as end-of-day price signals get. This is the top of the realistic scale.'}
     : d>=0.5 ? {w:'decent', c:'var(--gold)',
@@ -20625,7 +20625,7 @@ function _renderReportCard(A){
       }
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">seen <b title="How many times this signal appeared across every share, on every day, in the graded year." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b> times · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Above zero beat the market (for a warning, below zero correctly caught the fall). Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.edge)}</b></span> ${beatTxt}${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}${_eraRow(k,m)}
-      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${(()=>{const g=_edgeGauge(m.dirNeg?-m.edge:m.edge);return `<span title="The Paula–Nino Edge — this app’s money measure. Named in memory of Paula and Nino." style="cursor:help;">PN Edge</span> — about <b style="color:${g.col}">${g.money} extra per $100 invested</b> ${g.bar} <span style="color:${g.col}">${g.word}</span> — on average, measured ${_winWords(A.hold)} after each signal, beyond the market, before costs`;})()}</div></div>`;
+      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${(()=>{const g=_edgeGauge(m.dirNeg?-m.edge:m.edge,m.n);return `<span title="The Paula–Nino Edge — this app’s money measure. Named in memory of Paula and Nino." style="cursor:help;">PN Edge</span> — about <b style="color:${g.col}">${g.money} extra per $100 invested</b> ${g.bar} <span style="color:${g.col}">${g.word}</span> — on average, measured ${_winWords(A.hold)} after each signal, beyond the market, before costs`;})()}</div></div>`;
     };
     const _flagTip={
       bo:'🚀 Breakout — the share closed at its highest price of the stored year, on above-average volume: buyers pushed it into fresh territory (an estimate from price & volume).',
@@ -20787,8 +20787,8 @@ function _renderReportCard(A){
         <span style="flex:0 0 20px;text-align:center;font-weight:700;color:var(--muted);">${md}</span>
         <span title="${pl}" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}${warn}</span>
         <span title="Strength /10 — how strong AND how proven, in one number (see 📖 How to read this card below)" style="flex:0 0 46px;text-align:right;font-weight:800;font-family:var(--mono);color:${scCol};cursor:help;">${sc}/10</span>
-        <span title="The Paula–Nino Edge (PN Edge): money made per $100 invested, on average, over the ${_winWords(A.hold)} after each signal — beyond what the market did, before costs. ${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge).tip}" style="flex:0 0 96px;text-align:right;font-size:9px;font-family:var(--mono);color:${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge).col};cursor:help;">${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge).money}<span style="color:var(--dim)">/$100</span></span>
-        <span style="flex:0 0 46px;text-align:right;">${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge).bar}</span>
+        <span title="The Paula–Nino Edge (PN Edge): money made per $100 invested, on average, over the ${_winWords(A.hold)} after each signal — beyond what the market did, before costs. ${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).tip}" style="flex:0 0 96px;text-align:right;font-size:9px;font-family:var(--mono);color:${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).col};cursor:help;">${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).money}<span style="color:var(--dim)">/$100</span></span>
+        <span style="flex:0 0 46px;text-align:right;">${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).bar}</span>
         <span style="flex:0 0 auto;">${_ladBadge(it.m)}</span>
       </div>`; };
     const ladderSec=`<div style="margin-top:16px;padding-top:11px;border-top:2px solid var(--border2);">
