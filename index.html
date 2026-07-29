@@ -744,6 +744,8 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 #bgInd{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
 #bgInd .bg-x{margin-left:2px;color:var(--dim);font-size:11px;line-height:1;cursor:pointer;padding:1px 4px;border-radius:4px;flex:none;}
 #bgInd .bg-x:hover{color:#ff9caa;background:rgba(255,255,255,.07);}
+
+body.theme-switching *,body.theme-switching *::before,body.theme-switching *::after{transition:none!important;animation:none!important;}
 </style>
 </head>
 <body>
@@ -1535,11 +1537,11 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
     <div id="whatsNewCardAdv" style="display:none;"></div>
     <div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
-    <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-primary" style="border-color:var(--green);color:var(--green);" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades.">🎯 Best Evidence Today</button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-alt" style="border-color:var(--green);color:var(--green);" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades.">🎯 Best Evidence Today</button></div>
       <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume clearly above its own average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeScan()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Shows every share trading above its normal volume, biggest surge first, right in your table — so you can chart, research or practice-buy any of them exactly like the other scans. Volume is the crowd's attention: a share doing 3× its usual business is being looked at by someone. A 🖨 full report button appears with the results if you want the printable document version, with its Warm → Hot → Red-hot → Extreme bands. A data summary, not advice."><span>📈 Volume Surge</span> <span class="scan-tag">above-normal volume · biggest first</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-top20"><span class="drag-h">⠿</span><button id="top10Btn" onclick="topTenScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.14);font-weight:700;" title="Scans every share, scores each out of 10 (accumulation-weighted — same as the ⭐ Score column), and shows the 20 highest. A data summary, not advice."><span>🏆 Top 20 to Watch</span> <span class="scan-tag">highest score /10 · estimate</span></button></div>
-    <div class="drag-row" draggable="true" data-dragid="scan-gradecheck"><span class="drag-h">⠿</span><button onclick="gradingCheckReport()" class="scan-alt" style="border-color:#b39ddb;color:#b39ddb;" title="The app tests its own premise: take each signal line's verdict in an EARLIER year, then look at what that line actually did in the year that followed. Reports the answer whichever way it falls.">⚖ Does the grading work?</button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-gradecheck"><span class="drag-h">⠿</span><button onclick="gradingCheckReport()" class="scan-alt" style="border-color:var(--green);color:var(--green);" title="The app tests its own premise: take each signal line's verdict in an EARLIER year, then look at what that line actually did in the year that followed. Reports the answer whichever way it falls.">⚖ Does the grading work?</button></div>
       <div class="drag-row" draggable="true" data-dragid="scan-climbers"><span class="drag-h">⣿</span><button id="climbBtn" onclick="climbersScan()" class="scan-alt" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,.10);" title="🌱 Shares firing a CLIMBING signal today — a line from the report card’s nursery: moving toward SOLID but not there yet. Top 10, ranked by how close its strongest climber is. Every line behind this list is UNPROVEN — a scepticism shortlist, not picks. The 🤖 bot never reads it. Needs today’s grades (open the 📋 card once if asked).">🌱 Climbers Today</button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-sharp"><span class="drag-h">⠿</span><button onclick="speedingTicketScan()" class="scan-alt" title="Ranks shares by the SIZE of today's move compared to that share's own normal day — a 4% jump is nothing for a wild penny stock but a siren for a sleepy blue chip. Split by whether news likely explains it. Estimate — not advice."><span>🚨 Sharp Mover Detector</span> <span class="scan-tag">abnormal SIZE of move · for that share</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-unusual"><span class="drag-h">⠿</span><button id="unusualBtn" onclick="unusualScan()" class="scan-alt" style="border-color:var(--orange);color:var(--orange);background:rgba(255,165,0,.1);" title="Looks for suspicious PATTERNS in HOW a share traded — five end-of-day patterns like heavy volume with no price move, or a price jump on thin volume. About the shape of the trading, not the size of the move. Estimate only — not manipulation detection, not advice."><span>🔍 Unusual Activity Scan</span> <span class="scan-tag">5 suspicious patterns · HOW it traded</span></button></div>
@@ -1718,7 +1720,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-542-open';
+const APP_VERSION='2026.07.28-543-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2616,7 +2618,14 @@ function toggleFullscreen(){
   }catch(e){}
 }
 try{ document.addEventListener('fullscreenchange',_fsSync); document.addEventListener('webkitfullscreenchange',_fsSync); }catch(e){}
+/* v543: theme swaps restyle every element at once; with transition:all on
+   dozens of selectors that meant thousands of simultaneous colour tweens —
+   the flicker AND the freeze. This class silences them for the swap. */
 function _applyTheme(t){
+  try{
+    document.body.classList.add('theme-switching');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ document.body.classList.remove('theme-switching'); }); });
+  }catch(e){}
   try{ document.body.classList.toggle('theme-light', t==='light'); }catch(e){}
   var b=document.getElementById('themeBtn');
   if(b){ b.textContent=(t==='light'?'🌙':'☀️'); b.title=(t==='light'?'Switch to dark mode':'Switch to light mode'); }
@@ -17120,6 +17129,7 @@ function _groupScans(){
     const zone=document.getElementById('scanDragZone'); if(!zone)return;
     const GROUPS=[
       {id:'sgStart',title:'⭐ Start your day',hint:'the three-tap routine',ids:['scan-pulse','scan-top20','scan-smart'],pinned:true},
+      {id:'sgGrade',title:'🎓 Graded evidence',hint:'reports with a track record',ids:['scan-bestev','scan-climbers','scan-gradecheck']},
       {id:'sgAct',title:'🔎 Today’s action',hint:'what stood out this session',ids:['scan-sharp','scan-unusual','scan-surge','scan-gap']},
       {id:'sgBuild',title:'🌱 Building quietly',hint:'patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
       {id:'sgComp',title:'🧩 Composite',hint:'every signal at once',ids:['scan-allsig']}
@@ -18683,7 +18693,9 @@ function _auditWarmIdle(){
 function _attachCardTips(container){
   try{
     if(!container||!document.body.classList.contains('training-on'))return;
-    container.querySelectorAll('[title]').forEach(function(el){
+    var _all=container.querySelectorAll('[title]');
+    if(_all.length>400)return; // v543: a modal this dense keeps native tooltips — attaching hundreds of listeners froze low-end devices
+    _all.forEach(function(el){
       if(el.__cardtt||el.tagName==='BUTTON')return; el.__cardtt=1;
       var d=el.getAttribute('title'); if(!d)return;
       el.setAttribute('data-tip',d); el.removeAttribute('title'); el.style.cursor='help';
