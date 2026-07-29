@@ -1714,7 +1714,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-519-open';
+const APP_VERSION='2026.07.28-520-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2415,7 +2415,12 @@ function _gateTry(){
   const b=_gateBase();
   window.fetch(b+'/gate',{headers:{'X-Insight-Access':key}}).then(function(r){
     if(r&&r.ok){ _gateSet(key); say('Unlocked ✓','var(--green)'); setTimeout(function(){ try{ location.reload(); }catch(e){} },250); return; }
-    say('That password didn’t work. Try again.'); if(btn)btn.disabled=false;
+    // v520: tell the truth about WHY. After 12 wrong tries in 15 minutes the
+    // server pauses this connection and refuses to even CHECK the password —
+    // showing "didn't work" for that made a correct password look wrong.
+    if(r&&r.status===429){ say('⏳ Too many attempts — the lock is paused for up to 15 minutes and is not checking passwords right now. Wait it out (or switch between Wi‑Fi and mobile data), then try ONCE.','var(--orange)'); if(btn)btn.disabled=false; return; }
+    if(r&&r.status===401){ say('That password didn’t work. Check capitals, symbols and a hidden space at the end, then try again.'); if(btn)btn.disabled=false; return; }
+    say('The server answered unexpectedly ('+((r&&r.status)||'no reply')+'). Try again in a moment.'); if(btn)btn.disabled=false;
   }).catch(function(){ say('Couldn’t reach the server. Check your connection and try again.'); if(btn)btn.disabled=false; });
 }
 function _gateLock(){

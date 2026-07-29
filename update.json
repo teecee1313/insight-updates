@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-519",
+  "version": "2026.07.28-520",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v519 \u2014 concentrating on the ASX. Our server now serves and grades the ASX only \u2014 one market done deeply (3 years of history is on its way) beats two done shallowly. What this means for NYSE: it is no longer served from our server, and the app now says exactly that instead of a vague error. You can still use NYSE if you wish \u2014 select it and the data-key box appears in \u2699 Setup & data: enter your own EODHD key and the app loads NYSE directly from the provider to your device, with charts, scans and paper trading all working locally as before. Any NYSE data already saved on your device keeps opening offline as always. ASX users: nothing changes today \u2014 and the deeper history arriving over the coming nights makes the \ud83e\uddea evidence grading meaningfully stronger. Hard-refresh (Ctrl+F5)."
+  "notes": "v520 \u2014 an honest lock screen. The tester-password screen used to say \u201cthat password didn\u2019t work\u201d for EVERY rejection \u2014 including when the server\u2019s burglar-guard had paused the connection after too many tries, during which it doesn\u2019t check passwords at all. A correct password could look wrong. The screen now tells you which it is: \u23f3 paused (wait up to 15 minutes, or switch between Wi\u2011Fi and mobile data, then try once) versus a genuinely wrong password (check capitals and a hidden space at the end). Hard-refresh (Ctrl+F5)."
 }
