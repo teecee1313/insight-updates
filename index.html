@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-566-open';
+const APP_VERSION='2026.07.28-567-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4445,8 +4445,9 @@ function _pnEdgeCell(s){
     if(fresh&&s._evTier&&s._evTier!=='TOO EARLY'&&s._evEdge!=null){
       var g=_edgeGauge(s._evEdge);
       var why=(s._evWhy||'').replace(/"/g,'&quot;');
-      var tip='💰 The Paula–Ninó Edge — money per $100 from the strongest proven line firing on this share today ('+s._evTier+').'+(why?'\nLines: '+why:'')+'\n'+g.tip+rng;
-      return '<span title="'+tip+'" style="cursor:help;white-space:nowrap;"><b style="color:'+g.col+';font-family:var(--mono);">'+g.money+'</b><span style="color:var(--dim);font-size:9px;">/$100</span> '+g.bar+'</span>';
+      var _thin=(s._evThin===true);
+      var tip='💰 The Paula–Ninó Edge — money per $100 from the strongest proven line firing on this share today ('+s._evTier+').'+(why?'\nLines: '+why:'')+'\n'+g.tip+(_thin?('\n\n💧 BUT this share trades below your \u0024 grading floor ('+((typeof _cardLiqLabel==='function')?_cardLiqLabel():'')+'), so the edge was never measured on shares like it — and on turnover this thin the buy–sell spread would likely eat it. Treat the figure as borrowed, not earned.'):'')+rng;
+      return '<span title="'+tip+'" style="cursor:help;white-space:nowrap;opacity:'+(_thin?'0.55':'1')+';">'+(_thin?'<span style="color:#7fb3ff;font-size:9px;">💧</span>':'')+'<b style="color:'+g.col+';font-family:var(--mono);">'+g.money+'</b><span style="color:var(--dim);font-size:9px;">/$100</span> '+g.bar+'</span>';
     }
     var tipE='No proven line fired on this share today — that’s normal: most days, most shares fire nothing proven. The 📋 report card shows which lines ARE proven right now.'+rng;
     return '<span title="'+tipE+'" style="cursor:help;color:var(--dim);">—</span>';
