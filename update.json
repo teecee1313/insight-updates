@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-559",
+  "version": "2026.07.28-560",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v559 \u2014 the \u2018How to read this card\u2019 deep-dive has been rewritten to match today's app. It now teaches the Paula\u2013Nin\u00f3 Edge in money per $100 on the fixed $0\u2013$3.50 scale (including why \u2018too good\u2019 goes red), your real windows (one week / six weeks, bought at the NEXT day's close), badges' good news AND bad news including the 71% fade and why combos rank first, strength counted across days (\u2018one morning is ONE piece of evidence\u2019), the earlier-years marks, and where Lessons 51\u201354 pick up. The old text described an app three eras ago. Hard-refresh (Ctrl+F5)."
+  "notes": "v560 \u2014 the last stack: \u2b50 Score /10 now sits over \ud83d\udd25 Accum 10d in one column, same treatment as the streaks \u2014 they're cousins (both quick data summaries, not graded evidence). Ten columns are now NINE. Tap the header to sort by Score; Sort by \u2192 Accumulation 10d still there for the other. Hard-refresh (Ctrl+F5)."
 }
