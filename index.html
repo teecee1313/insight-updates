@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-546-open';
+const APP_VERSION='2026.07.28-547-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19715,9 +19715,15 @@ function _evCardArrived(){
     var key=(C.d||'')+'|'+(C.ex||'');
     if(window._evCardMerged===key)return;
     window._evCardMerged=key;
-    try{ (Array.isArray(allData)?allData:[]).forEach(function(s){ if(s)s._evD=''; }); }catch(e){}
-    try{ if(typeof _evEnsureMarked==='function')_evEnsureMarked(); }catch(e){}
-    try{ if(typeof render==='function')render(); }catch(e){}
+    // v547: NEVER do this work inside the user's click. Defer it, and repaint
+    // only the radar tiles — a full 4,298-row table render here froze the
+    // page (Tony, live, 31 Jul). The table shows the new pills on its next
+    // natural render.
+    setTimeout(function(){
+      try{ (Array.isArray(allData)?allData:[]).forEach(function(s){ if(s)s._evD=''; }); }catch(e){}
+      try{ if(typeof _evEnsureMarked==='function')_evEnsureMarked(); }catch(e){}
+      try{ if(typeof statsBar==='function')statsBar(); }catch(e){}
+    },60);
   }catch(e){}
 }
 function _evEnsureMarked(){
