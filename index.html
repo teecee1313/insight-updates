@@ -1697,7 +1697,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-512-open';
+const APP_VERSION='2026.07.28-513-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7605,6 +7605,71 @@ function _tpBuyBlock(s){
     return h+'</div>';
   }catch(e){ return ''; }
 }
+// ── v513: ✅ your rules, checked at the moment of the decision ────────────────
+// Calm-you wrote the rules; excited-you presses Buy. This panel puts calm-you
+// in the room: each switched-ON rule gets a live ✓/✗ for THIS share, computed
+// by the SAME expressions the bot's funnel uses — checklist and bot can never
+// disagree. It never blocks: a red ✗ informs, and buying anyway costs one
+// honest confirm plus a 📓 diary line recording the override.
+function _buyChecks(s,amt){
+  const r=_rules(); const out=[];
+  if(!r.enabled)return out;
+  const add=(ico,label,pass,why)=>out.push({ico,label,pass,why:why||''});
+  if(r.apGreenOnly){
+    const o=(s._q&&s._q.o>0)?s._q.o:0; const g=o>0?(s.price>o):(s.chgPct>0);
+    add('🟢','Green day only',!!g,g?'closed up today':'today closed DOWN — buying against the day\'s sellers');
+  }
+  if(r.apNoChaseRsi){
+    const hot=(s.rsi!=null&&s.rsi>=70);
+    add('🌡','RSI under 70',!hot,(s.rsi!=null)?('RSI '+Math.round(s.rsi)+(hot?' — overbought; new entries here have poor odds':'')):'RSI not calculable yet — treated as passing');
+  }
+  if(r.apMaxChasePct>0){
+    const jump=(s.chgPct!=null&&s.chgPct>r.apMaxChasePct);
+    add('🚫','Day-jump within '+r.apMaxChasePct+'%',!jump,(s.chgPct!=null)?((s.chgPct>=0?'+':'')+s.chgPct.toFixed(1)+'% today'+(jump?' — your fill is tomorrow\'s open, top price for a spent move':'')):'');
+  }
+  if(r.apRegime){
+    const reg=(typeof _apRegimeOn==='function')?_apRegimeOn():null;
+    add('🧭','Index above its 50-day',reg!==false,reg===false?'risk-off — the tide is out; your rule says stand aside':(reg===null?'no index ETF loaded — gate can\'t judge, treated as open':'risk-on'));
+  }
+  if(r.minLiq>0){
+    const liq=((s.avgVol>0?s.avgVol:(s.volume||0))*(s.price||0));
+    add('💧','Liquidity ≥ $'+(r.minLiq>=1e6?(r.minLiq/1e6)+'m':(r.minLiq/1e3)+'k')+'/day',liq>=r.minLiq,'~$'+Math.round(liq/1e3)+'k trades a day'+(liq<r.minLiq?' — hard to get out at a fair price':''));
+  }
+  try{
+    const p=_paper(); const acct=(typeof _acctValue==='function')?_acctValue(p):((p.cash||0)+ (p.holdings||[]).reduce((a,h)=>a+(+h.shares||0)*(+h.buyPrice||0),0));
+    if(r.maxPosPct>0&&acct>0&&amt>0){
+      const already=(p.holdings||[]).filter(h=>h.ticker===s.ticker).reduce((a,h)=>a+(+h.shares||0)*(+h.buyPrice||0),0);
+      const pct=100*(amt+already)/acct;
+      add('📦','Slice ≤ '+r.maxPosPct+'% of account',pct<=r.maxPosPct,'this buy'+(already>0?' + your holding':'')+' = '+pct.toFixed(1)+'% of the account');
+    }
+    if(r.maxPositions>0){
+      const held=new Set((p.holdings||[]).map(h=>h.ticker)); held.add(s.ticker);
+      add('🔢','At most '+r.maxPositions+' open positions',held.size<=r.maxPositions,held.size+' with this one'+(held.size>r.maxPositions?' — more than you can genuinely follow':''));
+    }
+  }catch(e){}
+  if(amt>0)add('💵','Parcel at least $500',amt>=500,amt<500?'$'+Math.round(amt)+' — fees eat small parcels; the ASX minimum first parcel is $500':'');
+  return out;
+}
+function _buyChecklistHtml(ticker){
+  const s=allData.find(x=>x.ticker===ticker); if(!s)return '';
+  const r=_rules(); if(!r.enabled)return '';
+  const amt=parseFloat((document.getElementById('paperAmt')||{}).value)||0;
+  const c=_buyChecks(s,amt); if(!c.length&&!r.plan)return '';
+  const rows=c.map(k=>`<div style="display:flex;gap:6px;align-items:baseline;padding:2px 0;">
+      <span style="font:700 11px var(--sans);color:${k.pass?'var(--green)':'#ff9caa'};min-width:14px;">${k.pass?'✓':'✗'}</span>
+      <span style="font-size:10.5px;color:${k.pass?'var(--muted)':'#ff9caa'};">${k.ico} ${k.label}${k.why?` <span style="color:var(--dim);font-size:9px;">— ${k.why}</span>`:''}</span>
+    </div>`).join('');
+  const reds=c.filter(k=>!k.pass).length;
+  const plan=r.plan?`<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:9.5px;color:var(--dim);white-space:pre-wrap;line-height:1.5;">🧭 <em>Your own words:</em> ${String(r.plan).replace(/</g,'&lt;')}</div>`:'';
+  return `<div style="margin:10px 0 4px;padding:9px 11px;border:1px solid ${reds?'#a4485a':'var(--border)'};border-radius:8px;background:${reds?'rgba(248,113,113,.05)':'var(--bg2)'};">
+    <div style="font:700 10px var(--sans);color:var(--gold);margin-bottom:4px;">📐 Your rules on ${s.ticker} right now ${reds?`<span style="color:#ff9caa;">— ${reds} say${reds===1?'s':''} no</span>`:'<span style="color:var(--green);">— all clear</span>'}</div>
+    ${rows}${plan}
+    <div style="font-size:8.5px;color:var(--dim);margin-top:5px;">These are YOUR saved 📐 rules, checked by the same code the 🤖 bot uses. Nothing here blocks you — your account, your call.</div>
+  </div>`;
+}
+function _buyChecklistRefresh(ticker){
+  try{ const el=document.getElementById('buyRulesChk'); if(el)el.innerHTML=_buyChecklistHtml(ticker); }catch(e){}
+}
 function paperBuy(ticker){
   window._pfCtx='main'; // v312: manual buys always land in 👤 My trading, never the bot's account
   const s=allData.find(x=>x.ticker===ticker);
@@ -7616,9 +7681,10 @@ function paperBuy(ticker){
     ${(function(){const qd=(s._q&&s._q.d)||s.lastDate;const n=_staleDays(qd);return n>1?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:6px;padding:5px 8px;margin:0 0 10px;font-size:9px;color:var(--orange);">⚠ This price is ${n} trading days old (${qd}). Tap ⚡ fresh prices first so your practice buy uses today’s price.</div>`:'';})()}
     ${_tpBuyBlock(s)}
     <label style="display:block;font-size:10px;color:var(--muted);margin-bottom:4px;">Amount to invest (${s.currency})</label>
-    <input type="number" id="paperAmt" min="0" step="any" placeholder="e.g. 1000" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;box-sizing:border-box;">
+    <input type="number" id="paperAmt" min="0" step="any" placeholder="e.g. 1000" oninput="_buyChecklistRefresh('${s.ticker}')" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:14px;box-sizing:border-box;">
     <div id="paperBuyPrev" style="font-size:10px;color:var(--muted);margin-top:6px;min-height:13px;"></div>
     <div id="paperRiskPrev" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:13px;line-height:1.6;"></div>
+    <div id="buyRulesChk">${_buyChecklistHtml(s.ticker)}</div>
 
     <div style="display:flex;gap:6px;margin:12px 0 4px;">
       <button type="button" id="btnMkt" onclick="_setBuyType('market')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.18);color:var(--green);font:700 11px var(--sans);cursor:pointer;">Buy at market</button>
@@ -7713,6 +7779,15 @@ function paperBuyConfirm(ticker){
   if(!(tgt>0)){alert('Set a sell price (take-profit) before buying — every position needs a planned exit. Enter a % or a price in the \ud83c\udfaf field.');return;}
   if(tgt>0&&tgt<=px){alert('Take-profit target should be above your buy price.');return;}
   if(stop>0&&stop>=px){alert('Stop-loss should be below your buy price.');return;}
+  // v513: one honest pause if any of YOUR rules is red — never a block.
+  try{
+    const _reds=_buyChecks(s,amt).filter(k=>!k.pass);
+    if(_reds.length){
+      const names=_reds.map(k=>k.ico+' '+k.label+(k.why?' ('+k.why+')':'')).join('\n· ');
+      if(!confirm(_reds.length+' of your own rules say'+(_reds.length===1?'s':'')+' no:\n\n· '+names+'\n\nBuy anyway? (Your call — the 📓 diary will honestly record the override.)'))return;
+      if(typeof _diaryAdd==='function')_diaryAdd(s.ticker,'▲ bought despite my rules — '+_reds.map(k=>k.ico+' '+k.label).join(', '));
+    }
+  }catch(e){}
   const p=_paper();
   const cost=+(qty*px).toFixed(2);
   const today=_todayLocal();
