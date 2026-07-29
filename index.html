@@ -1714,7 +1714,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-518-open';
+const APP_VERSION='2026.07.28-519-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2791,6 +2791,7 @@ function onExchChange(){
   currentExch=document.getElementById('exchSel').value;
   document.getElementById('exchBadge').textContent='🌐 '+currentExch+' Screener';
   try{localStorage.setItem('asxScreener.lastExch',currentExch);}catch(e){}
+  try{_refreshKeyUI&&_refreshKeyUI();}catch(e){} // v519: NYSE shows the own-key box
   applyAssetMode();
   // Auto-load the newly selected exchange (same full load + prepare as startup),
   // so every exchange fills in completely — not just ASX. Needs an API key or
@@ -3468,7 +3469,7 @@ function initKeyLock(){
 }
 // Show the saved-state (collapsed) row when a key exists, else the input row.
 function _refreshKeyUI(){
-  const _kb=document.getElementById('keyConnBlock'); if(_kb)_kb.style.display=_serverData()?'none':''; // v382: hide the key field when the server provides data
+  const _kb=document.getElementById('keyConnBlock'); if(_kb)_kb.style.display=(_serverData()&&String(window.currentExch||'ASX').toUpperCase()==='ASX')?'none':''; // v382 hide when the server provides it · v519: the server serves ASX only now, so any other exchange shows the box for the user's own key field when the server provides data
   let has=false; try{has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();}catch(e){}
   const entry=document.getElementById('keyEntryRow');
   const saved=document.getElementById('keySavedRow');
@@ -15284,6 +15285,7 @@ async function loadData(userClick){
     progFill.style.width='16%';
     const _wtry=async(u)=>{ try{
       const r=await _fetchTO(_eodProxy(u),{headers:{'Accept':'application/json'}},20000);
+      if(r&&r.status===410){ try{ const j=JSON.parse(await r.text()); if(j&&/no longer served/i.test(String(j.error||''))) window._nyseGone=j; }catch(e){} return null; } // v519: the server's honest retirement answer
       if(!r.ok)return null;
       const txt=await r.text();
       if(!(txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{')))return null;
@@ -15422,7 +15424,10 @@ Output the complete array. Start with [`;
           return;
         }
       }catch(e){}
-      statusEl.textContent='❌ Could not load — '+err.message;
+      if(window._nyseGone&&String(currentExch||'').toUpperCase()!=='ASX'){
+      statusEl.innerHTML='🇺🇸 <b>'+currentExch+' is no longer served from our server</b> — it now concentrates on the ASX. You can still load '+currentExch+' yourself: enter your own data key (the key box is now showing in ⚙ Setup & data) and press ⚡ Load again. Your saved '+currentExch+' data on this device still opens offline as always.';
+      try{ const kb=document.getElementById('keyConnBlock'); if(kb)kb.style.display=''; }catch(e){}
+    } else statusEl.textContent='❌ Could not load — '+err.message;
       keyErr.style.display='block';
       btn.disabled=false;spEl.style.display='none';lbl.textContent='⚡ Retry';
       setTimeout(()=>progWrap.style.display='none',500);
