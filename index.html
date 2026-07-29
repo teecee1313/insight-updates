@@ -1706,7 +1706,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-569-open';
+const APP_VERSION='2026.07.28-570-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4388,7 +4388,7 @@ async function fetchLiveNews(ticker,exch,name){
     if(!r.ok){
       if(exch==='ASX'){
         const url2=`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(ticker)}&filter_entities=true&language=en&limit=5&api_token=${encodeURIComponent(key)}`;
-        const r2=await fetch(url2).catch(()=>null);
+        const r2=await _fetchTO(url2,null,25000).catch(()=>null);
         if(r2&&r2.ok){const d2=await r2.json();const items2=(d2.data||[]).map(_mapNews);_newsCache[ck]={t:Date.now(),items:items2};return {ok:true,items:items2};}
       }
       return {ok:false,reason:'http'+r.status};
@@ -4996,7 +4996,7 @@ function _shdNewsLoad(tk,exch){
     var c=_shdNewsCache[tk];
     if(c&&(Date.now()-c.t)<600e3){ _shdNewsRender(tk,c.rows,c.note); return; }
     el.innerHTML='<div style="font-size:9px;color:var(--dim);margin:12px 0 4px;">📰 checking the news store…</div>';
-    fetch(DATA_PROXY+'/news/for?exch='+encodeURIComponent(exch||currentExch)+'&ticker='+encodeURIComponent(tk)+'&days=120')
+    _fetchTO(DATA_PROXY+'/news/for?exch='+encodeURIComponent(exch||currentExch)+'&ticker='+encodeURIComponent(tk)+'&days=120',null,20000)
       .then(function(r){ return (r&&r.ok)?r.json():null; })
       .then(function(j){
         var note=null, rows=[];
@@ -6846,7 +6846,7 @@ function _apQueueSellPush(sells){
           note:'auto-pilot exit · '+whyTxt };
       }).filter(Boolean);
       if(!orders.length)return;
-      fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:day,orders:orders})})
+      _fetchTO(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:day,orders:orders})},20000)
         .then(function(res){
           if(!(res&&res.ok))return;
           try{ const ls=document.getElementById('loadStatus');
@@ -6887,8 +6887,8 @@ async function _bridgeBoxTest(){
   _bridgeBoxNote('Checking with the server…','var(--muted)');
   try{
     var today=new Date().toISOString().slice(0,10);
-    var r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',
-      {method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:today,orders:[]})});
+    var r=await _fetchTO(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',
+      {method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:today,orders:[]})},20000);
     if(r.ok){ _bridgeBoxNote('✅ The server accepted this key. Auto-trade can queue orders.','var(--green)'); }
     else if(r.status===401){ _bridgeBoxNote('❌ The server rejected this key. Check it matches the BRIDGE_KEY secret on your Worker, and the copy in your desktop bridge.','#ff9caa'); }
     else if(r.status===503){ _bridgeBoxNote('⚠️ Your Worker has no BRIDGE_KEY secret set, so the bridge is switched off there. Add it in the Cloudflare dashboard first.','var(--gold)'); }
@@ -6933,7 +6933,7 @@ function _apQueuePush(ent,r){
         note:(b.limit?'auto-pilot pick':'auto-pilot scanner')+(b.score!=null?' · score '+b.score+'/10':'') };
     }).filter(Boolean);
     if(!orders.length)return;
-    fetch(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:day,orders:orders})})
+    _fetchTO(DATA_PROXY.replace(/\/+$/,'')+'/bridge/push',{method:'POST',headers:_bridgeHeaders(),body:JSON.stringify({day:day,orders:orders})},20000)
       .then(res=>{
         if(!(res&&res.ok))return;
         // Mark the STORED diary entry as queued only after the server said yes —
@@ -9433,7 +9433,7 @@ async function _newsRegister(force){
     var K='asxScreener.newsReg.v1', st=null;
     try{ st=JSON.parse(localStorage.getItem(K)); }catch(e){}
     if(!force&&st&&st.hash===hash&&(Date.now()-(st.t||0))<6*3600e3)return;
-    var r=await fetch(DATA_PROXY+'/news/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var r=await _fetchTO(DATA_PROXY+'/news/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)},20000);
     if(!r||!r.ok)return;                                        // locked / offline / server without the feature: silent
     var j=await r.json();
     if(j&&j.ok){ try{ localStorage.setItem(K,JSON.stringify({hash:hash,t:Date.now(),tracked:j.tracked||0,off:!!j.off})); }catch(e){} }
@@ -11059,7 +11059,7 @@ async function _ohlcFromServer(exch,ticker,days){
     if(!DATA_PROXY)return null;
     var u=DATA_PROXY.replace(/\/+$/,'')+'/ohlc?exch='+encodeURIComponent(exch||currentExch||'ASX')
       +'&ticker='+encodeURIComponent(ticker)+'&days='+Math.max(1,Math.min(400,+days||400));
-    var r=await fetch(u);
+    var r=await _fetchTO(u,null,20000);
     if(!r||!r.ok)return null;
     var j=await r.json();
     if(!j||!j.ok||!j.held||!j.ohlc)return null;
@@ -14037,7 +14037,7 @@ async function fetchTechnicalList(exch,apiKey){
   const tries=_keyedRoutes(url);
   for(const t of tries){
     try{
-      const r=await fetch(t(url),{headers:{'Accept':'application/json'}});
+      const r=await _fetchTO(t(url),{headers:{'Accept':'application/json'}},25000);
       if(r.ok){
         const txt=await r.text();
         if(txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{')){
@@ -14436,7 +14436,7 @@ async function fetchSymbolList(exch,apiKey){
   const proxies=_safeRoutes(url,[u=>u]);   // v474: keyed → worker/direct only
   for(const p of proxies){
     try{
-      const r=await fetch(p(url),{headers:{'Accept':'application/json'}});
+      const r=await _fetchTO(p(url),{headers:{'Accept':'application/json'}},25000);
       if(r.ok){
         let t=(await r.text()).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
         let data; try{data=JSON.parse(t);}catch(e){const a=t.indexOf('['),b=t.lastIndexOf(']');if(a>=0&&b>a)data=JSON.parse(t.slice(a,b+1).replace(/,(\s*[}\]])/g,'$1'));}
@@ -14880,7 +14880,7 @@ async function fetchQuoteListByDate(exch,apiKey,dateStr){
   const tries=_keyedRoutes(url);   // v474: keyed → worker/direct only
   for(const t of tries){
     try{
-      const r=await fetch(t(url),{headers:{'Accept':'application/json'}});
+      const r=await _fetchTO(t(url),{headers:{'Accept':'application/json'}},25000);
       if(r.ok){
         const txt=await r.text();
         if(txt&&(txt.trim()[0]==='['||txt.trim()[0]==='{')){
@@ -15534,12 +15534,12 @@ async function loadData(userClick){
 ${symbolListUrl}
 Output the complete array. Start with [`;
     try{
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      const resp=await _fetchTO('https://api.anthropic.com/v1/messages',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:16000,system:sys,
           tools:[{type:'web_search_20250305',name:'web_search'}],
           messages:[{role:'user',content:usr}]})
-      });
+      },60000);
       if(!resp.ok)throw new Error(`Proxy error ${resp.status}`);
       const env=await resp.json();
       const raw=(env.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
@@ -16306,8 +16306,8 @@ async function serverReportCheck(){
     shares:sample.map(function(s){return {ticker:s.ticker,series:s.series};})};
   var j=null;
   try{
-    var r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/reports',
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var r=await _fetchTO(DATA_PROXY.replace(/\/+$/,'')+'/reports',
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},30000);
     if(r.status===404||r.status===405){ say('This server does not have the reports yet (it needs w395 or later).'); return; }
     if(!r.ok){ say('The server answered '+r.status+'.'); return; }
     j=await r.json();
@@ -20110,7 +20110,7 @@ async function _scServerReplay(shares, need){
       // v470b: the probe already told us this worker cannot answer — do not
       // then upload tens of megabytes for it to refuse a second time.
       if(_SCAN_SERVER_OFF)return null;
-      var r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      var r=await _fetchTO(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},90000);
       // A worker that predates w391 answers 405 (its POST handler only knows
       // /grades) or 404. That is not an error worth retrying all session.
       if(r.status===404||r.status===405){ _SCAN_SERVER_OFF=true; return null; }
