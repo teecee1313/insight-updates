@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-547-open';
+const APP_VERSION='2026.07.28-548-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19712,9 +19712,14 @@ function _evCardArrived(){
   // v544 combo pass finally sees what it was built to see.
   try{
     var C=window._auditCache; if(!C||!C.A||!C.A.M)return;
-    var key=(C.d||'')+'|'+(C.ex||'');
-    if(window._evCardMerged===key)return;
-    window._evCardMerged=key;
+    // v548: the cache is written more than once per day (warm at load, then
+    // the card's full answer). A once-per-day guard let the FIRST, thinner
+    // write consume the day's only re-check — Tony's radar stayed 0/0 while
+    // Best Evidence listed 109. Throttle instead: every write re-checks, at
+    // most once per 5 seconds.
+    var _now=Date.now();
+    if(window._evCardMergedAt&&(_now-window._evCardMergedAt)<5000)return;
+    window._evCardMergedAt=_now;
     // v547: NEVER do this work inside the user's click. Defer it, and repaint
     // only the radar tiles — a full 4,298-row table render here froze the
     // page (Tony, live, 31 Jul). The table shows the new pills on its next
