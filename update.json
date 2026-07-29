@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-565",
+  "version": "2026.07.28-566",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v565 \u2014 URGENT FIX: the \ud83d\udccb report card wouldn't open (\u2018md is not defined\u2019). My fault, introduced in v563: a code comment was added inside a one-line piece of code, which silently switched off the rest of that line \u2014 the ladder's row builder. The card works again, and a new check now fails the build if that shape ever appears anywhere in the file. Everything from v562\u2013v564 (window-scaled tiers, the score cap, the honest \u2018Any\u2019 label, the radar declaring its window and floor) is intact. Hard-refresh (Ctrl+F5)."
+  "notes": "v566 \u2014 fixes what you just caught: switching the \ud83d\udca7 floor to $1m changed the label but not the counts, because the counts still came from grades computed under the OLD floor. The radar now names the floor the GRADES actually used, and if the card is set to something different it says so outright: \u2018these counts were graded at \ud83d\udca7 Any, but the card is now set to $1m \u2014 open the report card to re-grade before trusting them\u2019. So the numbers can never quietly belong to a setting you've changed. Hard-refresh (Ctrl+F5), then open the \ud83d\udccb report card once to re-grade at $1m."
 }
