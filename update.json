@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-590",
+  "version": "2026.07.28-591",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v590 — ONE RULEBOOK ON EVERY SCREEN. You caught 🎯 Best Evidence Today disagreeing with the radar and the report card — shares wearing PROMISING lines the radar refused to count, and lines under the $0.50/$100 money bar (‘too small to trade’ everywhere else) topping a buy-side list. Cause: Best Evidence’s line filter predated two honesty rules. Fixed: it now excludes the bare two-way parent lines (🥇/🔷 fire in both directions, graded both ways, never on a buy list) and applies the SAME $0.50 money bar as the evidence strip and chips. Every screen now answers from the same rulebook, so counts can no longer contradict each other. Hard-refresh (Ctrl+F5)."
+  "notes": "v591 — THE ZERO EXPLAINS ITSELF. ‘8 building (PROMISING) lines can badge … 0 PROMISING shares’ looked like a contradiction. It isn’t — it’s best-badge-wins: shares wear their STRONGEST badge, and today every share firing a building line also fires a proven line, so SOLID absorbs them all. The app now says exactly that, with the real count, right in the evidence strip: ‘N shares DO fire a building line today, but a proven line also fires on every one of them and the stronger badge wins.’ Same maths as before — now it shows its working. Hard-refresh (Ctrl+F5)."
 }
