@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-598-open';
+const APP_VERSION='2026.07.28-599-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10825,7 +10825,7 @@ function statsBar(){
             else if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading on our server…'+_evElapsed(window._warmAt)+' — the FIRST grade of a new day, window or floor computes fresh (usually 30–90 seconds); every later look, on every device, is instant from the day\'s cache';
             else if(_wsSt==='failed'&&!(window._auditCache&&window._auditCache.A))_rn.textContent=_rn.textContent+'  ·  ⚠ background grading could not reach the server — retrying once; open the 📋 report card to force it';
           }catch(e5){}
-          try{ if(window._auditCache&&window._auditCache.A)_rn.textContent=_rn.textContent+'  ·  one ruler: every line is measured on the $250k universe (shares you could actually trade) — your 💧 floor only filters which shares you are viewing, so changing it can never change a badge'; }catch(e4){}try{ var _lc=_evLineCounts(); if(_lc&&(_lc.sol||_lc.pro||_lc.asideN)){ var _bits=[]; if(_lc.aside.tiny)_bits.push(_lc.aside.tiny+' proven but too small to trade (under $0.50/$100)'); if(_lc.aside.seq)_bits.push(_lc.aside.seq+' sequence'+(_lc.aside.seq>1?'s':'')+' (yesterday-dependent, never on a buy list)'); if(_lc.aside.warn)_bits.push(_lc.aside.warn+' warning-direction'); if(_lc.aside.neg)_bits.push(_lc.aside.neg+' with no positive edge'); _rn.textContent=_rn.textContent+'  ·  those share counts come from '+_lc.sol+' proven (SOLID) and '+_lc.pro+' building (PROMISING) line'+((_lc.sol+_lc.pro)===1?'':'s')+' that can badge a share — one common line can badge hundreds of shares at once'+(_bits.length?(' · '+_lc.asideN+' more graded line'+(_lc.asideN>1?'s':'')+' set aside: '+_bits.join(', ')+((window._evPromShareN===0&&window._evAbsorbN>0)?(' — and 0 PROMISING shares is best-badge-wins, not absence: '+window._evAbsorbN+' share'+(window._evAbsorbN===1?'':'s')+' DO fire a building line today, but a proven line also fires on every one of them and the stronger badge wins'):((window._evPromShareN===0&&_lc.pro>0)?(' — and 0 PROMISING shares means none of the '+_lc.pro+' building line'+(_lc.pro===1?' is':'s are')+' FIRING on any share today: a line badges a share only when its exact signals fire on it that day, and building lines are the rarer patterns — some days the market simply does not show them'):((_lc.pro===0)?' — which is why 0 PROMISING can be honest':'')))):''); } }catch(e6){}
+          try{ if(window._auditCache&&window._auditCache.A)_rn.textContent=_rn.textContent+'  ·  one ruler: every line is measured on the $250k universe (shares you could actually trade) — your 💧 floor only filters which shares you are viewing, so changing it can never change a badge'; }catch(e4){}try{ var _lc=_evLineCounts(); if(_lc&&(_lc.sol||_lc.pro||_lc.asideN)){ var _bits=[]; if(_lc.aside.tiny)_bits.push(_lc.aside.tiny+' proven but too small to trade (under $0.50/$100)'); if(_lc.aside.seq)_bits.push(_lc.aside.seq+' sequence'+(_lc.aside.seq>1?'s':'')+' (yesterday-dependent, never on a buy list)'); if(_lc.aside.warn)_bits.push(_lc.aside.warn+' warning-direction'); if(_lc.aside.neg)_bits.push(_lc.aside.neg+' with no positive edge'); _rn.textContent=_rn.textContent+'  ·  those share counts come from '+_lc.sol+' proven (SOLID) and '+_lc.pro+' building (PROMISING) line'+((_lc.sol+_lc.pro)===1?'':'s')+' that can badge a share — one common line can badge hundreds of shares at once'+(_bits.length?(' · '+_lc.asideN+' more graded line'+(_lc.asideN>1?'s':'')+' set aside: '+_bits.join(', ')+((window._evPromShareN===0&&window._evAbsorbN>0)?(' — and 0 PROMISING shares is best-badge-wins, not absence: '+window._evAbsorbN+' share'+(window._evAbsorbN===1?'':'s')+' DO fire a building line today, but a proven line also fires on every one of them and the stronger badge wins'):((window._evPromShareN===0&&_lc.pro>0)?(' — and 0 PROMISING shares means none of the '+_lc.pro+' building line'+(_lc.pro===1?' is':'s are')+' FIRING on any share today: a line badges a share only when its exact signals fire on it that day, and building lines are the rarer patterns — some days the market simply does not show them. <button onclick="_promLiveModal()" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:2px;">\ud83d\udd2c prove it</button>'):((_lc.pro===0)?' — which is why 0 PROMISING can be honest':'')))):''); } }catch(e6){}
           try{ if(window._auditCache&&window._auditCache.A&&_cl.indexOf('Any')===0){ var _esc=function(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }; var _btn=function(k,lbl){ return '<button onclick="_evSetFloor(\''+k+'\')" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">'+lbl+'</button>'; }; _rn.innerHTML=_esc(_rn.textContent)+'  ·  ⚠ the 💧 floor is wide open, so these counts lean on micro-caps — measure on shares you could actually trade:'+_btn('250k','set $250k')+_btn('1m','set $1m'); } }catch(e2){}  }
           else {
             var _w=[];
@@ -18938,6 +18938,60 @@ function _warmRetry(){
     setTimeout(function(){ try{ if(!(window._auditCache&&window._auditCache.A))_auditWarmIdle(); }catch(e){} },30000);
   }catch(e){}
 }
+function _promLiveCheck(){
+  /* v599 — PROVE the zero instead of asserting it a third time. For every
+     building (PROMISING) line the strip counts, this computes — LIVE, from
+     the market already loaded in this browser, using the exact same flag
+     reader the bot's own combo gate uses (_liveFired) — how many shares
+     actually fire ALL of that line's signals TODAY. Same-day combos only
+     (sequences need yesterday's flags too and are labelled, not computed,
+     to avoid guessing). This turns 'why is it 0' from something only I can
+     explain into something anyone can verify themselves, on the spot. */
+  var out=[];
+  try{
+    var A=(window._auditCache&&window._auditCache.A)?window._auditCache.A:null;
+    if(!A||!A.M||!Array.isArray(allData))return out;
+    var flagCache=new Map();
+    var flagsOf=function(s){ var f=flagCache.get(s); if(!f){ f=_liveFired(s); flagCache.set(s,f); } return f; };
+    Object.keys(A.M).forEach(function(k){
+      var m=A.M[k]; if(!m||!m.n)return;
+      if(m.tier!=='promising')return;                 // exactly _evLineCounts' population
+      if(m.dirNeg||/^(vr|blk)-$/.test(k)||k==='vr'||k==='blk')return; // warnings/parents never badge
+      if(!(m.edge>=0.5))return;                        // the same money bar
+      if(k.indexOf('>')>=0){ out.push({k:k,name:(typeof nameOf==='function'?nameOf(k):k),seq:true,fires:null,near:null}); return; }
+      var parts=k.split('+');
+      var fires=[], nearMiss=0;
+      for(var i=0;i<allData.length;i++){
+        var s=allData[i]; if(!s)continue;
+        var f=flagsOf(s); var have=0, missing='';
+        for(var p=0;p<parts.length;p++){ if(f[parts[p]])have++; else missing=parts[p]; }
+        if(have===parts.length)fires.push(s.ticker);
+        else if(have===parts.length-1)nearMiss++;
+      }
+      out.push({k:k,name:(typeof nameOf==='function'?nameOf(k):k),seq:false,parts:parts,fires:fires,near:nearMiss});
+    });
+  }catch(e){}
+  return out;
+}
+function _promLiveModal(){
+  try{
+    var rows=_promLiveCheck();
+    if(!rows.length){ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);">No building (PROMISING) lines are in today\'s graded table to check.</div>','\ud83d\udd2c Live overlap check'); return; }
+    var esc=function(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    var body=rows.map(function(r){
+      if(r.seq)return '<div style="padding:8px 10px;border:1px solid var(--border2);border-radius:7px;margin-bottom:6px;"><b>'+esc(r.name)+'</b><div style="font-size:10.5px;color:var(--dim);margin-top:3px;">sequence — needs yesterday\'s signals too; not checked here, only same-day combos are.</div></div>';
+      var n=r.fires.length;
+      return '<div style="padding:8px 10px;border:1px solid '+(n>0?'var(--green)':'var(--border2)')+';border-radius:7px;margin-bottom:6px;">'
+        +'<b>'+esc(r.name)+'</b> <span style="color:var(--dim);font-size:10.5px;">('+esc(r.parts.join(' + '))+')</span>'
+        +'<div style="font-size:11px;margin-top:4px;color:'+(n>0?'var(--green)':'var(--muted)')+';">'+n+' share'+(n===1?'':'s')+' firing ALL parts today'+(n>0?(': '+esc(r.fires.slice(0,8).join(', '))+(n>8?' …':'')):'')+'</div>'
+        +(n===0?'<div style="font-size:10.5px;color:var(--dim);margin-top:2px;">'+r.near+' share'+(r.near===1?'':'s')+' fired all but ONE part — closest misses, not a badge</div>':'')
+        +'</div>';
+    }).join('');
+    showModal('<div style="padding:14px;font-size:12.5px;line-height:1.6;">'
+      +'<div style="color:var(--muted);margin-bottom:10px;">Computed live from the '+allData.length+' shares loaded in this browser, using the exact same signal reader the auto-pilot\'s combo gate uses. This is not a re-explanation — it is the actual count, checkable right now.</div>'
+      +body+'</div>','\ud83d\udd2c Live overlap check — today\'s building lines');
+  }catch(e){ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);">Could not run the live check: '+String((e&&e.message)||e)+'</div>','\ud83d\udd2c Live overlap check'); }
+}
 function _gradesKey(exch,date,hold){ return (exch||'')+'|'+(date||'')+'|'+(hold||5); }
 function _gradesGet(exch,date,hold){
   try{ var st=window._gradesStore||(window._gradesStore={}); return st[_gradesKey(exch,date,hold)]||null; }catch(e){ return null; }
@@ -19773,14 +19827,43 @@ function _scDayGet(){
 function _evMark(shares){
   try{
     if(_evBetaBlocked())return false;
-    var R=_apGrades(); if(!R||!Array.isArray(shares)||!shares.length)return false;
+    if(!Array.isArray(shares)||!shares.length)return false;
     var dd=_evDD();
-    // v471: the answer comes from the server. Until it arrives, leave _evD
-    // unset so _evEnsureMarked tries again once the warm lands; if the warm has
-    // FAILED, stamp the day anyway so we stop asking on every repaint.
-    var _F=_scDayGet();
-    // v474: there is no separate day request any more, so "we could not score
-    // today" is simply "the replay did not come back with an answer".
+    // v599 ROOT CAUSE FIX: the badge source is now window._auditCache.A (the
+    // bo/inf/inst/cx/vr/blk report-card engine, fed via the unified store from
+    // v598) — the SAME object the strip's sentence, the card, the nursery and
+    // Best Evidence already read. Before today, _evMark sourced BOTH "did this
+    // fire today" and "what tier is this line" from an entirely DIFFERENT
+    // server engine (the old 18 scan-button rules on /scan) — the two systems
+    // shared only their SOLID/PROMISING UI labels, never their data, which is
+    // why the strip's own claim ("those share counts come from 13 proven and
+    // 8 building lines") was never actually true and no combo from the newer
+    // vocabulary could ever badge a real share, regardless of what fired.
+    // _F is now a per-share key->fired map DERIVED locally from A.M using
+    // _nurFireToday (already correct, already used by the nursery, verified
+    // bit-for-bit against the server's own predicate thresholds).
+    var _AGrd=(window._auditCache&&window._auditCache.A&&window._auditCache.A.M)?window._auditCache.A:null;
+    var _AHold=_AGrd?(_AGrd.hold||5):5;
+    var _badgeKeys=_AGrd?Object.keys(_AGrd.M).filter(function(k){
+      var m=_AGrd.M[k]; if(!m||!m.n)return false;
+      if(m.dirNeg)return false;                          // warnings never badge a buy
+      if(k.indexOf('>')>=0)return false;                  // sequences: can't be checked live
+      if(k==='vr'||k==='blk')return false;                // bare two-way parents never badge
+      if(/^(vr|blk)-$/.test(k))return false;               // down-day splits are warnings too
+      var t=_tierAdj(m,_AHold);
+      if(t!=='solid'&&t!=='promising')return false;        // the graded bar, unsoftened (v577's 'tiny' excluded here too)
+      return true;
+    }):null;
+    var _F=null;
+    if(_badgeKeys){
+      _F={};
+      shares.forEach(function(s){
+        if(!s||!s.ticker)return;
+        var hit=[];
+        for(var bi=0;bi<_badgeKeys.length;bi++){ var k=_badgeKeys[bi]; var r=null; try{ r=_nurFireToday(s,k); }catch(e){} if(r===true)hit.push(k); }
+        _F[s.ticker]=hit;
+      });
+    }
     var _failed=(!_F&&(window._scanSrc==='unavailable'||!!window._scDayFail));
     shares.forEach(function(s){ if(s){ s._evKeys=[]; s._evD=(_F||_failed)?dd:''; s._evTier=null; s._evSolidN=0; s._evPromN=0; s._evWhy=''; s._evSkip=''; s._evThin=false; s._evNeg=false; s._evEdge=null; s._evWhyNeg=''; s._evUnp=false; s._evWhyUnp=''; s._evErly=false; s._evWhyErly=''; } });
     // Same phases as _apRuleFilter (one _scStats per share, the day's
