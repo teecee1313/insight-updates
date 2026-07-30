@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-607",
+  "version": "2026.07.28-608",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v607 — FOUND THE ACTUAL BUG. Every fold release since v601 was hiding the wrong thing: the real wall of text ('SIGNALS 19 graded... one ruler... prove it') lives in a completely separate element from the one the fold was controlling. The short summary you saw collapsing correctly was genuine — it just had no connection to the paragraph sitting next to it. Retargeted the fold to the actual element. This time verified directly: the exact long paragraph is now hidden by default, with a working ▸ why to reveal it, and the SEPARATE status messages (checking…, failed, retrying) are correctly left untouched, since those are things you need to see, not explanation to hide. Hard-refresh (Ctrl+F5)."
+  "notes": "v608 — PHONE SCROLLS SIDEWAYS NOW, NOTHING HIDDEN. Volume, Streaks and Signals used to be hidden on phone entirely, to keep the remaining columns readable. Tony's call: keep the full table, swipe to see the rest instead. Turns out the exact mechanism already existed for zoomed-in desktop windows — the table scrolls sideways and the ticker column stays frozen so you always know which row you're looking at. Phones now use that same, already-proven behaviour: every column is back, swipe right to see Volume/Streaks/Signals, the ticker never scrolls off. Hard-refresh (Ctrl+F5)."
 }

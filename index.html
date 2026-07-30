@@ -722,9 +722,14 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
      never again silently change which OTHER columns a phone shows.
      Phones keep: star · ticker (sticky) · price · change · 💰 PN Edge ·
      ⭐ Score·🔥 Accum. The 📰 news chip moves into the ticker cell (.ph-only). */
-  #tblwrap table .ph-hide{
-    display:none;
-  }
+  /* v608 — Tony's choice: keep the full table, scroll sideways for the rest,
+     rather than hide Volume/Streaks/Signals. The desktop-zoom overflow
+     mechanism (.tblwrap{overflow:auto} + the sticky ticker column below)
+     already does exactly this; removing the display:none here is the whole
+     fix — the table simply becomes wider than the phone and scrolls, same
+     as it already does on a narrow/zoomed desktop window. */
+  #tblwrap table .ph-hide{ }
+  #tblwrap{-webkit-overflow-scrolling:touch;}
   /* likewise: the touch-friendly padding belongs to the share table, not to
      every dense table in the app (the cards set their own 11.5px on purpose). */
   #tblwrap table th,#tblwrap table td{padding:9px 6px;font-size:13px;}
@@ -1712,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-607-open';
+const APP_VERSION='2026.07.28-608-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
