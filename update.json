@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-589",
+  "version": "2026.07.28-590",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v589 — NO MORE FALSE ALARM AT OPEN. On every fresh load the radar showed ‘try again’ before the server had even been asked — ‘not answered YET’ was wearing the same clothes as ‘asked and failed’. Now the failure message only appears after a CONCLUDED failure (server unreachable, timeout, or the server’s own words). Until then the gap shows the honest state: 🧪 checking today’s signals with our server… with the live ticking timer. Ticking = working; a real failure still names itself and self-retries (v587). Hard-refresh (Ctrl+F5)."
+  "notes": "v590 — ONE RULEBOOK ON EVERY SCREEN. You caught 🎯 Best Evidence Today disagreeing with the radar and the report card — shares wearing PROMISING lines the radar refused to count, and lines under the $0.50/$100 money bar (‘too small to trade’ everywhere else) topping a buy-side list. Cause: Best Evidence’s line filter predated two honesty rules. Fixed: it now excludes the bare two-way parent lines (🥇/🔷 fire in both directions, graded both ways, never on a buy list) and applies the SAME $0.50 money bar as the evidence strip and chips. Every screen now answers from the same rulebook, so counts can no longer contradict each other. Hard-refresh (Ctrl+F5)."
 }
