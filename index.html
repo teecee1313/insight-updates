@@ -1707,7 +1707,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-578-open';
+const APP_VERSION='2026.07.28-579-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10946,6 +10946,17 @@ async function _srvFirstFill(exch,depth,say){
     const latest=await jf('/history/latest?exch='+encodeURIComponent(exch),10000).catch(function(){return null;});
     const latestD=(latest&&latest.ok&&latest.date)?String(latest.date).slice(0,10):null;
     if(!latestD){ if(say)say('\u26a0 Could not read your server store.'); return out; }
+    /* v579: same trust-but-verify as the day-sync (v455). A believable pointer
+       (no older than a long weekend) lets filled shares be stamped "saved
+       today", so the per-share download pass skips them — that is the whole
+       point of filling by day. A stale pointer still merges the real bars but
+       never claims freshness, so the ordinary path fills the gap. The v455
+       backstop in fetchHistoryUpdate re-checks the claim against the newest
+       bar before honouring it. */
+    const _today=new Date().toISOString().slice(0,10);
+    const _ptrAge=Math.round((Date.now()-Date.parse(latestD+'T00:00:00Z'))/86400000);
+    const _ptrOK=isFinite(_ptrAge)&&_ptrAge<=5;
+    const _fillStamp=_ptrOK?_today:latestD;
     const per=new Map();
     const d=new Date(latestD+'T12:00:00Z');
     let misses=0;
@@ -10979,7 +10990,7 @@ async function _srvFirstFill(exch,depth,say){
           const stored=await histGet(exch,t);
           const have=(stored&&Array.isArray(stored.rows))?stored.rows.length:0;
           if(have>=rows.length){ out.topped++; return; }
-          await histPut(exch,t,rows,latestD);
+          await histPut(exch,t,rows,_fillStamp);
           if(have)out.topped++; else out.seeded++;
         }catch(e){}
       }));
@@ -11085,6 +11096,40 @@ async function _srvDaySync(exch,say){
     // v455: only remember the sync mark when the pointer was believable — a
     // stale pointer must not lock this device out of retrying later.
     if(_ptrOK){ try{ localStorage.setItem(skey,latestD); }catch(e){} }
+  }catch(e){}
+  return out;
+}
+async function _srvSmartSync(exch,targets,say){
+  /* v579: YOUR SERVER STORE IS THE PRIMARY ROUTE. Before the per-share download
+     loop runs, sample up to 40 evenly spaced shares and read how deep their
+     saved history is. Thin coverage (a new device, a cleared store, a
+     half-filled one) means the per-share loop would make thousands of network
+     requests for data the pantry already holds — so run the v578 whole-day
+     first-fill automatically: one request per trading DAY. Deep coverage means
+     only the newest days can be missing — the ordinary day-sync tops those up.
+     Either way the per-share pass afterwards only fetches the real holes. */
+  const out={mode:'none',sampled:0,deep:0};
+  try{
+    if(typeof _serverData!=='function'||!_serverData())return out;
+    const list=(targets&&targets.length)?targets:[];
+    if(!list.length)return out;
+    const N=Math.min(40,list.length), step=list.length/N;
+    for(let k=0;k<N;k++){
+      const s=list[Math.floor(k*step)]||{};
+      try{
+        const st=await histGet(s.exchange||exch,s.ticker);
+        if(st&&Array.isArray(st.rows)&&st.rows.length>=250)out.deep++;
+      }catch(e){}
+    }
+    out.sampled=N;
+    if(out.deep/N<0.7){
+      if(say)say('\ud83e\uddca Saved history is thin here ('+out.deep+' of '+N+' sampled shares hold a full year) \u2014 filling straight from your server store, one request per DAY instead of one per share\u2026');
+      out.mode='firstfill';
+      out.fill=await _srvFirstFill(exch,300,say);
+    }else{
+      out.mode='daysync';
+      out.sync=await _srvDaySync(exch,say);
+    }
   }catch(e){}
   return out;
 }
@@ -11299,6 +11344,9 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   // v474: this URL carries the customer's apiKey, so the public relays are out.
   // Worker first (it strips the key entirely), then direct to EODData.
   const proxies=_keyedRoutes(url);
+  // v579: names derive from the table itself — with two routes the first is our
+  // Worker and the second is direct; with one route only direct exists.
+  const _routeName=function(pi){ return (proxies.length>=2&&pi===0)?'your Cloudflare server':'direct EODData'; };
   // FASTEST-ROUTE RACING: on the first fetch, try ALL routes at once and keep
   // whichever answers fastest; every later fetch uses that route directly.
   // (The old logic kept the first route that merely WORKED — so a slow-but-
@@ -11320,22 +11368,25 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
       const ms=((performance&&performance.now)?performance.now():Date.now())-t0;
       // Track how slow the chosen route is running so we can re-race if it degrades.
       window._lastProxyMs=ms;
-      window._lastProxyName=['free relay 1 (corsproxy)','free relay 2 (allorigins)','direct EODData','free relay 3 (thingproxy)','your Cloudflare server'][pi]||'data route';
+      window._lastProxyName=_routeName(pi);
       return {out,pi,ms};
     }finally{ clearTimeout(timer); }
   }
   let got=null;
-  const _WPI=4, _haveWorker=(typeof DATA_PROXY==='string'&&!!DATA_PROXY); // 4 = our Worker route
+  // v579: the route table IS `proxies` (_keyedRoutes: our Worker first when
+  // configured, then direct EODData — the public relays left this path in v474).
+  // The old code here still raced FIVE routes by fixed index, so its first two
+  // tries hit undefined slots and threw before the real routes ran, and the
+  // status line reported "free relay" names that could no longer occur. Indices
+  // now mean position in the real table, and a remembered index from an older
+  // build (0..4) is discarded rather than trusted.
+  if(window._goodHistProxy!=null&&!(window._goodHistProxy>=0&&window._goodHistProxy<proxies.length))window._goodHistProxy=null;
   if(window._goodHistProxy==null){
-    // v373b: prefer OUR Worker (fast, edge-cached, key held server-side). If it's
-    // unreachable, try DIRECT (key stays with EODData only), then race the public
-    // relays as a last resort — the key leaves your browser only when there is no
-    // other way. The winning route is remembered so later fetches reuse it.
-    if(_haveWorker){ try{ got=await _tryProxy(_WPI); }catch(e){/* worker down — fall through */} }
-    if(!got){ try{ got=await _tryProxy(2); }catch(e){/* direct blocked — fall through to the relays */} }
-    if(!got){ try{ got=await Promise.any([_tryProxy(0),_tryProxy(1),_tryProxy(3)]); }catch(e){/* all relays failed */} }
+    // Worker first (fast, edge-cached, key held server-side); direct EODData
+    // only if the worker is unreachable. The winner is remembered.
+    for(let pi=0;pi<proxies.length&&!got;pi++){ try{ got=await _tryProxy(pi); }catch(e){/* route down — try the next */} }
   }else{
-    const order=[window._goodHistProxy,(_haveWorker?_WPI:2),2,0,1,3].filter((v,i,a)=>a.indexOf(v)===i);
+    const order=[window._goodHistProxy].concat(proxies.map((_,i)=>i)).filter((v,i,a)=>a.indexOf(v)===i);
     for(const pi of order){ try{ got=await _tryProxy(pi); break; }catch(e){/* next */} }
     // If the chosen route answered but was SLOW (>3.5s), forget it so the next
     // fetch re-races and can find a faster proxy. A slow proxy never "fails",
@@ -14730,9 +14781,12 @@ async function downloadEverything(){
   // v416 STAGE-2: pull any days the pantry has that this device hasn't, ONCE per
   // day instead of once per share — shares brought current are skipped below.
   if(!window._forceFullDownload){
+    /* v579: the server store is the PRIMARY route — whole days first, the
+       per-share loop below only for what the store genuinely lacks. */
     try{
-      const sy=await _srvDaySync(currentExch,m=>{ if(lbl0)lbl0.innerHTML=m; });
-      if(sy&&sy.merged>0&&lbl0)lbl0.innerHTML=`<span style="color:var(--green)">🫙 ${sy.merged.toLocaleString()} shares brought up to date from your own server store (${sy.days} day${sy.days>1?'s':''} in ${sy.days} request${sy.days>1?'s':''}) — they'll skip ahead instantly.</span>`;
+      const sm=await _srvSmartSync(currentExch,targets,m=>{ if(lbl0)lbl0.innerHTML=m; });
+      if(sm&&sm.mode==='firstfill'&&sm.fill&&sm.fill.days>0&&lbl0)lbl0.innerHTML=`<span style="color:var(--green)">🫙 ${sm.fill.days} days filled for ${(sm.fill.shares||0).toLocaleString()} shares straight from your own server store (${sm.fill.days} requests, not ${(sm.fill.shares||0).toLocaleString()}) — the pass below only fetches what the store lacks.</span>`;
+      else if(sm&&sm.mode==='daysync'&&sm.sync&&sm.sync.merged>0&&lbl0)lbl0.innerHTML=`<span style="color:var(--green)">🫙 ${sm.sync.merged.toLocaleString()} shares brought up to date from your own server store (${sm.sync.days} day${sm.sync.days>1?'s':''} in ${sm.sync.days} request${sm.sync.days>1?'s':''}) — they'll skip ahead instantly.</span>`;
     }catch(e){}
   }
   const mins=Math.ceil(n/6*0.9/60);
