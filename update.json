@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-614",
+  "version": "2026.07.28-615",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v614 — THE CHIP NOW REACTS TO ITS OWN HOVER. Real gap found: the signal chips (PROMISING, Inst?, Breakout, EOD, Blk...) never had any hover style of their own — the only thing that visibly changed on hover was the row's background, a completely separate, older effect. Now hovering a specific chip brightens it and gives it a glow, independent of training mode, so it's always clear which signal you're actually pointing at. Separately: the full explanation popup (what PROMISING and its percentage mean) only appears when training mode is switched on — the 🎓 Training button in the top bar. Hard-refresh (Ctrl+F5)."
+  "notes": "v615 — THE COUNT AND THE FILTER, FIXED TOGETHER. v613 fixed the tile's own number (Golden Cross correctly showed 12) but a SEPARATE function decides what 'tap to filter' actually matches, and it was still checking the old, wrong source — which is exactly why tapping Golden Cross found 0 shares even though the tile said 12. Same real fix as v613, applied to the actual filter this time: tapping any of the six signal tiles now correctly shows the shares that fired it. Hard-refresh (Ctrl+F5)."
 }

@@ -1718,7 +1718,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-614-open';
+const APP_VERSION='2026.07.28-615-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20149,7 +20149,12 @@ var _EV_SIG_TILES={sghi52:'hi52',sggold:'gold',sgrsirec:'rsirec',sgsqueeze:'sque
 function _evSigOn(){ var out=[]; for(var k in _EV_SIG_TILES){ if(_statOn[k])out.push(_EV_SIG_TILES[k]); } return out; }
 function _evSigAnyOn(){ for(var k in _EV_SIG_TILES){ if(_statOn[k])return true; } return false; }
 function _evFires(s,key){
-  try{ return !!(s&&s._evD===_evDD()&&Array.isArray(s._evKeys)&&s._evKeys.indexOf(key)>=0); }catch(e){ return false; }
+  try{
+    if(s&&s._evD===_evDD()&&Array.isArray(s._evKeys)&&s._evKeys.indexOf(key)>=0)return true; // combo-engine keys — unchanged
+    var _tf615=(typeof _scDayGet==='function')?_scDayGet():null; // v615: the six scan-only signals live here, not in _evKeys — same source v613 already proved correct for the tile counts
+    if(_tf615&&s&&s.ticker){ var _h=_tf615[s.ticker]; if(Array.isArray(_h)&&_h.indexOf(key)>=0)return true; }
+    return false;
+  }catch(e){ return false; }
 }
 // The per-share chip for table rows and the Top 20 panel.
 // v499 — the quiet-volume caution. From the full replay: the bottom tenth of
