@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-611",
+  "version": "2026.07.28-612",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v611 — SAME COMPACT PATTERN, FOR THE WINDOW. Right next to the floor pill, a matching one for the outcome window: 5d / 10d / 30d, tap to switch, one shared footprint, same instant setter the report card already used. Two of the three settings that used to require opening the card are now one tap from the radar itself. Hard-refresh (Ctrl+F5)."
+  "notes": "v612 — TRAINING MODE NOW EXPLAINS THE TABLE'S CHIPS TOO. The full explanation for PROMISING/SOLID (including exactly what the percentage means — the line's measured edge vs the market over the window) already existed; it just lived in a native browser tooltip, which barely works on a phone. Training mode already had a proper tap-to-reveal popup for the report card — it now works on every chip in the main table too (PROMISING, Inst?, Breakout, EOD, Blk, and the rest), built to scale to thousands of rows without slowing anything down. Turn on training mode, tap a chip, get the real explanation. Hard-refresh (Ctrl+F5)."
 }

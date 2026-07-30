@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-611-open';
+const APP_VERSION='2026.07.28-612-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10857,6 +10857,7 @@ function statsBar(){
   try{ _evFoldApply(); }catch(e){} /* v603: moved here from right after the _evSkipNote() call — that ran too early, before the separate 'scored on our server / DAY OLD' block further up in this function had even written its content, so the fold was never being re-applied to what actually ends up on screen */
   try{ _radarFloorRow(); }catch(e){} /* v609: keeps the radar's own floor row in sync with every render, same as the other end-of-statsBar housekeeping calls */
   try{ _radarHoldRow(); }catch(e){} /* v611: same pattern for the outcome window */
+  try{ _attachTableTips(); }catch(e){} /* v612: one-time delegated listener — training mode's tap-to-explain popup, now on the table too, not just the card */
 }
 // v484 — a radar where half the tiles read 0 in the same weight as the ones
 // reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
@@ -19154,6 +19155,28 @@ function _auditWarmIdle(){
 // report card into the app's styled instant popup, so hovering anything (name,
 // number, badge, verdict, header, ladder rung) explains it. Outside training
 // mode the native title tooltips still work.
+function _attachTableTips(){
+  try{
+    var box=document.getElementById('tblwrap'); if(!box||box.__ttDelegated)return;
+    box.__ttDelegated=1;
+    box.addEventListener('mouseover',function(e){
+      try{
+        if(!document.body.classList.contains('training-on'))return;
+        var el=e.target.closest('[title]'); if(!el||el.tagName==='BUTTON'||!box.contains(el))return;
+        var d=el.getAttribute('title'); if(!d)return;
+        el.setAttribute('data-tip',d); el.removeAttribute('title');
+        _cardShowTip(el,d);
+      }catch(e2){}
+    });
+    box.addEventListener('mouseout',function(e){
+      try{
+        var el=e.target.closest('[data-tip]'); if(!el||!box.contains(el))return;
+        var d=el.getAttribute('data-tip'); if(d){ el.setAttribute('title',d); el.removeAttribute('data-tip'); }
+        _cardHideTip();
+      }catch(e2){}
+    });
+  }catch(e){}
+}
 function _attachCardTips(container){
   try{
     if(!container||!document.body.classList.contains('training-on'))return;
