@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-597-open';
+const APP_VERSION='2026.07.28-598-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18938,6 +18938,33 @@ function _warmRetry(){
     setTimeout(function(){ try{ if(!(window._auditCache&&window._auditCache.A))_auditWarmIdle(); }catch(e){} },30000);
   }catch(e){}
 }
+function _gradesKey(exch,date,hold){ return (exch||'')+'|'+(date||'')+'|'+(hold||5); }
+function _gradesGet(exch,date,hold){
+  try{ var st=window._gradesStore||(window._gradesStore={}); return st[_gradesKey(exch,date,hold)]||null; }catch(e){ return null; }
+}
+function _gradesPut(exch,date,hold,A){
+  /* v598 — ONE STORE FOR ALL GRADED WINDOWS. Before today, "the graded answer"
+     lived in up to THREE independent places: _auditWarmIdle's background warm
+     and signalReportCard's own hold=5 fast path both wrote window._auditCache
+     directly; _rcAltOpen (any OTHER window, 10d/30d) wrote a wholly separate
+     object, window._auditCacheAlt, that nothing else ever read. v597 fixed the
+     symptom (the radar's own warm now asks for the right window) by adding
+     matching invalidation logic — but matching logic is exactly the kind of
+     thing that silently drifts as more call sites get added. This is the
+     structural fix: ONE keyed store (exch|date|hold), every writer uses it,
+     and whichever window is CURRENTLY selected mirrors into window._auditCache
+     so the dozen-plus existing readers across the app need zero changes. Two
+     independent fetches for the same window now also collapse into one: if
+     the card already fetched a window, the radar's own warm finds it already
+     cached and skips the duplicate server call entirely. */
+  try{
+    var st=window._gradesStore||(window._gradesStore={});
+    st[_gradesKey(exch,date,hold)]={A:A,at:Date.now()};
+    if((hold||5)===((typeof _cardHold==='function')?_cardHold():5)){
+      window._auditCache={d:date,ex:exch,liq:'250k',A:A};
+    }
+  }catch(e){}
+}
 function _auditWarmIdle(){
   try{
     if(window._prepRunning||window._auditWarming)return;
@@ -18949,8 +18976,8 @@ function _auditWarmIdle(){
     window._auditWarming=true;
     try{ window._warmState='running'; window._warmAt=Date.now(); window._warmN=_sh.length; if(typeof statsBar==='function')setTimeout(function(){try{statsBar();}catch(e){}},50); }catch(e){}
     const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
-    _serverGrades(payload,dd,currentExch,(typeof _cardHold==='function')?_cardHold():5).then(function(A){ /* v597 ROOT CAUSE FIX: the radar's own grade request now asks for the window the CARD has selected — the SAME source of truth the card's popup uses (_rcAltOpen), instead of always the server default (5d) regardless of what the user picked. This is what makes 'switch to 10d' actually change what the radar counts. */
-      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,liq:'250k',A:A}; /* v586: grades live on the fixed $250k ruler — the viewing floor is not part of their identity */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} }catch(e){} }
+    _serverGrades(payload,dd,currentExch,(typeof _cardHold==='function')?_cardHold():5).then(function(A){ /* v597: the radar's own request follows the card's selected window */
+      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; _gradesPut(currentExch,dd2,(typeof _cardHold==='function')?_cardHold():5,A); /* v598: through the one store */ /* v586: grades live on the fixed $250k ruler — the viewing floor is not part of their identity */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} }catch(e){} }
       window._auditWarming=false;
       try{ window._warmState=(window._auditCache&&window._auditCache.A)?'done':'failed'; if(window._warmState==='failed')_warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){}
     }).catch(function(err){ window._auditWarming=false; try{
@@ -19025,9 +19052,9 @@ function setCardHold(n){ try{ localStorage.setItem('asxScreener.cardHold.v1',Str
   try{ if(typeof _evRetryServer==='function')_evRetryServer(); }catch(e){}
 }
 function _rcAltOpen(dd,hold){
-  window._auditCacheAlt=window._auditCacheAlt||{};
+  window._auditCacheAlt=window._auditCacheAlt||{}; /* v598: kept only so nothing throws if referenced elsewhere — no longer the real store, see _gradesGet/_gradesPut */
   var key=hold+'_'+(currentExch||'ASX')+'_'+dd+'_'+_cardLiqKey(); // v408: per exchange · v434: per 💧 floor
-  var hit=window._auditCacheAlt[key];
+  var _g598=_gradesGet(currentExch,dd,hold); var hit=_g598&&_g598.A; /* v598: unified store */
   // v399: only trust a cached answer that MATCHES the window asked for. (Before the
   // server update lands, it answers with the 5d card — caching that under the 10d
   // slot made every later 10d tap silently re-render the same card: the "button
@@ -19042,7 +19069,7 @@ function _rcAltOpen(dd,hold){
   var payload=_sh.map(function(s){return {ticker:s.ticker,series:s.series};});
   _serverGrades(payload,dd,currentExch,hold).then(function(A){
     var right=(A&&A.M&&((A.hold||5)===hold));
-    if(right){ try{ window._auditCacheAlt[key]=A; }catch(e){} }   // v399: cache ONLY a matching-window answer
+    if(right){ try{ _gradesPut(currentExch,dd,hold,A); }catch(e){} }   // v399: cache ONLY a matching-window answer /* v598: through the one store */
     var m=document.getElementById('appModal');
     if(window._rcTok===_tok&&m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){
       if(A&&A.M){ try{ _renderReportCard(A); }catch(e){ _fail(); } } else { _fail(); }
@@ -20945,7 +20972,7 @@ function signalReportCard(){
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
   var _show=function(A){
-    try{ if(A&&A.M){window._auditCache={d:_dd,ex:currentExch,liq:'250k',A:A}; /* v586: fixed ruler */ try{_evCardArrived();}catch(e2){}} }catch(e){}
+    try{ if(A&&A.M){ _gradesPut(currentExch,_dd,5,A); /* v598: through the one store (this path only ever runs at hold=5) */ try{_evCardArrived();}catch(e2){}} }catch(e){}
     var m=document.getElementById('appModal');
     if(window._rcTok===_tok && A && A.M && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){
       try{ _renderReportCard(A); }catch(e){ try{ showModal('<div style="padding:14px;color:var(--muted);font-size:12px;">Could not build the report card right now — try again in a moment.</div>','📋 Signal report card'); }catch(_){} }
