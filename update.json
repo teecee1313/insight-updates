@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-592",
+  "version": "2026.07.28-593",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v592 — THE NURSERY NAMES ITS REAL BAR. Climbing-ladder rows read ‘strength 2.0 of the 2.0 required’ while refusing to promote — because 2.0 is the PROMISING bar those lines have already met, not the bar they are climbing toward. Rows now say what is actually true: ‘strength 2.0 — SOLID needs 2.5’, the progress bar climbs toward 2.5, and a line that reaches it shows ✓ SOLID-strength (leaving only fires to earn). Copy fix only — no tier, score or grading maths changed. Hard-refresh (Ctrl+F5)."
+  "notes": "v593 — THE LAST SILENT ZERO. When building (PROMISING) lines exist in the year's record but none is FIRING on any share today, the radar showed 0 with no explanation — the one state v591 missed. The strip now covers all three honest reasons a PROMISING zero can happen: absorbed into SOLID (with the count), not firing today (with the count of waiting lines), or no building lines at all. A line badges a share only when its exact signals fire on it that day — building lines are the rarer patterns, and some days the market simply does not show them. Hard-refresh (Ctrl+F5)."
 }
