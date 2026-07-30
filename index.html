@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-587-open';
+const APP_VERSION='2026.07.28-588-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18966,7 +18966,14 @@ function _cardScore10(m){
 // (window._auditCache) no matter what you are viewing — flipping this switch
 // can never silently change what the bot trades.
 function _cardHold(){ try{ var v=+localStorage.getItem('asxScreener.cardHold.v1'); return (v===10||v===30)?v:5; }catch(e){ return 5; } }
-function setCardHold(n){ try{ localStorage.setItem('asxScreener.cardHold.v1',String((n===10||n===30)?n:5)); }catch(e){} try{ signalReportCard(); }catch(e){} }
+function setCardHold(n){ try{ localStorage.setItem('asxScreener.cardHold.v1',String((n===10||n===30)?n:5)); }catch(e){}
+  /* v588: a new hold window is a NEW question — the old answer must go, and
+     the MAIN screen must re-ask immediately, not wait for the card to close.
+     _evRetryServer is the proven kick: strip flips to ⏳ before any network. */
+  try{ window._auditCache=null; window._gradeRetryN=0; }catch(e){}
+  try{ signalReportCard(); }catch(e){}
+  try{ if(typeof _evRetryServer==='function')_evRetryServer(); }catch(e){}
+}
 function _rcAltOpen(dd,hold){
   window._auditCacheAlt=window._auditCacheAlt||{};
   var key=hold+'_'+(currentExch||'ASX')+'_'+dd+'_'+_cardLiqKey(); // v408: per exchange · v434: per 💧 floor
@@ -20240,8 +20247,16 @@ function _evSetFloor(k){
 }
 function _cardLiqSet(k,fn){
   window._cardLiq=k; try{ localStorage.setItem('asxScreener.cardLiq.v1',k); }catch(e){}
-  try{ window._scCache=null; window._t20Cache=null; window._smCache=null; window._auditCache=null; window._auditCacheAlt={}; }catch(e){}
+  /* v588 · one-ruler follow-through: the floor is a DISPLAY filter now, and the
+     grades live on the fixed $250k ruler — so the graded answer STAYS. Nuking
+     _auditCache here (the old behaviour) forced a pointless server round-trip
+     on every floor tap and was half of the 'loads then reloads' feeling. Only
+     the floor-FILTERED view caches refresh, and the main screen repaints at
+     once so the change is visible before the card even closes. */
+  try{ window._scCache=null; window._t20Cache=null; window._smCache=null; window._auditCacheAlt={}; }catch(e){}
   try{ if(typeof window[fn]==='function')window[fn](); }catch(e){}
+  try{ if(typeof render==='function')render(); }catch(e){}
+  try{ if(typeof statsBar==='function')statsBar(); }catch(e){}
 }
 function _sigNews(v){
   window._sigNewsMode=v;

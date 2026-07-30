@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-587",
+  "version": "2026.07.28-588",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v587 — GRADING NOW HEALS ITSELF. When the very first grade of a day ran past our 120-second patience, the radar used to give up and sit there with dashes until you pressed try again — even though the server usually finishes the compute moments later and the next ask returns instantly. Now: every failure records its reason (timeout, network, or the server's own words), the note speaks it, and for timeouts and network blips the app quietly asks again by itself — up to twice, 45 seconds apart, with a live countdown ticking on screen so you can watch it self-heal. Rate-limit failures are never auto-retried (that would just burn the limit). Hard-refresh (Ctrl+F5)."
+  "notes": "v588 — CARD SETTINGS APPLY THEMSELVES. Changing the hold window (5d/10d/30d) or the 💧 floor inside the 📋 report card used to update only the card — the radar and table behind it kept the old answer until something else nudged them. Now: a new hold window re-asks the server immediately (strip flips to ⏳ with the live timer before the card is even closed), and a floor tap repaints the main screen instantly — and because of v586's one ruler, a floor tap no longer throws away the day's graded answer or costs a server trip at all. Exit the card and everything already matches. Hard-refresh (Ctrl+F5)."
 }
