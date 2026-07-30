@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-581",
+  "version": "2026.07.28-582",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v581 — WHY ‘0 PROMISING’ CAN BE HONEST. The evidence strip counted every graded line — including sequences (which can never appear on a buy list), warning-direction lines, and lines proven real but too small to trade — while the radar can only badge shares from lines that clear all of those bars. So the strip could say ‘8 building lines’ while zero of them could actually badge a share, and a 0 PROMISING tile looked broken when it was forced. The strip now counts only badge-capable lines and, when others were set aside, says how many and exactly why — so the screen answers the question itself. Hard-refresh (Ctrl+F5)."
+  "notes": "v582 — THE PHONE GETS THE REAL TABLE. The phone view hid table columns by POSITION, using numbers written for the old 14-column layout — after the redesign those numbers were hiding the merged Volume column, Streaks, Score, and the whole Signals cell (evidence chips included) on every phone. Columns now carry their own phone behaviour, so this can never silently break again. Phones now show: star · ticker · price · change · 💰 PN Edge · ⭐ Score·🔥 Accum, with the 📰 news chip beside the ticker, and the table scrolls sideways for anything else. Hard-refresh on your phone (or pull down to reload)."
 }

@@ -656,8 +656,10 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 .ed code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-family:var(--mono);font-size:11px;color:var(--orange);}
 
 /* ═══════════ MOBILE / NARROW SCREENS ═══════════ */
+.ph-only{display:none;} /* v582: phone-only affordances (e.g. the ticker-cell news chip) — enabled inside the phone block below */
 @media (max-width: 768px){
   html,body{overflow:auto;height:auto;}
+  .ph-only{display:inline;}
   /* Header wraps instead of overflowing */
   header{height:auto;flex-wrap:wrap;padding:8px 12px;gap:8px;}
   .hr2{margin-left:0;width:100%;flex-wrap:wrap;gap:8px;}
@@ -711,13 +713,16 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
      modal lost their first column (the scan name) on any screen under 768px,
      leaving columns of figures with nothing saying what they were. The rule
      was only ever meant for the share table in #tblwrap. */
-  #tblwrap table th:nth-child(1), #tblwrap table td:nth-child(1),   /* checkbox */
-  #tblwrap table th:nth-child(7), #tblwrap table td:nth-child(7),   /* vol surge */
-  #tblwrap table th:nth-child(8), #tblwrap table td:nth-child(8),   /* volume detail */
-  #tblwrap table th:nth-child(9), #tblwrap table td:nth-child(9),   /* price streak */
-  #tblwrap table th:nth-child(10), #tblwrap table td:nth-child(10), /* vol streak */
-  #tblwrap table th:nth-child(11), #tblwrap table td:nth-child(11), /* accumulation */
-  #tblwrap table th:nth-child(14), #tblwrap table td:nth-child(14){ /* signals */
+  /* v582 — the third stale-index rot in this rule's history, and the last:
+     those nth-child numbers were written for the 14-column table, and after
+     the v556 redesign (10 columns) they were hiding the merged VOLUME column,
+     STREAKS, SCORE·ACCUM and the whole SIGNALS cell — evidence chips included
+     — on every phone. Columns now carry their OWN phone behaviour (.ph-hide
+     on the th and its td, in lockstep), so adding or removing a column can
+     never again silently change which OTHER columns a phone shows.
+     Phones keep: star · ticker (sticky) · price · change · 💰 PN Edge ·
+     ⭐ Score·🔥 Accum. The 📰 news chip moves into the ticker cell (.ph-only). */
+  #tblwrap table .ph-hide{
     display:none;
   }
   /* likewise: the touch-friendly padding belongs to the share table, not to
@@ -1681,16 +1686,16 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
   <div class="tblwrap" id="tblwrap" style="display:none">
     <table>
       <thead><tr>
-        <th style="width:26px;text-align:center;"><input type="checkbox" id="selAll" onclick="toggleSelectAll(this)" title="Select all shown"></th>
+        <th class="ph-hide" style="width:26px;text-align:center;"><input type="checkbox" id="selAll" onclick="toggleSelectAll(this)" title="Select all shown"></th>
         <th style="width:28px;"></th>
         <th onclick="sb('ticker')" data-i18n="colTicker">Ticker / Name</th>
         <th onclick="sb('price')" data-i18n="colPrice">Price</th>
         <th onclick="sb('chgPct')" data-i18n="colChange">Change</th>
         <th onclick="sb('pnEdge')" title="💰 The Paula–Ninó Edge (PN Edge) — money made per $100 invested by the strongest PROVEN line firing on this share today, measured beyond the market, before costs. Tap to sort the whole table by it. ‘—’ means no proven line fired on that share today — which is normal: most days, most shares fire nothing proven.">💰 PN Edge</th>
-        <th onclick="sb('volPct')" title="One volume story: the surge (today vs this share's average, +100% = double), today's raw turnover, the buying/selling pressure read, and a 📰 chip when news likely explains it. Tap sorts by surge; use Sort by → Volume for raw turnover.">📊 Volume</th>
-        <th onclick="sb('daysUp')" title="Persistence, both kinds: top dots = consecutive days the PRICE closed higher; bottom dots = consecutive days VOLUME ran above average. Tap sorts by price streak; Sort by → Vol Streak for the other.">Streaks</th>
+        <th class="ph-hide" onclick="sb('volPct')" title="One volume story: the surge (today vs this share's average, +100% = double), today's raw turnover, the buying/selling pressure read, and a 📰 chip when news likely explains it. Tap sorts by surge; use Sort by → Volume for raw turnover.">📊 Volume</th>
+        <th class="ph-hide" onclick="sb('daysUp')" title="Persistence, both kinds: top dots = consecutive days the PRICE closed higher; bottom dots = consecutive days VOLUME ran above average. Tap sorts by price streak; Sort by → Vol Streak for the other.">Streaks</th>
         <th onclick="sb('watchScore')" title="Top: ⭐ Watch Score /10 (price+volume up days blended with streaks & momentum — a data summary, not advice, and not graded evidence like PN Edge). Bottom: 🔥 Accum — days in the last 10 with price up AND volume well above average. Tap sorts by Score; Sort by → Accumulation 10d for the other.">⭐ Score · 🔥 Accum</th>
-        <th onclick="sb('sigRank')" data-i18n="colSignals" title="Sort by signal strength (scan scores &amp; flags)">Signals</th>
+        <th class="ph-hide" onclick="sb('sigRank')" data-i18n="colSignals" title="Sort by signal strength (scan scores &amp; flags)">Signals</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -1707,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-581-open';
+const APP_VERSION='2026.07.28-582-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4623,22 +4628,22 @@ function renderRows(rows){
     const starred=inWatch(s.ticker);
     const isSel=selected.has(s.ticker);
     out+=`<tr${isSel?' style="background:rgba(56,139,253,.08)"':''}>
-<td style="text-align:center;"><input type="checkbox" ${isSel?'checked':''} onclick="toggleSelect('${s.ticker}')"></td>
+<td class="ph-hide" style="text-align:center;"><input type="checkbox" ${isSel?'checked':''} onclick="toggleSelect('${s.ticker}')"></td>
 <td style="text-align:center;cursor:pointer;font-size:15px;color:${starred?'var(--gold)':'var(--dim)'}" onclick="toggleStar('${s.ticker}')" title="${starred?'Remove from':'Add to'} watchlist">${starred?'★':'☆'}</td>
 <td><div class="tick-wrap">
   <a href="${tu}" target="_blank" class="tick-link"><span class="tick-code">${s.ticker}</span><span style="font-size:9px;color:var(--dim)">↗</span></a>
   <span class="tick-name" title="${s.name}">${s.name}</span>
-  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a><button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
+  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a>${(s.newsFlag==='likely')?'<span class="ph-only" title="News likely in the last 5 days — see Filter by news or the share report.">\ud83d\udcf0</span>':''}<button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
     <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)}</span></td>
 <td style="text-align:center;">${_pnEdgeCell(s)}</td>
-<td><div class="vw"><div class="vbg"><div class="vfl" style="width:${s.volCalced?bp:0}%"></div></div>
+<td class="ph-hide"><div class="vw"><div class="vbg"><div class="vfl" style="width:${s.volCalced?bp:0}%"></div></div>
     <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'–'}</span></div><div style="font-family:var(--mono);font-size:9px;color:${volDepthGood(s.volWindow)?'var(--green)':'var(--muted)'};margin-top:2px">today ${fmtV(s.volume)}${s.volCalced&&s.avgVol?` · vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}`:''}${(s.newsFlag==='likely')?` <span title="News likely in the last 5 days — a volume spike WITH news is a different animal from one without. Use Filter by news or the share's report for the detail." style="cursor:help;">📰</span>`:''}</div>${_srBadge}</td>
-<td title="Top: price up-days in a row. Bottom: volume above its average in a row."><div class="str">${dts}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.streakCalced?s.daysUp+'d px':'–'}</div><div class="str" style="margin-top:2px">${vds}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.volStreakCalced?(s.volDays||0)+'d vol':'–'}</div></td>
+<td class="ph-hide" title="Top: price up-days in a row. Bottom: volume above its average in a row."><div class="str">${dts}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.streakCalced?s.daysUp+'d px':'–'}</div><div class="str" style="margin-top:2px">${vds}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.volStreakCalced?(s.volDays||0)+'d vol':'–'}</div></td>
 <td style="text-align:center;" title="Top: ⭐ Watch Score /10. Bottom: 🔥 accumulation days of the last 10.">${s.watchScore!=null?`<span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${s.watchScore>=7?'var(--green)':s.watchScore>=4?'var(--gold)':s.watchScore>=2?'var(--orange)':'var(--muted)'}">${s.watchScore}</span><span style="font-size:9px;color:var(--dim)">/10</span>`:'<span style="color:var(--dim)">–</span>'}<div style="margin-top:2px">${s.accum10!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${s.accum10>=5?'var(--gold)':s.accum10>=3?'var(--green)':'var(--muted)'}">🔥${s.accum10}</span><span style="font-size:8px;color:var(--dim)">/10</span>`:'<span style="font-size:9px;color:var(--dim)">–</span>'}</div></td>
-<td>${sg}</td></tr>`;
+<td class="ph-hide">${sg}</td></tr>`;
   }
   return out;
   };
