@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-584",
+  "version": "2026.07.28-585",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v584 — THE ROW STOPS CALLING A PROVEN LINE ‘NOT PROVEN’. You found it: the same share could read SOLID +$0.77 at the $1m floor and ‘not proven’ at $50k. The maths was right — a line’s badge is its average edge across EVERY share at your 💧 floor, and a wide-open floor lets micro-caps shrink real edges below the $0.50/$100 costs bar — but the row then said ‘not proven’, which is false: the line IS proven, just too small to pay for itself at that floor. Those shares now wear their own chip: 💤 proven · too small here, naming the line, its measured edge at this floor, and the fact that raising the floor often restores the badge. Hard-refresh (Ctrl+F5)."
+  "notes": "v585 — LOADING NOW HAS A PULSE. While the server grades, the radar used to show a frozen sentence (‘grading the stored year…’) that looked identical whether the work was 5 seconds in or hung — you told us, and you were right. Every in-flight message now carries a LIVE elapsed timer that ticks every couple of seconds, plus the honest expectation: the FIRST grade of a new day, window or floor computes fresh (usually 30–90 seconds), and every later look on every device is instant from the day’s cache. If the timer ever stops ticking, that — and only that — means something is stuck. Hard-refresh (Ctrl+F5)."
 }

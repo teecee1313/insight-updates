@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-584-open';
+const APP_VERSION='2026.07.28-585-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10812,8 +10812,8 @@ function statsBar(){
           var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
           if(!_fromDev&&!_dayDev){ var _lqL=function(k){ try{ for(var q=0;q<_CARD_LIQ.length;q++)if(_CARD_LIQ[q][0]===k)return _CARD_LIQ[q][1]; }catch(e3){} return k||'?'; }; var _cGr=(window._auditCache&&window._auditCache.liq)||''; var _cNow=(typeof _cardLiqKey==='function')?_cardLiqKey():''; var _cl=_lqL(_cGr||_cNow); var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{
             var _wsSt=window._warmState||'';
-            if(_wsSt==='asking')_rn.textContent=_rn.textContent+'  \u00b7  \u23f3 asking the server now\u2026';
-            else if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading '+(window._warmN||'')+' shares in the background… the evidence counts will fill in when it finishes';
+            if(_wsSt==='asking')_rn.textContent=_rn.textContent+'  \u00b7  \u23f3 asking the server now\u2026'+_evElapsed(window._warmAskAt);
+            else if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading on our server…'+_evElapsed(window._warmAt)+' — the FIRST grade of a new day, window or floor computes fresh (usually 30–90 seconds); every later look, on every device, is instant from the day\'s cache';
             else if(_wsSt==='failed'&&!(window._auditCache&&window._auditCache.A))_rn.textContent=_rn.textContent+'  ·  ⚠ background grading could not reach the server — retrying once; open the 📋 report card to force it';
           }catch(e5){}
           try{ if(window._auditCache&&window._auditCache.A&&_cGr&&_cNow&&_cGr!==_cNow)_rn.textContent=_rn.textContent+'  ·  ⚠ these counts were graded at 💧 '+_lqL(_cGr)+', but the 📋 card is now set to '+_lqL(_cNow)+' — open the report card to re-grade before trusting them'; }catch(e4){}try{ var _lc=_evLineCounts(); if(_lc&&(_lc.sol||_lc.pro||_lc.asideN)){ var _bits=[]; if(_lc.aside.tiny)_bits.push(_lc.aside.tiny+' proven but too small to trade (under $0.50/$100)'); if(_lc.aside.seq)_bits.push(_lc.aside.seq+' sequence'+(_lc.aside.seq>1?'s':'')+' (yesterday-dependent, never on a buy list)'); if(_lc.aside.warn)_bits.push(_lc.aside.warn+' warning-direction'); if(_lc.aside.neg)_bits.push(_lc.aside.neg+' with no positive edge'); _rn.textContent=_rn.textContent+'  ·  those share counts come from '+_lc.sol+' proven (SOLID) and '+_lc.pro+' building (PROMISING) line'+((_lc.sol+_lc.pro)===1?'':'s')+' that can badge a share — one common line can badge hundreds of shares at once'+(_bits.length?(' · '+_lc.asideN+' more graded line'+(_lc.asideN>1?'s':'')+' set aside: '+_bits.join(', ')+((_lc.pro===0)?' — which is why 0 PROMISING can be honest':'')):''); } }catch(e6){}
@@ -10830,8 +10830,13 @@ function statsBar(){
       }catch(e){}
     } else if(_rn){ _evSetNote(_rn,''); }
   }catch(e){}
-  try{ if(!_evReady&&(window._evWarming||window._apWarming))
-    _evSetNote(document.getElementById('evSkipNote'),'🧪 grading the stored year…','The signals are being replayed against your stored history — a few seconds. The ⚖️ and 🔬 tiles fill in on their own when it finishes; there is nothing to click.');
+  try{
+    var _inflight=(!_evReady&&(window._evWarming||window._apWarming))||window._warmState==='running'||window._warmState==='asking';
+    _evPulseEnsure(_inflight); /* v585: heartbeat on while ANY in-flight state shows; off (and cleared) otherwise */
+    if(!_evReady&&(window._evWarming||window._apWarming)){
+      if(!window._evPulse0)window._evPulse0=Date.now();
+      _evSetNote(document.getElementById('evSkipNote'),'🧪 grading the stored year…'+_evElapsed(window._warmAt||window._evPulse0),'The signals are being replayed on our server against the stored year — the FIRST grade of a new day, window or floor computes fresh, usually 30\u201390 seconds (the timer on the message is live; if it stops ticking, reload). Every later look, on every device, returns instantly from the day\'s cache. The \u2696\ufe0f and \ud83d\udd2c tiles fill in on their own when it finishes; there is nothing to click.');
+    }
   }catch(e){}
   try{ _radarDim(); }catch(e){}
   try{_radarCompactSync();}catch(e){}
@@ -20104,6 +20109,21 @@ function _cardLiqKey(){
 }
 function _cardLiqNeed(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][2]; return 0; }
 function _cardLiqLabel(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][1]; return 'Any'; }
+function _evElapsed(t0){
+  /* v585: the heartbeat. In-flight messages carry a ticking elapsed time so
+     a working minute can never again look identical to a hang. */
+  try{ var x=Math.max(0,Math.round((Date.now()-(+t0||Date.now()))/1000));
+    return x>=1?(' '+(x>=60?(Math.floor(x/60)+'m '+(x%60)+'s'):(x+'s'))):''; }catch(e){ return ''; }
+}
+function _evPulseEnsure(on){
+  /* v585: while anything is in flight, repaint the strip every 2s so the
+     elapsed time ticks (statsBar is the proven-cheap repaint — v547). Clears
+     itself the moment nothing is in flight. */
+  try{
+    if(on){ if(!window._evPulseT)window._evPulseT=setInterval(function(){ try{ statsBar(); }catch(e){} },2000); }
+    else if(window._evPulseT){ clearInterval(window._evPulseT); window._evPulseT=null; window._evPulse0=null; }
+  }catch(e){}
+}
 function _gradeFailText(){
   /* v583: the unreachable state names its reason. _serverGrades._post records
      the last real failure on window._gradeFail; this turns it into the one
