@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-594",
+  "version": "2026.07.28-595",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v594 — DEEP-DIVE FIXES. Tony ordered a systematic audit: every surface that consumes the graded table was driven with one adversarial fixture and required to agree with one rulebook. Two breaches found and fixed: (1) the evidence strip's ‘N proven / N building lines’ tallies were counting the bare two-way parent lines (🥇/🔷 graded both ways, never badge) — inflating the very counts used to explain the tiles; (2) the climbing-the-ladder nursery listed those same parents, which have no graduation path. Best Evidence, the $250k ruler, and the badge gate passed. The audit harness joins the permanent regression stack. Hard-refresh (Ctrl+F5)."
+  "notes": "v595 — NO STATE CAN TICK FOREVER. The 🧪 checking message could run indefinitely if the server check hung without ever succeeding OR failing — an honest timer on a stuck state (you caught it at 14m 54s). The checking state now has a watchdog: 150 seconds with no answer and no error is DECLARED a timeout, the reason is recorded, and the v587 self-heal takes over — live countdown, automatic retry, and the try-again button. Every radar state now either finishes or explains why it hasn't. Hard-refresh (Ctrl+F5)."
 }

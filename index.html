@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-594-open';
+const APP_VERSION='2026.07.28-595-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10891,6 +10891,18 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
     var _tried=_noYear||window._warmState==='failed'||!!window._gradeFail;
     if((_noYear||_noDay)&&!_tried){
       if(!window._evBootAt)window._evBootAt=Date.now();
+      /* v595 — the checking state gets a WATCHDOG. Tony's screenshot: 'checking…
+         14m 54s' — ticking honestly, stuck forever, because the day-check hung
+         without ever concluding, so v587's self-heal (which arms only on a
+         CONCLUDED failure) never fired. After 150s with no answer and no error,
+         we DECLARE the timeout ourselves and hand the state to the self-heal:
+         reason recorded, countdown shown, automatic retry. No state can tick
+         indefinitely any more. */
+      if(Date.now()-window._evBootAt>150000&&!window._gradeFail){
+        window._gradeFail={kind:'timeout',at:Date.now(),ms:150000,msg:'no answer and no error after 150 seconds'};
+        window._warmState='failed'; window._evBootAt=null;
+        try{ _evAutoRetry(); }catch(e8){}
+      }
       try{ _evPulseEnsure(true); }catch(e9){}
       _evSetNote(el,'\ud83e\uddea checking today\u2019s signals with our server\u2026'+_evElapsed(window._evBootAt),'The evidence tiles fill in when the server answers \u2014 usually a second or two once the day is warm, up to 30\u201390 seconds only if this is the very first grade of a new day or window. The timer is live: ticking means working. If it fails, this message will say so and the app will retry by itself.');
       _evSetNote(sg,'');
