@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-586-open';
+const APP_VERSION='2026.07.28-587-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10839,7 +10839,7 @@ function statsBar(){
     } else if(_rn){ _evSetNote(_rn,''); }
   }catch(e){}
   try{
-    var _inflight=(!_evReady&&(window._evWarming||window._apWarming))||window._warmState==='running'||window._warmState==='asking';
+    var _inflight=(!_evReady&&(window._evWarming||window._apWarming))||window._warmState==='running'||window._warmState==='asking'||!!(window._gradeRetryAt&&window._gradeRetryAt>Date.now()&&!(window._auditCache&&window._auditCache.A));
     _evPulseEnsure(_inflight); /* v585: heartbeat on while ANY in-flight state shows; off (and cleared) otherwise */
     if(!_evReady&&(window._evWarming||window._apWarming)){
       if(!window._evPulse0)window._evPulse0=Date.now();
@@ -10881,7 +10881,7 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   try{
     var _noYear=(window._scanSrc==='unavailable'), _noDay=(window._scanSrc!=='unavailable'&&!_scDayGet());
     if(_noYear||_noDay){
-      _evSetNote(el,_gradeFailText()+'<button onclick="_evRetryServer()" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:6px;">try again</button>'+((typeof _cardLiqKey==='function'&&_cardLiqKey()==='any')?'<button onclick="_evSetFloor(\'250k\')" style="border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">set $250k first</button>':''),
+      _evSetNote(el,_gradeFailText()+_evRetryCountdown()+'<button onclick="_evRetryServer()" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:6px;">try again</button>'+((typeof _cardLiqKey==='function'&&_cardLiqKey()==='any')?'<button onclick="_evSetFloor(\'250k\')" style="border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">set $250k first</button>':''),
         (_noYear&&_noDay)?'Both halves of the evidence system run on our server: the year-long replay that grades each signal, and the check of which signals are firing today. Neither could be reached just now, so these tiles are blank rather than wrong. Prices, volumes, your portfolio and your watchlists are stored on your device and are unaffected. Try again in a moment, or reload.'
         :(_noYear?'The year-long replay that grades each signal runs on our server, and it could not be reached just now. Rather than show tiers we cannot stand behind, the evidence tiles stay blank. Everything stored on your device \u2014 prices, volumes, portfolio, watchlists \u2014 is unaffected. Try again in a moment, or reload.'
                  :'Which signals are firing today is worked out on our server, so the thresholds behind them are not published in the app. We could not reach it just now, so these tiles are blank rather than wrong. Everything stored on your device is unaffected. Try again in a moment, or reload.'));
@@ -18903,7 +18903,11 @@ function _auditWarmIdle(){
       if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; window._auditCache={d:dd2,ex:currentExch,liq:'250k',A:A}; /* v586: grades live on the fixed $250k ruler — the viewing floor is not part of their identity */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} }catch(e){} }
       window._auditWarming=false;
       try{ window._warmState=(window._auditCache&&window._auditCache.A)?'done':'failed'; if(window._warmState==='failed')_warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){}
-    }).catch(function(){ window._auditWarming=false; try{ window._warmState='failed'; _warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){} });
+    }).catch(function(err){ window._auditWarming=false; try{
+      window._warmState='failed';
+      if(!window._gradeFail)window._gradeFail={kind:'network',at:Date.now(),msg:String((err&&err.message)||err||'').slice(0,120)}; /* v587: no failure goes unrecorded — the note can always name its reason */
+      _evAutoRetry(); /* v587: self-heal — a timeout usually means the server is FINISHING the compute; asking again shortly hits the warm answer */
+      _warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){} });
   }catch(e){ window._auditWarming=false; }
 }
 // v329 — in training mode (body.training-on) turn every titled element on the
@@ -20131,6 +20135,28 @@ function _evPulseEnsure(on){
     if(on){ if(!window._evPulseT)window._evPulseT=setInterval(function(){ try{ statsBar(); }catch(e){} },2000); }
     else if(window._evPulseT){ clearInterval(window._evPulseT); window._evPulseT=null; window._evPulse0=null; }
   }catch(e){}
+}
+function _evAutoRetry(){
+  /* v587: after a timeout/network failure the app retries ITSELF (twice max,
+     45s apart) with a live countdown — because on a first-of-day compute the
+     server usually finishes moments after our 120s patience runs out, and the
+     next ask returns instantly from the day's cache. 429 and 400 are excluded:
+     retrying a rate limit just burns it, and 400 is the legacy-fallback path. */
+  try{
+    var g=window._gradeFail||{}; var k=g.kind||'network';
+    if(k!=='timeout'&&k!=='network')return;
+    window._gradeRetryN=(window._gradeRetryN||0);
+    if(window._gradeRetryN>=2){ window._gradeRetryAt=null; return; }
+    window._gradeRetryN++;
+    window._gradeRetryAt=Date.now()+45000;
+    setTimeout(function(){ try{ if(window._warmState==='failed'&&!(window._auditCache&&window._auditCache.A)){ window._gradeRetryAt=null; _evRetryServer(); } }catch(e){} },45000);
+  }catch(e){}
+}
+function _evRetryCountdown(){
+  /* v587: the ticking 'asking again automatically in Ns' suffix for the failed
+     note — kept as its own helper so the render site stays quote-safe. */
+  try{ var t=window._gradeRetryAt; if(!t||t<=Date.now()||(window._auditCache&&window._auditCache.A))return '';
+    return ' \u00b7 \u23f3 asking again automatically in '+Math.max(1,Math.ceil((t-Date.now())/1000))+'s\u2026'; }catch(e){ return ''; }
 }
 function _gradeFailText(){
   /* v583: the unreachable state names its reason. _serverGrades._post records
