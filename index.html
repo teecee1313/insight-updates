@@ -731,6 +731,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
      fix — the table simply becomes wider than the phone and scrolls, same
      as it already does on a narrow/zoomed desktop window. */
   #tblwrap table .ph-hide{ }
+  #tblwrap table{user-select:none;} /* v619 — the actual fix: this was never an outline, it was ordinary browser text-selection dragging across the row (the table had no user-select protection at all, unlike other interactive elements in the app) */
   #tblwrap{-webkit-overflow-scrolling:touch;}
   /* likewise: the touch-friendly padding belongs to the share table, not to
      every dense table in the app (the cards set their own 11.5px on purpose). */
@@ -1719,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-618-open';
+const APP_VERSION='2026.07.28-619-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
