@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-612-open';
+const APP_VERSION='2026.07.28-613-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10729,6 +10729,7 @@ function statsBar(){
   let _t250=0,_t1m=0;                                  // v458: dollar-turnover tiles
   let _evs=0,_evp=0,_eve=0,_evAbs=0,_evAny=false,_evSkipL=0,_evSkipH=0; /* v591: _evAbs = shares whose building line was OUTRANKED by a proven one (best-badge-wins absorption) */ const _evD0=(typeof _evDD==='function')?_evDD():''; // v452 · v459 skip counts
   const _sgN={hi52:0,gold:0,rsirec:0,squeeze:0,rsl:0,newsvol:0}; // v460: the six newer signals, counted off the same stamp
+  var _tf613=(typeof _scDayGet==='function')?_scDayGet():null; /* v613: today's raw scan fires — a SEPARATE, already-fetched source from the combo-engine's s._evKeys, which structurally never contains these six keys */
   let _evThinN=0,_evNegN=0; // v462: included, but flagged · v465: fired-but-losing
   for(const s of d){
     if(s.chgPct>0)g++; if(s.chgPct<0)l++;
@@ -10757,7 +10758,8 @@ function statsBar(){
       if(s._evThin&&s._evSkip!=='hist')_evThinN++;   // v465: only count the thin shares we actually CHECKED — the label says so
       window._evAbsorbN=_evAbs; window._evPromShareN=_evp; /* v591: the strip explains 0 PROMISING with these */
       if(s._evNeg)_evNegN++;
-      if(Array.isArray(s._evKeys))for(var _sgk=0;_sgk<s._evKeys.length;_sgk++){ if(_sgN[s._evKeys[_sgk]]!=null)_sgN[s._evKeys[_sgk]]++; } } // v453 buckets · v459 skipped · v460 signal counts · v462 thin
+      if(Array.isArray(s._evKeys))for(var _sgk=0;_sgk<s._evKeys.length;_sgk++){ if(_sgN[s._evKeys[_sgk]]!=null)_sgN[s._evKeys[_sgk]]++; }
+      if(_tf613){ var _tfHit=_tf613[s.ticker]; if(Array.isArray(_tfHit))for(var _tj=0;_tj<_tfHit.length;_tj++){ if(_sgN[_tfHit[_tj]]!=null)_sgN[_tfHit[_tj]]++; } } /* v613: the actual fix — count these six from their real source */ } // v453 buckets · v459 skipped · v460 signal counts · v462 thin
   }
   document.getElementById('sTot').textContent=d.length.toLocaleString();
   document.getElementById('sG').textContent=g;
