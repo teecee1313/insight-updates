@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-591-open';
+const APP_VERSION='2026.07.28-592-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -21201,8 +21201,8 @@ function _renderReportCard(A){
       const m=it.m, at=it.at;
       const need=[];
       need.push(it.fGap>0?`fired <b style="color:var(--text)">${m.n.toLocaleString()}×</b> — needs ~<b style="color:var(--gold)">${it.fGap}</b> more`:`fires <b style="color:var(--green)">✓ ${m.n.toLocaleString()}</b> (50+ met)`);
-      const sPct=Math.max(4,Math.min(100,Math.round((at/2)*100)));
-      need.push(`strength <b style="color:${it.sGap>0?'var(--gold)':'var(--green)'}">${at.toFixed(1)}</b> of the 2.0 required <span style="display:inline-block;width:44px;height:5px;border:1px solid var(--border);border-radius:3px;vertical-align:middle;overflow:hidden;background:var(--bg3);"><span style="display:block;width:${sPct}%;height:100%;background:${it.sGap>0?'var(--gold)':'var(--green)'};"></span></span>`);
+      const sPct=Math.max(4,Math.min(100,Math.round((at/2.5)*100))); /* v592: the bar climbs toward SOLID's 2.5, not PROMISING's already-met 2.0 */
+      need.push(`strength <b style="color:${at>=2.5?'var(--green)':'var(--gold)'}">${at.toFixed(1)}</b> ${at>=2.5?'\u2014 \u2713 SOLID-strength':'\u2014 SOLID needs 2.5'} <span style="display:inline-block;width:44px;height:5px;border:1px solid var(--border);border-radius:3px;vertical-align:middle;overflow:hidden;background:var(--bg3);"><span style="display:block;width:${sPct}%;height:100%;background:${it.sGap>0?'var(--gold)':'var(--green)'};"></span></span>`);
       return `<div style="padding:6px 8px;border:1px solid var(--border2);border-radius:7px;margin-bottom:5px;background:rgba(74,222,128,.03);">
         <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;align-items:center;"><span title="${_flagTip[it.k]||''}" style="cursor:help;font-weight:700;color:var(--text)">${nameOf(it.k)}${m.dirNeg?' <span style="font-size:9px;color:#9fb2cc">· warning line</span>':''}</span>${chip(m)}</div>
         <div style="font-size:10.5px;color:var(--muted);margin-top:3px;">${need.join(' · ')} · edge ${f1(m.dirNeg?-m.edge:m.edge)}</div>
