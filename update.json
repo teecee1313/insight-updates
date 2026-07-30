@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-613",
+  "version": "2026.07.28-614",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v613 — THE SIX SIGNAL TILES, FIXED AT THE ROOT — NO SERVER CHANGE NEEDED. 52wk High, Golden Cross, RSI Recovery, Squeeze, Rel-Strength and News+Vol were reading zero because they were counted through the combo-engine's fired-signal list, which structurally never contains their keys — an earlier, deliberate fix moved the main badge system away from mixing the two systems, and these six tiles were left pointed at the wrong source. It turned out the server already sends exactly the right data for this (today's raw scan fires, already fetched, already cached) — it just wasn't wired to these six tiles. Now it is. The main SOLID/PROMISING badge system is completely untouched. Hard-refresh (Ctrl+F5)."
+  "notes": "v614 — THE CHIP NOW REACTS TO ITS OWN HOVER. Real gap found: the signal chips (PROMISING, Inst?, Breakout, EOD, Blk...) never had any hover style of their own — the only thing that visibly changed on hover was the row's background, a completely separate, older effect. Now hovering a specific chip brightens it and gives it a glow, independent of training mode, so it's always clear which signal you're actually pointing at. Separately: the full explanation popup (what PROMISING and its percentage mean) only appears when training mode is switched on — the 🎓 Training button in the top bar. Hard-refresh (Ctrl+F5)."
 }
