@@ -1707,7 +1707,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-579-open';
+const APP_VERSION='2026.07.28-580-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2557,6 +2557,19 @@ async function _serverGrades(shares, dataDate, exch, hold){
         return (j&&j.A&&j.A.M)?j.A:null;
       } finally { clearTimeout(tm); }
     };
+    /* v580 (needs worker w419): GRADE FROM THE PANTRY. The worker already
+       holds every bar this function has been slimming and uploading — so ask
+       it to grade its OWN store at our floor and upload nothing. The server
+       checks its daily pantry cache first (fast HIT), so one call covers both
+       the probe and the compute. On a pre-w419 worker this exact request
+       answers 400 ("no shares supplied") and _post returns null, and we fall
+       through to the upload path below unchanged — capability detection by
+       behaviour, no version probe, so the app can ship before the paste. */
+    try{
+      var _fl=50000; try{ _fl=Math.max(_cardLiqNeed()||0,50000); }catch(e){}
+      const pan=await _post({exch:exch||'ASX',dataDate:(dataDate||'')+'_p',hold:h,pantry:true,liqFloor:_fl,shares:[]},120000);
+      if(pan)return pan;
+    }catch(e){/* pantry mode unavailable — the upload path still works */}
     if(ck){ try{ const cached=await _post({exch:exch||'ASX',dataDate:ck,hold:h,shares:[]},20000); if(cached)return cached; }catch(e){} } // probe the window-specific cache
     // v538: upload only what the maths reads. The engine grades the last 250
     // days, holds ≤30, and looks back ≤250 bars for the breakout reference —
