@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-603-open';
+const APP_VERSION='2026.07.28-604-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19056,6 +19056,21 @@ function _gradesPut(exch,date,hold,A){
     try{ localStorage.setItem(_gLocalKey(exch,date,hold), JSON.stringify({A:A,savedAt:Date.now()})); }catch(e5){ /* best-effort — quota or private mode, never blocks anything */ }
   }catch(e){}
 }
+function _gradesPrefetchOthers(exch,date,payload,currentHold){
+  try{
+    var flagKey='asxScreener.prefetchedOn.v1';
+    if(localStorage.getItem(flagKey)===date+'|'+exch)return; // once per exchange per day is enough
+    [5,10,30].forEach(function(h){
+      if(h===currentHold)return; // already have this one — that's the primary ask
+      try{
+        _serverGrades(payload,date,exch,h).then(function(A){
+          try{ if(A&&A.M)_gradesPut(exch,date,h,A); }catch(e2){} // through the one store — device cache only, does not touch what's on screen since h!==currentHold
+        }).catch(function(){}); // best-effort — a miss here just means that window stays a normal ask later, nothing breaks
+      }catch(e3){}
+    });
+    try{ localStorage.setItem(flagKey,date+'|'+exch); }catch(e4){}
+  }catch(e1){}
+}
 function _auditWarmIdle(){
   /* v601 — paint from the device copy FIRST, instantly, if one exists for
      today's exact exch+window; the server ask below still runs regardless
@@ -19080,7 +19095,7 @@ function _auditWarmIdle(){
     try{ window._warmState='running'; window._warmAt=Date.now(); window._warmN=_sh.length; if(typeof statsBar==='function')setTimeout(function(){try{statsBar();}catch(e){}},50); }catch(e){}
     const payload=_sh.map(s=>({ticker:s.ticker,series:s.series}));
     _serverGrades(payload,dd,currentExch,(typeof _cardHold==='function')?_cardHold():5).then(function(A){ /* v597: the radar's own request follows the card's selected window */
-      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; _gradesPut(currentExch,dd2,(typeof _cardHold==='function')?_cardHold():5,A); /* v598: through the one store */ /* v586: grades live on the fixed $250k ruler — the viewing floor is not part of their identity */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} }catch(e){} }
+      if(A&&A.M){ try{ const dd2=(window._exchDataDate&&window._exchDataDate[currentExch])||dd; _gradesPut(currentExch,dd2,(typeof _cardHold==='function')?_cardHold():5,A); /* v598: through the one store */ /* v586: grades live on the fixed $250k ruler — the viewing floor is not part of their identity */ window._gradeSrc='server'; ; try{_evCardArrived();}catch(e2){} try{ _gradesPrefetchOthers(currentExch,dd2,payload,(typeof _cardHold==='function')?_cardHold():5); }catch(e7){} /* v604: silently warm the OTHER two windows onto this device now that we know today's date and have a valid payload handy */ }catch(e){} }
       window._auditWarming=false;
       try{ window._warmState=(window._auditCache&&window._auditCache.A)?'done':'failed'; if(window._warmState==='failed')_warmRetry(); if(typeof statsBar==='function')statsBar(); }catch(e){}
     }).catch(function(err){ window._auditWarming=false; try{

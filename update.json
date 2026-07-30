@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-603",
+  "version": "2026.07.28-604",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v603 — THE FOLD ACTUALLY FOLDS NOW. v602's collapse worked in the simple case but not the one you hit: when the server can't be reached, a SEPARATE part of the strip writes the ‘DAY OLD’ fallback text AFTER the fold had already run, so nothing ever hid it — you saw both the short summary and the full paragraph at once. The fold now applies once, at the very end, after everything that could write to that line has had its turn. Collapsed stays collapsed. Hard-refresh (Ctrl+F5)."
+  "notes": "v604 — EVERY WINDOW, INSTANT, NOT JUST THE ONE YOU OPENED WITH. The server has pre-computed all three windows (5d/10d/30d) automatically every night since w422 — nobody needs to press anything for that. What was still missing: your DEVICE only saved a local copy of whichever ONE window you happened to have open. Now, the first time each day a window loads successfully, the other two quietly warm onto this device in the background too — nothing to press, nothing shown. Flip between 5d/10d/30d later that day and all three should already be sitting there. Hard-refresh (Ctrl+F5)."
 }
