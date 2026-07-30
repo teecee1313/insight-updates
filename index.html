@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-595-open';
+const APP_VERSION='2026.07.28-596-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10890,14 +10890,36 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
        gap shows an honest in-flight message with the live ticking timer. */
     var _tried=_noYear||window._warmState==='failed'||!!window._gradeFail;
     if((_noYear||_noDay)&&!_tried){
-      if(!window._evBootAt)window._evBootAt=Date.now();
-      /* v595 — the checking state gets a WATCHDOG. Tony's screenshot: 'checking…
-         14m 54s' — ticking honestly, stuck forever, because the day-check hung
-         without ever concluding, so v587's self-heal (which arms only on a
-         CONCLUDED failure) never fired. After 150s with no answer and no error,
-         we DECLARE the timeout ourselves and hand the state to the self-heal:
-         reason recorded, countdown shown, automatic retry. No state can tick
-         indefinitely any more. */
+      if(!window._evBootAt){
+        window._evBootAt=Date.now();
+        /* v596 — the v595 watchdog only fired by being RE-CHECKED inside
+           statsBar(), which itself only runs off the 2s heartbeat interval.
+           A backgrounded browser tab (Tony's 'second screen' — a second
+           window/tab without focus) gets that interval throttled by the
+           browser, sometimes to once a minute or less, so the recheck could
+           be starved indefinitely: the display freezes at whatever second it
+           last painted while real time keeps passing. A ONE-SHOT setTimeout
+           scheduled here, independent of any polling loop, does not depend
+           on the heartbeat ever firing again — it converts the state itself
+           the moment 150s elapses, exactly like _evAutoRetry's own retry
+           timer already does successfully. */
+        try{
+          var _bootAt=window._evBootAt;
+          setTimeout(function(){
+            try{
+              if(window._evBootAt===_bootAt&&!window._gradeFail){
+                window._gradeFail={kind:'timeout',at:Date.now(),ms:150000,msg:'no answer and no error after 150 seconds'};
+                window._warmState='failed'; window._evBootAt=null;
+                _evAutoRetry();
+                if(typeof statsBar==='function')statsBar();
+              }
+            }catch(e7){}
+          },150000);
+        }catch(e6){}
+      }
+      /* the polling recheck stays too, as a belt-and-braces path for tabs
+         that ARE getting repainted (it will simply find _gradeFail already
+         set by the timer above and skip straight to the failed branch). */
       if(Date.now()-window._evBootAt>150000&&!window._gradeFail){
         window._gradeFail={kind:'timeout',at:Date.now(),ms:150000,msg:'no answer and no error after 150 seconds'};
         window._warmState='failed'; window._evBootAt=null;

@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-595",
+  "version": "2026.07.28-596",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v595 — NO STATE CAN TICK FOREVER. The 🧪 checking message could run indefinitely if the server check hung without ever succeeding OR failing — an honest timer on a stuck state (you caught it at 14m 54s). The checking state now has a watchdog: 150 seconds with no answer and no error is DECLARED a timeout, the reason is recorded, and the v587 self-heal takes over — live countdown, automatic retry, and the try-again button. Every radar state now either finishes or explains why it hasn't. Hard-refresh (Ctrl+F5)."
+  "notes": "v596 — THE WATCHDOG NO LONGER NEEDS ATTENTION TO WORK. v595's 150-second timeout only fired by being re-checked inside the 2-second heartbeat — and a backgrounded browser tab (a second window without focus) gets that repeating timer throttled hard by the browser, sometimes to once a minute or less, so the check could be starved and the display would freeze mid-count while real time kept passing (Tony: 'frozen @ 4sec but over 2 minutes so far'). The watchdog is now a genuine one-shot timer scheduled the instant checking begins — it fires on its own 150 seconds later regardless of whether anything else in that tab is running, and hands straight to the v587 self-heal. Hard-refresh (Ctrl+F5) on every open window."
 }
