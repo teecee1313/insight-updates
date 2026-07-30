@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-585",
+  "version": "2026.07.28-586",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v585 — LOADING NOW HAS A PULSE. While the server grades, the radar used to show a frozen sentence (‘grading the stored year…’) that looked identical whether the work was 5 seconds in or hung — you told us, and you were right. Every in-flight message now carries a LIVE elapsed timer that ticks every couple of seconds, plus the honest expectation: the FIRST grade of a new day, window or floor computes fresh (usually 30–90 seconds), and every later look on every device is instant from the day’s cache. If the timer ever stops ticking, that — and only that — means something is stuck. Hard-refresh (Ctrl+F5)."
+  "notes": "v586 — ONE RULER. Until today the 💧 floor changed TWO things at once: which shares you saw AND which universe every line's report card was measured on — which is why a LOWER floor could show FEWER badges (micro-caps joining the averages dragged proven edges under the costs bar). That coupling is gone. Every line is now measured ONCE per day, on the $250k universe — shares you could actually trade. Your 💧 floor only filters which shares you are viewing: lower always shows more, never fewer, and changing it can never change a badge. Shares trading below $250k a day wear their badge dimmed with a 💧 mark — the edge is borrowed from bigger shares, not earned on theirs. One ruler also means one shared daily grade for every device at every floor — faster for everyone. Hard-refresh (Ctrl+F5)."
 }
