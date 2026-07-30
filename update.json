@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-609",
+  "version": "2026.07.28-610",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v609 — THE RADAR NOW HAS A PERMANENT FLOOR ROW. Until now the radar only ever offered two ONE-WAY buttons — nudging you UP to $250k or $1m, and only when you were already at the broadest view. There was no equally quick way to go the other direction, back to Any. Under the one-ruler design a broader floor only ever shows MORE, never less, so it deserved to be just as easy to reach. Added a permanent floor row right next to ‘Market Radar’ — Any / $50k / $250k / $1m / $5m, always visible, one tap, reusing the exact same options and instant setter the report card already uses. Hard-refresh (Ctrl+F5)."
+  "notes": "v610 — ONE COMPACT PILL INSTEAD OF FIVE BUTTONS. Tony's own second thought, and the right call: five always-visible floor buttons on the radar risked exactly the clutter he's pushed back on all night, especially on phone. Replaced with a single pill showing your current floor — tap it and the other four drop down underneath; pick one and it closes again. Same footprint every time, no matter how many options exist. Same underlying choices and instant setter as before — only how they're shown changed. Hard-refresh (Ctrl+F5)."
 }

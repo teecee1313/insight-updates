@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-609-open';
+const APP_VERSION='2026.07.28-610-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10861,16 +10861,23 @@ function statsBar(){
 // reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
 // caption and its click; it simply stops shouting. Not-yet-graded tiles ("–")
 // are treated the same way, because "we have not checked" is also not news.
+function _radarFloorToggle(){
+  window._radarFloorOpen=!window._radarFloorOpen;
+  try{ _radarFloorRow(); }catch(e){}
+}
 function _radarFloorRow(){
-  /* v609 — the SAME options and setter the report card uses (_CARD_LIQ,
-     _cardLiqSet), rendered right on the radar so the broadest view is
-     always one tap away, not just the two upward nudges the strip offers. */
   try{
     var box=document.getElementById('radarFloorRow'); if(!box)return;
     var cur=(typeof _cardLiqKey==='function')?_cardLiqKey():'250k';
-    box.innerHTML=_CARD_LIQ.map(function(x){
-      return '<button onclick="_cardLiqSet(\''+x[0]+'\',\'\')" title="'+(x[2]?('Show shares averaging at least $'+(x[2]>=1e6?(x[2]/1e6)+' million':(x[2]/1e3)+'k')+' traded a day'):'Show every share, including micro-caps — the broadest view')+'" style="border:1px solid '+(x[0]===cur?'var(--gold)':'var(--border2)')+';color:'+(x[0]===cur?'var(--gold)':'var(--muted)')+';background:'+(x[0]===cur?'rgba(255,210,0,.08)':'transparent')+';border-radius:14px;padding:1px 8px;font:700 9px var(--sans);cursor:pointer;margin-left:3px;">'+x[1]+'</button>';
-    }).join('');
+    var curX=_CARD_LIQ.filter(function(x){return x[0]===cur;})[0]||_CARD_LIQ[2];
+    var open=!!window._radarFloorOpen;
+    var pill='<button onclick="_radarFloorToggle()" title="Which shares you are viewing" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:14px;padding:1px 8px;font:700 9px var(--sans);cursor:pointer;">💧 '+curX[1]+' '+(open?'▴':'▾')+'</button>';
+    var menu=!open?'':('<div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:4px;z-index:20;box-shadow:0 6px 16px rgba(0,0,0,.4);min-width:150px;">'
+      +_CARD_LIQ.map(function(x){
+        return '<div onclick="_cardLiqSet(\''+x[0]+'\',\'\');window._radarFloorOpen=false;" style="padding:5px 10px;font:700 10px var(--sans);color:'+(x[0]===cur?'var(--gold)':'var(--muted)')+';cursor:pointer;white-space:nowrap;border-radius:5px;">'+x[1]+(x[0]===cur?' ✓':'')+'</div>';
+      }).join('')
+      +'</div>');
+    box.innerHTML='<span style="position:relative;display:inline-block;">'+pill+menu+'</span>';
   }catch(e){}
 }
 function _radarDim(){
