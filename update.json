@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-599",
+  "version": "2026.07.28-602",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v599 🔬 PROVE THE ZERO, DON'T EXPLAIN IT AGAIN. The evidence strip now has a prove-it button next to the 0-PROMISING sentence. It runs a live check, right in your browser, from the market already loaded — using the exact same signal reader the auto-pilot's own combo gate uses — and shows exactly how many shares fire ALL parts of each building line TODAY, share by share. No more taking anyone's word for it. Tonight's actual math, run against your real numbers: with only 4 breakouts across 4,298 shares, a combo needing Breakout + anything else has almost no chance of firing on any single day — that's not a bug, it's what a genuinely rare pattern looks like. Hard-refresh (Ctrl+F5)."
+  "notes": "v602 — THREE THINGS FROM TONIGHT'S FEEDBACK. (1) Fixed the raw button code you saw showing as literal text in the evidence strip — root cause: five chained sentences were built with the wrong DOM method, one that can never render a real tag; all five now use the correct one. (2) The long explanation is now COLLAPSED by default — you get a one-line summary (solid · promising · not proven) with a ▸ why link, and your choice is remembered on this device. (3) A graded answer now also saves to THIS DEVICE, not just the server — reopening the app paints instantly from your last visit while the real check still runs behind it, so it can never go stale, just feel faster. Hard-refresh (Ctrl+F5)."
 }
