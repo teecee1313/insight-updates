@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-602",
+  "version": "2026.07.28-603",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v602 — THREE THINGS FROM TONIGHT'S FEEDBACK. (1) Fixed the raw button code you saw showing as literal text in the evidence strip — root cause: five chained sentences were built with the wrong DOM method, one that can never render a real tag; all five now use the correct one. (2) The long explanation is now COLLAPSED by default — you get a one-line summary (solid · promising · not proven) with a ▸ why link, and your choice is remembered on this device. (3) A graded answer now also saves to THIS DEVICE, not just the server — reopening the app paints instantly from your last visit while the real check still runs behind it, so it can never go stale, just feel faster. Hard-refresh (Ctrl+F5)."
+  "notes": "v603 — THE FOLD ACTUALLY FOLDS NOW. v602's collapse worked in the simple case but not the one you hit: when the server can't be reached, a SEPARATE part of the strip writes the ‘DAY OLD’ fallback text AFTER the fold had already run, so nothing ever hid it — you saw both the short summary and the full paragraph at once. The fold now applies once, at the very end, after everything that could write to that line has had its turn. Collapsed stays collapsed. Hard-refresh (Ctrl+F5)."
 }

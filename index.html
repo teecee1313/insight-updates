@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-602-open';
+const APP_VERSION='2026.07.28-603-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10775,7 +10775,6 @@ function statsBar(){
   _set('sgHi52',_evReady?_sgN.hi52:'–'); _set('sgGold',_evReady?_sgN.gold:'–'); _set('sgRsi',_evReady?_sgN.rsirec:'–');
   _set('sgSqz',_evReady?_sgN.squeeze:'–'); _set('sgRsl',_evReady?_sgN.rsl:'–'); _set('sgNews',_evReady?_sgN.newsvol:'–'); // v460
   try{ _evSkipNote(_evReady,_evSkipL,_evSkipH,d.length,_evThinN,_evNegN); }catch(e){}   // v459 · v461 denominator · v462 thin · v465 losing-signal count
-  try{ _evFoldApply(); }catch(e){} /* v601: default to the short line — the long one is one tap away, not the default view */
   // v463: LAST word — while the replay is running, say so rather than leaving
   // nine unexplained dashes. Must come after _evSkipNote, which clears the line.
   // v466: the signal-level spread — the distribution the tiles can never show
@@ -10850,6 +10849,7 @@ function statsBar(){
   }catch(e){}
   try{ _radarDim(); }catch(e){}
   try{_radarCompactSync();}catch(e){}
+  try{ _evFoldApply(); }catch(e){} /* v603: moved here from right after the _evSkipNote() call — that ran too early, before the separate 'scored on our server / DAY OLD' block further up in this function had even written its content, so the fold was never being re-applied to what actually ends up on screen */
 }
 // v484 — a radar where half the tiles read 0 in the same weight as the ones
 // reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
