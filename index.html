@@ -1515,6 +1515,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 
     <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px;margin:2px 0 4px;">DATA</div>
     <button id="streakBtn" onclick="calcStreaks()" title="Re-fetches fresh price history and recomputes streaks/signals for the shares currently listed" style="width:100%;margin-bottom:6px;padding:8px;border-radius:7px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 11px var(--sans);cursor:pointer;">🔄 Refresh / redownload data</button>
+    <button id="fillSrvBtn" onclick="_fillFromServer()" title="Builds your saved price history straight from YOUR server's store — one request per trading day instead of one per share through a free public relay. Use it after clearing data, on a new device, or any time loading crawls. About 300 trading days for every share." style="width:100%;margin-bottom:6px;padding:8px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 11px var(--sans);cursor:pointer;">⚡ Fill from my server store</button>
     <button id="resetBtn" onclick="doReset()" title="Clear all filters back to defaults" style="width:100%;margin-bottom:10px;padding:8px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;">↺ Clear all filters</button>
 
     <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px;margin:2px 0 4px;">SETTINGS</div>
@@ -1706,7 +1707,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-577-open';
+const APP_VERSION='2026.07.28-578-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10930,6 +10931,76 @@ async function _fetchTO(url,opts,ms){
 //    with a HOLE — those shares are skipped here and rescued by the normal
 //    per-share incremental path instead.
 //  · every step degrades silently: any server hiccup and the old path still runs.
+async function _srvFirstFill(exch,depth,say){
+  /* v578: build saved history for EVERY share straight from your server's
+     pantry, newest day backwards. One request per trading day (~4,300 bars,
+     about 100KB) instead of one request per SHARE through a free public relay.
+     The pantry stores full open/high/low/close/volume, so seeding from it is
+     lossless — the old "never seed from thin day-slices" guard predates that. */
+  const out={days:0,seeded:0,topped:0,shares:0,stopped:false};
+  try{
+    if(typeof _serverData!=='function'||!_serverData()){ if(say)say('\u26a0 Your server store is not switched on.'); return out; }
+    const D=Math.max(30,Math.min(760,+depth||300));
+    const jf=async(u,ms)=>{ const c=new AbortController(); const t=setTimeout(function(){try{c.abort();}catch(e){}},ms||15000);
+      try{ const r=await fetch(DATA_PROXY+u,{signal:c.signal}); if(!r.ok)return null; return await r.json(); } finally{ clearTimeout(t); } };
+    const latest=await jf('/history/latest?exch='+encodeURIComponent(exch),10000).catch(function(){return null;});
+    const latestD=(latest&&latest.ok&&latest.date)?String(latest.date).slice(0,10):null;
+    if(!latestD){ if(say)say('\u26a0 Could not read your server store.'); return out; }
+    const per=new Map();
+    const d=new Date(latestD+'T12:00:00Z');
+    let misses=0;
+    for(let i=0;i<Math.ceil(D*1.5)+20&&out.days<D;i++){
+      if(window._fillAbort){ out.stopped=true; break; }
+      const ds=d.toISOString().slice(0,10);
+      const dow=d.getUTCDay();
+      if(dow!==0&&dow!==6){
+        const day=await jf('/history/day/'+ds+'?exch='+encodeURIComponent(exch),20000).catch(function(){return null;});
+        if(day&&day.ok&&Array.isArray(day.rows)&&day.rows.length){
+          misses=0; out.days++;
+          for(const r of day.rows){
+            const t=String(r.t||'').toUpperCase(); if(!t)continue;
+            let a=per.get(t); if(!a){a=[];per.set(t,a);}
+            a.push({dateStamp:ds,open:(r.o!=null?r.o:r.c),high:(r.h!=null?r.h:r.c),low:(r.l!=null?r.l:r.c),close:r.c,volume:r.v||0});
+          }
+          if(say&&out.days%10===0)say('\ud83e\uddca Pulled '+out.days+' of '+D+' days from your server store...');
+        } else { misses++; if(misses>=8)break; }
+      }
+      d.setUTCDate(d.getUTCDate()-1);
+    }
+    if(!out.days){ if(say)say('\u26a0 Your server store returned no days.'); return out; }
+    const ticks=[...per.keys()];
+    out.shares=ticks.length;
+    for(let i=0;i<ticks.length;i+=150){
+      if(window._fillAbort){ out.stopped=true; break; }
+      const slice=ticks.slice(i,i+150);
+      await Promise.all(slice.map(async function(t){
+        try{
+          const rows=per.get(t).slice().sort(function(a,b){ return a.dateStamp<b.dateStamp?-1:a.dateStamp>b.dateStamp?1:0; });
+          const stored=await histGet(exch,t);
+          const have=(stored&&Array.isArray(stored.rows))?stored.rows.length:0;
+          if(have>=rows.length){ out.topped++; return; }
+          await histPut(exch,t,rows,latestD);
+          if(have)out.topped++; else out.seeded++;
+        }catch(e){}
+      }));
+      if(say)say('\ud83d\udcbe Saving - '+Math.min(i+150,ticks.length)+' of '+ticks.length+' shares...');
+    }
+    try{ localStorage.setItem('asxScreener.srvDaySync.v1.'+exch,latestD); }catch(e){}
+    if(say)say('\u2705 Filled '+out.days+' days for '+out.shares.toLocaleString()+' shares from your server - '+out.seeded.toLocaleString()+' new, '+out.topped.toLocaleString()+' updated. Reload to use it.');
+    return out;
+  }catch(e){ if(say)say('\u26a0 Fill stopped: '+(e&&e.message?e.message:'unknown')); return out; }
+}
+async function _fillFromServer(){
+  try{
+    const box=document.getElementById('prepMsg')||document.getElementById('loadBox');
+    const say=function(t){ try{ if(box){box.style.display='';box.textContent=t;} }catch(e){} };
+    window._fillAbort=false;
+    const b=document.getElementById('fillSrvBtn'); if(b){ b.disabled=true; b.textContent='\u23f3 filling from your server...'; }
+    const r=await _srvFirstFill(currentExch,300,say);
+    if(b){ b.disabled=false; b.textContent='\u26a1 Fill from my server store'; }
+    return r;
+  }catch(e){ return null; }
+}
 async function _srvDaySync(exch,say){
   const out={days:0,merged:0,skippedGap:0};
   try{
