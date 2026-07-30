@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-615",
+  "version": "2026.07.28-616",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v615 — THE COUNT AND THE FILTER, FIXED TOGETHER. v613 fixed the tile's own number (Golden Cross correctly showed 12) but a SEPARATE function decides what 'tap to filter' actually matches, and it was still checking the old, wrong source — which is exactly why tapping Golden Cross found 0 shares even though the tile said 12. Same real fix as v613, applied to the actual filter this time: tapping any of the six signal tiles now correctly shows the shares that fired it. Hard-refresh (Ctrl+F5)."
+  "notes": "v616 — THE CHIP HOVER, MADE UNMISTAKABLE. v614's effect (a slight brightness increase and a 1px shadow) turned out too subtle to notice on chips that are already brightly coloured with their own border — especially next to the row's background changing at the same instant. Hovering a specific signal chip now visibly grows it and gives it a real glow, impossible to miss. The good news confirmed in your last screenshot: tap-to-filter itself is fully fixed — Squeeze showed 6 and the table showed exactly those 6 shares. Hard-refresh (Ctrl+F5)."
 }

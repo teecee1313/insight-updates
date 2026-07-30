@@ -639,6 +639,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 .d.von{background:var(--blue);}
 .tag{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:9px;font-size:9px;font-weight:700;border:1px solid;margin:1px;white-space:nowrap;text-decoration:none;}
 .tag[title]{cursor:help;} .tag[title]:hover,.tag[data-tip]:hover{filter:brightness(1.5);box-shadow:0 0 0 1px currentColor;} /* v614: the chip itself now reacts to its own hover, not just the row */
+.tag[title]:hover,.tag[data-tip]:hover{transform:scale(1.18);box-shadow:0 0 10px 2px currentColor;position:relative;z-index:5;} /* v616: v614 was too subtle to notice next to the row's own hover background — this is unmistakable */
 .tc{color:var(--green);border-color:var(--green);background:var(--gbg);}
 .tm{color:#f4a261;border-color:#f4a261;background:rgba(244,162,97,.08);}
 .ts{color:var(--red);border-color:var(--red);background:var(--rbg);}
@@ -1718,7 +1719,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-615-open';
+const APP_VERSION='2026.07.28-616-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
