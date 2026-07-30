@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-593-open';
+const APP_VERSION='2026.07.28-594-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19125,6 +19125,7 @@ function _nurSelect(A){
     const at=m.dirNeg?-m.tstat:m.tstat;
     const goodDir=m.dirNeg?m.edge<0:m.edge>0;
     if(m.tier==='solid')return false;
+    if(it.k==='vr'||it.k==='blk')return false; /* v594 deep-dive: parents are direction-less and never badge — a nursery slot with no graduation path */
     if(m.n<10)return false;
     if(!goodDir||!(at>0))return false;
     if(m.n>=50&&at<1)return false;
@@ -20215,6 +20216,7 @@ function _evLineCounts(){
       var t=(typeof _tierAdj==='function')?_tierAdj(m,h):m.tier;
       if(t!=='solid'&&t!=='promising'&&t!=='tiny')continue;      /* early/none: not a graded badge either way */
       var _seq=(k.indexOf('>')>=0), _warn=(!!m.dirNeg)||/^(vr|blk)-$/.test(k);
+      if(k==='vr'||k==='blk')continue; /* v594 deep-dive: bare two-way parents never badge (graded both ways) — counting them inflated the strip's proven/building line counts */
       if(_seq){ aSeq++; continue; }                              /* sequences: can't be checked today */
       if(_warn){ aWarn++; continue; }                            /* warnings never badge a buy */
       if(t==='tiny'){ aTiny++; continue; }                       /* v577: proven, too small to trade */
