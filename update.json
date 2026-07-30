@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-604",
+  "version": "2026.07.28-605",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v604 — EVERY WINDOW, INSTANT, NOT JUST THE ONE YOU OPENED WITH. The server has pre-computed all three windows (5d/10d/30d) automatically every night since w422 — nobody needs to press anything for that. What was still missing: your DEVICE only saved a local copy of whichever ONE window you happened to have open. Now, the first time each day a window loads successfully, the other two quietly warm onto this device in the background too — nothing to press, nothing shown. Flip between 5d/10d/30d later that day and all three should already be sitting there. Hard-refresh (Ctrl+F5)."
+  "notes": "v605 — THE FOLD NO LONGER REMEMBERS ANYTHING. What you were seeing wasn't broken — it was doing exactly what v601 built: remembering a single earlier tap on ‘why’, forever, silently, on this device. That's a confusing thing for a setting to do quietly, and it's why the same screen kept showing up as if the fix never landed. Removed the memory entirely: the explanation is now ALWAYS collapsed the moment the page loads, no exceptions. Tap ▸ why to read it for that one look; reload and it's collapsed again, every single time. Hard-refresh (Ctrl+F5)."
 }

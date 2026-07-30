@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-604-open';
+const APP_VERSION='2026.07.28-605-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10874,8 +10874,8 @@ function _evSetNote(el,htmlTxt,tip){
   try{ if(typeof privateOn==='function'&&privateOn()){ el.dataset.ttip=tip; el.removeAttribute('title'); } }catch(e){}
   try{_radarCompactSync();}catch(e){} // v518: keep the compact evidence sentence current
 }
-function _evFoldPref(){ try{ var v=localStorage.getItem('asxScreener.evFold.v1'); return v==='open'; }catch(e){ return false; } } /* v601: default COLLAPSED — Tony: 'do we need all this explanation... can we have a button to hide' */
-function _evFoldSet(open){ try{ localStorage.setItem('asxScreener.evFold.v1', open?'open':'closed'); }catch(e){} try{ _evFoldApply(); }catch(e){} }
+function _evFoldPref(){ return !!window._evFoldOpenNow; } /* v605: in-memory ONLY, never persisted — always starts false on a fresh load. v601's localStorage version remembered a single tap forever, silently, which read as 'stuck open' three releases in a row */
+function _evFoldSet(open){ window._evFoldOpenNow=!!open; try{ _evFoldApply(); }catch(e){} }
 function _evFoldApply(){
   /* v601 — a thin visibility layer over the (already-built) long explanation.
      Never touches _evSkipNote's own text-building — only decides which of
