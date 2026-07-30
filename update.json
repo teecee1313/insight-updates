@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-582",
+  "version": "2026.07.28-583",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v582 — THE PHONE GETS THE REAL TABLE. The phone view hid table columns by POSITION, using numbers written for the old 14-column layout — after the redesign those numbers were hiding the merged Volume column, Streaks, Score, and the whole Signals cell (evidence chips included) on every phone. Columns now carry their own phone behaviour, so this can never silently break again. Phones now show: star · ticker · price · change · 💰 PN Edge · ⭐ Score·🔥 Accum, with the 📰 news chip beside the ticker, and the table scrolls sideways for anything else. Hard-refresh on your phone (or pull down to reload)."
+  "notes": "v583 — FAILURES NAME THEMSELVES, AND RETRY ANSWERS INSTANTLY. When signal grading failed, the radar could only ever say ‘could not reach our server’ — whether the true cause was a timeout, a rate limit, a network drop or a genuine server fault — and pressing ‘try again’ gave no visible response until the background work finished, so it felt like a dead button. Now: the failure line states the actual reason (e.g. ‘the request ran past its time limit — the first grade of a new day is the slow one; a retry usually returns instantly’, or ‘the server said: too many grade requests this hour — resets within the hour’), and pressing try again (or a floor button) flips the strip to ⏳ immediately, before any network happens. Hard-refresh (Ctrl+F5)."
 }

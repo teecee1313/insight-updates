@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-582-open';
+const APP_VERSION='2026.07.28-583-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2553,13 +2553,27 @@ async function _serverGrades(shares, dataDate, exch, hold){
        probe gets 20s (it is a cache lookup), a real grade 90s (it uploads a
        market), and a timeout is treated as a failure so the card can say so. */
     const _post=async(body,ms)=>{
+      /* v583: a failure must carry its REASON. This used to collapse a
+         rate-limit, a timeout, a network drop and a server error into one
+         silent null — so the radar could only ever say "could not reach our
+         server", which was frequently untrue and always unhelpful. The last
+         real failure is kept on window._gradeFail for the strip to name.
+         (A 400 is NOT recorded: that is the expected miss of a cache probe,
+         and of pantry mode on a pre-w419 worker.) */
       const ctl=(typeof AbortController==='function')?new AbortController():null;
       const tm=setTimeout(function(){ try{ ctl&&ctl.abort(); }catch(e){} },(ms||60000));
       try{
-        const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined});
-        if(!r.ok)return null;
+        let r;
+        try{ r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined}); }
+        catch(fe){ window._gradeFail={kind:(fe&&fe.name==='AbortError')?'timeout':'network',ms:(ms||60000),at:Date.now()}; return null; }
+        if(!r.ok){
+          if(r.status!==400){ let _m=''; try{ const jj=await r.json(); _m=(jj&&jj.error)?String(jj.error):''; }catch(e2){}
+            window._gradeFail={kind:'http',status:r.status,msg:_m,at:Date.now()}; }
+          return null;
+        }
         const j=await r.json();
-        return (j&&j.A&&j.A.M)?j.A:null;
+        if(j&&j.A&&j.A.M){ window._gradeFail=null; return j.A; }
+        return null;
       } finally { clearTimeout(tm); }
     };
     /* v580 (needs worker w419): GRADE FROM THE PANTRY. The worker already
@@ -10798,7 +10812,8 @@ function statsBar(){
           var _fromDev=(window._scanSrc==='device'), _dayDev=(window._scanStale==='device');
           if(!_fromDev&&!_dayDev){ var _lqL=function(k){ try{ for(var q=0;q<_CARD_LIQ.length;q++)if(_CARD_LIQ[q][0]===k)return _CARD_LIQ[q][1]; }catch(e3){} return k||'?'; }; var _cGr=(window._auditCache&&window._auditCache.liq)||''; var _cNow=(typeof _cardLiqKey==='function')?_cardLiqKey():''; var _cl=_lqL(_cGr||_cNow); var _ch=(window._auditCache&&window._auditCache.A&&window._auditCache.A.hold)||5; _rn.textContent=_rn.textContent+'  ·  scored on our server'+((window._auditCache&&window._auditCache.A)?(' + card lines incl. combos ('+_ch+'-day window · 💧 '+_cl+')'):''); try{
             var _wsSt=window._warmState||'';
-            if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading '+(window._warmN||'')+' shares in the background… the evidence counts will fill in when it finishes';
+            if(_wsSt==='asking')_rn.textContent=_rn.textContent+'  \u00b7  \u23f3 asking the server now\u2026';
+            else if(_wsSt==='running')_rn.textContent=_rn.textContent+'  ·  ⏳ grading '+(window._warmN||'')+' shares in the background… the evidence counts will fill in when it finishes';
             else if(_wsSt==='failed'&&!(window._auditCache&&window._auditCache.A))_rn.textContent=_rn.textContent+'  ·  ⚠ background grading could not reach the server — retrying once; open the 📋 report card to force it';
           }catch(e5){}
           try{ if(window._auditCache&&window._auditCache.A&&_cGr&&_cNow&&_cGr!==_cNow)_rn.textContent=_rn.textContent+'  ·  ⚠ these counts were graded at 💧 '+_lqL(_cGr)+', but the 📋 card is now set to '+_lqL(_cNow)+' — open the report card to re-grade before trusting them'; }catch(e4){}try{ var _lc=_evLineCounts(); if(_lc&&(_lc.sol||_lc.pro||_lc.asideN)){ var _bits=[]; if(_lc.aside.tiny)_bits.push(_lc.aside.tiny+' proven but too small to trade (under $0.50/$100)'); if(_lc.aside.seq)_bits.push(_lc.aside.seq+' sequence'+(_lc.aside.seq>1?'s':'')+' (yesterday-dependent, never on a buy list)'); if(_lc.aside.warn)_bits.push(_lc.aside.warn+' warning-direction'); if(_lc.aside.neg)_bits.push(_lc.aside.neg+' with no positive edge'); _rn.textContent=_rn.textContent+'  ·  those share counts come from '+_lc.sol+' proven (SOLID) and '+_lc.pro+' building (PROMISING) line'+((_lc.sol+_lc.pro)===1?'':'s')+' that can badge a share — one common line can badge hundreds of shares at once'+(_bits.length?(' · '+_lc.asideN+' more graded line'+(_lc.asideN>1?'s':'')+' set aside: '+_bits.join(', ')+((_lc.pro===0)?' — which is why 0 PROMISING can be honest':'')):''); } }catch(e6){}
@@ -10853,7 +10868,7 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   try{
     var _noYear=(window._scanSrc==='unavailable'), _noDay=(window._scanSrc!=='unavailable'&&!_scDayGet());
     if(_noYear||_noDay){
-      _evSetNote(el,'\u26a0\ufe0f signals not scored \u2014 could not reach our server'+'<button onclick="_evRetryServer()" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:6px;">try again</button>'+((typeof _cardLiqKey==='function'&&_cardLiqKey()==='any')?'<button onclick="_evSetFloor(\'250k\')" style="border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">set $250k first</button>':''),
+      _evSetNote(el,_gradeFailText()+'<button onclick="_evRetryServer()" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:6px;">try again</button>'+((typeof _cardLiqKey==='function'&&_cardLiqKey()==='any')?'<button onclick="_evSetFloor(\'250k\')" style="border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">set $250k first</button>':''),
         (_noYear&&_noDay)?'Both halves of the evidence system run on our server: the year-long replay that grades each signal, and the check of which signals are firing today. Neither could be reached just now, so these tiles are blank rather than wrong. Prices, volumes, your portfolio and your watchlists are stored on your device and are unaffected. Try again in a moment, or reload.'
         :(_noYear?'The year-long replay that grades each signal runs on our server, and it could not be reached just now. Rather than show tiers we cannot stand behind, the evidence tiles stay blank. Everything stored on your device \u2014 prices, volumes, portfolio, watchlists \u2014 is unaffected. Try again in a moment, or reload.'
                  :'Which signals are firing today is worked out on our server, so the thresholds behind them are not published in the app. We could not reach it just now, so these tiles are blank rather than wrong. Everything stored on your device is unaffected. Try again in a moment, or reload.'));
@@ -20072,6 +20087,19 @@ function _cardLiqKey(){
 }
 function _cardLiqNeed(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][2]; return 0; }
 function _cardLiqLabel(){ var k=_cardLiqKey(); for(var i=0;i<_CARD_LIQ.length;i++)if(_CARD_LIQ[i][0]===k)return _CARD_LIQ[i][1]; return 'Any'; }
+function _gradeFailText(){
+  /* v583: the unreachable state names its reason. _serverGrades._post records
+     the last real failure on window._gradeFail; this turns it into the one
+     sentence the radar shows. No record = the old generic line. */
+  try{
+    var g=window._gradeFail;
+    if(!g)return '\u26a0\ufe0f signals not scored \u2014 could not reach our server';
+    if(g.kind==='timeout')return '\u26a0\ufe0f signals not scored \u2014 the server request ran past its '+Math.round((g.ms||90000)/1000)+'s time limit. The FIRST grade of a new day, window or floor computes fresh and is the slow one \u2014 a retry usually returns instantly off the finished answer';
+    if(g.kind==='http'&&g.status===429){ var _age=Math.round((Date.now()-(g.at||0))/60000); return '\u26a0\ufe0f signals not scored \u2014 the server said: '+(g.msg||'too many grade requests this hour')+(_age>0?' ('+_age+' min ago)':'')+'. That limit protects the server and resets within the hour \u2014 retrying sooner just hits it again'; }
+    if(g.kind==='http')return '\u26a0\ufe0f signals not scored \u2014 the server answered HTTP '+g.status+(g.msg?(': '+g.msg):'')+' \u2014 a server-side fault, not this device';
+    return '\u26a0\ufe0f signals not scored \u2014 no answer from the network at all (connection, Wi\u2011Fi or DNS), so the server was never reached';
+  }catch(e){ return '\u26a0\ufe0f signals not scored \u2014 could not reach our server'; }
+}
 function _evLineCounts(){
   /* v576: how many distinct GRADED LINES are behind today's share counts.
      v581: count what the TILES can actually use. The strip used to count
@@ -20112,10 +20140,16 @@ function _evActions(withFloor){
 function _evRetryServer(){
   /* v574: a pressable retry for the unreachable-server state. Clears the
      session latches that stop the app asking again (_SCAN_SERVER_OFF), re-arms
-     the one-shot warm retry, and kicks both halves off immediately. */
+     the one-shot warm retry, and kicks both halves off immediately.
+     v583: the press ANSWERS INSTANTLY. The strip flips to ⏳ before any
+     network happens, so a retry can never again be indistinguishable from a
+     dead button; a 10s watchdog clears the transient if nothing real (the
+     warm's own running/done/failed) has replaced it by then. */
   try{
     try{ window._SCAN_SERVER_OFF=false; }catch(e){}
-    window._warmRetried=false; window._warmState='';
+    window._warmRetried=false; window._warmState='asking'; window._warmAskAt=Date.now();
+    try{ if(typeof statsBar==='function')statsBar(); }catch(e){}
+    setTimeout(function(){ try{ if(window._warmState==='asking'&&(Date.now()-(window._warmAskAt||0))>=9500){ window._warmState=''; if(typeof statsBar==='function')statsBar(); } }catch(e){} },10000);
     try{ if(typeof _scanServerRefresh==='function')_scanServerRefresh(); }catch(e){}
     try{ if(typeof prep==='function'&&!window._prepRunning){} }catch(e){}
     if(typeof _auditWarmIdle==='function')setTimeout(function(){ try{_auditWarmIdle();}catch(e){} },60);
@@ -20128,8 +20162,8 @@ function _evSetFloor(k){
      immediate background re-grade so the counts follow within seconds. */
   try{
     _cardLiqSet(k,'');
+    window._warmRetried=false; window._warmState='asking'; window._warmAskAt=Date.now(); /* v583: instant ack */
     if(typeof statsBar==='function')statsBar();
-    window._warmRetried=false; window._warmState='';
     if(typeof _auditWarmIdle==='function')setTimeout(function(){ try{_auditWarmIdle();}catch(e){} },60);
   }catch(e){}
 }
