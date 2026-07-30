@@ -1593,7 +1593,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 
 <div class="right">
   <div class="stats" id="statsBar" style="display:none">
-    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button><span id="radarFloorRow" style="margin-left:8px;"></span></div>
+    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button><span id="radarFloorRow" style="margin-left:8px;"></span><span id="radarHoldRow" style="margin-left:6px;"></span></div>
     <div id="radarCompact">
       <div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="cTot">0</div><div class="sl">Showing</div></div>
       <div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g" id="cG">0</div><div class="sl">Gainers</div></div>
@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-610-open';
+const APP_VERSION='2026.07.28-611-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10856,11 +10856,31 @@ function statsBar(){
   try{_radarCompactSync();}catch(e){}
   try{ _evFoldApply(); }catch(e){} /* v603: moved here from right after the _evSkipNote() call — that ran too early, before the separate 'scored on our server / DAY OLD' block further up in this function had even written its content, so the fold was never being re-applied to what actually ends up on screen */
   try{ _radarFloorRow(); }catch(e){} /* v609: keeps the radar's own floor row in sync with every render, same as the other end-of-statsBar housekeeping calls */
+  try{ _radarHoldRow(); }catch(e){} /* v611: same pattern for the outcome window */
 }
 // v484 — a radar where half the tiles read 0 in the same weight as the ones
 // reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
 // caption and its click; it simply stops shouting. Not-yet-graded tiles ("–")
 // are treated the same way, because "we have not checked" is also not news.
+function _radarHoldToggle(){
+  window._radarHoldOpen=!window._radarHoldOpen;
+  try{ _radarHoldRow(); }catch(e){}
+}
+function _radarHoldRow(){
+  try{
+    var box=document.getElementById('radarHoldRow'); if(!box)return;
+    var cur=(typeof _cardHold==='function')?_cardHold():5;
+    var open=!!window._radarHoldOpen;
+    var HOLDS=[[5,'5d'],[10,'10d'],[30,'30d']];
+    var pill='<button onclick="_radarHoldToggle()" title="How many trading days ahead each line\'s edge is measured over" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:14px;padding:1px 8px;font:700 9px var(--sans);cursor:pointer;">'+cur+'d '+(open?'▴':'▾')+'</button>';
+    var menu=!open?'':('<div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:4px;z-index:20;box-shadow:0 6px 16px rgba(0,0,0,.4);min-width:80px;">'
+      +HOLDS.map(function(h){
+        return '<div onclick="setCardHold('+h[0]+');window._radarHoldOpen=false;" style="padding:5px 10px;font:700 10px var(--sans);color:'+(h[0]===cur?'var(--gold)':'var(--muted)')+';cursor:pointer;white-space:nowrap;border-radius:5px;">'+h[1]+(h[0]===cur?' ✓':'')+'</div>';
+      }).join('')
+      +'</div>');
+    box.innerHTML='<span style="position:relative;display:inline-block;">'+pill+menu+'</span>';
+  }catch(e){}
+}
 function _radarFloorToggle(){
   window._radarFloorOpen=!window._radarFloorOpen;
   try{ _radarFloorRow(); }catch(e){}

@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-610",
+  "version": "2026.07.28-611",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v610 — ONE COMPACT PILL INSTEAD OF FIVE BUTTONS. Tony's own second thought, and the right call: five always-visible floor buttons on the radar risked exactly the clutter he's pushed back on all night, especially on phone. Replaced with a single pill showing your current floor — tap it and the other four drop down underneath; pick one and it closes again. Same footprint every time, no matter how many options exist. Same underlying choices and instant setter as before — only how they're shown changed. Hard-refresh (Ctrl+F5)."
+  "notes": "v611 — SAME COMPACT PATTERN, FOR THE WINDOW. Right next to the floor pill, a matching one for the outcome window: 5d / 10d / 30d, tap to switch, one shared footprint, same instant setter the report card already used. Two of the three settings that used to require opening the card are now one tap from the radar itself. Hard-refresh (Ctrl+F5)."
 }
