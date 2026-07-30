@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-605-open';
+const APP_VERSION='2026.07.28-606-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20529,11 +20529,11 @@ function _cardLiqPassSrv(s){
 function _cardLiqBar(fn){
   var cur=_cardLiqKey();
   return '<div style="margin:0 0 8px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'
-    +'<span title="Skip shares whose average daily turnover (volume × price) is below this. Since v462 this governs TWO things: which shares this year-long grading replay measures, and which ones the 🤖 auto-pilot may buy. It no longer decides who gets evidence-checked on the Market Radar — that now covers every share on screen, with thin ones flagged 💧 rather than hidden. Applies to the scans AND the market they are measured against, so both sides are comparable. Thin shares move on tiny trades, which is noise rather than signal." style="cursor:help;font:700 9.5px var(--sans);color:var(--muted);margin-right:4px;">💧 tradeable shares only:</span>'
+    +'<span title="v606: since the one-ruler redesign, every line on this card is measured ONCE, unconditionally, on the $250k universe — no floor here changes that any more. This selector now does one thing only: which shares APPEAR in this card\'s own lists (like Best Evidence Today). All five buttons produce an identical graded report; picking one just changes which shares you see in it, and does so instantly, with no server trip." style="cursor:help;font:700 9.5px var(--sans);color:var(--muted);margin-right:4px;">💧 tradeable shares only:</span>'
     +_CARD_LIQ.map(function(x){
-      return '<button onclick="_cardLiqSet(\''+x[0]+'\',\''+fn+'\')" title="'+(x[2]?('at least $'+(x[2]>=1e6?(x[2]/1e6)+' million':(x[2]/1e3)+'k')+' traded on an average day'):'The APP stops filtering — but the server always applies its own $50k/day floor, so that is the real universe (the line under this row states it). Expect micro-caps to dominate: bigger percentage moves, huge sighting counts, and edges a buy–sell spread would eat. Use $250k or $1m for decisions.')+'" style="border:1px solid '+(x[0]===cur?'var(--gold)':'var(--border2)')+';color:'+(x[0]===cur?'var(--gold)':'var(--muted)')+';background:'+(x[0]===cur?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 9px;font:700 9.5px var(--sans);cursor:pointer;">'+x[1]+'</button>';
+      return '<button onclick="_cardLiqSet(\''+x[0]+'\',\''+fn+'\')" title="'+(x[2]?('Show shares averaging at least $'+(x[2]>=1e6?(x[2]/1e6)+' million':(x[2]/1e3)+'k')+' traded a day. Every option here is measured the SAME way — this only changes which shares you see.'):'Show every share, including micro-caps that trade on tiny volume — expect noisier percentage moves. The measurement itself is unchanged; this is a display choice, not a research one.')+'" style="border:1px solid '+(x[0]===cur?'var(--gold)':'var(--border2)')+';color:'+(x[0]===cur?'var(--gold)':'var(--muted)')+';background:'+(x[0]===cur?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 9px;font:700 9.5px var(--sans);cursor:pointer;">'+x[1]+'</button>';
     }).join('')
-    +'<span style="font:400 9px var(--sans);color:var(--dim);margin-left:4px;">changing this re-runs the report</span></div>';
+    +'<span style="font:400 9px var(--sans);color:var(--dim);margin-left:4px;">a display filter only — every option shows the same measurement, instantly, no server trip</span></div>';
 }
 // ═══ v430 — 🧪 All-scans report card: which of my scans actually works? ═══
 // Every scan rule is re-tested AS IT STOOD on each past day (no look-ahead) and
