@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-616",
+  "version": "2026.07.28-617",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v616 — THE CHIP HOVER, MADE UNMISTAKABLE. v614's effect (a slight brightness increase and a 1px shadow) turned out too subtle to notice on chips that are already brightly coloured with their own border — especially next to the row's background changing at the same instant. Hovering a specific signal chip now visibly grows it and gives it a real glow, impossible to miss. The good news confirmed in your last screenshot: tap-to-filter itself is fully fixed — Squeeze showed 6 and the table showed exactly those 6 shares. Hard-refresh (Ctrl+F5)."
+  "notes": "v617 — A DIFFERENT, NEW HYPOTHESIS ON THE HOVER ISSUE. Full search of every training-mode CSS rule found the real likely cause: a generic 'this is a control' dashed outline, meant for buttons and dropdowns, was also landing on the star and checkbox cells at the start of every table row (they carry onclick directly) — permanently, not on hover, which could easily look like the whole row getting highlighted. The table now has its own interaction language (chip hover) and is excluded from that generic outline entirely. Genuinely not certain this is the full picture, so please check again after refreshing — if it's still happening, that's real signal, not the same guess repeated. Hard-refresh (Ctrl+F5)."
 }
