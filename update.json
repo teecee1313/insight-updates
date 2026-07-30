@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-580",
+  "version": "2026.07.28-581",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v580 — GRADING WITHOUT THE UPLOAD (works fully once the w419 server update is pasted). Until now, every first grade of the day slimmed and uploaded hundreds of thousands of price bars to the server — data the server's own store already holds — which is where the 90-second ‘Grading every signal…’ waits came from. Now the app simply asks the server to grade its OWN store at your 💧 floor: nothing uploads, and the day's answer is cached server-side so the second device (your phone) gets it instantly. Until w419 is pasted the app quietly falls back to the old upload path, so nothing breaks in the meantime. Hard-refresh (Ctrl+F5)."
+  "notes": "v581 — WHY ‘0 PROMISING’ CAN BE HONEST. The evidence strip counted every graded line — including sequences (which can never appear on a buy list), warning-direction lines, and lines proven real but too small to trade — while the radar can only badge shares from lines that clear all of those bars. So the strip could say ‘8 building lines’ while zero of them could actually badge a share, and a 0 PROMISING tile looked broken when it was forced. The strip now counts only badge-capable lines and, when others were set aside, says how many and exactly why — so the screen answers the question itself. Hard-refresh (Ctrl+F5)."
 }
