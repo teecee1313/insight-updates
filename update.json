@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-583",
+  "version": "2026.07.28-584",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v583 — FAILURES NAME THEMSELVES, AND RETRY ANSWERS INSTANTLY. When signal grading failed, the radar could only ever say ‘could not reach our server’ — whether the true cause was a timeout, a rate limit, a network drop or a genuine server fault — and pressing ‘try again’ gave no visible response until the background work finished, so it felt like a dead button. Now: the failure line states the actual reason (e.g. ‘the request ran past its time limit — the first grade of a new day is the slow one; a retry usually returns instantly’, or ‘the server said: too many grade requests this hour — resets within the hour’), and pressing try again (or a floor button) flips the strip to ⏳ immediately, before any network happens. Hard-refresh (Ctrl+F5)."
+  "notes": "v584 — THE ROW STOPS CALLING A PROVEN LINE ‘NOT PROVEN’. You found it: the same share could read SOLID +$0.77 at the $1m floor and ‘not proven’ at $50k. The maths was right — a line’s badge is its average edge across EVERY share at your 💧 floor, and a wide-open floor lets micro-caps shrink real edges below the $0.50/$100 costs bar — but the row then said ‘not proven’, which is false: the line IS proven, just too small to pay for itself at that floor. Those shares now wear their own chip: 💤 proven · too small here, naming the line, its measured edge at this floor, and the fact that raising the floor often restores the badge. Hard-refresh (Ctrl+F5)."
 }

@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-583-open';
+const APP_VERSION='2026.07.28-584-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19783,12 +19783,20 @@ function _evMark(shares){
           shares.forEach(function(s2){
             if(!s2||s2._evD!==_evDD())return;
             if(!Array.isArray(s2.series)||s2.series.length<30)return;
+            s2._evTinyN=0; s2._evTinyWhy=''; /* v584: reset the proven-but-tiny record each pass */
             var bestR=-1,bestL=null,bestE=null;
             for(var bi=0;bi<_bl.length;bi++){
               var it=_bl[bi];
               if(_nurFireToday(s2,it.k)!==true)continue;
               var _t2=(typeof _tierAdj==='function')?_tierAdj(it.m,(_A&&_A.hold)||5):it.m.tier;
-              if(_t2!=='solid'&&_t2!=='promising')continue; /* v577: too-small edges don't badge shares */
+              if(_t2!=='solid'&&_t2!=='promising'){
+                /* v577: too-small edges don't badge shares — but v584: dropping
+                   them SILENTLY made the row read "not proven", which is false.
+                   The line IS proven; at this floor its edge is under the money
+                   bar. Remember it so the chip can say the true thing. */
+                if(_t2==='tiny'){ s2._evTinyN=(s2._evTinyN||0)+1;
+                  if(!s2._evTinyWhy)s2._evTinyWhy=_nmK(it.k)+' \u2014 proven, +$'+(+it.m.edge||0).toFixed(2)+'/$100 at this floor'; }
+                continue; }
               var r2=(_t2==='solid')?2:1;
               if(r2>bestR){ bestR=r2; bestL=it; }
               if(bestE==null||it.m.edge>bestE)bestE=it.m.edge;
@@ -19879,6 +19887,15 @@ function _evRowChip(s){
     if(!s._evTier&&s._evD===_evDD()&&s._evNeg){
       var nt='⚠️ This share IS firing graded signals today — but every one of them has a record of UNDERPERFORMING the market, so it earns no tier. Firing now: '+(s._evWhyNeg||'')+'. The 🤖 auto-pilot will not act on these either. A record can be big enough to prove a signal reliably loses, and that is good evidence about a bad signal — but a small negative number inside its own margin of error proves nothing either way, and since v498 only the first of those two is called LOSING.';
       return '<span class="tag" style="border:1px solid var(--red);color:#ff9caa;font-weight:800;letter-spacing:.3px" title="'+nt.replace(/"/g,'&quot;')+'">⚠️ underperforms</span>';
+    }
+    // v584 — fired lines with a PROVEN record whose edge AT THIS FLOOR sits
+    // under the $0.50/$100 money bar. This state used to fall through to
+    // "not proven", which is the exact TOO-EARLY-vs-NOT-PROVEN class of
+    // conflation this codebase exists to prevent: the line was proven; the
+    // floor made its measured edge too small to pay for itself.
+    if(!s._evTier&&s._evD===_evDD()&&s._evTinyN){
+      var yt='\ud83d\udca4 PROVEN \u00b7 TOO SMALL AT THIS FLOOR \u2014 '+s._evTinyN+' line'+(s._evTinyN>1?'s':'')+' with a PROVEN record fired on this share today, but at your current \ud83d\udca7 floor ('+_cardLiqLabel()+') the measured edge is under $0.50 per $100 \u2014 real, and smaller than trading costs. A line\'s badge is its AVERAGE across every share at the floor, so a wide-open floor lets micro-caps shrink it: '+(s._evTinyWhy||'')+'. Raise the \ud83d\udca7 floor (set $250k / $1m on the radar) to measure on tradeable shares \u2014 the badge often returns. NOT the same as \u201cnot proven\u201d: we looked, and found an edge too small to pay for itself here.';
+      return '<span class="tag" style="border:1px solid var(--gold);color:var(--gold);font-weight:700;letter-spacing:.3px" title="'+yt.replace(/"/g,'&quot;')+'">\ud83d\udca4 proven \u00b7 too small here</span>';
     }
     // v500 — fired, but every signal firing is merely UNPROVEN rather than
     // proven to lose. That is a real state and it deserves its own words: the
