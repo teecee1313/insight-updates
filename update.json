@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-608",
+  "version": "2026.07.28-609",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v608 — PHONE SCROLLS SIDEWAYS NOW, NOTHING HIDDEN. Volume, Streaks and Signals used to be hidden on phone entirely, to keep the remaining columns readable. Tony's call: keep the full table, swipe to see the rest instead. Turns out the exact mechanism already existed for zoomed-in desktop windows — the table scrolls sideways and the ticker column stays frozen so you always know which row you're looking at. Phones now use that same, already-proven behaviour: every column is back, swipe right to see Volume/Streaks/Signals, the ticker never scrolls off. Hard-refresh (Ctrl+F5)."
+  "notes": "v609 — THE RADAR NOW HAS A PERMANENT FLOOR ROW. Until now the radar only ever offered two ONE-WAY buttons — nudging you UP to $250k or $1m, and only when you were already at the broadest view. There was no equally quick way to go the other direction, back to Any. Under the one-ruler design a broader floor only ever shows MORE, never less, so it deserved to be just as easy to reach. Added a permanent floor row right next to ‘Market Radar’ — Any / $50k / $250k / $1m / $5m, always visible, one tap, reusing the exact same options and instant setter the report card already uses. Hard-refresh (Ctrl+F5)."
 }

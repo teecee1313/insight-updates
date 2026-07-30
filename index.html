@@ -1593,7 +1593,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 
 <div class="right">
   <div class="stats" id="statsBar" style="display:none">
-    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button></div>
+    <div class="radar-label" title="Market Radar — your market at a glance. Tap any tile to filter the whole app to just those shares.">📡 <span>Market Radar</span> <span class="rl-sub">tap to filter</span><button id="radarMoreBtn" onclick="_radarMore()" title="Show or hide the detailed tiles">▾ details</button><span id="radarFloorRow" style="margin-left:8px;"></span></div>
     <div id="radarCompact">
       <div class="stat statclick" onclick="statFilter('all')" title="Show all — clear these quick filters"><div class="sv gold" id="cTot">0</div><div class="sl">Showing</div></div>
       <div class="stat statclick" onclick="statFilter('gainers')" title="Show only shares up today"><div class="sv g" id="cG">0</div><div class="sl">Gainers</div></div>
@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-608-open';
+const APP_VERSION='2026.07.28-609-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10855,11 +10855,24 @@ function statsBar(){
   try{ _radarDim(); }catch(e){}
   try{_radarCompactSync();}catch(e){}
   try{ _evFoldApply(); }catch(e){} /* v603: moved here from right after the _evSkipNote() call — that ran too early, before the separate 'scored on our server / DAY OLD' block further up in this function had even written its content, so the fold was never being re-applied to what actually ends up on screen */
+  try{ _radarFloorRow(); }catch(e){} /* v609: keeps the radar's own floor row in sync with every render, same as the other end-of-statsBar housekeeping calls */
 }
 // v484 — a radar where half the tiles read 0 in the same weight as the ones
 // reading 1,466 gives the eye nowhere to go. An empty tile keeps its place, its
 // caption and its click; it simply stops shouting. Not-yet-graded tiles ("–")
 // are treated the same way, because "we have not checked" is also not news.
+function _radarFloorRow(){
+  /* v609 — the SAME options and setter the report card uses (_CARD_LIQ,
+     _cardLiqSet), rendered right on the radar so the broadest view is
+     always one tap away, not just the two upward nudges the strip offers. */
+  try{
+    var box=document.getElementById('radarFloorRow'); if(!box)return;
+    var cur=(typeof _cardLiqKey==='function')?_cardLiqKey():'250k';
+    box.innerHTML=_CARD_LIQ.map(function(x){
+      return '<button onclick="_cardLiqSet(\''+x[0]+'\',\'\')" title="'+(x[2]?('Show shares averaging at least $'+(x[2]>=1e6?(x[2]/1e6)+' million':(x[2]/1e3)+'k')+' traded a day'):'Show every share, including micro-caps — the broadest view')+'" style="border:1px solid '+(x[0]===cur?'var(--gold)':'var(--border2)')+';color:'+(x[0]===cur?'var(--gold)':'var(--muted)')+';background:'+(x[0]===cur?'rgba(255,210,0,.08)':'transparent')+';border-radius:14px;padding:1px 8px;font:700 9px var(--sans);cursor:pointer;margin-left:3px;">'+x[1]+'</button>';
+    }).join('');
+  }catch(e){}
+}
 function _radarDim(){
   var t=document.querySelectorAll('#statsBar .stat');
   for(var i=0;i<t.length;i++){
