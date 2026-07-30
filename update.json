@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-606",
+  "version": "2026.07.28-607",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v606 — THE CARD'S FLOOR BUTTONS SAID THE QUIET PART OUT LOUD. Tony asked which of the five 💧 turnover buttons on the report card covers the whole market — and the honest answer turned out to be that none of them differ any more. Since the one-ruler redesign, every line is measured once, unconditionally, on the \\$250k universe; this card's own copy never caught up and was still claiming the choice changes what gets measured, and that changing it re-runs the report. Neither was true. The buttons now say plainly what they actually do: pick which shares you SEE in this card's own lists — the measurement itself never moves, and switching is instant. Hard-refresh (Ctrl+F5)."
+  "notes": "v607 — FOUND THE ACTUAL BUG. Every fold release since v601 was hiding the wrong thing: the real wall of text ('SIGNALS 19 graded... one ruler... prove it') lives in a completely separate element from the one the fold was controlling. The short summary you saw collapsing correctly was genuine — it just had no connection to the paragraph sitting next to it. Retargeted the fold to the actual element. This time verified directly: the exact long paragraph is now hidden by default, with a working ▸ why to reveal it, and the SEPARATE status messages (checking…, failed, retrying) are correctly left untouched, since those are things you need to see, not explanation to hide. Hard-refresh (Ctrl+F5)."
 }

@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-606-open';
+const APP_VERSION='2026.07.28-607-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10881,7 +10881,7 @@ function _evFoldApply(){
      Never touches _evSkipNote's own text-building — only decides which of
      the long text or the short summary the user actually sees right now. */
   try{
-    var full=document.getElementById('evSkipNote'), shortEl=document.getElementById('evShort');
+    var full=document.getElementById('evRuleNote'), shortEl=document.getElementById('evShort'); /* v607 ROOT CAUSE: this was 'evSkipNote' — the WRONG element. The actual long paragraph ('SIGNALS 19 graded... one ruler... prove it') is written to 'evRuleNote' via the _rn variable — a completely separate element the fold never touched across v601-v605. evSkipNote holds a DIFFERENT thing (the checking/failed status messages), correctly left alone: those are actionable notices, not the explanatory wall of text being folded here. */
     if(!full||!shortEl)return;
     var hasContent=!!(full.innerHTML&&full.innerHTML.length>0); /* v602 fix: check the CONTENT, not display style — this same function is what flips that style off, so using it to detect 'anything to show' was self-defeating after the first collapse */
     if(!hasContent){ shortEl.style.display='none'; return; }
