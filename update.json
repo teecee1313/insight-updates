@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-588",
+  "version": "2026.07.28-589",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v588 — CARD SETTINGS APPLY THEMSELVES. Changing the hold window (5d/10d/30d) or the 💧 floor inside the 📋 report card used to update only the card — the radar and table behind it kept the old answer until something else nudged them. Now: a new hold window re-asks the server immediately (strip flips to ⏳ with the live timer before the card is even closed), and a floor tap repaints the main screen instantly — and because of v586's one ruler, a floor tap no longer throws away the day's graded answer or costs a server trip at all. Exit the card and everything already matches. Hard-refresh (Ctrl+F5)."
+  "notes": "v589 — NO MORE FALSE ALARM AT OPEN. On every fresh load the radar showed ‘try again’ before the server had even been asked — ‘not answered YET’ was wearing the same clothes as ‘asked and failed’. Now the failure message only appears after a CONCLUDED failure (server unreachable, timeout, or the server’s own words). Until then the gap shows the honest state: 🧪 checking today’s signals with our server… with the live ticking timer. Ticking = working; a real failure still names itself and self-retries (v587). Hard-refresh (Ctrl+F5)."
 }

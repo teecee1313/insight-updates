@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-588-open';
+const APP_VERSION='2026.07.28-589-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10880,6 +10880,21 @@ function _evSkipNote(ready,nLiq,nHist,nSeen,nThin,nNeg){
   // screen was the one state that explained nothing.
   try{
     var _noYear=(window._scanSrc==='unavailable'), _noDay=(window._scanSrc!=='unavailable'&&!_scDayGet());
+    /* v589 — "hasn't been tried yet" is NOT "tried and failed". On a fresh
+       load the day-signal answer simply hasn't ARRIVED yet, but this branch
+       used to dress that instant in the failure clothes ('try again') — a
+       false alarm on every single open. The failure note now requires a
+       CONCLUDED failure: the server latched unavailable, the warm ended in
+       'failed', or a recorded _gradeFail. Until one of those is true, the
+       gap shows an honest in-flight message with the live ticking timer. */
+    var _tried=_noYear||window._warmState==='failed'||!!window._gradeFail;
+    if((_noYear||_noDay)&&!_tried){
+      if(!window._evBootAt)window._evBootAt=Date.now();
+      try{ _evPulseEnsure(true); }catch(e9){}
+      _evSetNote(el,'\ud83e\uddea checking today\u2019s signals with our server\u2026'+_evElapsed(window._evBootAt),'The evidence tiles fill in when the server answers \u2014 usually a second or two once the day is warm, up to 30\u201390 seconds only if this is the very first grade of a new day or window. The timer is live: ticking means working. If it fails, this message will say so and the app will retry by itself.');
+      _evSetNote(sg,'');
+      return;
+    }
     if(_noYear||_noDay){
       _evSetNote(el,_gradeFailText()+_evRetryCountdown()+'<button onclick="_evRetryServer()" style="border:1px solid var(--gold);color:var(--gold);background:rgba(255,210,0,.08);border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:6px;">try again</button>'+((typeof _cardLiqKey==='function'&&_cardLiqKey()==='any')?'<button onclick="_evSetFloor(\'250k\')" style="border:1px solid var(--gold);color:var(--gold);background:transparent;border-radius:6px;padding:1px 7px;font:700 10px var(--sans);cursor:pointer;margin-left:4px;">set $250k first</button>':''),
         (_noYear&&_noDay)?'Both halves of the evidence system run on our server: the year-long replay that grades each signal, and the check of which signals are firing today. Neither could be reached just now, so these tiles are blank rather than wrong. Prices, volumes, your portfolio and your watchlists are stored on your device and are unaffected. Try again in a moment, or reload.'
