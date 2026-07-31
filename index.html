@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-634-open';
+const APP_VERSION='2026.07.28-635-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9983,6 +9983,43 @@ window.addEventListener('beforeprint',function(){
   }catch(_){}
 });
 window.addEventListener('afterprint',function(){ try{document.body.classList.remove('sheet-printing');}catch(_){} });
+// w-print: ONE print button on the shared modal, works for every report.
+// Top 20 keeps its own printTop10() — it rebuilds from the underlying score
+// data, so it's cleaner than a generic HTML copy. Everything else (Best
+// Evidence, Climbers, Fading Strength, Gap, Grading Check, Market Pulse, the
+// Simple-view scan popups, and any future report that just calls showModal)
+// falls through to _genericModalPrint, which grabs whatever's actually
+// rendered right now — no per-report code needed, so a new report gets a
+// working print button automatically, for free.
+function _modalPrint(){
+  try{
+    if(window._modalType==='top20'){ if(typeof printTop10==='function')printTop10(); return; }
+    _genericModalPrint();
+  }catch(e){ try{ alert('Could not open the printable version: '+e.message); }catch(_){} }
+}
+function _genericModalPrint(){
+  const box=document.getElementById('modalBox');
+  const src=box&&box.querySelector('.modal-scroll');
+  if(!src||!src.innerHTML.trim()){ alert('Nothing to print yet.'); return; }
+  const label=window._curModalLabel||window._modalLabel||'Report';
+  // Strip the plain text of the label (it may carry an emoji + HTML from a
+  // banner chip) down to something safe for a <title>.
+  const titleText=String(label).replace(/<[^>]*>/g,'').trim()||'Report';
+  const when=new Date().toLocaleString('en-AU');
+  const brand='<svg viewBox="0 0 1024 1024" width="24" height="24" xmlns="http://www.w3.org/2000/svg"><rect x="150" y="618" width="125" height="174" rx="19" fill="#C9A100"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#C9A100"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#C9A100"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#C9A100"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#C9A100"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#C9A100"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#C9A100"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>';
+  // Same palette-swap trick printSignalReport() already uses: redefine the
+  // app's CSS variables to print-appropriate values (light background, dark
+  // text, muted colours) rather than the dark-theme originals, which is why
+  // reused var(--gold)/var(--green)/etc. references inside the copied HTML
+  // still render sensibly on white paper instead of vanishing or clashing.
+  const css=":root{--text:#1c2230;--muted:#454b57;--dim:#8b91a0;--green:#0a7a0a;--gold:#9a6b00;--red:#c0392b;--orange:#b05a00;--blue:#1f5fbf;--purple:#6d28d9;--border:#e4e6ea;--border2:#cfd3da;--bg2:#ffffff;--bg3:#f4f5f7;--mono:'Courier New',monospace;--sans:Arial,Helvetica,sans-serif;}html,body{margin:0;background:#fff;color:var(--text);font-family:var(--sans);font-size:13px;}.wrap{max-width:820px;margin:0 auto;padding:22px 26px 40px;}.gp-hd{display:flex;align-items:center;gap:11px;border-bottom:2px solid #eee;padding-bottom:12px;margin-bottom:16px;}.gp-hd .t{font-weight:800;font-size:17px;}.gp-hd .s{font-size:11px;color:#777;margin-top:2px;}.gp-print{margin-left:auto;padding:8px 15px;font:700 12px var(--sans);cursor:pointer;border:1px solid var(--border2);border-radius:8px;background:#f4f5f7;color:#333;}.gp-foot{margin-top:22px;border-top:1px solid #eee;padding-top:10px;font-size:10px;color:#888;line-height:1.55;}a{color:var(--blue);text-decoration:none;}"
+    // Interactive-only elements make no sense on paper — hide them rather
+    // than print a star/dropdown/close-x nobody can tap.
+    +"button,select,.gp-print{display:initial;} @media print{button,select{display:none!important;}.gp-print{display:none!important;}}"
+    +"@media print{@page{size:portrait;margin:12mm;}html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.wrap{max-width:none;padding:0;}}";
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titleText.replace(/[<>]/g,'')} — Insight Trading</title><style>${css}</style></head><body><div class="wrap"><div class="gp-hd">${brand}<div><div class="t">${titleText}</div><div class="s">${(typeof currentExch!=='undefined'?currentExch+' · ':'')}generated ${when}</div></div><button class="gp-print" onclick="window.print()">🖨 Print / Save as PDF</button></div>${src.innerHTML}<div class="gp-foot"><b>Insight Trading</b> — a data summary, not financial advice. Figures are end-of-day estimates from price &amp; volume unless stated otherwise. Verify against official sources before trading. Generated ${when}.<br>© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293</div></div></body></html>`;
+  _openPrintable(html, titleText);
+}
 // 🖥 v301 — take the current panel over the ENTIRE screen (and back).
 function toggleModalFullscreen(){
   const box=document.getElementById('modalBox'); if(!box)return;
