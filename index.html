@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-635-open';
+const APP_VERSION='2026.07.28-636-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15356,13 +15356,17 @@ async function updateOfflineStatus(){
   if(!el)return;
   if(!n){el.innerHTML='';return;}
   // Which exchanges are represented on disk?
-  let exchInfo='';
+  let exchInfo='', otherExchLink='';
   try{
     const db=await cacheOpen();
     if(db){
       const exch=new Set();
       await new Promise(res=>{const req=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE).openKeyCursor();req.onsuccess=e=>{const c=e.target.result;if(!c){res();return;}const k=String(c.key);exch.add(k.slice(0,k.indexOf(':')));c.continue();};req.onerror=()=>res();});
       if(exch.size)exchInfo=' ('+[...exch].join(', ')+')';
+      // Only offer this when there's actually something else to remove — showing
+      // "keep ASX only" when ASX is the only thing stored would be a button that
+      // does nothing, which is worse than no button.
+      if(exch.size>1&&exch.has(currentExch))otherExchLink=' · <a href="#" onclick="clearOtherExchangesConfirm();return false;" style="color:var(--dim);">keep '+currentExch+' only</a>';
     }
   }catch(e){}
   // Coverage against the currently-loaded exchange, so you can see how complete
@@ -15381,7 +15385,46 @@ async function updateOfflineStatus(){
       }
     }
   }catch(e){}
-  el.innerHTML=`💾 <span style="color:var(--green)">${n} shares cached on this computer${exchInfo}</span> — available offline. <a href="#" onclick="clearOfflineData();return false;" style="color:var(--dim);">clear</a>${coverage}`;
+  el.innerHTML=`💾 <span style="color:var(--green)">${n} shares cached on this computer${exchInfo}</span> — available offline. <a href="#" onclick="clearOfflineData();return false;" style="color:var(--dim);">clear</a>${otherExchLink}${coverage}`;
+}
+// Delete only OTHER exchanges' downloaded data — keeps keepExch untouched.
+// Same cursor-and-delete shape as cachePruneOld (which already does exactly
+// this for old dates), just matching on the exchange prefix instead. Both
+// stores use the identical "EXCH:REST" key format (cacheKey/histKey), so one
+// helper covers both. Returns how many entries were actually removed, so the
+// caller can give an honest count rather than a vague "done".
+function _clearNonMatchingExch(store,keepExch){
+  return new Promise(res=>{
+    let n=0;
+    try{
+      const req=store.openCursor();
+      req.onsuccess=e=>{
+        const cur=e.target.result;
+        if(!cur){res(n);return;}
+        const k=String(cur.key);
+        if(k.slice(0,k.indexOf(':'))!==keepExch){cur.delete();n++;}
+        cur.continue();
+      };
+      req.onerror=()=>res(n);
+    }catch(e){res(n);}
+  });
+}
+async function clearOtherExchanges(keepExch){
+  const db=await cacheOpen(); if(!db)return {hist:0,cache:0};
+  const hist=await _clearNonMatchingExch(db.transaction(HIST_STORE,'readwrite').objectStore(HIST_STORE),keepExch);
+  const cache=await _clearNonMatchingExch(db.transaction(CACHE_STORE,'readwrite').objectStore(CACHE_STORE),keepExch);
+  return {hist,cache};
+}
+function clearOtherExchangesConfirm(){
+  const keep=currentExch;
+  if(!confirm('Delete downloaded data for every exchange EXCEPT '+keep+'? '+keep+' stays exactly as it is — nothing to re-download there.'))return;
+  clearOtherExchanges(keep).then(r=>{
+    updateOfflineStatus();
+    const lbl=document.getElementById('bulkLbl');
+    if(lbl)lbl.textContent=(r.hist+r.cache)>0
+      ? 'Removed '+r.hist.toLocaleString()+' share'+(r.hist===1?'':'s')+' and '+r.cache.toLocaleString()+' cached day'+(r.cache===1?'':'s')+' from other exchanges. '+keep+' untouched.'
+      : 'Nothing to remove — only '+keep+' was stored.';
+  });
 }
 function clearOfflineData(){
   if(!confirm('Delete all downloaded share history from this computer? You would need to download again to use offline.'))return;
