@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-622-open';
+const APP_VERSION='2026.07.28-623-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8594,7 +8594,18 @@ function paperDeleteHolding(id){
   showPortfolio();
 }
 function _dedupeSig(t){
-  return [t.ticker,t.exchange,t.buyDate,t.sellDate,t.qty,t.buyPrice,t.sellPrice,t.proceeds,t.fees,t.plAbs].join('|');
+  // v623 — dropped proceeds/fees/plAbs from the signature. Those are
+  // DERIVED values; if the underlying lot composition varied even slightly
+  // between the repeated broken clicks (a sub-cent floating-point
+  // difference, invisible once rounded for display), two records that are
+  // the SAME trade in every way that matters — ticker, dates, qty, prices —
+  // could still fail an exact match on the derived numbers and slip past
+  // detection. Matching on identity, not on arithmetic that flows from it.
+  // Also round every numeric field explicitly, since raw floating-point
+  // noise from repeated JSON round-trips can differ at the 15th decimal
+  // place while still displaying identically once rounded to 2dp on screen.
+  const n4=x=>(+(+x||0).toFixed(4));
+  return [t.ticker,t.exchange,t.buyDate,t.sellDate,n4(t.qty),n4(t.buyPrice),n4(t.sellPrice)].join('|');
 }
 function paperDedupeHistory(){
   // v622 — scans BOTH accounts, every exchange, for exact-duplicate closed
@@ -8618,7 +8629,26 @@ function paperDedupeHistory(){
       found.push({acct:a,exch:ex,p:p,dupGroups:dupGroups,cashBack:acctCash});
     }
   } }
-  if(!found.length){ alert('No duplicate trades found — nothing to clean up.'); return; }
+  if(!found.length){
+    // v623 — don't just say "nothing found" and stop there: show any
+    // same-ticker, same-sell-date NEAR matches that weren't identical, so
+    // there's something concrete to report back if a real duplicate still
+    // isn't being caught, instead of a dead end.
+    const near=[];
+    ['main','auto'].forEach(a=>{ _pfExchsKnown().forEach(ex=>{
+      let p; try{ p=_paper(a,ex); }catch(e){ return; }
+      const byKey={};
+      (p.history||[]).forEach(t=>{ const k=t.ticker+'|'+t.sellDate; (byKey[k]=byKey[k]||[]).push(t); });
+      for(const k in byKey){ if(byKey[k].length>1) near.push({acct:a,exch:ex,ticker:k.split('|')[0],sellDate:k.split('|')[1],rows:byKey[k]}); }
+    }); });
+    if(near.length){
+      const detail=near.map(g=>g.rows.map(r=>`  qty ${r.qty} · ${r.buyPrice}→${r.sellPrice} · fees ${r.fees} · P/L ${r.plAbs}`).join('\n')).join('\n---\n');
+      alert(`No EXACT duplicates found, but ${near.length} share/date group${near.length===1?'':'s'} sold more than once on the same day — here's every field so we can see what actually differs:\n\n${detail}\n\nIf these should have matched, tell me and I'll take a closer look.`);
+    } else {
+      alert('No duplicate trades found — nothing to clean up.');
+    }
+    return;
+  }
   const lines=found.map(f=>{
     const g0=f.dupGroups[0], h0=f.p.history[g0.idxs[0]];
     return `${f.acct==='auto'?'🤖 Auto-pilot':'Main'} · ${f.exch}: ${f.dupGroups.length} duplicate group${f.dupGroups.length>1?'s':''} (${f.dupGroups.reduce((a,g)=>a+g.idxs.length-1,0)} extra record${f.dupGroups.reduce((a,g)=>a+g.idxs.length-1,0)===1?'':'s'} to remove) — e.g. ${h0.ticker} ${h0.qty}×, sold ${h0.sellDate} — cash correction −${fmtP(f.cashBack,h0.currency)}`;
