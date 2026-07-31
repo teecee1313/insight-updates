@@ -1721,7 +1721,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-629-open';
+const APP_VERSION='2026.07.28-630-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4541,7 +4541,7 @@ function render(){
   const sk=document.getElementById('sortSel').value;sortKey=sk;
   const sv=(s)=>{ // sort value, incl. derived keys for News & Signals columns
     if(sk==='rangePos')return s.rangePos==null?9999:s.rangePos; // low % = near floor, sorts to top ascending
-    if(sk==='pnEdge')return (s._evD===_evDD()&&s._evTier&&s._evTier!=='TOO EARLY'&&s._evEdge!=null)?((s._evTier==='SOLID'?1000:0)+s._evEdge):-9999; // proven first, then by money; unproven sink
+    if(sk==='pnEdge')return _pnEdgeSortVal(s); // w-apedge: now the single shared helper (also used by auto-pilot's ranking)
     if(sk==='newsRank')return s.newsFlag==='likely'?2:s.newsFlag==='quiet'?1:0;
     if(sk==='sigRank')return (s.allSigN||0)*1000+(s.unusualScore||0)*10+(s.speedScore||0)+((s.annDir5d?1:0)+(s.dirBuy?1:0)+(s.instBuy?1:0)+(s.sigBreakout?1:0)+(s.sigDist?1:0)+(s.sigVolRecord?1:0)+(s.sigCross?1:0))*0.9;
     if(sk==='techScore')return s.techScore||0;
@@ -6629,7 +6629,7 @@ function _apCandidates(r){
   const _combo=_ladOn?'card-good':r.apCombo; // 🪜 also auto-uses the best card-graded combos
   if(_combo){ pool=_T('🧩'+_comboShort(_combo),pool.filter(s=>{try{return _apComboOk(s,_combo);}catch(e){return false;}})); } // v313 🧩
   window._apLastDiag=_D;
-  pool.sort((a,b)=>((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0)));
+  pool.sort((a,b)=>(_pnEdgeSortVal(b)-_pnEdgeSortVal(a))||((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0))); // w-apedge: proven-and-measured-edge now decides first; watchScore etc. remain as the fallback among ties/unproven candidates
   return pool;
 }
 function _apBuy(s,r){
@@ -20015,6 +20015,11 @@ function _evTierFromT(h){
 }
 var _EV_TIP={'SOLID':'SOLID — its edge is at least 2.5 times its own margin of error, counted by DAYS rather than by firings, measured against the same tradeable market it picks from and bought a day after the signal. Unlikely to be luck.','PROMISING':'PROMISING — its edge is at least 1.5 times its margin of error. Worth watching; not proven.','NOT PROVEN':'NOT PROVEN — there is enough history to have found an edge and none was found. This is NOT the same as "too early": we looked properly, and there is nothing here to act on. On one year of data that is the honest answer for almost every scan.','LOSING':'LOSING — the record is negative by more than 2.5 times its own margin of error. Good evidence about a bad signal. The 🤖 auto-pilot will not act on it.','TOO EARLY':'TOO EARLY — under 50 fires. Whatever the numbers look like, luck can still explain them.'};
 function _evDD(){ try{ return currentExch+'|'+((window._exchDataDate&&window._exchDataDate[currentExch])||''); }catch(e){ return ''; } }
+// w-apedge: the same "proven first, then by money; unproven sink" value the
+// PN Edge column already sorts by (was inline inside render()'s sv(), lifted
+// here as the single source of truth so auto-pilot's candidate ranking can
+// call the identical logic rather than a second, driftable copy).
+function _pnEdgeSortVal(s){ return (s._evD===_evDD()&&s._evTier&&s._evTier!=='TOO EARLY'&&s._evEdge!=null)?((s._evTier==='SOLID'?1000:0)+s._evEdge):-9999; }
 // Which graded rule is the "twin" of a named scan? (Composite scans map to nothing.)
 function _evKeyForLabel(lb){
   lb=String(lb||'');
