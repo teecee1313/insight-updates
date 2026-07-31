@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-636-open';
+const APP_VERSION='2026.07.28-637-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4800,6 +4800,23 @@ function _kysPrintHtml(s){
 async function printShareReport(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s){alert(ticker+"'s data isn't loaded right now, so a full report can't be built.\n\nLoad the exchange it's on (press ⚡ Load, or 📂 Load from saved data), then open the report again.");return;}
+  // w-modalback: if a report is already open (Best Evidence Today, Top 20,
+  // etc.) and the user taps a ticker from within it, this function is about
+  // to replace that modal's content with the share report — via its own
+  // internal "Building..." loading-state showModal() call further down for
+  // some ASX shares, or via _openPrintable() at the end for everyone else.
+  // Snapshot the TRUE prior context here (after the one early-return above,
+  // so this only fires when the function is actually going to proceed), so
+  // Close can return to it rather than exiting the whole modal system. If
+  // nothing was open (opened directly, e.g. from the main table), there's
+  // nothing to snapshot and Close behaves exactly as before.
+  try{
+    const _m=document.getElementById('appModal');
+    if(_m&&_m.style.display!=='none'){
+      const _src=document.querySelector('#modalBox .modal-scroll');
+      if(_src)window._modalReturnStash={html:_src.innerHTML,label:window._curModalLabel||'',type:window._modalType||null};
+    }
+  }catch(e){}
   // v322: pull this share's REAL recent ASX announcements so the list shows ON
   // the report — no need to open the external site. Today's cache renders
   // instantly; a cold ASX share fetches once (≤3.5s) before the report opens.
@@ -9957,6 +9974,15 @@ function _syncStatOverTop(){
 }
 window.addEventListener('resize',function(){try{_syncStatOverTop();}catch(e){}});
 function closeModal(){
+  // w-modalback: if printShareReport (or anything else) stashed a prior modal
+  // to return to, go back to it instead of tearing the whole modal system
+  // down. Consumed once — clearing it here means closing THIS restored view
+  // (nothing further back) falls straight through to the normal, full close
+  // below, exactly as it always has.
+  if(window._modalReturnStash){
+    const _st=window._modalReturnStash; window._modalReturnStash=null;
+    try{ showModal(_st.html,_st.label); window._modalType=_st.type; return; }catch(e){ /* fall through to a normal close rather than leave the user stuck */ }
+  }
   try{ window._pfUnlock=false; window._pfTapN=0; }catch(_){} // v561: the maintenance vault relocks the moment the portfolio closes
   const m=document.getElementById('appModal');if(m){m.style.display='none';try{m.innerHTML='';}catch(_){}}
   // v365: bring the parked share table back exactly where it was
