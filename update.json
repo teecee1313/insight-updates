@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-619",
+  "version": "2026.07.28-620",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v619 — THE ACTUAL ROOT CAUSE, FINALLY. Four straight fixes (v614, v616, v617, v618) all targeted 'outline' and every single one had zero visible effect — which, in hindsight, was itself the real clue: it was never an outline. The table had NO protection against ordinary browser text-selection, unlike several other interactive elements in the app that already had it. A drag across the row — even a small one — selects whatever text falls in its path, producing exactly the band you kept showing, and is controlled by a completely different mechanism than outline, which is exactly why nothing else touched it. Your own word for it — 'selected' — was the answer both times. Text-selection is now disabled on the table entirely. Hard-refresh (Ctrl+F5)."
+  "notes": "v620 — INSTANT SELL, ADDED ALONGSIDE THE REALISTIC ONE. Selling used to only queue for the next trading day's open, by design, to keep the practice honest — so a sell could never quietly use a close you'd already seen. That protection stays exactly as it was. Now sitting right next to it: an instant option that records the sale immediately, at today's last snapshot, clearly labelled for what it is — not a live price, since this app has none, just today's already-known number, right now instead of tomorrow. Both choices, every time you sell, so you pick which one fits. Hard-refresh (Ctrl+F5)."
 }

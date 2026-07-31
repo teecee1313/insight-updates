@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-619-open';
+const APP_VERSION='2026.07.28-620-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8475,6 +8475,42 @@ function paperDeleteHolding(id){
 // v515: queue a market SELL — the honest twin of the queued market buy.
 // Lots are stamped oldest-first so nothing else can double-sell the shares;
 // the order fills at the next trading day's open in checkLimitOrders.
+function _executeMarketSellNow(_fs,p,lots,qty){
+  // v620 — same accounting as a queued market sell's eventual fill (see
+  // checkLimitOrders' sell branch), just run immediately at today's last
+  // snapshot instead of waiting for the next data load's open price.
+  const fillPx=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
+  const sellFee=brokerageFee();
+  const today=_todayLocal();
+  let rem=qty, grossProceeds=0;
+  const sLots=[];
+  for(const l of lots){ if(rem<=0)break; const take=Math.min(l.qty,rem); if(take>0){ sLots.push({l:l,take:take}); grossProceeds+=take*fillPx; rem-=take; } }
+  p.history=p.history||[];
+  let totalProceeds=0, soldQ=0;
+  for(const it of sLots){
+    const l=it.l, take=it.take;
+    const soldCost=+(take*l.buyPrice).toFixed(2);
+    const proceeds=+(take*fillPx).toFixed(2);
+    const buyFeePart=+((l.buyFee||0)*(take/l.qty)).toFixed(2);
+    const sellFeePart=+(grossProceeds>0?sellFee*(proceeds/grossProceeds):0).toFixed(2);
+    const lFees=+(buyFeePart+sellFeePart).toFixed(2);
+    const plAbs=+(proceeds-soldCost-lFees).toFixed(2);
+    p.history.unshift({ticker:l.ticker,exchange:l.exchange,name:l.name,currency:l.currency,
+      buyDate:l.buyDate,buyPrice:l.buyPrice,qty:take,invested:soldCost,
+      sellDate:today,sellPrice:fillPx,proceeds:proceeds,fees:lFees,plAbs:plAbs,plPct:+(soldCost>0?(plAbs/soldCost)*100:0).toFixed(2),
+      partial:take<l.qty||sLots.length>1,trigger:'instant',note:l.note||null,tgtLog:l.tgtLog||null,stopLog:l.stopLog||null});
+    totalProceeds+=proceeds; soldQ+=take;
+    if(take>=l.qty){ l._sellAll=true; }
+    else { l.qty-=take; l.invested=+(l.qty*l.buyPrice).toFixed(2); l.buyFee=+(Math.max(0,(l.buyFee||0)-buyFeePart)).toFixed(2); }
+  }
+  p.holdings=(p.holdings||[]).filter(function(h){return !h._sellAll;});
+  p.cash=+((p.cash||0)+(+totalProceeds.toFixed(2))).toFixed(2);
+  _chargeFee(p);
+  _paperSave(_paperPrune?_paperPrune(p):p,_fs.acct,_fs.exch);
+  try{closeModal();}catch(e){}
+  showPortfolio();
+  return {fillPx:fillPx,soldQ:soldQ,totalProceeds:totalProceeds};
+}
 function _queueMarketSell(_fs,p,lots,qty){
   let rem=qty; const oid='s'+Date.now()+Math.random().toString(36).slice(2,5);
   for(const l of lots){ if(rem<=0)break; const take=Math.min(l.qty,rem); if(take>0){ l.sellOrd=oid; l.sellQueued=take; rem-=take; } }
@@ -8502,11 +8538,18 @@ function paperSellMarket(id){
   const plAbs=+(proceeds-totInv-buyFees-sellFee).toFixed(2);
   const avg=totQty>0?totInv/totQty:0;
   const _stale=_staleDays(lots[0].lastDate);
-  const lotNote=lots.length>1?`\n(combining ${lots.length} lots · average buy ${fmtP(avg,cur)})`:'';
-  if(!confirm(`⏭ Queue a market sell of all ${totQty} ${tk}?${lotNote}\n\nIt fills at the NEXT trading day's open — estimated around ${fmtP(px,cur)} (the last close); the actual fill may gap either way.${_stale>1?`\n\u26a0 That estimate is ${_stale} trading days old (${lots[0].lastDate}).`:''}\nEst. proceeds ${fmtP(proceeds,cur)} · est. P/L ${plAbs>=0?'+':''}${plAbs}${(sellFee+buyFees)>0?' (net of '+(sellFee+buyFees).toFixed(2)+' brokerage)':''}\n\nYou can cancel it from ⏳ Pending orders until it fills.`))return;
-  // v515: honest fill — nothing sells tonight; the order queues for the next open.
-  _queueMarketSell(_fs,p,lots,totQty);
+  const lotNote=lots.length>1?` (combining ${lots.length} lots, average buy ${fmtP(avg,cur)})`:'';
+  window._modalLabel='⏭ Sell '+tk;
+  showModal(`
+    <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Sell all ${totQty.toLocaleString()} ${tk}${lotNote}</div>
+    <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">Last close ${fmtP(px,cur)} · est. proceeds ${fmtP(proceeds,cur)} · est. P/L ${plAbs>=0?'+':''}${plAbs}${(sellFee+buyFees)>0?' (net of '+(sellFee+buyFees).toFixed(2)+' brokerage)':''}${_stale>1?`<br>⚠ That price is ${_stale} trading days old (${lots[0].lastDate}).`:''}</div>
+    <button onclick="_queueMarketSell(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}),_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,_lotsFor(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,'${id}'),${totQty})" style="width:100%;padding:10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 13px var(--sans);cursor:pointer;margin-bottom:8px;">⏭ Queue for next open (realistic)</button>
+    <div style="font-size:9px;color:var(--muted);margin:-4px 0 12px;">Fills at the NEXT trading day's open, not the price above — the honest way, since you can't act on a close you've already seen.</div>
+    <button onclick="_executeMarketSellNow(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}),_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,_lotsFor(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,'${id}'),${totQty})" style="width:100%;padding:10px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 13px var(--sans);cursor:pointer;margin-bottom:4px;">⚡ Sell instantly (today's last snapshot)</button>
+    <div style="font-size:9px;color:var(--orange);margin-top:2px;">Records the sale right now at ${fmtP(px,cur)} — today's already-known close, not a live price (this app has none). Convenient, but you're acting with the benefit of hindsight a real trader wouldn't have.</div>
+  `);
 }
+
 
 // v364 (customer): manual DELETE tools for fixing the portfolio by hand. Both keep the
 // ledger consistent and act ONLY on the account you're viewing — the 🤖 auto-pilot ($50k)
@@ -8579,8 +8622,10 @@ function paperSell(id){
       ${[25,50,75,100].map(pc=>`<button onclick="document.getElementById('sellQty').value=${Math.max(1,Math.floor(totQty*pc/100))};document.getElementById('sellQty').dispatchEvent(new Event('input'))" style="flex:1;padding:4px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 9px var(--sans);cursor:pointer;">${pc===100?'All':pc+'%'}</button>`).join('')}
     </div>
     <div id="sellPrev" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:13px;"></div>
-    <button onclick="paperSellConfirm('${id}')" style="width:100%;margin-top:10px;padding:10px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 13px var(--sans);cursor:pointer;">Sell (paper)</button>
-    <div style="font-size:9px;color:var(--orange);margin-top:8px;">⏭ Realistic fills (locked) — the sell queues and fills at the NEXT trading day\u2019s open, so you can\u2019t sell at a close you\u2019ve already seen${slippagePct()>0?'; slippage '+slippagePct()+'% applies':''}. The numbers above are ESTIMATES at the last close.${_staleDays(lots[0].lastDate)>1?' ⚠ Price is '+_staleDays(lots[0].lastDate)+' trading days old — refresh data first.':''} Practice only, not advice.${lots.length>1?' Sells from your oldest lot first.':''}</div>
+    <button onclick="paperSellConfirm('${id}')" style="width:100%;margin-top:10px;padding:10px;border-radius:7px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:700 13px var(--sans);cursor:pointer;">⏭ Sell (paper) — next open</button>
+    <div style="font-size:9px;color:var(--muted);margin-top:5px;">The realistic path: fills at the NEXT trading day's open, so you're never acting on a close you've already seen${slippagePct()>0?'; slippage '+slippagePct()+'% applies':''}.</div>
+    <button onclick="paperSellConfirmInstant('${id}')" style="width:100%;margin-top:10px;padding:10px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 13px var(--sans);cursor:pointer;">⚡ Sell instantly instead</button>
+    <div style="font-size:9px;color:var(--orange);margin-top:5px;">Records the sale right now at today's last snapshot — convenient, but with the benefit of hindsight a real trader wouldn't have. The numbers above are ESTIMATES at the last close.${_staleDays(lots[0].lastDate)>1?' ⚠ Price is '+_staleDays(lots[0].lastDate)+' trading days old — refresh data first.':''} Practice only, not advice.${lots.length>1?' Sells from your oldest lot first.':''}</div>
   `);
   setTimeout(()=>{
     const q=document.getElementById('sellQty');
@@ -8616,6 +8661,21 @@ function paperSellConfirm(id){
   const est=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
   if(!confirm(`⏭ Queue a market sell of ${qty.toLocaleString()} ${lots[0].ticker}?\n\nIt fills at the NEXT trading day's open — estimated around ${fmtP(est,lots[0].currency)} (the last close); the actual fill may gap either way. You can cancel it from ⏳ Pending orders until it fills.`))return;
   _queueMarketSell(_fs,p,lots,qty);
+}
+function paperSellConfirmInstant(id){
+  // v620 — the instant counterpart to paperSellConfirm: same quantity
+  // handling, but calls _executeMarketSellNow (records the sale immediately
+  // at today's last snapshot) instead of _queueMarketSell.
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p;
+  const lots=_lotsFor(p,id);
+  if(!lots.length)return;
+  if(lots.some(l=>l.sellOrd)){alert('A market sell for this holding is already queued — cancel it from ⏳ Pending orders first.');return;}
+  const totQty=lots.reduce((a,l)=>a+l.qty,0);
+  let qty=Math.min(totQty,Math.max(0,parseInt((document.getElementById('sellQty')||{}).value)||0));
+  if(qty<1){alert('Enter at least 1 share to sell.');return;}
+  const est=_slipSell(lots[0].lastPrice||lots[0].buyPrice);
+  if(!confirm(`⚡ Sell ${qty.toLocaleString()} ${lots[0].ticker} instantly, at today's last snapshot (${fmtP(est,lots[0].currency)})?\n\nThis records the sale right now — with the benefit of hindsight a real trader wouldn't have. For the realistic alternative, cancel and use "Sell (paper) — next open" instead.`))return;
+  _executeMarketSellNow(_fs,p,lots,qty);
 }
 // Share the portfolio & trade history as plain text (clipboard or email).
 function _portfolioText(){
