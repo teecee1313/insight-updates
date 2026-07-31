@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-637-open';
+const APP_VERSION='2026.07.28-638-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5889,10 +5889,16 @@ function _rulesSave(r){
   return clean;
 }
 // ═══ v304 — three ready-made rule sets (fill the form; the user still saves) ═══
+// Updated per the 31 Jul 2026 evidence session: target/stop/trail/breakeven/hold
+// replaced with the tested values (15/15 fixed as the All-rounder centre,
+// 10/15 and 20/15 as the Defender/Hunter spread; trail, breakeven, and hold
+// all set to 0/off, since a plain target/stop beat the app's own trailing
+// mechanism head-to-head on identical entries). maxPos, maxN, green, rsi,
+// and chase were not part of that evidence and are left exactly as they were.
 const RULE_PRESETS={
-  def:{label:'🛡 Defender',   tgt:12, stop:6,  maxPos:8,  maxN:6, trail:6,  be:4, hold:8,  green:true, rsi:true,  chase:5},
-  all:{label:'⚖ All-rounder', tgt:20, stop:8,  maxPos:10, maxN:8, trail:8,  be:5, hold:10, green:true, rsi:true,  chase:8},
-  hun:{label:'⚡ Hunter',     tgt:30, stop:10, maxPos:15, maxN:5, trail:10, be:6, hold:15, green:true, rsi:false, chase:10}
+  def:{label:'🛡 Defender',   tgt:10, stop:15, maxPos:8,  maxN:6, trail:0, be:0, hold:0, green:true, rsi:true,  chase:5},
+  all:{label:'⚖ All-rounder', tgt:15, stop:15, maxPos:10, maxN:8, trail:0, be:0, hold:0, green:true, rsi:true,  chase:8},
+  hun:{label:'⚡ Hunter',     tgt:20, stop:15, maxPos:15, maxN:5, trail:0, be:0, hold:0, green:true, rsi:false, chase:10}
 };
 window.applyRulePreset=function(k){
   const p=RULE_PRESETS[k]; if(!p)return;
@@ -5958,9 +5964,9 @@ function showRules(){
       <div style="font:700 10.5px var(--sans);color:var(--text);margin-bottom:2px;">⚡ Quick start — three ready-made rule sets</div>
       <div style="font-size:9px;color:var(--dim);margin-bottom:7px;line-height:1.45;">One tap fills every number below plus the don't-chase gates — nothing changes until you press 💾 Save my rules. New installs start on ⚖ All-rounder. <span id="pcCap"></span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button id="pcDef" onclick="applyRulePreset('def')" title="Banks wins early, hates drawdowns — 🎯12 🛑6 📦8% 🔢6 🪤6 🛡+4 ⏱8d · all gates on, day-jump 5" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🛡 Defender<span style="display:block;font-weight:400;font-size:9px;color:var(--dim);margin-top:2px;">steady · small drawdowns</span></button>
-        <button id="pcAll" onclick="applyRulePreset('all')" title="The starter kit the Lessons teach — 🎯20 🛑8 📦10% 🔢8 🪤8 🛡+5 ⏱10d · gates on, day-jump 8" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚖ All-rounder<span style="display:block;font-weight:400;font-size:9px;color:var(--dim);margin-top:2px;">the starter kit · default</span></button>
-        <button id="pcHun" onclick="applyRulePreset('hun')" title="Fewer, bigger, longer — 🎯30 🛑10 📦15% 🔢5 🪤10 🛡+6 ⏱15d · green gate on, RSI gate OFF on purpose, day-jump 10" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚡ Hunter<span style="display:block;font-weight:400;font-size:9px;color:var(--dim);margin-top:2px;">concentrated · rides trends</span></button>
+        <button id="pcDef" onclick="applyRulePreset('def')" title="Steady, evidence-backed exit — 🎯10 🛑15 📦8% 🔢6 · no trail/breakeven/hold · all gates on, day-jump 5" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🛡 Defender<span style="display:block;font-weight:400;font-size:9px;color:var(--dim);margin-top:2px;">steady · small drawdowns</span></button>
+        <button id="pcAll" onclick="applyRulePreset('all')" title="The evidence-backed default — 🎯15 🛑15 📦10% 🔢8 · no trail/breakeven/hold · gates on, day-jump 8" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚖ All-rounder<span style="display:block;font-weight:400;font-size:9px;color:var(--dim);margin-top:2px;">the starter kit · default</span></button>
+        <button id="pcHun" onclick="applyRulePreset('hun')" title="Fewer, bigger, evidence-backed — 🎯20 🛑15 📦15% 🔢5 · no trail/breakeven/hold · green gate on, RSI gate OFF on purpose, day-jump 10" style="flex:1;min-width:110px;padding:8px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font:700 11px var(--sans);cursor:pointer;">⚡ Hunter<span style="display:block;font-weight:400;font-size:9px;color:var(--dim);margin-top:2px;">concentrated · rides trends</span></button>
       </div>
     </div>
     <div style="font:700 11px var(--sans);color:var(--text);margin:2px 0 6px;">Numbers the app will use</div>
