@@ -1721,7 +1721,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-631-open';
+const APP_VERSION='2026.07.28-632-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9940,7 +9940,13 @@ function _syncStatOverTop(){
     let h=Math.max(0,Math.ceil(sb.getBoundingClientRect().bottom))+8;
     // v406: cap the drop — if the banner sits low (phone layouts, scrolled pages) it must
     // never push the panel out of view. Worst case the panel opens slightly under the banner.
-    h=Math.min(h,Math.max(60,Math.round((window.innerHeight||600)*0.35)));
+    // w-modal: was 0.35 — too tight for the fully-expanded radar (Market/Evidence/Signals/
+    // Volume/Trend/Caution all showing), whose real bottom edge on a normal desktop
+    // viewport comfortably exceeds 35%. Raised to 0.55: still leaves the modal well
+    // within view even on a small phone screen (its own max-height + internal
+    // scrolling handle the rest), but now actually covers the tall banner case
+    // instead of quietly clipping the drop and letting the modal peek out from under it.
+    h=Math.min(h,Math.max(60,Math.round((window.innerHeight||600)*0.55)));
     document.documentElement.style.setProperty('--soModalTop',h+'px');
   }catch(e){}
 }
