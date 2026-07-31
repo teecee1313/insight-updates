@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-628",
+  "version": "2026.07.28-638",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v628 — Fading Strength now applies to holdings you already own, not just discovery. If a share you hold is currently on a 2+ day up-streak, you'll see a new line right on that holding in 💼 Portfolio: '📉 Fading Strength — consider taking profit'. Same real backtest, same SOLID-tier evidence as the discovery scan — just pointed at your existing positions instead of new ones. It's a prompt, not a sell order: nothing sells automatically, and the auto-pilot doesn't read it. Hard-refresh (Ctrl+F5)."
+  "notes": "v638 — the three ready-made rule sets (🛡 Defender, ⚖ All-rounder, ⚡ Hunter) now use evidence-backed numbers from an extensive backtest session, not the original estimates. All three keep the same profit-target / stop-loss shape but drop the trailing stop, break-even, and time-limit rules entirely — testing showed a plain target/stop beat the more complex exit on identical entries. If you're already running one of these three presets, nothing changes automatically — open 📐 My Rules and tap the preset again to pick up the new numbers, then 💾 Save. A custom mix you've saved yourself is untouched. Hard-refresh (Ctrl+F5)."
 }
