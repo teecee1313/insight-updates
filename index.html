@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-639-open';
+const APP_VERSION='2026.08.01-641-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5895,10 +5895,33 @@ function _rulesSave(r){
 // all set to 0/off, since a plain target/stop beat the app's own trailing
 // mechanism head-to-head on identical entries). maxPos, maxN, green, rsi,
 // and chase were not part of that evidence and are left exactly as they were.
+// v641 — the three rule sets, rebuilt from the 1 August 2026 evidence session.
+// All three now carry their OWN entry and price band, because the testing showed
+// those are not separable from the exit: the same exit rule performs very
+// differently depending on which band it is fed. Every number below comes from
+// the same head-to-head run — full ~2.9 years of stored history, $100k across 10
+// positions, top 4 a day at score 7+, after $3-a-side brokerage and slippage.
+//
+//   🛡 Defender    15% target / 15% stop, $0.20-$0.99 ..... +45.7%, 67.7% win rate
+//   ⚖ All-rounder  20% target / 15% stop, $0.15-$1.75 ..... +69.5%, 62.5% win rate
+//   ⚡ Hunter       20% TRAILING stop, no target, $0.20-$0.99  +145.5%, 50.8% win
+//
+// Every one uses the 5% dip entry — a patient limit 5% under the reference close
+// — which beat buying at market in every band and every exit rule tested.
+//
+// Hunter is the strongest and the hardest to hold: about half its trades lose,
+// positions run ~50 days instead of days, and every winner gives back 20% from
+// its peak on the way out. Stress-tested to 2% slippage it still returned
+// +124.5%, and its worst fall from a high was about -8%, but it spent 10 trades
+// in a row below a previous high — that stretch is where rules get abandoned.
+//
+// The bands differ per preset on purpose and this is the weakest part of the
+// evidence: each band is the one that suited THAT exit best over ONE window on
+// ONE market. Treat the exits as well-tested and the bands as best-available.
 const RULE_PRESETS={
-  def:{label:'🛡 Defender',   tgt:10, stop:15, maxPos:8,  maxN:6, trail:0, be:0, hold:0, green:true, rsi:true,  chase:5},
-  all:{label:'⚖ All-rounder', tgt:15, stop:15, maxPos:10, maxN:8, trail:0, be:0, hold:0, green:true, rsi:true,  chase:8},
-  hun:{label:'⚡ Hunter',     tgt:20, stop:15, maxPos:15, maxN:5, trail:0, be:0, hold:0, green:true, rsi:false, chase:10}
+  def:{label:'🛡 Defender',   tgt:15, stop:15, maxPos:8,  maxN:6, trail:0,  be:0, hold:0, green:true, rsi:true,  chase:5,  dip:5, minPx:'0.20', maxPx:'0.99'},
+  all:{label:'⚖ All-rounder', tgt:20, stop:15, maxPos:10, maxN:8, trail:0,  be:0, hold:0, green:true, rsi:true,  chase:8,  dip:5, minPx:'0.15', maxPx:'1.75'},
+  hun:{label:'⚡ Hunter',     tgt:0,  stop:0,  maxPos:10, maxN:5, trail:20, be:0, hold:0, green:true, rsi:false, chase:10, dip:5, minPx:'0.20', maxPx:'0.99'}
 };
 window.applyRulePreset=function(k){
   const p=RULE_PRESETS[k]; if(!p)return;
@@ -5907,6 +5930,12 @@ window.applyRulePreset=function(k){
   set('rTgt',p.tgt); set('rStop',p.stop); set('rMaxPos',p.maxPos); set('rMaxN',p.maxN);
   set('rTrail',p.trail); set('rBE',p.be); set('rHold',p.hold);
   tick('rApGreen',p.green); tick('rApRsi',p.rsi); set('rApChase',p.chase);
+  // v641 — the entry and the price band travel WITH the preset now. Leaving
+  // them behind was how a preset could be "applied" and still trade a different
+  // universe than the one it was measured on.
+  if(p.dip!=null){ set('rApEntrySel','dip'); set('rApDip',p.dip); }
+  if(p.minPx!=null) set('rApMinPx',p.minPx);
+  if(p.maxPx!=null) set('rApMaxPx',p.maxPx);
   const m=document.getElementById('rulesMsg');
   if(m)m.textContent=p.label+' filled in — press 💾 Save my rules to keep it.';
   try{_paintPresetChips();}catch(e){}
@@ -5919,7 +5948,12 @@ window._paintPresetChips=function(){try{
   const c=id=>{const el=document.getElementById(id);return el?!!el.checked:false;};
   let match='';
   for(const k in RULE_PRESETS){const p=RULE_PRESETS[k];
-    if(g('rTgt')===p.tgt&&g('rStop')===p.stop&&g('rMaxPos')===p.maxPos&&g('rMaxN')===p.maxN&&g('rTrail')===p.trail&&g('rBE')===p.be&&g('rHold')===p.hold&&c('rApGreen')===p.green&&c('rApRsi')===p.rsi&&g('rApChase')===p.chase){match=k;break;}}
+    // v641 — the dip and the band are part of the preset now, so they are part
+    // of the match. Without this a correctly applied preset would light no chip.
+    const sv=id=>{const el=document.getElementById(id);return el?String(el.value):'';};
+    const bandOk=(p.minPx==null||+sv('rApMinPx')===+p.minPx)&&(p.maxPx==null||+sv('rApMaxPx')===+p.maxPx);
+    const dipOk=(p.dip==null)||(sv('rApEntrySel')==='dip'&&g('rApDip')===p.dip);
+    if(g('rTgt')===p.tgt&&g('rStop')===p.stop&&g('rMaxPos')===p.maxPos&&g('rMaxN')===p.maxN&&g('rTrail')===p.trail&&g('rBE')===p.be&&g('rHold')===p.hold&&c('rApGreen')===p.green&&c('rApRsi')===p.rsi&&g('rApChase')===p.chase&&bandOk&&dipOk){match=k;break;}}
   [['def','pcDef'],['all','pcAll'],['hun','pcHun']].forEach(function(pr){
     const b=document.getElementById(pr[1]); if(!b)return; const on=match===pr[0];
     b.style.border='1px solid '+(on?'var(--gold)':'var(--border)');
@@ -5939,17 +5973,19 @@ window.toggleApAdv=function(){
 };
 // 🏆 v314 — one tap assembles the whole recommended bot (fill-only; user saves).
 window.applyBotBestPractice=function(){
-  try{ applyRulePreset('all'); }catch(e){}
+  try{ applyRulePreset('hun'); }catch(e){}  // v641 — best practice = the strongest tested rule set
   const set=(id,v)=>{ const el=document.getElementById(id); if(el)el.value=v; };
   const tick=(id,v)=>{ const el=document.getElementById(id); if(el)el.checked=!!v; };
   set('rApComboSel','card-good');   // 📋 adaptive: follow whatever YOUR report card grades SOLID/PROMISING now
   tick('rApLadder',true);           // 🪜 v326: auto-follow the ladder's top proven signals too
-  set('rApEntrySel','dip'); set('rApDip',5); // 🎣 patient entry — 5% dip, per the 31 Jul 2026 evidence session (was 1.5%, an untested pre-existing default)
   set('rApSrc','best'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
+  // v641 — the entry and band now come from the ⚡ Hunter preset applied above,
+  // rather than being re-typed here. Two copies of the same numbers is how they
+  // drift apart, which is exactly what v639 had to go back and fix.
   set('rApAmt','');                 // size by the 📦 % rule against the bot's $50k
   tick('rApRegime',true); set('rApRisk',1); // v366: 🌏 stand aside in a falling market · 🎲 equal ~1% of account at risk per trade
   const m=document.getElementById('rulesMsg');
-  if(m)m.textContent='🏆 Best-practice bot filled in — review, press 💾 Save my rules, then switch 🤖 Auto-pilot ON.';
+  if(m)m.textContent='🏆 Best-practice bot filled in (⚡ Hunter — 20% trailing stop, no take-profit) — review, press 💾 Save my rules, then switch 🤖 Auto-pilot ON.';
 };
 function showRules(){
   const r=_rules(); const esc=v=>String(v==null?'':v).replace(/[<>"'`]/g,'');
