@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-621-open';
+const APP_VERSION='2026.07.28-622-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8593,6 +8593,68 @@ function paperDeleteHolding(id){
   if(ls)ls.innerHTML=`<span style="color:var(--green)">🗑 ${tk} removed from holdings — ${fmtP(back,cur)} returned to cash, no sale recorded.</span>`;
   showPortfolio();
 }
+function _dedupeSig(t){
+  return [t.ticker,t.exchange,t.buyDate,t.sellDate,t.qty,t.buyPrice,t.sellPrice,t.proceeds,t.fees,t.plAbs].join('|');
+}
+function paperDedupeHistory(){
+  // v622 — scans BOTH accounts, every exchange, for exact-duplicate closed
+  // trades (the fingerprint of repeated clicks on the pre-v621 broken
+  // instant-sell button). Shows exactly what it found before touching
+  // anything; only ever removes byte-for-byte duplicates.
+  const accts=['main','auto'], exchs=_pfExchsKnown();
+  const found=[]; // {acct,exch,p,groups:[{sig,keep,remove:[...]}]}
+  let totalDupes=0, totalCashBack=0;
+  for(const a of accts){ for(const ex of exchs){
+    let p; try{ p=_paper(a,ex); }catch(e){ continue; }
+    const hist=p.history||[]; if(!hist.length)continue;
+    const groups={};
+    hist.forEach((t,i)=>{ const sig=_dedupeSig(t); (groups[sig]=groups[sig]||[]).push(i); });
+    const dupGroups=[];
+    for(const sig in groups){ if(groups[sig].length>1) dupGroups.push({sig:sig,idxs:groups[sig]}); }
+    if(dupGroups.length){
+      let acctCash=0;
+      dupGroups.forEach(g=>{ g.idxs.slice(1).forEach(i=>{ acctCash+=(+hist[i].plAbs||0); totalDupes++; }); });
+      totalCashBack+=acctCash;
+      found.push({acct:a,exch:ex,p:p,dupGroups:dupGroups,cashBack:acctCash});
+    }
+  } }
+  if(!found.length){ alert('No duplicate trades found — nothing to clean up.'); return; }
+  const lines=found.map(f=>{
+    const g0=f.dupGroups[0], h0=f.p.history[g0.idxs[0]];
+    return `${f.acct==='auto'?'🤖 Auto-pilot':'Main'} · ${f.exch}: ${f.dupGroups.length} duplicate group${f.dupGroups.length>1?'s':''} (${f.dupGroups.reduce((a,g)=>a+g.idxs.length-1,0)} extra record${f.dupGroups.reduce((a,g)=>a+g.idxs.length-1,0)===1?'':'s'} to remove) — e.g. ${h0.ticker} ${h0.qty}×, sold ${h0.sellDate} — cash correction −${fmtP(f.cashBack,h0.currency)}`;
+  }).join('\n');
+  if(!confirm(`🧹 Found ${totalDupes} duplicate trade record${totalDupes===1?'':'s'} across ${found.length} account/exchange combination${found.length===1?'':'s'}:\n\n${lines}\n\nThis keeps ONE record per group (the earliest) and removes the rest, reversing the extra cash they credited — total correction: −${fmtP(totalCashBack,found[0].p.history[0].currency||'AUD')}.\n\nOnly removes records that are IDENTICAL in every field — a real, separate trade is never touched. Proceed?`))return;
+  found.forEach(f=>{
+    f.dupGroups.forEach(g=>{
+      const keepIdx=g.idxs[0];
+      g.idxs.slice(1).sort((a,b)=>b-a).forEach(i=>{ // remove from the end first so earlier indices stay valid
+        const t=f.p.history[i];
+        f.p.cash=+((f.p.cash||0)-(+t.plAbs||0)).toFixed(2);
+        if(+t.fees>0)f.p.feesPaid=+(Math.max(0,(f.p.feesPaid||0)-(+t.fees||0))).toFixed(2);
+        f.p.history.splice(i,1);
+      });
+    });
+    _paperSave(_paperPrune?_paperPrune(f.p):f.p,f.acct,f.exch);
+  });
+  // v622 — also flag (never auto-touch) any holding that matches a
+  // deduped trade's ticker+buyDate+buyPrice, since the v620 bug could have
+  // left a "ghost" open position that the duplicate records claim was sold.
+  let ghostNote='';
+  found.forEach(f=>{
+    const p2=_paper(f.acct,f.exch);
+    f.dupGroups.forEach(g=>{
+      const h0=f.p.history.find(x=>_dedupeSig(x)===g.sig);
+      if(!h0)return;
+      const ghost=(p2.holdings||[]).find(hh=>hh.ticker===h0.ticker&&hh.buyDate===h0.buyDate&&Math.abs(hh.buyPrice-h0.buyPrice)<0.0001);
+      if(ghost) ghostNote+=`\n⚠ ${f.acct==='auto'?'Auto-pilot':'Main'} still shows an OPEN ${h0.ticker} position bought ${h0.buyDate} that these records say was sold — check 💼 Holdings; if it's a leftover, use the 🗑 delete-holding tool (Setup & data → turn on delete tools first).`;
+    });
+  });
+  const ls=document.getElementById('loadStatus');
+  const msg=`🧹 Removed ${totalDupes} duplicate trade record${totalDupes===1?'':'s'}, corrected cash by −${fmtP(totalCashBack,found[0].p.history[0]&&found[0].p.history[0].currency||'AUD')}.${ghostNote}`;
+  if(ls)ls.innerHTML=`<span style="color:var(--green)">${msg.replace(/\n/g,'<br>')}</span>`;
+  alert(msg);
+  showPortfolio();
+}
 function paperDeleteTrade(sellDate,ticker,buyDate){
   if(!_delOn()){ alert('The delete tools are turned off.\n\nRemoving a trade or holding rewrites the ledger with no record \u2014 stats you can quietly edit aren\u2019t stats. If a record is genuinely wrong (a bad print, a corporate action), restore a \ud83d\udcbe export taken before it, or export the account file and have it repaired \u2014 that path leaves the history honest.'); return; } // v517
   // v366: don't trust the transient _pfCtx (the auto-pilot flips it while it runs) AND don't
@@ -9480,7 +9542,7 @@ ${_undoOn()?`<div class="pf-card-actions">
     })():''}
     </div>
         <div id="pfHistoryView" style="display:${pv==='history'?'block':'none'};">
-    <div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Trade history${ex==='ALL'?'':' · '+ex} · last 12 months shown (${hist.length}) <span style="font-weight:400;font-size:9px;color:var(--dim)">· all trades ever are kept — 📤 CSV exports the full ledger</span></div>
+    <div style="font-size:11px;font-weight:700;color:var(--text);margin:12px 0 4px;">Trade history${ex==='ALL'?'':' · '+ex} · last 12 months shown (${hist.length}) <span style="font-weight:400;font-size:9px;color:var(--dim)">· all trades ever are kept — 📤 CSV exports the full ledger</span> <a href="#" onclick="paperDedupeHistory();return false;" style="font-size:9px;color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">🧹 Check for & remove duplicate trades</a></div>
     ${hist.length?`<div class="pf-tablewrap" style="max-height:40vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
       <table class="pf-history" style="width:100%;border-collapse:collapse;font-size:10px;">
         <thead><tr style="position:sticky;top:0;background:var(--bg2);"><th style="text-align:left;padding:4px 6px;">Share</th><th style="text-align:right;padding:4px 6px;">Held</th><th style="text-align:right;padding:4px 6px;">Qty</th><th style="text-align:right;padding:4px 6px;">Buy → Sell</th><th style="text-align:right;padding:4px 6px;">P/L</th></tr></thead>
