@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-633-open';
+const APP_VERSION='2026.07.28-634-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -17669,8 +17669,8 @@ function _groupScans(){
     if(window.__scansGrouped)return;
     const zone=document.getElementById('scanDragZone'); if(!zone)return;
     const GROUPS=[
-      {id:'sgStart',title:'⭐ Start your day',hint:'the three-tap routine',ids:['scan-pulse','scan-top20','scan-smart'],pinned:true},
-      {id:'sgGrade',title:'🎓 Graded evidence',hint:'reports with a track record',ids:['scan-bestev','scan-climbers','scan-gradecheck']},
+      {id:'sgStart',title:'⭐ Start your day',hint:'the three-tap routine',ids:['scan-pulse','scan-top20','scan-bestev'],pinned:true},
+      {id:'sgGrade',title:'🎓 Graded evidence',hint:'reports with a track record',ids:['scan-fade','scan-climbers','scan-gradecheck']},
       {id:'sgAct',title:'🔎 Today’s action',hint:'what stood out this session',ids:['scan-sharp','scan-unusual','scan-surge','scan-gap']},
       {id:'sgBuild',title:'🌱 Building quietly',hint:'patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
       {id:'sgComp',title:'🧩 Composite',hint:'every signal at once',ids:['scan-allsig']}
@@ -18256,7 +18256,7 @@ const TRAIN_HELP={
   "rTrail":{t:"🪤 Trailing stop %",d:"Optional. The stop follows the highest CLOSE since you bought, staying this % below it — and only ever moves UP. Protects a winner without capping it. 0 = off."},
   "rBE":{t:"🛡 Break-even trigger %",d:"Optional. Once a close is this % above your entry, the stop jumps to your entry price — from then on the trade can't realistically lose (the 'free trade'). 0 = off."},
   "rHold":{t:"⏱ Max hold (days)",d:"Optional time stop. If a position is still undecided after this many data days, it exits at the next open — freeing capital from going-nowhere trades. 0 = off."},
-  "rApSrc":{t:"Auto-pilot: buy from",d:"Which scan supplies the robot's candidates — 🎯 Smart Money (up 2+ days on 50%+ volume) or 🏆 Top 20 by Watch Score."},
+  "rApSrc":{t:"Auto-pilot: buy from",d:"Which scan supplies the robot's candidates — 🧪 Best proven scan (auto) lets the report card choose whichever currently-graded signal is beating the market, or pick a specific one like 🏆 Top 20 by Watch Score."},
   "rApMax":{t:"Auto-pilot: buys per day",d:"Hard cap on scanner buys per fresh data day (1–3). 🎯 My Picks are separate but still respect cash and position limits."},
   "rApScore":{t:"Auto-pilot: min Watch Score",d:"Only buy candidates scoring at least this out of 10. 7+ = strong setups only. 0 or blank = off."},
   "rApQuiet":{t:"Auto-pilot: 🔇 quiet only",d:"Skip shares flagged with likely news in the last 5 days — buy the quiet accumulation, not the headline."},
