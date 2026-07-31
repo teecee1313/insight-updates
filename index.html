@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-623-open';
+const APP_VERSION='2026.07.28-624-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8676,7 +8676,7 @@ function paperDedupeHistory(){
       const h0=f.p.history.find(x=>_dedupeSig(x)===g.sig);
       if(!h0)return;
       const ghost=(p2.holdings||[]).find(hh=>hh.ticker===h0.ticker&&hh.buyDate===h0.buyDate&&Math.abs(hh.buyPrice-h0.buyPrice)<0.0001);
-      if(ghost) ghostNote+=`\n⚠ ${f.acct==='auto'?'Auto-pilot':'Main'} still shows an OPEN ${h0.ticker} position bought ${h0.buyDate} that these records say was sold — check 💼 Holdings; if it's a leftover, use the 🗑 delete-holding tool (Setup & data → turn on delete tools first).`;
+      if(ghost) ghostNote+=`\n⚠ ${f.acct==='auto'?'Auto-pilot':'Main'} still shows an OPEN ${h0.ticker} position bought ${h0.buyDate} that these records say was sold — check 💼 Holdings; if it's a leftover, use the 🗑 delete-holding tool (tap the "💼 Paper Trading Portfolio" heading 5 times quickly to unlock it for this visit).`;
     });
   });
   const ls=document.getElementById('loadStatus');

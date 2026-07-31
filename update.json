@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-623",
+  "version": "2026.07.28-624",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v623 — THE DUPLICATE-TRADE CLEANUP, MADE MORE ROBUST. If yesterday's tool said 'no duplicates found' while you could still see them sitting there, here's why: it was matching on EVERY field, including ones computed from the trade rather than defining it — and those can carry tiny, invisible sub-cent differences that never show up once rounded on screen, but were enough to make true duplicates look different to an exact check. It now matches on what actually identifies a trade — ticker, exchange, dates, quantity, prices — and ignores the arithmetic that flows from those. If it still can't find an exact match, it now shows every field for same-ticker, same-day trades side by side, so there's something concrete to go on instead of a dead end. Hard-refresh (Ctrl+F5) and try the cleanup again."
+  "notes": "v624 — small correction: the ghost-holding warning was pointing at the wrong place for the delete tool ('Setup & data', which doesn't exist for this). The real trigger is a deliberate 5-tap gesture on the '💼 Paper Trading Portfolio' heading itself — by design, so the delete tools aren't one accidental tap away. Fixed the message to say that. Hard-refresh (Ctrl+F5)."
 }
