@@ -1129,14 +1129,6 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
   <div class="ov-head"><div class="ov-title">🔎 More scans &amp; presets</div><button class="ov-close" onclick="closeOverlay()" title="Close">✕</button></div>
   <div class="ov-body">
 
-        <div class="step-sub2">Smart Money — stronger streaks</div>
-        <div class="scan-grid3">
-          <button onclick="smartMoneyScan(3)" class="scan-mini" title="Shares up 3+ days in a row where price rose AND volume was well above average on those days (ranked so the strongest price+volume streaks come first)">3+ days<br><span style="font-weight:400;font-size:9px;opacity:.75;">price + volume up</span></button>
-          <button onclick="smartMoneyScan(4)" class="scan-mini" title="Shares up 4+ days in a row where price rose AND volume was well above average on those days (ranked so the strongest price+volume streaks come first)">4+ days<br><span style="font-weight:400;font-size:9px;opacity:.75;">price + volume up</span></button>
-          <button onclick="smartMoneyScan(5)" class="scan-mini" title="Shares up 5+ days in a row where price rose AND volume was well above average on those days (ranked so the strongest price+volume streaks come first)">5+ days<br><span style="font-weight:400;font-size:9px;opacity:.75;">price + volume up</span></button>
-        </div>
-        <button onclick="smartMoneyScan(2,true)" class="scan-mini" style="width:100%;margin-top:5px;border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.08);">🌐 Scan all shares <span style="font-weight:400;opacity:.8;">· volume surge, any direction</span></button>
-
         <div class="step-sub2">Deeper analysis</div>
         <div style="font-size:9px;color:var(--dim);margin-bottom:6px;line-height:1.4;">📐 Technical indicators (MA · RSI · 52-week · OBV) compute <b>automatically at startup</b> for every share — they power the ⭐ Score, deep dive and charts. This button just ranks the list by them if you want that view.</div>
         <button id="techBtn" onclick="technicalScan()" class="scan-alt" style="border-color:#58a6ff;color:#58a6ff;background:rgba(88,166,255,.08);margin-bottom:5px;" title="Ranks shares by their (already-computed) technical indicators — MA trend & golden/death cross, 52-week proximity, RSI, gaps, volatility, OBV. Estimates from closing prices, not advice."><span>📐 View technical-ranked list</span> <span class="scan-tag">MA cross · RSI · 52wk · OBV · estimate</span></button>
@@ -1470,8 +1462,8 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
       </button>
       <button class="simple-card sc-green" onclick="simpleRun('smart')">
         <span class="sc-emoji">🎯</span>
-        <span class="sc-title">Who's being quietly bought?<span class="sc-count" id="cnt-smart"></span></span>
-        <span class="sc-sub">Steady buying on volume · <i>Smart Money</i></span>
+        <span class="sc-title">Best evidence today<span class="sc-count" id="cnt-smart"></span></span>
+        <span class="sc-sub">Proven signals only · <i>Best Evidence</i></span>
       </button>
       <button class="simple-card sc-red" onclick="simpleRun('surge')">
         <span class="sc-emoji">🔥</span>
@@ -1551,8 +1543,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <div id="whatsNewCardAdv" style="display:none;"></div>
     <div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
-    <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-alt" style="border-color:var(--green);color:var(--green);" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades.">🎯 Best Evidence Today</button></div>
-      <div class="drag-row" draggable="true" data-dragid="scan-smart"><span class="drag-h">⠿</span><button id="smartBtn" onclick="smartMoneyScan(2)" class="scan-primary" title="Gainers up 2+ consecutive days AND volume clearly above its own average"><span data-i18n="smartScan">🎯 Smart Money Scan</span> <span class="scan-tag" data-i18n="smartScanTag">up 2+ days · vol 50%+</span></button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-primary" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades."><span data-i18n="smartScan">🎯 Best Evidence Today</span> <span class="scan-tag" data-i18n="smartScanTag">proven signals only</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-surge"><span class="drag-h">⠿</span><button id="surgeBtn" onclick="volumeSurgeScan()" class="scan-alt" style="border-color:#ff6b6b;color:#ff9142;background:rgba(255,107,107,.10);" title="Shows every share trading above its normal volume, biggest surge first, right in your table — so you can chart, research or practice-buy any of them exactly like the other scans. Volume is the crowd's attention: a share doing 3× its usual business is being looked at by someone. A 🖨 full report button appears with the results if you want the printable document version, with its Warm → Hot → Red-hot → Extreme bands. A data summary, not advice."><span>📈 Volume Surge</span> <span class="scan-tag">above-normal volume · biggest first</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-top20"><span class="drag-h">⠿</span><button id="top10Btn" onclick="topTenScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.14);font-weight:700;" title="Scans every share, scores each out of 10 (accumulation-weighted — same as the ⭐ Score column), and shows the 20 highest. A data summary, not advice."><span>🏆 Top 20 to Watch</span> <span class="scan-tag">highest score /10 · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-gradecheck"><span class="drag-h">⠿</span><button onclick="gradingCheckReport()" class="scan-alt" style="border-color:var(--green);color:var(--green);" title="The app tests its own premise: take each signal line's verdict in an EARLIER year, then look at what that line actually did in the year that followed. Reports the answer whichever way it falls.">⚖ Does the grading work?</button></div>
@@ -1721,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-632-open';
+const APP_VERSION='2026.07.28-633-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1825,8 +1816,8 @@ const I18N={
     setup:"Setup", apiKey:"EODData API Key", keyLocked:"🔒 locked", keyEditable:"🔓 editable",
     unlockEdit:"🔓 Unlock to edit key", lockEdit:"🔒 Lock key editing",
     exchange:"Exchange", loadData:"⚡ Load Exchange Data", loadPrompt:"Select exchange and press Load",
-    instantReports:"Instant Reports", oneClick:"one click", smartScan:"🎯 Smart Money Scan",
-    smartScanTag:"up 2+ days · vol 50%+", speedTicket:"🚨 Speeding Ticket Detector",
+    instantReports:"Instant Reports", oneClick:"one click", smartScan:"🎯 Best Evidence Today",
+    smartScanTag:"proven signals only", speedTicket:"🚨 Speeding Ticket Detector",
     speedTag:"abnormal move · estimate", presetPlans:"Filter presets",
     planBreakout:"🚀 Breakout", planMomentum:"📈 Momentum", planSpike:"⚡ Volume Spike", planPenny:"🪙 Penny Movers", planInformed:"🕵️ Informed Activity",
     refineFilters:"Refine Filters", narrowDown:"narrow it down",
@@ -5853,7 +5844,7 @@ function _rules(){
     maxPositions:Math.round(num(r.maxPositions,8)), minLiq:num(r.minLiq,0),
     trailPct:num(r.trailPct,fresh?8:0), bePct:num(r.bePct,fresh?5:0), maxHoldDays:Math.round(num(r.maxHoldDays,fresh?10:0)),
     lockLadderOn:(r.lockLadderOn===true), lockStep:Math.min(25,Math.max(1,num(r.lockStep,5))), lockMargin:Math.min(15,Math.max(0,num(r.lockMargin,3))), // v514: 🔒 profit ladder
-    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:(fresh?'best':'smart'); }catch(e){ return (v==='top20')?'top20':(fresh?'best':'smart'); } })(r.apSource), apProvenOnly:(fresh?true:(r.apProvenOnly===true)),
+    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'best'; }catch(e){ return (v==='top20')?'top20':'best'; } })(r.apSource), apProvenOnly:(fresh?true:(r.apProvenOnly===true)),
     apMinScore:num(r.apMinScore,0), apMinPrice:num(r.apMinPrice,0), apMaxPrice:num(r.apMaxPrice,0), apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(num(r.apMaxBuys,1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,num(r.apDipPct,0)),
@@ -5868,7 +5859,7 @@ function _rulesSave(r){
     maxPositions:Math.max(0,Math.round(+r.maxPositions||0)), minLiq:+r.minLiq||0,
     trailPct:+r.trailPct||0, bePct:+r.bePct||0, maxHoldDays:Math.max(0,Math.round(+r.maxHoldDays||0)),
     lockLadderOn:(r.lockLadderOn===true), lockStep:+r.lockStep||0, lockMargin:Math.max(0,+r.lockMargin||0),
-    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'smart'; }catch(e){ return (v==='top20')?'top20':'smart'; } })(r.apSource), apProvenOnly:(r.apProvenOnly===true),
+    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'best'; }catch(e){ return (v==='top20')?'top20':'best'; } })(r.apSource), apProvenOnly:(r.apProvenOnly===true),
     apMinScore:+r.apMinScore||0, apMinPrice:+r.apMinPrice||0, apMaxPrice:+r.apMaxPrice||0, apQuietOnly:(r.apQuietOnly===true),
     apMaxBuys:Math.max(1,Math.min(6,Math.round(+r.apMaxBuys||1))),
     apAmt:+r.apAmt||0, apGreenOnly:(r.apGreenOnly===true), apNoChaseRsi:(r.apNoChaseRsi===true), apMaxChasePct:+r.apMaxChasePct||0, apCombo:(typeof r.apCombo==='string'?r.apCombo:''), apEntry:(r.apEntry==='dip'?'dip':'open'), apDipPct:Math.min(50,Math.max(0,+r.apDipPct||0)),
@@ -5931,7 +5922,7 @@ window.applyBotBestPractice=function(){
   set('rApComboSel','card-good');   // 📋 adaptive: follow whatever YOUR report card grades SOLID/PROMISING now
   tick('rApLadder',true);           // 🪜 v326: auto-follow the ladder's top proven signals too
   set('rApEntrySel','dip'); set('rApDip',1.5); // 🎣 patient entry ≈ a liquid share's median daily dip
-  set('rApSrc','smart'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
+  set('rApSrc','best'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
   set('rApAmt','');                 // size by the 📦 % rule against the bot's $50k
   tick('rApRegime',true); set('rApRisk',1); // v366: 🌏 stand aside in a falling market · 🎲 equal ~1% of account at risk per trade
   const m=document.getElementById('rulesMsg');
@@ -5999,13 +5990,13 @@ function showRules(){
           <div style="margin-top:4px;font-size:9px;color:var(--dim);">It trades its own $50,000 practice account — watch it in 💼 Portfolio → 🤖 tab. Every decision it makes is written in its 📜 diary (inside ⚙ advanced, below).</div>
         </div>`;
       }catch(e){return '';}})()}
-      <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 1.5% dip entry, 🎯 Smart Money source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
+      <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 1.5% dip entry, 🧪 evidence-gated source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
       <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯20 🛑8 🪤8 🛡+5 ⏱10) · every don't-chase gate · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 1.5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
       <button onclick="toggleApAdv()" id="apAdvToggle" style="width:100%;margin:2px 0 6px;padding:6px;border-radius:6px;border:1px dashed var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙ Advanced bot settings ${window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)'}</button>
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="smart" ${r.apSource!=='top20'?'selected':''}>🎯 Smart Money (up 2+ days · vol 50%+)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option><option value="unus" ${r.apSource==='unus'?'selected':''}>🔥 Unusual Activity</option><option value="sharp" ${r.apSource==='sharp'?'selected':''}>🚨 Sharp Mover</option><option value="vol" ${r.apSource==='vol'?'selected':''}>📈 Volume 2× normal</option><option value="recov" ${r.apSource==='recov'?'selected':''}>↩️ Recovery Watch</option><option value="quiet" ${r.apSource==='quiet'?'selected':''}>🫧 Quiet Movers</option><option value="pull" ${r.apSource==='pull'?'selected':''}>🪜 Pullback in Uptrend</option><option value="strong" ${r.apSource==='strong'?'selected':''}>🧱 Strong Trends</option><option value="accum" ${r.apSource==='accum'?'selected':''}>💎 Heavy Accumulation</option><option value="hiscore" ${r.apSource==='hiscore'?'selected':''}>⭐ Watch Score 7+</option><option value="hi52" ${r.apSource==='hi52'?'selected':''}>📏 New 52-week High</option><option value="gold" ${r.apSource==='gold'?'selected':''}>✝️ Golden Cross (50/200)</option><option value="rsirec" ${r.apSource==='rsirec'?'selected':''}>🌀 RSI Recovery (30↗)</option><option value="squeeze" ${r.apSource==='squeeze'?'selected':''}>🤏 Volatility Squeeze</option><option value="rsl" ${r.apSource==='rsl'?'selected':''}>🏁 Rel-Strength Leader</option><option value="newsvol" ${r.apSource==='newsvol'?'selected':''}>📰 News + Volume 2×</option><option value="best" ${r.apSource==='best'?'selected':''}>🧪 Best proven scan (auto)</option></select><span style="font-size:9px;color:var(--dim)">🧪 = let the report card choose</span></label>
+        <label style="font-size:10px;color:var(--muted);">Buy from<select id="rApSrc" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option value="best" ${r.apSource==='best'?'selected':''}>🧪 Best proven scan (auto)</option><option value="top20" ${r.apSource==='top20'?'selected':''}>🏆 Top 20 by Watch Score</option><option value="unus" ${r.apSource==='unus'?'selected':''}>🔥 Unusual Activity</option><option value="sharp" ${r.apSource==='sharp'?'selected':''}>🚨 Sharp Mover</option><option value="vol" ${r.apSource==='vol'?'selected':''}>📈 Volume 2× normal</option><option value="recov" ${r.apSource==='recov'?'selected':''}>↩️ Recovery Watch</option><option value="quiet" ${r.apSource==='quiet'?'selected':''}>🫧 Quiet Movers</option><option value="pull" ${r.apSource==='pull'?'selected':''}>🪜 Pullback in Uptrend</option><option value="strong" ${r.apSource==='strong'?'selected':''}>🧱 Strong Trends</option><option value="accum" ${r.apSource==='accum'?'selected':''}>💎 Heavy Accumulation</option><option value="hiscore" ${r.apSource==='hiscore'?'selected':''}>⭐ Watch Score 7+</option><option value="hi52" ${r.apSource==='hi52'?'selected':''}>📏 New 52-week High</option><option value="gold" ${r.apSource==='gold'?'selected':''}>✝️ Golden Cross (50/200)</option><option value="rsirec" ${r.apSource==='rsirec'?'selected':''}>🌀 RSI Recovery (30↗)</option><option value="squeeze" ${r.apSource==='squeeze'?'selected':''}>🤏 Volatility Squeeze</option><option value="rsl" ${r.apSource==='rsl'?'selected':''}>🏁 Rel-Strength Leader</option><option value="newsvol" ${r.apSource==='newsvol'?'selected':''}>📰 News + Volume 2×</option></select><span style="font-size:9px;color:var(--dim)">🧪 = let the report card choose</span></label>
         <label style="font-size:10px;color:var(--muted);">Buys per day (max)<select id="rApMax" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><option ${r.apMaxBuys===1?'selected':''}>1</option><option ${r.apMaxBuys===2?'selected':''}>2</option><option ${r.apMaxBuys===3?'selected':''}>3</option><option ${r.apMaxBuys===4?'selected':''}>4</option><option ${r.apMaxBuys===5?'selected':''}>5</option><option ${r.apMaxBuys===6?'selected':''}>6</option></select></label>
         <label style="font-size:10px;color:var(--muted);">Min Watch Score<input type="number" id="rApScore" min="0" max="10" step="1" value="${r.apMinScore||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
@@ -6609,7 +6600,20 @@ function _apCandidates(r){
     // v441: any other graded scan — uses exactly the rule the 🧪 card measured
     pool=_T('🧪 '+r.apSource,_apRuleFilter(pool,r.apSource));
   }
-  else{ pool=_T('smart list',pool.filter(s=>s.streakCalced&&s.daysUp>=2&&s.volCalced&&s.volPct>=50)); }
+  else{
+    // w-retire-smart: this was the last-resort fallback for apSource:'smart'
+    // (streak>=2 AND vol50%+ — the exact pattern the streak backtest found
+    // predicts a WORSE next-5-day return). _rulesLoad/_rulesSave now migrate
+    // any stored 'smart' to 'best' before this function ever sees it, and
+    // _AP_SRC_KEYS no longer recognises 'smart' as valid — but this branch
+    // stays as a defensive catch-all for any apSource value that reaches here
+    // unrecognised, so it must not silently execute the disproven pattern
+    // either. Route through the same evidence gate 'best' uses above, rather
+    // than assume a specific source.
+    const _b2=_G?_apBestScan(_G,'5'):null;
+    if(_b2){ pool=_T('🧪 '+_b2.key,_apRuleFilter(pool,_b2.key)); window._apEvidenceNote='🧪 unrecognised source — following '+_b2.name+' instead (edge '+((_b2.edge>=0?'+':'')+_b2.edge.toFixed(2))+'% over '+_b2.fires+' fires)'; }
+    else{ pool=_T('🧪 evidence gate',[]); window._apEvidenceNote='🧪 unrecognised source and no scan currently beating the market with enough evidence — standing aside'; }
+  }
   if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,pool.filter(s=>(s.watchScore||0)>=r.apMinScore));
   if(r.apQuietOnly)pool=_T('🔇quiet',pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}}));
   // v326: 🪜 auto-follow the ladder → the report card's top PROVEN bullish
@@ -9918,6 +9922,7 @@ function showModal(html,label){
     <div style="text-align:right;margin-top:12px;flex:none;display:flex;align-items:center;justify-content:space-between;">
       <span class="mb-resizehint" style="font-size:9px;color:var(--dim);">↘ drag corner to resize</span>
       <span>
+        <button onclick="_modalPrint()" title="Open a clean, printable version of this report in a new window — save as PDF or print it" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">🖨 Print</button>
         <button onclick="toggleModalFullscreen()" title="Fill the whole screen with this window (Esc to come back)" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">🖥 Full screen</button>
         <button onclick="toggleModalMax()" title="Maximise / restore" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">⛶ Max</button>
         <button onclick="closeModal()" style="padding:6px 14px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">Close</button>
@@ -16494,11 +16499,12 @@ function _updateCardCounts(){
     const t=document.getElementById('cnt-top20');
     if(t) t.textContent = top20cnt>0 ? top20cnt : '';
   }catch(_){}
-  try{
-    const smartcnt = allData.filter(s=>s.accum==='A'||s.accum==='B').length;
-    const t=document.getElementById('cnt-smart');
-    if(t) t.textContent = smartcnt>0 ? smartcnt : '';
-  }catch(_){}
+  // w-retire-smart: this badge used to preview smartMoneyScan's own criteria
+  // (accum A/B) before the card was even tapped. The card now runs
+  // bestEvidenceScan, whose criteria depend on grading data that may not be
+  // loaded here — rather than show a number that might not match what
+  // tapping the card actually produces, leave this one blank.
+  try{ const t=document.getElementById('cnt-smart'); if(t) t.textContent=''; }catch(_){}
   try{
     const surgecnt = allData.filter(s=>s.volRatio>=2).length;
     const t=document.getElementById('cnt-surge');
@@ -17176,7 +17182,7 @@ function simpleRun(what){
   // so filtering it alone would look like "nothing happened".
   const runners={
     top20:{fn:()=>topTenScan(), label:'🏆 Top picks today', ownWindow:true},
-    smart:{fn:()=>smartMoneyScan(2), label:'🎯 Who\u2019s being quietly bought?', ownWindow:false},
+    smart:{fn:()=>bestEvidenceScan(), label:'🎯 Best evidence today', ownWindow:true}, // w-retire-smart: was smartMoneyScan(2) — its own criteria (2+ day up-streak + vol 50%+) is the exact pattern a real backtest found predicts a WORSE next-5-day return. bestEvidenceScan opens its own modal internally (unlike the old smartMoneyScan, which only filled the hidden table), so ownWindow flips to true — leaving it false here would double-popup.
     surge:{fn:()=>volumeSurgeReport(), label:'🔥 What\u2019s moving on big volume?', ownWindow:true},
     recovery:{fn:()=>recoveryScan(), label:'↩️ Recovery watch', ownWindow:false}
   };
@@ -18172,7 +18178,7 @@ const TRAIN_HELP={
   "bulkBtn":{t:"Download all data for offline use",d:"Downloads deep history for EVERY share and stores it on this device. Takes a while once, but afterwards everything works offline and loads near-instantly (via the 📂 Load from saved data button). It just needs an exchange loaded first — the button reads 'load an exchange first' and dims until it's ready. Tap it anyway and a popup explains the exact steps."},
   "streakBtn":{t:"Refresh / redownload data",d:"Re-fetches fresh history and recomputes signals for the shares currently shown (not the whole exchange). Updates what you're looking at."},
   "privateChk":{t:"Private mode",d:"Hides the explanatory hover tooltips for a cleaner screen or screen-sharing. In the customer app this is locked on."},
-  "smartBtn":{t:"Smart Money Scan",d:"Finds shares rising several days in a row on volume well above their average — the classic 'quiet accumulation' footprint. The flagship report."},
+  "bestEvBtn":{t:"Best Evidence Today",d:"Of everything that fired today, which shares carry the best graded evidence — a proven SOLID or PROMISING line with a real, positive edge. The flagship report. (Replaces the old Smart Money Scan, whose own criteria — 2+ day up-streak plus volume — turned out to be the exact pattern a real backtest found predicts a WORSE next-5-day return.)"},
   "climbBtn":{t:"🌱 Climbers Today",d:"Shares firing a signal from the nursery — lines moving toward SOLID but not proven. A scepticism shortlist (top 10), never picks; the bot ignores it."},"top10Btn":{t:"Top 20 to Watch",d:"Scores every share out of 10 (accumulation-weighted) and shows the 20 highest. A quick 'what's most interesting today' summary. The report opens in a new tab with clickable tickers and 📰 News links."},
   "quietBtn":{t:"Quiet Movers",d:"Shares that made only a small net move today (−5% to +5%) but are quietly building underneath — a paused up-trend, heavy volume on a flat price, or a run that faded into the close. Ranked by accumulation. An estimate, not advice."},
   "pullbackBtn":{t:"Pullback in Uptrend",d:"Shares in an established up-trend (above their key moving averages) that have dipped back to drift back toward their short-term average with momentum cooled but not broken — the classic 'buy the dip' setup, served as a research list. An estimate, not advice."},
@@ -18292,7 +18298,7 @@ const COLUMN_HELP={
 };
 const ONCLICK_HELP={
   "simpleRun('top20')":{"t": "Top picks today", "d": "Runs the 🏆 Top 20 to Watch and shows the twenty highest-scoring shares, best first. The score out of 10 blends accumulation, price and volume streaks and momentum. A shortlist to research — never a buy list."},
-  "simpleRun('smart')":{"t": "Who's being quietly bought?", "d": "Runs the 🎯 Smart Money scan: shares rising on volume well above their own average, several days running. The pattern that sometimes shows up before news does — and sometimes means nothing at all."},
+  "simpleRun('smart')":{"t": "Best evidence today", "d": "Runs 🎯 Best Evidence Today: of everything that fired today, which shares carry a proven SOLID or PROMISING line with a real, market-beating edge — ranked by the strength of the best line each fired."},
   "simpleRun('surge')":{"t": "What's moving on big volume?", "d": "Runs the Volume Surge report — every share ranked by how far today's volume beats its own normal, tagged 🟢 buying or 🔴 selling so a heavy fall never looks like good news."},
   "simpleRun('recovery')":{"t": "Recovery watch", "d": "Finds shares that have fallen hard and are now steadying on volume. The turn is the point, not the fall — plenty of cheap shares keep getting cheaper."},
   "simpleRun('portfolio')":{"t": "My portfolio", "d": "Opens your practice portfolio: what you 'own', what it is worth now, your win rate and profit or loss. No real money is ever involved."},
@@ -18367,7 +18373,6 @@ const ONCLICK_HELP={
   "_wnToggle":{t:"What's changed row",d:"Tap the row for quick actions — open its report, add to watchlist, practice buy or flag for research — plus live price and volume info. Tap the share code to jump straight to the report."},
   "showChart":{t:"Price chart",d:"Opens the price history chart — switch line or 🕯 candlestick, timeframes 1M–1Y–Max, MA20/50, volume bars with an average-volume line, gold dots on accumulation days, a vs-market overlay, log scale, and your own paper trades (▲ buys, ▼ sells, 🎯 target, 🛑 stop) drawn on the chart. Touch or hover any day for its numbers."},
   "speedingTicketScan":{t:"Sharp Mover Detector",d:"Ranks shares by how abnormal today's move is FOR THAT SHARE (versus its own typical daily range), split by whether there's likely news behind it. A high score = very out of character. Estimate, not advice."},
-  "smartMoneyScan":{t:"Smart Money (streak tiers)",d:"The 3+/4+/5+ day versions — same idea as Smart Money but requiring longer up-streaks on high volume. Higher tiers = rarer, stronger patterns."},
   "loadPlan":{t:"Preset filter plan",d:"One-click filter recipes — each sets several filters at once for a common search."},
   "toggleAdvFilters":{t:"Show advanced filters",d:"Reveals or hides the full filter controls — price, volume, change %, streaks, accumulation, direction and share types."},
   "openMultiDownload":{t:"Download multiple exchanges",d:"Opens a picker to download offline data for several markets at once."},
@@ -18406,11 +18411,7 @@ window.LESSONS=LESSONS; // v410: completion/certificate helpers live in a later 
 const ONCLICK_ARG_HELP={
   "loadPlan('breakout')":{t:"🚀 Breakout preset",d:"Sets filters to find shares breaking out — rising strongly on above-average volume, near recent highs. A ready-made 'what's breaking out today' search."},
       "loadPlan('penny')":{t:"🪙 Penny Movers preset",d:"Sets filters for low-priced shares that are moving — small, speculative names with big percentage swings. Higher risk, higher volatility."},
-  "loadPlan('informed')":{t:"🕵️ Informed Activity preset",d:"Sets filters for persistent buying (5+ of the last 10 days up on heavy volume) with no obvious news — the classic 'informed accumulation' footprint. An estimate, not an accusation: index buying and momentum look identical. Verify via announcements."},
-  "smartMoneyScan(3)":{t:"Smart Money — 3+ days",d:"Shares up 3+ days in a row on volume well above average. Stronger, rarer than the 2-day version."},
-  "smartMoneyScan(4)":{t:"Smart Money — 4+ days",d:"Shares up 4+ days in a row on high volume. A more demanding accumulation streak."},
-  "smartMoneyScan(5)":{t:"Smart Money — 5+ days",d:"Shares up 5+ days straight on high volume — the strongest, rarest accumulation streak tier."},
-  "smartMoneyScan(2,true)":{t:"Scan all shares",d:"Volume-surge scan across every share in any direction — up or down — not just risers. Casts the widest net."}
+  "loadPlan('informed')":{t:"🕵️ Informed Activity preset",d:"Sets filters for persistent buying (5+ of the last 10 days up on heavy volume) with no obvious news — the classic 'informed accumulation' footprint. An estimate, not an accusation: index buying and momentum look identical. Verify via announcements."}
 };
 let _tipsOn=true, _ttEl=null;
 
@@ -18893,7 +18894,6 @@ button:active{transform:scale(.985);}
 #scanDragZone .drag-row>button:hover{border-color:var(--border2)!important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.32);}
 #scanDragZone .drag-row>button>span:first-child{color:var(--text)!important;}
 #scanDragZone .scan-tag{color:#7d95bd!important;opacity:1!important;}
-#smartBtn{border-left-color:#3fb950!important;}
 #surgeBtn{border-left-color:#ffa657!important;}
 #top10Btn{border-left-color:var(--gold)!important;}
 [data-dragid="scan-sharp"]>button{border-left-color:#ff7b72!important;}
@@ -20035,7 +20035,6 @@ function _pnEdgeSortVal(s){ return (s._evD===_evDD()&&s._evTier&&s._evTier!=='TO
 // Which graded rule is the "twin" of a named scan? (Composite scans map to nothing.)
 function _evKeyForLabel(lb){
   lb=String(lb||'');
-  if(lb.indexOf('🎯 Smart Money')===0)return 'smart';
   if(lb.indexOf('📈 Volume Surge')===0)return 'vol';
   if(lb.indexOf('🚨 Sharp Mover')===0)return 'sharp';
   if(lb.indexOf('🔍 Unusual Activity')===0)return 'unus';
@@ -20623,8 +20622,8 @@ function _evAfterWarm(){
 // Kept as the one visible consequence of _EV_ON_BETA: flip that to false and
 // the tiles leave the radar on beta again, engine and all.
 (function(){ try{ if(_evBetaBlocked()){ var _h=function(){ var b=document.getElementById('evGrp'); if(b)b.style.display='none'; }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_h); else _h(); } }catch(e){} })();
-var _AP_SRC_KEYS=['smart','top20','unus','sharp','vol','recov','quiet','pull','strong','accum','hiscore','hi52','gold','rsirec','squeeze','rsl','newsvol'];
-function _apSrcKey(src){ return (_AP_SRC_KEYS.indexOf(src)>=0)?src:'smart'; }
+var _AP_SRC_KEYS=['top20','unus','sharp','vol','recov','quiet','pull','strong','accum','hiscore','hi52','gold','rsirec','squeeze','rsl','newsvol']; // w-retire-smart: 'smart' removed — its own criteria (2+ day up-streak + vol 50%+) is the exact pattern a 250-day backtest found predicts a WORSE next-5-day return, the same trigger 📉 Fading Strength warns against. Any stored apSource:'smart' now falls through _rulesLoad/_rulesSave's fallback to 'best' below, which is the existing, already evidence-gated source (_apBestScan) rather than a fixed, disproven pattern.
+function _apSrcKey(src){ return (_AP_SRC_KEYS.indexOf(src)>=0)?src:'best'; }
 function _apBestScan(R,win){
   var best=null;
   var keys=_SCAN_RULES.map(function(x){return x.k;}).concat(['top20']);
