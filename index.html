@@ -1721,7 +1721,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-630-open';
+const APP_VERSION='2026.07.28-631-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12579,6 +12579,7 @@ function _selVolumeSurge(shares){
 // so a phone does not freeze while it scores several thousand shares, and that
 // yield has to survive the move.
 async function _selTopTen(shares){
+  try{ if(typeof _evMark==='function')_evMark(shares); }catch(e){} // w-top20: populate _evTier/_evEdge cheaply when grading is already cached; safely no-ops (returns false fast) when it isn't, same call topTenScan() already makes on the post-selection subset — just moved earlier so selection itself can use it
   const scored=[];
   for(let _j=0;_j<shares.length;_j++){
     if((_j&255)===0&&_j>0)await new Promise(_r=>setTimeout(_r,0)); // v335: chunk the scoring pass too — keep the phone responsive
@@ -12589,7 +12590,12 @@ async function _selTopTen(shares){
     s.watchParts=r.parts;
     if(r.score>0)scored.push({s,r});
   }
-  scored.sort((a,b)=>b.r.score-a.r.score || (b.r.acc-a.r.acc));
+  // w-top20: proven evidence decides first (same _pnEdgeSortVal used by PN Edge
+  // column + auto-pilot's ranking); watchScore/acc remain the fallback chain —
+  // when no share has cached evidence yet, _pnEdgeSortVal returns -9999 for
+  // everyone, so the sort falls straight through to the old watchScore order
+  // with no special-casing needed.
+  scored.sort((a,b)=>(_pnEdgeSortVal(b.s)-_pnEdgeSortVal(a.s)) || (b.r.score-a.r.score) || (b.r.acc-a.r.acc));
   return scored;
 }
 
@@ -13097,7 +13103,7 @@ async function topTenScan(){
   filtered=top;
   lastScanLabel='Top 20 to Watch';
   _resetStatsForNewView();
-  document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
+  document.getElementById('sortSel').value='pnEdge';sortKey='pnEdge';sortDir=-1;
   render();statsBar();if(typeof dots==='function')dots();if(typeof mkBadges==='function')mkBadges();
   document.getElementById('statsBar').style.display='';
   document.getElementById('toolbar').style.display='flex';
@@ -19623,7 +19629,7 @@ function _bevSelect(A){
     if(!(m.edge>0))return false;
     if(!(m.edge>=0.5))return false;                    /* v590: the SAME $0.50/$100 money bar the strip and chips apply (v577/v584) — a line 'too small to trade' cannot simultaneously top a buy-side list. One rulebook on every screen. */
     return true;
-  }).sort(function(a,b){ return _cardScore10(b.m)-_cardScore10(a.m); });
+  }).sort(function(a,b){ return b.m.edge-a.m.edge; }); // w-bev: was _cardScore10 (non-overlapping tier bands: any SOLID always beat any PROMISING regardless of edge size, same bug as v629's combo ranking) — every survivor here is already bullish+proven (dirNeg/tier/edge filtered above), so raw edge is the honest ranking with no direction adjustment needed
 }
 function bestEvidenceScan(){
   var f1=function(x){ var t=(+x).toFixed(2); return (t==='0.00'||t==='-0.00')?'0.00%':(((+x)>=0?'+':'')+t+'%'); }; // v541: the card's formatter is card-local — these reports need their own
@@ -19646,7 +19652,7 @@ function bestEvidenceScan(){
     for(var i=0;i<univ.length;i++){
       var sh=univ[i], firing=[];
       for(var c=0;c<lines.length;c++){ if(_nurFireToday(sh,lines[c].k)===true)firing.push(lines[c]); }
-      if(firing.length)items.push({s:sh,firing:firing,best:_cardScore10(firing[0].m)});
+      if(firing.length)items.push({s:sh,firing:firing,best:firing[0].m.edge}); // w-bev: raw edge, not _cardScore10 — see the fix note on _bevSelect's sort above
     }
     if(!items.length){
       showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">\ud83c\udfaf There ARE '+lines.length+' badge-holding lines right now \u2014 but none of them fired on any tradeable share today. Proven patterns are rare by nature; an empty day is normal and honest. \U0001f331 Climbers Today shows the unproven lines that DID fire.</div>','\ud83c\udfaf Best Evidence Today'); return;
