@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-638-open';
+const APP_VERSION='2026.07.28-639-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5944,7 +5944,7 @@ window.applyBotBestPractice=function(){
   const tick=(id,v)=>{ const el=document.getElementById(id); if(el)el.checked=!!v; };
   set('rApComboSel','card-good');   // 📋 adaptive: follow whatever YOUR report card grades SOLID/PROMISING now
   tick('rApLadder',true);           // 🪜 v326: auto-follow the ladder's top proven signals too
-  set('rApEntrySel','dip'); set('rApDip',1.5); // 🎣 patient entry ≈ a liquid share's median daily dip
+  set('rApEntrySel','dip'); set('rApDip',5); // 🎣 patient entry — 5% dip, per the 31 Jul 2026 evidence session (was 1.5%, an untested pre-existing default)
   set('rApSrc','best'); set('rApScore',7); set('rApMax',2); tick('rApQuiet',false);
   set('rApAmt','');                 // size by the 📦 % rule against the bot's $50k
   tick('rApRegime',true); set('rApRisk',1); // v366: 🌏 stand aside in a falling market · 🎲 equal ~1% of account at risk per trade
@@ -6013,8 +6013,8 @@ function showRules(){
           <div style="margin-top:4px;font-size:9px;color:var(--dim);">It trades its own $50,000 practice account — watch it in 💼 Portfolio → 🤖 tab. Every decision it makes is written in its 📜 diary (inside ⚙ advanced, below).</div>
         </div>`;
       }catch(e){return '';}})()}
-      <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 1.5% dip entry, 🧪 evidence-gated source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
-      <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯20 🛑8 🪤8 🛡+5 ⏱10) · every don't-chase gate · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 1.5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
+      <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 5% dip entry, 🧪 evidence-gated source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
+      <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯15 🛑15, no trail/breakeven/hold) · every don't-chase gate · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
       <button onclick="toggleApAdv()" id="apAdvToggle" style="width:100%;margin:2px 0 6px;padding:6px;border-radius:6px;border:1px dashed var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙ Advanced bot settings ${window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)'}</button>
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
