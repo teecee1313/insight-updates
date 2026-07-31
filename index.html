@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-625-open';
+const APP_VERSION='2026.07.28-626-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4854,6 +4854,7 @@ async function printShareReport(ticker){
     s.watchScore!=null?stat('Watch Score',`<strong style="color:${scoreCol(s.watchScore)};font-size:15px;">${s.watchScore}/10</strong> <span class="est">(today's activity — not a backtested ranking, see ⓘ above)</span>`):'',
     s.accum10!=null?stat('Accumulation (10-day)',`${s.accum10}/10`):'',
     s.streakCalced?stat('Up-day streak',`${s.daysUp||0} day(s)`):'',
+    s.streakCalced?stat('Down-day streak',`${s.daysDown||0} day(s)`):'',
     s.volStreakCalced?stat('High-volume streak',`${s.volDays||0} day(s)`):'',
     (s.rangePos!=null)?stat('Position in day range',`${s.rangePos}% ${s.rangePos<=25?'(near low)':s.rangePos>=75?'(near high)':'(mid)'}`):'',
   ].filter(Boolean).join('');
@@ -13679,6 +13680,7 @@ function deepDive(ticker){
   html+=sub('Insight Trading signals');
   if(s.watchScore!=null){const b=s.watchScore<2?'var(--orange)':'var(--muted)';html+=row('Watch score','<span style="color:'+b+';font-weight:700">'+s.watchScore+'/10</span>');}
   if(s.daysUp!=null)html+=row('Up-day streak',s.daysUp+(s.daysUp===1?' day':' days'));
+  if(s.daysDown!=null)html+=row('Down-day streak',s.daysDown+(s.daysDown===1?' day':' days'));
   if(s.volDays!=null)html+=row('Volume streak',s.volDays+' days above avg');
   if(s.accum10!=null)html+=row('Accumulation (10d)',s.accum10+'/10 heavy up-days');
   if(s.speedScore!=null)html+=row('Sharp-mover score',s.speedScore.toFixed(1),'abnormal-for-this-share');

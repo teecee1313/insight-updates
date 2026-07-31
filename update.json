@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-625",
+  "version": "2026.07.28-626",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v625 — SCORE AND ACCUM, MADE HONEST. A real backtest against stored history (250 trading days, ASX) found neither one climbs the way its old look implied — hit-rate bounced flat from just-above-zero to the top, and the old top band ('Strong') actually tested slightly WORSE than the one below it. The one real, statistically genuine finding: near-zero activity is a mild caution sign. Everything above that renders in one neutral colour now, no more green-means-good gradient borrowed from PN Edge, which actually earned that language. Every surface — the table, the share detail panel, the printable report, and both Lessons entries — now says plainly what a real test found. Hard-refresh (Ctrl+F5)."
+  "notes": "v626 — Down-day streak added next to Up-day streak, in the share detail panel and the printable report. Same data the app already computed, now visible when you look a share up — no change to the main table, since a matching worker signal (Possible Bounce Setup, 2+ day down-streak) is now tracking real performance honestly rather than pre-judging it, and this is exactly where that evidence would need to strengthen before it earns a spot there too. Hard-refresh (Ctrl+F5)."
 }
