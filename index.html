@@ -1557,6 +1557,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <div class="drag-row" draggable="true" data-dragid="scan-top20"><span class="drag-h">⠿</span><button id="top10Btn" onclick="topTenScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.14);font-weight:700;" title="Scans every share, scores each out of 10 (accumulation-weighted — same as the ⭐ Score column), and shows the 20 highest. A data summary, not advice."><span>🏆 Top 20 to Watch</span> <span class="scan-tag">highest score /10 · estimate</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-gradecheck"><span class="drag-h">⠿</span><button onclick="gradingCheckReport()" class="scan-alt" style="border-color:var(--green);color:var(--green);" title="The app tests its own premise: take each signal line's verdict in an EARLIER year, then look at what that line actually did in the year that followed. Reports the answer whichever way it falls.">⚖ Does the grading work?</button></div>
       <div class="drag-row" draggable="true" data-dragid="scan-climbers"><span class="drag-h">⣿</span><button id="climbBtn" onclick="climbersScan()" class="scan-alt" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,.10);" title="🌱 Shares firing a CLIMBING signal today — a line from the report card’s nursery: moving toward SOLID but not there yet. Top 10, ranked by how close its strongest climber is. Every line behind this list is UNPROVEN — a scepticism shortlist, not picks. The 🤖 bot never reads it. Needs today’s grades (open the 📋 card once if asked).">🌱 Climbers Today</button></div>
+    <div class="drag-row" draggable="true" data-dragid="scan-fade"><span class="drag-h">⠿</span><button id="fadeBtn" onclick="fadeStrengthScan()" class="scan-alt" style="border-color:var(--orange);color:var(--orange);background:rgba(255,165,0,.10);" title="📉 The opposite of every other scan on this list. Shares up 2+ days in a row — a real backtest (250 trading days, ASX) found this predicts a WORSE next-5-day return, not a better one, clearing the app's own SOLID bar. Not a buy list: a caution list, and a prompt to consider taking profit on anything you already hold here. The 🤖 auto-pilot never reads it.">📉 Fading Strength</button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-sharp"><span class="drag-h">⠿</span><button onclick="speedingTicketScan()" class="scan-alt" title="Ranks shares by the SIZE of today's move compared to that share's own normal day — a 4% jump is nothing for a wild penny stock but a siren for a sleepy blue chip. Split by whether news likely explains it. Estimate — not advice."><span>🚨 Sharp Mover Detector</span> <span class="scan-tag">abnormal SIZE of move · for that share</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-unusual"><span class="drag-h">⠿</span><button id="unusualBtn" onclick="unusualScan()" class="scan-alt" style="border-color:var(--orange);color:var(--orange);background:rgba(255,165,0,.1);" title="Looks for suspicious PATTERNS in HOW a share traded — five end-of-day patterns like heavy volume with no price move, or a price jump on thin volume. About the shape of the trading, not the size of the move. Estimate only — not manipulation detection, not advice."><span>🔍 Unusual Activity Scan</span> <span class="scan-tag">5 suspicious patterns · HOW it traded</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-allsig"><span class="drag-h">⠿</span><button id="allSigBtn" onclick="allSignalsScan()" class="scan-alt" style="border-color:var(--gold);color:var(--gold);background:rgba(255,210,0,.08);" title="Runs EVERYTHING in one pass — sharp-mover abnormality, the five unusual-activity patterns, volume surge, price & volume streaks, accumulation and the /10 score — and ranks shares by how many signals they trigger at once. Estimate — not advice."><span>🧩 All Signals Scan</span> <span class="scan-tag">sharp + unusual + streaks + accum · estimate</span></button></div>
@@ -1720,7 +1721,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-626-open';
+const APP_VERSION='2026.07.28-627-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19834,6 +19835,36 @@ function gradingCheckReport(){
 }
 
 // ── v525: 🌱 Climbers Today — shares firing a climbing (nursery) line ─────
+function fadeStrengthScan(){
+  try{
+    if(!Array.isArray(allData)||!allData.length){
+      var st0=document.getElementById('smartStatus');
+      if(st0)st0.textContent='Load your market data first — tap ⚡ Load.';
+      return;
+    }
+    var _tf=(typeof _scDayGet==='function')?_scDayGet():null;
+    if(!_tf){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Today\u2019s signal grades aren\u2019t on this device yet \u2014 open the \ud83d\udccb <b style="color:var(--text)">Signal report card</b> once (it fetches them), then run this scan again.</div>','\ud83d\udcc9 Fading Strength');
+      return;
+    }
+    var univ=allData.filter(function(sh){ return sh&&(typeof _cardLiqPass!=='function'||_cardLiqPass(sh)); });
+    var items=univ.filter(function(sh){ return _evFires(sh,'streakfade'); });
+    if(!items.length){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">\ud83d\udcc9 Nothing showing a 2+ day up-streak right now \u2014 nobody\u2019s overextended today. That\u2019s useful too.</div>','\ud83d\udcc9 Fading Strength');
+      return;
+    }
+    items.sort(function(a,b){ return (b.daysUp||0)-(a.daysUp||0); });
+    F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+    filtered=items;
+    lastScanLabel='📉 Fading Strength';
+    _resetStatsForNewView();
+    render();statsBar();try{dots&&dots();mkBadges&&mkBadges();}catch(e){}
+    document.getElementById('statsBar').style.display='';
+    document.getElementById('toolbar').style.display='flex';
+    var st=document.getElementById('smartStatus');
+    if(st)st.innerHTML='📉 <strong style="color:var(--orange)">'+items.length+'</strong> share'+(items.length===1?'':'s')+' on a 2+ day up-streak \u2014 a real backtest (250 trading days, ASX) found this predicts a WORSE next-5-day return, not a better one, clearing the app\u2019s own SOLID bar. This is the opposite of a buy list \u2014 a \u201cthink twice before chasing\u201d list, and a prompt to consider taking profit if you already hold one. <span style="font-size:9px;color:var(--dim)">The live grading engine has only just started tracking this one \u2014 the \ud83c\udfaf badge on each row shows its current tier honestly. Never read by \ud83e\udd16 auto-pilot.</span>';
+  }catch(e){}
+}
 function climbersScan(){
   try{
     if(!Array.isArray(allData)||!allData.length){ showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Load your market data first — tap ⚡ Load.</div>','🌱 Climbers Today'); return; }

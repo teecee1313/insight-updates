@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-626",
+  "version": "2026.07.28-627",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v626 — Down-day streak added next to Up-day streak, in the share detail panel and the printable report. Same data the app already computed, now visible when you look a share up — no change to the main table, since a matching worker signal (Possible Bounce Setup, 2+ day down-streak) is now tracking real performance honestly rather than pre-judging it, and this is exactly where that evidence would need to strengthen before it earns a spot there too. Hard-refresh (Ctrl+F5)."
+  "notes": "v627 — the anti-hype discovery scan you asked for. Every other scan on this app looks for strength; this one looks for the opposite — a new button, «Fading Strength», right next to Climbers Today. It shows shares up 2+ days in a row, because a real backtest against 250 trading days of ASX history found that predicts a WORSE next-5-day return, not a better one — clearing this app's own SOLID bar for genuine evidence. It's not a buy list — it's a caution list, and a real prompt to think about taking profit on anything you already hold that shows up here. The live grading engine has only just started tracking this one, so its badge will honestly show its own tier as more days come in. The auto-pilot never reads this scan — it's for you, not the bot. (Also carries the down-day streak added to the share detail panel just before this.) Hard-refresh (Ctrl+F5)."
 }
