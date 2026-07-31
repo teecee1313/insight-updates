@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-627",
+  "version": "2026.07.28-628",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v627 — the anti-hype discovery scan you asked for. Every other scan on this app looks for strength; this one looks for the opposite — a new button, «Fading Strength», right next to Climbers Today. It shows shares up 2+ days in a row, because a real backtest against 250 trading days of ASX history found that predicts a WORSE next-5-day return, not a better one — clearing this app's own SOLID bar for genuine evidence. It's not a buy list — it's a caution list, and a real prompt to think about taking profit on anything you already hold that shows up here. The live grading engine has only just started tracking this one, so its badge will honestly show its own tier as more days come in. The auto-pilot never reads this scan — it's for you, not the bot. (Also carries the down-day streak added to the share detail panel just before this.) Hard-refresh (Ctrl+F5)."
+  "notes": "v628 — Fading Strength now applies to holdings you already own, not just discovery. If a share you hold is currently on a 2+ day up-streak, you'll see a new line right on that holding in 💼 Portfolio: '📉 Fading Strength — consider taking profit'. Same real backtest, same SOLID-tier evidence as the discovery scan — just pointed at your existing positions instead of new ones. It's a prompt, not a sell order: nothing sells automatically, and the auto-pilot doesn't read it. Hard-refresh (Ctrl+F5)."
 }
