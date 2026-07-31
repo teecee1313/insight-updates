@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-641-open';
+const APP_VERSION='2026.08.01-642-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8178,6 +8178,39 @@ async function checkLimitOrders(acct){
           }
         }catch(e){}
       }
+      // v642 — CATCH UP THE DAYS NOBODY WAS WATCHING.
+      // checkLimitOrders only ever runs from showPortfolio(), so it fires when a
+      // Portfolio window happens to be open. The old fallback then looked at ONE
+      // day: the currently loaded session. A limit that was touched on Tuesday
+      // while the app sat closed was simply never tested, and by Wednesday that
+      // day's OHLC had been replaced — the fill was lost for good, silently.
+      // The saved store has held a full daily row per share for a long time
+      // (_persistTodayRow → histPut: dateStamp/open/high/low/close), and every
+      // order has carried checkedDate since it was created. This walks the
+      // stored rows the order has not been judged against yet and applies the
+      // SAME rules as the live path — gapped open below the limit fills at the
+      // open, an intraday low through the limit fills at the limit — then moves
+      // checkedDate forward so each day is judged exactly once.
+      if(!hit && o.side!=='sell'){
+        try{
+          const _cached=await histGet(o.exchange,o.ticker);
+          const _rows=(_cached&&Array.isArray(_cached.rows))?_cached.rows:null;
+          if(_rows&&_rows.length){
+            const _d=r=>String((r&&(r.dateStamp||r.date||r.Date))||'').slice(0,10);
+            const _num=(r,keys)=>{for(const k of keys){const v=parseFloat(r&&r[k]);if(isFinite(v))return v;}return NaN;};
+            const since=o.checkedDate||o.placedDate;
+            const days=_rows.map(r=>({d:_d(r),o:_num(r,['open','Open']),lo:_num(r,['low','Low']),c:_num(r,['close','Close'])}))
+              .filter(x=>x.d&&x.d>since).sort((a,b)=>a.d<b.d?-1:1);
+            for(const day of days){
+              if(day.d<o.placedDate||(day.d===o.placedDate&&!o.preOpen))continue;
+              if(o.market){ if(isFinite(day.o)&&day.o>0){hit={date:day.d,fill:day.o};break;} continue; }
+              if(isFinite(day.o)&&day.o>0&&day.o<=o.limit){hit={date:day.d,fill:day.o};break;}
+              if(isFinite(day.lo)&&day.lo>0&&day.lo<=o.limit){hit={date:day.d,fill:o.limit};break;}
+            }
+            if(!hit&&days.length){ const last=days[days.length-1].d; if(last>(o.checkedDate||'')){o.checkedDate=last;changed=true;} }
+          }
+        }catch(e){}
+      }
       // Fallback (no live history, or it came back stale/blocked): use the day's
       // quote the market load ALREADY fetched — s._q carries {o,h,l,c} for the
       // latest session — so an intraday touch of the limit STILL fills without a
@@ -8289,6 +8322,21 @@ function paperEditOrderLimit(id){
   if(!(isFinite(np)&&np>0)){ alert('Enter a price greater than 0.'); return; }
   np=_tickRound(np,o.exchange); // v393: snap to a valid ASX tick
   if(Math.abs(np-cur)<1e-9)return; // unchanged
+  // v642 — refuse an edit that would leave the order guaranteed to lose.
+  // The exit engine sells the moment price >= target, so a target at or below
+  // the new buy limit is sold on the first check after it fills — booked as a
+  // 'target' win, at a loss. Same for a stop at or above the limit. The manual
+  // buy form has always blocked both; this path did not, and an order in that
+  // state has been sitting live. The arithmetic is stated rather than a bare
+  // refusal, because the user needs to know WHICH number to change.
+  if(+o.target>0 && np>=+o.target){
+    alert('That would leave the order broken.\n\nNew buy limit '+fmtP(np,o.currency)+' is at or above the take-profit target of '+fmtP(o.target,o.currency)+' — so the moment it filled, the exit rule would sell it straight back at a loss.\n\nCancel this order and place it again with a target above '+fmtP(np,o.currency)+', or lower the limit.');
+    return;
+  }
+  if(+o.stop>0 && np<=+o.stop){
+    alert('That would leave the order broken.\n\nNew buy limit '+fmtP(np,o.currency)+' is at or below the stop-loss of '+fmtP(o.stop,o.currency)+' — so it would be stopped out the moment it filled.\n\nCancel this order and place it again with a stop below '+fmtP(np,o.currency)+', or raise the limit.');
+    return;
+  }
   const newCost=+(o.qty*np).toFixed(2);
   const delta=+(newCost-(o.reserved||0)).toFixed(2); // >0 needs more reserved; <0 refunds
   if(delta>0 && delta>(p.cash||0)+0.005){ alert('Raising the limit needs '+fmtP(delta,o.currency)+' more reserved, but you only have '+fmtP(p.cash||0,o.currency)+' cash. Lower the price, reduce the order, or add cash.'); return; }
@@ -13171,7 +13219,29 @@ async function _freshenSeriesFromBulk(){
     }catch(e){}
   }
   if(n&&typeof applyF==='function'){try{applyF();}catch(e){}}
+  // v642 — the order and exit engines now run WHEN FRESH DATA LANDS, on BOTH
+  // accounts. Until now the only caller was showPortfolio(), so a pending order
+  // was judged when a window happened to be open, on whichever account tab you
+  // were looking at. An order on 👤 My trading went unchecked for as long as you
+  // sat on the 🤖 Auto-pilot tab. Sequential and awaited on purpose: the engines
+  // share one global in-progress flag, so overlapping them would make the second
+  // call return immediately and do nothing.
+  try{ await _pfCheckAllAccounts(); }catch(e){}
   return n;
+}
+// v642 — one place that sweeps every practice account for fills and exits.
+// Restores window._pfCtx afterwards: the portfolio view reads it, and leaving it
+// pointed at the other account would silently switch the tab under the user.
+async function _pfCheckAllAccounts(){
+  if(window._bulkRunning)return;
+  const keep=window._pfCtx;
+  try{
+    for(const acct of ['main','auto']){
+      window._pfCtx=acct;
+      if(!window._tgtChecking){ try{ await checkAutoSellTargets(acct); }catch(e){} }
+      if(!window._ordChecking){ try{ await checkLimitOrders(acct); }catch(e){} }
+    }
+  } finally { window._pfCtx=keep; }
 }
 async function topTenScan(){
   exitWatchView();
