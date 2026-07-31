@@ -1720,7 +1720,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.07.28-620-open';
+const APP_VERSION='2026.07.28-621-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8523,6 +8523,24 @@ function _queueMarketSell(_fs,p,lots,qty){
   try{closeModal();}catch(e){}
   showPortfolio();
 }
+// v620-fix — the ROOT CAUSE of "instant sell not working": _paper() hands
+// back a fresh JSON.parse() COPY on every single call (see its own comment,
+// "cheap fresh copy"). The original buttons called _pfFindStore three
+// separate times inline, each returning a DIFFERENT copy — so the function
+// mutated lot objects from one copy while _paperSave wrote a different one,
+// and the holding never actually left the portfolio even though cash still
+// credited. This does the lookup exactly ONCE and reuses the same
+// references throughout, the only way to make the mutation and the save
+// agree on the same objects.
+function _pfSellFromModal(id,qty,instant){
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null;});
+  if(!_fs)return;
+  const p=_fs.p;
+  const lots=_lotsFor(p,id);
+  if(!lots.length)return;
+  if(instant) _executeMarketSellNow(_fs,p,lots,qty);
+  else _queueMarketSell(_fs,p,lots,qty);
+}
 function paperSellMarket(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
@@ -8543,9 +8561,9 @@ function paperSellMarket(id){
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);">💼 Sell all ${totQty.toLocaleString()} ${tk}${lotNote}</div>
     <div style="font-size:11px;color:var(--muted);margin:4px 0 10px;">Last close ${fmtP(px,cur)} · est. proceeds ${fmtP(proceeds,cur)} · est. P/L ${plAbs>=0?'+':''}${plAbs}${(sellFee+buyFees)>0?' (net of '+(sellFee+buyFees).toFixed(2)+' brokerage)':''}${_stale>1?`<br>⚠ That price is ${_stale} trading days old (${lots[0].lastDate}).`:''}</div>
-    <button onclick="_queueMarketSell(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}),_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,_lotsFor(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,'${id}'),${totQty})" style="width:100%;padding:10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 13px var(--sans);cursor:pointer;margin-bottom:8px;">⏭ Queue for next open (realistic)</button>
+    <button onclick="_pfSellFromModal('${id}',${totQty},false)" style="width:100%;padding:10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:700 13px var(--sans);cursor:pointer;margin-bottom:8px;">⏭ Queue for next open (realistic)</button>
     <div style="font-size:9px;color:var(--muted);margin:-4px 0 12px;">Fills at the NEXT trading day's open, not the price above — the honest way, since you can't act on a close you've already seen.</div>
-    <button onclick="_executeMarketSellNow(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}),_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,_lotsFor(_pfFindStore(pp=>{const l=_lotsFor(pp,'${id}');return l.length?l:null;}).p,'${id}'),${totQty})" style="width:100%;padding:10px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 13px var(--sans);cursor:pointer;margin-bottom:4px;">⚡ Sell instantly (today's last snapshot)</button>
+    <button onclick="_pfSellFromModal('${id}',${totQty},true)" style="width:100%;padding:10px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.08);color:var(--gold);font:700 13px var(--sans);cursor:pointer;margin-bottom:4px;">⚡ Sell instantly (today's last snapshot)</button>
     <div style="font-size:9px;color:var(--orange);margin-top:2px;">Records the sale right now at ${fmtP(px,cur)} — today's already-known close, not a live price (this app has none). Convenient, but you're acting with the benefit of hindsight a real trader wouldn't have.</div>
   `);
 }

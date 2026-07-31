@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.28-620",
+  "version": "2026.07.28-621",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v620 — INSTANT SELL, ADDED ALONGSIDE THE REALISTIC ONE. Selling used to only queue for the next trading day's open, by design, to keep the practice honest — so a sell could never quietly use a close you'd already seen. That protection stays exactly as it was. Now sitting right next to it: an instant option that records the sale immediately, at today's last snapshot, clearly labelled for what it is — not a live price, since this app has none, just today's already-known number, right now instead of tomorrow. Both choices, every time you sell, so you pick which one fits. Hard-refresh (Ctrl+F5)."
+  "notes": "v621 — ROOT-CAUSE FIX for instant sell. It wasn't just failing to work — it was crediting your cash for the sale while leaving the actual holding completely untouched. The cause: the portfolio loader hands back a brand-new copy every time it's called, and the button was looking your position up three separate times, so the change and the save ended up on two different copies that never agreed. It now looks your position up once and uses that same answer throughout. Also caught and fixed the identical flaw in the realistic next-open queue button, which could have let the same position queue twice. If you tried instant sell before this, check your holdings and cash — back out anything that looks doubled. Hard-refresh (Ctrl+F5)."
 }
