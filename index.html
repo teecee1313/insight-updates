@@ -834,6 +834,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <button id="sidebarToggle" onclick="toggleSidebar()" title="Hide / show the filters panel" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">◀ Hide panel</button>
 
     <button id="researchBtn" onclick="renderResearch()" title="🔬 Research further — open your worklist of shares parked to look into later. Flag any share from its report or the 🔔 What’s-changed list to add it here." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🔬 Research <span data-research-count style="color:var(--green);font-weight:700;"></span></button>
+    <button id="picksBtn" onclick="showDailyPicks()" title="🎯 Today’s picks — the shares that met the tested rules on the latest session: 20% trailing stop, no take-profit, $0.20–$0.99, a patient 5% dip entry, score 7+. Practice money only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 12px var(--sans);cursor:pointer;">🎯 Today’s picks</button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
     <!-- v482 — the 49 lessons used to be reachable only after unlocking
          training mode with a secret code, which made one of the better reasons
@@ -1712,7 +1713,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-645-open';
+const APP_VERSION='2026.08.01-646-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2731,6 +2732,104 @@ function _refreshResearchBtns(){
   document.querySelectorAll('[data-research-count]').forEach(el=>{ el.textContent=c?`(${c})`:''; });
 }
 // The research list view — a worklist you clear, not a collection you keep.
+// v646 — TODAY'S PICKS, in the app rather than behind the admin password.
+// The daily selection has run on the server for weeks, but the only way to see
+// it was an admin page with a separate password — so a report nobody could
+// reach was a report nobody read. This reads the same rows over the app's own
+// access gate.
+//
+// READ ONLY, deliberately. Clearing, re-running and queueing orders all change
+// state and stay on the admin page. This shows what the rules chose; buying is
+// still done through the normal buy flow, so every existing cap, the stop rule
+// and the practice-money boundary continue to apply exactly as before.
+window._picksMode = 'trail';   // the tested rules; 'fixed' is the 15/15 control
+async function showDailyPicks(mode){
+  if(mode) window._picksMode = mode;
+  const M = window._picksMode;
+  if(typeof showModal==='function'){ window._modalLabel='\ud83c\udfaf Today\u2019s picks'; showModal(
+    '<div style="text-align:center;padding:40px 10px;color:var(--muted);font-size:13px;">Loading today\u2019s picks\u2026</div>'); }
+  let j=null, err=null;
+  try{
+    const r = await fetch(DATA_PROXY+'/picks?exch='+encodeURIComponent(currentExch||'ASX')+(M==='trail'?'&mode=trail':''));
+    j = await r.json();
+    if(!r.ok || !j || j.error) err = (j&&j.error) ? j.error : ('the server replied '+r.status);
+  }catch(e){ err = String(e&&e.message||e); }
+
+  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const money=v=>(v==null||!isFinite(v))?'\u2014':('$'+(+v).toFixed(+v<1?4:2));
+  let html='';
+
+  if(err){
+    html='<div style="padding:26px 12px;text-align:center;color:var(--muted);font-size:13px;">'
+      +'<div style="font-size:32px;margin-bottom:8px;">\u26a0</div>'
+      +'<b style="color:var(--text);">Could not load today\u2019s picks</b><br><span style="font-size:12px;">'+esc(err)+'</span><br><br>'
+      +'<span style="font-size:12px;">If this says <i>locked</i>, the app needs its password again. Otherwise the server may not have run yet today.</span></div>';
+  } else {
+    const R=j.rules||{}, rows=(j.rows||[]).filter(x=>x.status!=='queued'||true);
+    const trail=(j.mode==='trail');
+    const ruleLine = trail
+      ? (R.trailPct||20)+'% trailing stop \u00b7 no take-profit \u00b7 '+(R.dipPct||5)+'% dip entry \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+(R.minPrice)+'\u2013$'+(R.maxPrice)
+      : (R.targetPct||15)+'% target \u00b7 '+(R.stopPct||15)+'% stop \u00b7 '+(R.dipPct||5)+'% dip entry \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+(R.minPrice)+'\u2013$'+(R.maxPrice);
+
+    // freshness, stated rather than assumed — a pick from last week looks
+    // identical to one from this morning unless the page says otherwise
+    let fresh='';
+    if(j.latestBar){
+      if(!j.latestPick) fresh='<span style="color:var(--muted)">Latest market day '+esc(j.latestBar)+' \u00b7 nothing picked yet.</span>';
+      else if(j.stale) fresh='<span style="color:var(--gold)">\u26a0 Newest pick is from '+esc(j.latestPick)+', but the market data runs to '+esc(j.latestBar)+' \u2014 these are not today\u2019s.</span>';
+      else fresh='<span style="color:var(--green)">\u2713 Up to date \u2014 picked from '+esc(j.latestPick)+', the latest market day.</span>';
+    }
+
+    const tabs='<div style="display:flex;gap:6px;margin:10px 0 4px;">'
+      +['trail','fixed'].map(m=>'<button onclick="showDailyPicks(\''+m+'\')" style="flex:1;padding:7px;border-radius:6px;font:700 11px var(--sans);cursor:pointer;'
+        +'border:1px solid '+(M===m?'var(--gold)':'var(--border2)')+';background:'+(M===m?'rgba(217,164,65,.15)':'var(--bg3)')+';color:'+(M===m?'var(--gold)':'var(--text)')+';">'
+        +(m==='trail'?'\u26a1 The tested rules':'\u2696 15/15 comparison')+'</button>').join('')+'</div>';
+
+    let body;
+    if(!rows.length){
+      body='<div style="text-align:center;padding:26px 10px;color:var(--muted);font-size:13px;">'
+        +'<div style="font-size:32px;margin-bottom:8px;">\ud83c\udfaf</div>'
+        +'<b style="color:var(--text);">Nothing met the rules</b><br>'
+        +'<span style="font-size:12px;">Four gates in a row \u2014 the price band, the score, the signal and the daily cap \u2014 often leave nothing on a given day. '
+        +'That is the rules being choosy, not a fault.</span></div>';
+    } else {
+      body=rows.map(r=>{
+        const oob=(R.minPrice!=null && !(r.ref_close>R.minPrice && r.ref_close<=R.maxPrice));
+        const age=(j.latestBar && r.first_seen_day && r.first_seen_day<j.latestBar)
+          ? ' <span style="color:var(--gold);font-size:10px;">(from '+esc(r.first_seen_day)+')</span>' : '';
+        return '<div style="border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--bg2);">'
+          +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+          +'<b style="font-size:15px;color:var(--gold);">'+esc(r.ticker)+'</b>'
+          +(r.status==='queued'?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(217,164,65,.18);color:var(--gold);">already queued</span>':'')
+          +(oob?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(226,25,55,.18);color:#ff9caa;">outside the band</span>':'')
+          +age+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin:3px 0 7px;">'+esc(r.evidence_key||'')+' \u00b7 score '+(r.score==null?'\u2014':(+r.score).toFixed(1))+(r.tier?(' \u00b7 '+esc(r.tier)):'')+'</div>'
+          +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;">'
+          +'<div><span style="color:var(--muted);font-size:10px;display:block;">Buy under</span><b>'+money(r.limit_price)+'</b></div>'
+          +(trail
+            ? '<div><span style="color:var(--muted);font-size:10px;display:block;">Trail</span><b>'+((r.trail_pct||20)+'%')+'</b></div>'
+              +'<div><span style="color:var(--muted);font-size:10px;display:block;">Stop starts</span><b>'+money(r.initial_stop)+'</b></div>'
+            : '<div><span style="color:var(--muted);font-size:10px;display:block;">Target</span><b>'+money(r.target_price)+'</b></div>'
+              +'<div><span style="color:var(--muted);font-size:10px;display:block;">Stop</span><b>'+money(r.stop_price)+'</b></div>')
+          +'<div><span style="color:var(--muted);font-size:10px;display:block;">Last close</span><b>'+money(r.ref_close)+'</b></div>'
+          +'</div>'
+          +'<button onclick="closeModal();printShareReport(\''+esc(r.ticker)+'\')" style="width:100%;margin-top:8px;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">\ud83d\udcc4 Open '+esc(r.ticker)+'\u2019s report card</button>'
+          +'</div>';
+      }).join('');
+    }
+
+    html='<div style="font-size:12px;color:var(--muted);line-height:1.55;">'+esc(ruleLine)+'</div>'
+      +'<div style="font-size:11px;margin-top:5px;">'+fresh+'</div>'
+      +tabs
+      +(trail?'<div style="font-size:11px;color:var(--muted);margin:6px 0 10px;line-height:1.5;">The stop shown is where the trail <b>starts</b>. It only ever moves up as the price rises, and never down \u2014 there is no take-profit, so a winner runs until it gives back '+((R.trailPct||20))+'% from its best close.</div>'
+              :'<div style="font-size:11px;color:var(--muted);margin:6px 0 10px;line-height:1.5;">This is the older fixed target/stop set, kept running side by side as a comparison.</div>')
+      +body
+      +'<div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5;border-top:1px solid var(--border2);padding-top:8px;">'
+      +'These are the shares that met the rules \u2014 not advice, and not a queue. Nothing is bought until you buy it yourself in the normal way, and every cap and stop rule still applies. Practice money only.</div>';
+  }
+
+  if(typeof showModal==='function'){ window._modalLabel='\ud83c\udfaf Today\u2019s picks'; showModal(html); }
+}
 function renderResearch(){
   loadResearch();
   const items=Object.values(researchList).sort((a,b)=>b.ts-a.ts);
