@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.01-647",
+  "version": "2026.08.01-648",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v647 - tapping a share in Today's picks now opens the full share console - the chart, its history, the evidence behind it, your diary notes and the buy controls - instead of only the printable report card. The ticker itself is a link, and there are two buttons on each pick: Open takes you to the console, Report opens the printable card as before. If a pick names a share this device has not downloaded yet, it says so plainly and offers the report card instead, rather than the old dead end of 'Share not found'. Practice money only. Hard-refresh (Ctrl+F5)."
+  "notes": "v648 - closing a share opened from Today's picks now takes you BACK to the picks list instead of closing everything and dropping you on the main screen. Same for the report card. The app already had a go-back mechanism built for the report card; the picks list simply was not using it, and was closing itself before opening the share - which destroyed the very thing needed to get back. Practice money only. Hard-refresh (Ctrl+F5)."
 }
