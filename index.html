@@ -1713,7 +1713,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-646-open';
+const APP_VERSION='2026.08.01-647-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2742,6 +2742,29 @@ function _refreshResearchBtns(){
 // state and stay on the admin page. This shows what the rules chose; buying is
 // still done through the normal buy flow, so every existing cap, the stop rule
 // and the practice-money boundary continue to apply exactly as before.
+// v647 - opening a pick. showShareDetail is the main share console: chart,
+// history, evidence, diary and the buy controls. It needs the share to be in
+// the loaded market though, and a pick can name one this device has not
+// downloaded - the raw function alerts "Share not found." and leaves you
+// nowhere. This says what actually happened and offers the report card, which
+// fetches its own data and works either way.
+window._picksOpen = function(ticker){
+  try{
+    const have = (typeof allData!=='undefined') && allData.some(x=>x.ticker===ticker);
+    if(have && typeof showShareDetail==='function'){ showShareDetail(ticker, 30); return; }
+  }catch(e){}
+  try{
+    if(typeof showModal==='function'){
+      window._modalLabel='\ud83d\udcca '+ticker;
+      showModal('<div style="padding:22px 12px;text-align:center;font-size:13px;color:var(--muted);line-height:1.6;">'
+        +'<b style="color:var(--text);font-size:15px;">'+ticker+' is not in the loaded market yet</b><br>'
+        +'The share console needs this exchange\u2019s history on this device. Load the market and it will open there.<br><br>'
+        +'<button onclick="closeModal();printShareReport(\''+ticker+'\')" style="padding:8px 14px;border-radius:6px;border:1px solid var(--gold);background:rgba(217,164,65,.15);color:var(--gold);font:700 12px var(--sans);cursor:pointer;">\ud83d\udcc4 Open the report card instead</button></div>');
+      return;
+    }
+  }catch(e){}
+  if(typeof printShareReport==='function') printShareReport(ticker);
+};
 window._picksMode = 'trail';   // the tested rules; 'fixed' is the 15/15 control
 async function showDailyPicks(mode){
   if(mode) window._picksMode = mode;
@@ -2799,7 +2822,7 @@ async function showDailyPicks(mode){
           ? ' <span style="color:var(--gold);font-size:10px;">(from '+esc(r.first_seen_day)+')</span>' : '';
         return '<div style="border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--bg2);">'
           +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
-          +'<b style="font-size:15px;color:var(--gold);">'+esc(r.ticker)+'</b>'
+          +'<a href="#" onclick="closeModal();_picksOpen(\''+esc(r.ticker)+'\');return false;" style="font-size:15px;font-weight:800;color:var(--gold);text-decoration:underline dotted;">'+esc(r.ticker)+'</a>'
           +(r.status==='queued'?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(217,164,65,.18);color:var(--gold);">already queued</span>':'')
           +(oob?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(226,25,55,.18);color:#ff9caa;">outside the band</span>':'')
           +age+'</div>'
@@ -2813,7 +2836,10 @@ async function showDailyPicks(mode){
               +'<div><span style="color:var(--muted);font-size:10px;display:block;">Stop</span><b>'+money(r.stop_price)+'</b></div>')
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Last close</span><b>'+money(r.ref_close)+'</b></div>'
           +'</div>'
-          +'<button onclick="closeModal();printShareReport(\''+esc(r.ticker)+'\')" style="width:100%;margin-top:8px;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">\ud83d\udcc4 Open '+esc(r.ticker)+'\u2019s report card</button>'
+          +'<div style="display:flex;gap:6px;margin-top:8px;">'
+          +'<button onclick="closeModal();_picksOpen(\''+esc(r.ticker)+'\')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--gold);background:rgba(217,164,65,.15);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">\ud83d\udcca Open '+esc(r.ticker)+'</button>'
+          +'<button onclick="closeModal();printShareReport(\''+esc(r.ticker)+'\')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">\ud83d\udcc4 Report</button>'
+          +'</div>'
           +'</div>';
       }).join('');
     }
