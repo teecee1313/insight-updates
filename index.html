@@ -834,7 +834,6 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <button id="sidebarToggle" onclick="toggleSidebar()" title="Hide / show the filters panel" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">◀ Hide panel</button>
 
     <button id="researchBtn" onclick="renderResearch()" title="🔬 Research further — open your worklist of shares parked to look into later. Flag any share from its report or the 🔔 What’s-changed list to add it here." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">🔬 Research <span data-research-count style="color:var(--green);font-weight:700;"></span></button>
-    <button id="picksBtn" onclick="showDailyPicks()" title="🎯 Today’s picks — the shares that met the tested rules on the latest session: 20% trailing stop, no take-profit, $0.20–$0.99, a patient 5% dip entry, score 7+. Practice money only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 12px var(--sans);cursor:pointer;">🎯 Today’s picks</button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
     <!-- v482 — the 49 lessons used to be reachable only after unlocking
          training mode with a secret code, which made one of the better reasons
@@ -1714,7 +1713,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-649-open';
+const APP_VERSION='2026.08.01-650-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer

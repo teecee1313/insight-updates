@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.01-649",
+  "version": "2026.08.01-650",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v649 - Today's picks now sits in START YOUR DAY alongside Market Today, Top 20 to Watch and Best Evidence Today, so the daily routine is four taps rather than three. It stays in the top toolbar as well. The reason for the move: of everything in that row, the picks list is the only one whose rules have been measured head to head against the alternatives - the exit, the entry and the price band were each tested against competing versions over the full stored history, and the losers were dropped. Having it buried in the toolbar while less-tested scans led the daily routine had the emphasis backwards. Practice money only. Hard-refresh (Ctrl+F5)."
+  "notes": "v650 - Today's picks now lives in one place rather than two. It was briefly in both the top toolbar and START YOUR DAY; the toolbar copy has been removed, so the tile beside Market Today, Top 20 to Watch and Best Evidence Today is the way in. Nothing else changed. Practice money only. Hard-refresh (Ctrl+F5)."
 }
