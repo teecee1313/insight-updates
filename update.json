@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.01-648",
+  "version": "2026.08.01-649",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v648 - closing a share opened from Today's picks now takes you BACK to the picks list instead of closing everything and dropping you on the main screen. Same for the report card. The app already had a go-back mechanism built for the report card; the picks list simply was not using it, and was closing itself before opening the share - which destroyed the very thing needed to get back. Practice money only. Hard-refresh (Ctrl+F5)."
+  "notes": "v649 - Today's picks now sits in START YOUR DAY alongside Market Today, Top 20 to Watch and Best Evidence Today, so the daily routine is four taps rather than three. It stays in the top toolbar as well. The reason for the move: of everything in that row, the picks list is the only one whose rules have been measured head to head against the alternatives - the exit, the entry and the price band were each tested against competing versions over the full stored history, and the losers were dropped. Having it buried in the toolbar while less-tested scans led the daily routine had the emphasis backwards. Practice money only. Hard-refresh (Ctrl+F5)."
 }
