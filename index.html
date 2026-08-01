@@ -1713,7 +1713,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-651-open';
+const APP_VERSION='2026.08.01-652-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9731,8 +9731,20 @@ function showPortfolio(exSel){
   // the download on the same rate limiter and the portfolio sat there frozen
   // waiting. They run automatically on the next open after the download ends.
   if(!window._bulkRunning){
-    if(!window._tgtChecking)checkAutoSellTargets().then(sold=>{if(sold&&sold.length)showPortfolio();});
-    if(!window._ordChecking)checkLimitOrders().then(fl=>{if(fl&&fl.length)showPortfolio();});
+    // v652 - SEQUENTIAL, not parallel. These used to be fired one after the
+    // other without awaiting; checkLimitOrders begins with `if(_tgtChecking)
+    // return []`, so it bailed out instantly every time the sell-checker was
+    // still running - which was always. Pending orders were therefore never
+    // judged from the Portfolio, and the v642 catch-up never got the chance to
+    // run. Chaining them respects the same guard instead of losing to it.
+    if(!window._tgtChecking && !window._ordChecking){
+      (async function(){
+        let sold=null, fl=null;
+        try{ sold=await checkAutoSellTargets(); }catch(e){}
+        try{ fl=await checkLimitOrders(); }catch(e){}
+        if((sold&&sold.length)||(fl&&fl.length)) showPortfolio();
+      })();
+    }
   }
   const {p,ex,hold:holdRaw,hist,histAll,vh}=_paperFiltered();
   const hold=_mergeHoldings(holdRaw); // one line per share, average buy price
