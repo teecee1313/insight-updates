@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-643-open';
+const APP_VERSION='2026.08.01-644-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -8327,6 +8327,36 @@ function paperCancelOrder(id){
 // days of history it holds for the share, the span they cover, the lowest price
 // in the window the order has been waiting, and how that compares with the limit.
 // If the answer is "the price never came to you", that is a fact, not a theory.
+// v644 — edit a PENDING order's take-profit and stop. Until now the only way to
+// repair a broken pair was to cancel and re-place the whole order, which loses
+// the queue position and is a poor answer for a fault the app itself allowed to
+// be created. Same validation as the buy form: a target must sit above the limit
+// and a stop below it, or the order is sold the instant it fills.
+window.paperEditOrderExits=function(id){
+  const _fs=_pfFindStore(pp=>((pp.orders||[]).find(x=>x.id===id))||null);
+  if(!_fs)return; const p=_fs.p, o=_fs.hit, cur=o.currency;
+  if(o.side==='sell'){ alert('This is a pending sell — its price is the sell itself, so there is no target or stop to set.'); return; }
+  const base=o.market?null:+o.limit;
+  const bt=prompt('\u25CE Take-profit for '+o.ticker+(base?(' (buy limit '+fmtP(base,cur)+')'):'')+'\n\nEnter a price'+(base?(' ABOVE '+fmtP(base,cur)):'')+', or leave blank for none.\nCurrent: '+(o.target?fmtP(o.target,cur):'none'),
+    o.target?String(o.target):'');
+  if(bt===null)return;
+  let nt=String(bt).trim()===''?0:parseFloat(bt);
+  if(!(isFinite(nt)&&nt>=0)){ alert('Enter a price greater than 0, or leave it blank.'); return; }
+  if(nt>0){ nt=_tickRound(nt,o.exchange);
+    if(base&&nt<=base){ alert('A take-profit of '+fmtP(nt,cur)+' is at or below the buy limit of '+fmtP(base,cur)+'.\n\nThe exit rule sells as soon as the price reaches the target, so this order would be sold at a loss the moment it filled. Enter a price above '+fmtP(base,cur)+'.'); return; } }
+  const bs=prompt('\u25CE Stop-loss for '+o.ticker+(base?(' (buy limit '+fmtP(base,cur)+')'):'')+'\n\nEnter a price'+(base?(' BELOW '+fmtP(base,cur)):'')+', or leave blank for none.\nCurrent: '+(o.stop?fmtP(o.stop,cur):'none'),
+    o.stop?String(o.stop):'');
+  if(bs===null)return;
+  let ns=String(bs).trim()===''?0:parseFloat(bs);
+  if(!(isFinite(ns)&&ns>=0)){ alert('Enter a price greater than 0, or leave it blank.'); return; }
+  if(ns>0){ ns=_tickRound(ns,o.exchange);
+    if(base&&ns>=base){ alert('A stop-loss of '+fmtP(ns,cur)+' is at or above the buy limit of '+fmtP(base,cur)+'.\n\nIt would stop out the moment it filled. Enter a price below '+fmtP(base,cur)+'.'); return; } }
+  o.target=nt>0?nt:null; o.stop=ns>0?ns:null;
+  _paperSave(p,_fs.acct,_fs.exch);
+  const ls=document.getElementById('loadStatus');
+  if(ls)ls.innerHTML='<span style="color:var(--green)">\u25CE '+o.ticker+' exits updated \u2014 target '+(nt>0?fmtP(nt,cur):'none')+', stop '+(ns>0?fmtP(ns,cur):'none')+'</span>';
+  showPortfolio();
+};
 window.paperWhyPending=async function(id){
   const _fs=_pfFindStore(pp=>((pp.orders||[]).find(x=>x.id===id))||null);
   if(!_fs){alert('That order is no longer in the account.');return;}
@@ -8343,9 +8373,20 @@ window.paperWhyPending=async function(id){
   }else{
     const dOf=r=>String((r&&(r.dateStamp||r.date||r.Date))||'').slice(0,10);
     const num=(r,k)=>{for(const x of k){const v=parseFloat(r&&r[x]);if(isFinite(v))return v;}return NaN;};
+    // v644 — mirror the engine exactly. The fill loop skips the PLACEMENT DAY
+    // itself unless the order was pre-open: this is an end-of-day app, so you
+    // saw that day's close and acted after the market shut — its low had already
+    // happened before the order existed, and filling on it would be hindsight.
+    // v643's diagnostic scanned from the placement day INCLUSIVE, so on a day the
+    // share dipped before the order was placed it announced "it SHOULD have
+    // filled" about a day the engine was right to ignore. A false alarm, and the
+    // second thing this button was built to stop.
     const since=o.placedDate;
-    const days=rows.map(r=>({d:dOf(r),o:num(r,['open','Open']),lo:num(r,['low','Low']),c:num(r,['close','Close'])}))
+    const all=rows.map(r=>({d:dOf(r),o:num(r,['open','Open']),lo:num(r,['low','Low']),c:num(r,['close','Close'])}))
       .filter(x=>x.d&&x.d>=since).sort((a,b)=>a.d<b.d?-1:1);
+    const eligible=all.filter(x=>!(x.d<o.placedDate||(x.d===o.placedDate&&!o.preOpen)));
+    const onPlacementDay=all.find(x=>x.d===o.placedDate)||null;
+    const days=eligible;
     L.push('\nSaved history: '+rows.length+' days, '+dOf(rows[0])+' \u2192 '+dOf(rows[rows.length-1])+'.');
     if(!days.length){
       L.push('None of them fall on or after the day this order was placed — the app has no session to judge it against yet. Load fresh prices.');
@@ -8356,16 +8397,25 @@ window.paperWhyPending=async function(id){
         const cand=[x.o,x.lo,x.c].filter(v=>isFinite(v)&&v>0);
         if(cand.length){ const m=Math.min.apply(null,cand); if(m<best){best=m;bestD=x.d;} }
       }
-      L.push('Since it was placed: '+days.length+' trading day'+(days.length===1?'':'s')+' ('+withOHLC+' with intraday lows, the rest close-only).');
+      L.push('Days it can be judged on: '+days.length+' ('+withOHLC+' with intraday lows, the rest close-only).');
+      // v644 — the placement day is reported separately, never counted as a miss.
+      if(onPlacementDay&&!o.preOpen){
+        const pc=[onPlacementDay.o,onPlacementDay.lo,onPlacementDay.c].filter(v=>isFinite(v)&&v>0);
+        if(pc.length&&Math.min.apply(null,pc)<=+o.limit)
+          L.push('Note: '+o.placedDate+' itself traded as low as '+fmtP(Math.min.apply(null,pc),cur)+', below your limit — but that was BEFORE you placed the order, so it is not a missed fill. This app reads the close and acts the next session.');
+      }
       if(best===Infinity){ L.push('Those days carry no usable prices — the history for this share needs re-downloading.'); }
       else if(o.market){ L.push('This is a market order: it fills at the next session\u2019s open once data for a day after '+o.placedDate+' has loaded.'); }
       else if(best<=+o.limit){
-        L.push('\nThe lowest price seen was '+fmtP(best,cur)+' on '+bestD+' — at or below your limit of '+fmtP(o.limit,cur)+'.');
+        L.push('\nThe lowest price since then was '+fmtP(best,cur)+' on '+bestD+' — at or below your limit of '+fmtP(o.limit,cur)+'.');
         L.push('It SHOULD have filled. Load fresh prices to run the check again, and if it still sits here, send this message on \u2014 that is a fault worth chasing.');
       }else{
-        L.push('\nThe lowest price seen was '+fmtP(best,cur)+' on '+bestD+'.');
-        L.push('Your limit is '+fmtP(o.limit,cur)+' — '+(((best/+o.limit)-1)*100).toFixed(1)+'% above it. The price simply has not come to you yet, so the order is behaving correctly and is still waiting.');
+        L.push('\nThe lowest price since then was '+fmtP(best,cur)+' on '+bestD+'.');
+        L.push('Your limit is '+fmtP(o.limit,cur)+' — the price has been '+(((best/+o.limit)-1)*100).toFixed(1)+'% above it at its cheapest, so it has not come to you yet. The order is behaving correctly and is still waiting.');
       }
+      // the unjudged tail is the actionable part: days the engine has not seen.
+      const un=days.filter(x=>x.d>(o.checkedDate||o.placedDate));
+      if(un.length) L.push('\n'+un.length+' day'+(un.length===1?'':'s')+' after '+(o.checkedDate||o.placedDate)+' have not been checked yet — load fresh prices and they will be.');
     }
   }
   alert(L.join('\n'));
@@ -9642,7 +9692,7 @@ ${_undoOn()?`<div class="pf-card-actions">
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
         <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperWhyPending('${o.id}')" title="Why has this not filled yet? Shows exactly what the app has seen." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">? why</button><button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;">✕ cancel</button></div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperWhyPending('${o.id}')" title="Why has this not filled yet? Shows exactly what the app has seen." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">? why</button>${o.side!=='sell'?`<button onclick="paperEditOrderExits('${o.id}')" title="Set or repair this order's take-profit and stop-loss" style="padding:5px 10px;border-radius:6px;border:1px solid ${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'var(--red)':'var(--border)'};background:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'rgba(226,25,55,.12)':'var(--bg3)'};color:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'#ff9caa':'var(--text)'};font:600 11px var(--sans);cursor:pointer;margin-right:6px;">◎ exits</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;">✕ cancel</button></div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market buys AND sells fill at the next day's open. Reserved cash (buys) returns — and queued shares (sells) unlock — on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
