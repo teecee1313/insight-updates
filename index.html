@@ -1712,7 +1712,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-644-open';
+const APP_VERSION='2026.08.01-645-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5972,6 +5972,49 @@ window.toggleApAdv=function(){
   const t=document.getElementById('apAdvToggle'); if(t)t.innerHTML='⚙ Advanced bot settings '+(window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)');
 };
 // 🏆 v314 — one tap assembles the whole recommended bot (fill-only; user saves).
+// v645 — ONE action for the rules settled by the 1 August 2026 evidence session.
+// The pieces already existed, but they were spread across a preset chip (exits,
+// band, entry) and the best-practice button (source, gates, sizing), and NEITHER
+// saved. So a half-applied state was easy to reach and looked identical to a
+// whole one: tap Hunter, tap Defender by accident, and the exits silently become
+// Defender's while the bot half still reads as best practice. This applies every
+// number, SAVES it, and then reads the result back so there is no doubt about
+// what is live.
+window.applyTestedRules=function(){
+  try{ applyBotBestPractice(); }catch(e){ alert('Could not fill the rules in — reopen 📐 My Rules and try again.'); return; }
+  let r=null;
+  try{ saveRulesFromForm(); r=_rules(); }catch(e){ alert('Filled the rules in, but saving failed — press 💾 Save my rules yourself.'); return; }
+  const on=v=>v?'on':'off';
+  const L=[];
+  L.push('✅ SAVED — the tested rules are now live.');
+  L.push('');
+  L.push('EXITS  (⚡ Hunter — the strongest set tested)');
+  L.push('  take-profit ......... '+((+r.targetPct>0)?(r.targetPct+'%'):'none — winners are left to run'));
+  L.push('  fixed stop .......... '+((+r.stopPct>0)?(r.stopPct+'%'):'none'));
+  L.push('  trailing stop ....... '+((+r.trailPct>0)?(r.trailPct+'% below the highest close'):'OFF  ⚠ this should be 20%'));
+  L.push('  max in one share .... '+r.maxPosPct+'%   ·   max open positions: '+r.maxPositions);
+  L.push('');
+  L.push('WHAT IT BUYS');
+  L.push('  price band .......... $'+(r.apMinPrice||'—')+' to $'+(r.apMaxPrice||'—'));
+  L.push('  entry ............... '+(r.apEntry==='dip'?('patient limit '+r.apDipPct+'% under the last close'):'at market'));
+  L.push('  source .............. '+(r.apSource==='best'?'best proven scan (the report card chooses)':r.apSource));
+  L.push('  min watch score ..... '+r.apMinScore+'   ·   buys per day: '+r.apMaxBuys);
+  L.push('  quiet-only .......... '+on(r.apQuietOnly)+'   ·   ladder auto-follow: '+on(r.apLadder));
+  L.push('');
+  L.push('GUARDS');
+  L.push('  green day only '+on(r.apGreenOnly)+' · skip RSI≥70 '+on(r.apNoChaseRsi)+' · skip day-jump > '+r.apMaxChasePct+'%');
+  L.push('  stand aside when the index is below its 50-day average: '+on(r.apRegime));
+  L.push('  risk per trade ...... '+(r.apRiskPct||0)+'% of the account');
+  L.push('');
+  L.push('WHAT THIS COSTS YOU — measured, not guessed:');
+  L.push('  about half these trades lose (win rate ~51%, down from ~61%)');
+  L.push('  positions are held around 50 days, not days');
+  L.push('  every winner gives back 20% from its peak before it exits');
+  L.push('');
+  L.push('Practice money only. Change any number and press 💾 Save my rules to override.');
+  alert(L.join('\n'));
+  try{ showRules(); }catch(e){}
+};
 window.applyBotBestPractice=function(){
   try{ applyRulePreset('hun'); }catch(e){}  // v641 — best practice = the strongest tested rule set
   const set=(id,v)=>{ const el=document.getElementById(id); if(el)el.value=v; };
@@ -6049,7 +6092,7 @@ function showRules(){
           <div style="margin-top:4px;font-size:9px;color:var(--dim);">It trades its own $50,000 practice account — watch it in 💼 Portfolio → 🤖 tab. Every decision it makes is written in its 📜 diary (inside ⚙ advanced, below).</div>
         </div>`;
       }catch(e){return '';}})()}
-      <button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 5% dip entry, 🧪 evidence-gated source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
+      <button onclick="applyTestedRules()" title="Applies AND saves the exact rule set the 1 August 2026 testing settled on: 20% trailing stop with no take-profit, $0.20-$0.99, 5% dip entry, top 4 a day at score 7+. One tap, nothing left half-applied." style="width:100%;margin:8px 0 3px;padding:10px;border-radius:7px;border:1px solid var(--green);background:rgba(74,222,128,.12);color:var(--green);font:700 12px var(--sans);cursor:pointer;">⚡ Use the tested rules <span style="font-weight:400;font-size:9px;">(one tap — applied AND saved)</span></button><div style="font-size:9px;color:var(--dim);margin:0 0 8px;line-height:1.5;">The set that won the 1 Aug 2026 head-to-head over the full ~2.9 years of stored history, after brokerage and slippage: +145.5% against +52.5% for 20/15 and +45.7% for 15/15 — and still ahead with its three biggest winners removed. Half its trades lose and every winner gives back 20% from its peak; that is the mechanism, not a fault.</div><button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 5% dip entry, 🧪 evidence-gated source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:700 11.5px var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
       <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯15 🛑15, no trail/breakeven/hold) · every don't-chase gate · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 5% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
       <button onclick="toggleApAdv()" id="apAdvToggle" style="width:100%;margin:2px 0 6px;padding:6px;border-radius:6px;border:1px dashed var(--border2);background:var(--bg3);color:var(--muted);font:600 10px var(--sans);cursor:pointer;">⚙ Advanced bot settings ${window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)'}</button>
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
