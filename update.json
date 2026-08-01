@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.01-650",
+  "version": "2026.08.01-651",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v650 - Today's picks now lives in one place rather than two. It was briefly in both the top toolbar and START YOUR DAY; the toolbar copy has been removed, so the tile beside Market Today, Top 20 to Watch and Best Evidence Today is the way in. Nothing else changed. Practice money only. Hard-refresh (Ctrl+F5)."
+  "notes": "v651 - each pick now has a Practice buy button. It opens the app's usual buy window with the pick's numbers already filled in: a limit order at the buy-under price, with the take-profit and stop the rules chose. Everything after that is the normal flow on purpose - the position caps, the buy checklist, the stale-data warning and the confirm step all still apply, and NOTHING is placed until you press confirm yourself. You can change the amount or any of the prices before you do. If a pick names a share this device has not downloaded, it says so rather than opening a buy window it cannot price. The card now has three buttons: Practice buy, Open (the share console) and Report. Practice money only, and it still cannot touch a real broker. Hard-refresh (Ctrl+F5)."
 }

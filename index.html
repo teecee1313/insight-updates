@@ -1713,7 +1713,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-650-open';
+const APP_VERSION='2026.08.01-651-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2748,6 +2748,41 @@ function _refreshResearchBtns(){
 // downloaded - the raw function alerts "Share not found." and leaves you
 // nowhere. This says what actually happened and offers the report card, which
 // fetches its own data and works either way.
+// v651 - buying a pick. This opens the NORMAL buy dialog and pre-fills it from
+// the pick: limit order at the buy-under price, with the take-profit and stop
+// the rules chose. Everything after that is the app's existing flow, on purpose
+// - the caps, the checklist, the stale-data warning and the confirm step all
+// still apply, and nothing is placed until you press the confirm yourself.
+window._picksBuy = function(ticker, limitPx, tgtPx, stopPx){
+  const have = (typeof allData!=='undefined') && allData.some(x=>x.ticker===ticker);
+  if(!have){
+    if(typeof showModal==='function'){
+      window._modalLabel='\ud83d\uded2 '+ticker;
+      showModal('<div style="padding:22px 12px;text-align:center;font-size:13px;color:var(--muted);line-height:1.6;">'
+        +'<b style="color:var(--text);font-size:15px;">'+ticker+' is not in the loaded market yet</b><br>'
+        +'A practice buy needs this share\u2019s price on this device. Load the market first, then buy from here or from the share itself.</div>');
+    }
+    return;
+  }
+  try{ paperBuy(ticker); }catch(e){ return; }
+  // fill in AFTER the dialog exists. Guarded individually: a missing field must
+  // never stop the rest, and must never leave a half-filled order looking whole.
+  setTimeout(function(){
+    try{
+      if(limitPx>0 && typeof _setBuyType==='function'){
+        _setBuyType('limit');
+        const L=document.getElementById('paperLimit');
+        if(L){ L.value=limitPx; try{ L.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} }
+      }
+      if(tgtPx>0){ const T=document.getElementById('paperTgt');
+        if(T){ T.value=tgtPx; try{ T.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} } }
+      if(stopPx>0){ const S=document.getElementById('paperStop');
+        if(S){ S.value=stopPx; try{ S.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} } }
+      const note=document.getElementById('paperBuyPrev');
+      if(note) note.innerHTML='<span style="color:var(--gold)">Filled in from today\u2019s pick. Check the amount, then confirm - nothing is placed until you do.</span>';
+    }catch(e){}
+  }, 60);
+};
 window._picksOpen = function(ticker){
   // v648 - going BACK. This used to closeModal() before opening the share, which
   // tore the picks list down; closing the share then closed everything and left
@@ -2850,6 +2885,7 @@ async function showDailyPicks(mode){
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Last close</span><b>'+money(r.ref_close)+'</b></div>'
           +'</div>'
           +'<div style="display:flex;gap:6px;margin-top:8px;">'
+          +'<button onclick="_picksBuy(\''+esc(r.ticker)+'\','+(+r.limit_price||0)+','+(trail?0:(+r.target_price||0))+','+(trail?(+r.initial_stop||0):(+r.stop_price||0))+')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font:700 11px var(--sans);cursor:pointer;">\ud83d\uded2 Practice buy</button>'
           +'<button onclick="_picksOpen(\''+esc(r.ticker)+'\')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--gold);background:rgba(217,164,65,.15);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">\ud83d\udcca Open '+esc(r.ticker)+'</button>'
           +'<button onclick="printShareReport(\''+esc(r.ticker)+'\')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">\ud83d\udcc4 Report</button>'
           +'</div>'
