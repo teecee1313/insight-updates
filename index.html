@@ -1713,7 +1713,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-655-open';
+const APP_VERSION='2026.08.01-656-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2765,6 +2765,50 @@ function _refreshResearchBtns(){
 // the rules - "does today look like filling this?" - which is the one place it
 // adds information without inviting a rule-free trade. It is not wired into any
 // scan, pick, grade or fill.
+// v656 - the price-met badge on each pending order. Reads the saved daily
+// history and reports, from COMPLETED sessions only, whether the limit has been
+// reached since the order was placed. Deliberately skips the placement day: this
+// is an end-of-day app, so that day's low happened before the order existed and
+// filling on it would be hindsight - the same rule the fill engine uses.
+window._pfPriceMetPass = async function(){
+  let orders=[];
+  try{ orders=(_paper(window._pfCtx).orders||[]); }catch(e){ return; }
+  for(const o of orders){
+    const el=document.getElementById('met_'+o.id);
+    if(!el) continue;
+    if(o.side==='sell'){ el.innerHTML=''; continue; }
+    try{
+      const c=await histGet(o.exchange,o.ticker);
+      const rows=(c&&Array.isArray(c.rows))?c.rows:null;
+      if(!rows||!rows.length){ el.innerHTML='<span style="color:var(--muted)">no saved history for this share yet</span>'; continue; }
+      const dOf=r=>String((r&&(r.dateStamp||r.date||r.Date))||'').slice(0,10);
+      const num=(r,k)=>{for(const x of k){const v=parseFloat(r&&r[x]);if(isFinite(v))return v;}return NaN;};
+      const lim=+o.limit||0;
+      const days=rows.map(r=>({d:dOf(r),o:num(r,['open','Open']),lo:num(r,['low','Low']),c:num(r,['close','Close'])}))
+        .filter(x=>x.d && !(x.d<o.placedDate || (x.d===o.placedDate && !o.preOpen)))
+        .sort((a,b)=>a.d<b.d?-1:1);
+      if(!days.length){ el.innerHTML='<span style="color:var(--muted)">no completed session since you placed it</span>'; continue; }
+      let metOn=null, best=Infinity;
+      for(const x of days){
+        const cand=[x.o,x.lo,x.c].filter(v=>isFinite(v)&&v>0);
+        if(!cand.length) continue;
+        const m=Math.min.apply(null,cand);
+        if(m<best) best=m;
+        if(!metOn && lim>0 && m<=lim) metOn=x.d;
+      }
+      if(metOn){
+        el.innerHTML='<span style="color:var(--green)">\u2713 your price was reached on '+metOn+'</span>'
+          +'<span style="color:var(--muted)"> \u2014 if it is still pending, load fresh prices and it should fill</span>';
+      } else if(best===Infinity){
+        el.innerHTML='<span style="color:var(--muted)">those sessions carry no usable prices</span>';
+      } else {
+        const away=lim>0?(((best/lim)-1)*100):0;
+        el.innerHTML='<span style="color:var(--muted)">price not reached \u2014 cheapest since you ordered was '
+          +fmtP(best,o.currency)+', '+away.toFixed(1)+'% above your limit</span>';
+      }
+    }catch(e){ try{ el.innerHTML=''; }catch(_){ } }
+  }
+};
 window._delayedCache = null;
 window.checkDelayed = async function(){
   const box=document.getElementById('delayedBox');
@@ -9792,9 +9836,15 @@ function showPortfolio(exSel){
         try{ sold=await checkAutoSellTargets(); }catch(e){}
         try{ fl=await checkLimitOrders(); }catch(e){}
         if((sold&&sold.length)||(fl&&fl.length)) showPortfolio();
+        // v656 - fill in the price-met badges AFTER the checkers have run, so a
+        // row cannot say "your price was reached" about an order that has just
+        // filled and is no longer on screen.
+        try{ await _pfPriceMetPass(); }catch(e){}
       })();
     }
   }
+  // v656 - and on every render, so opening the tab always populates them
+  setTimeout(function(){ try{ _pfPriceMetPass(); }catch(e){} }, 30);
   const {p,ex,hold:holdRaw,hist,histAll,vh}=_paperFiltered();
   const hold=_mergeHoldings(holdRaw); // one line per share, average buy price
   if(!p._merged)_paperSave(p,undefined,ex); // v408: save back to the store the view actually read (never the read-only All aggregate)
@@ -9969,7 +10019,7 @@ ${_undoOn()?`<div class="pf-card-actions">
       const ords=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex);
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
-        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}</div>
+        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}<div id="met_${o.id}" style="font-size:9.5px;margin-top:3px;line-height:1.4;"></div></div>
         <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperWhyPending('${o.id}')" title="Why has this not filled yet? Shows exactly what the app has seen." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;margin-right:6px;">? why</button>${o.side!=='sell'?`<button onclick="paperEditOrderExits('${o.id}')" title="Set or repair this order's take-profit and stop-loss" style="padding:5px 10px;border-radius:6px;border:1px solid ${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'var(--red)':'var(--border)'};background:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'rgba(226,25,55,.12)':'var(--bg3)'};color:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'#ff9caa':'var(--text)'};font:600 11px var(--sans);cursor:pointer;margin-right:6px;">◎ exits</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font:600 11px var(--sans);cursor:pointer;">✕ cancel</button></div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div><div style="margin:2px 0 8px;"><button onclick="checkDelayed()" title="Fetch a delayed price for each pending order — typically 15-20 minutes behind. Display only: it tells you whether today looks like filling your limit. Nothing in the app trades or grades on it." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font:600 11px var(--sans);cursor:pointer;">⏱ Check delayed prices</button><div id="delayedBox" style="margin-top:6px;font-size:11.5px;"></div></div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market buys AND sells fill at the next day's open. Reserved cash (buys) returns — and queued shares (sells) unlock — on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
