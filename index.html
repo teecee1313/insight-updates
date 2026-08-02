@@ -338,7 +338,7 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .stats{position:relative;background:var(--bg2);border-bottom:1px solid var(--border);padding:3px 14px 4px;
   display:grid;grid-template-columns:70px minmax(0,1fr);column-gap:10px;row-gap:0;align-items:center;flex-shrink:0;}
 .stats.rg-grid{}
-.radar-label{display:flex;align-items:center;gap:5px;font:800 11px var(--sans);color:var(--gold);letter-spacing:.3px;white-space:nowrap;cursor:default;}
+.radar-label{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font:800 11px var(--sans);color:var(--gold);letter-spacing:.3px;cursor:default;min-width:0;}
 .radar-label .rl-sub{font-weight:500;font-size:9px;color:var(--dim);letter-spacing:0;}
 .hbadge.ex-ASX{border-color:#FFD200;color:#FFD200;}
 .hbadge.ex-NYSE{border-color:#58a6ff;color:#58a6ff;}
@@ -421,8 +421,12 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
    EVIDENCE, CAUTION have 3-4 tiles on a row eight wide) empty at the right.
    That space is free, and the title and ▾ details button are precisely what
    should occupy it instead of costing a whole row of their own. */
-.radar-label{position:absolute;top:2px;right:14px;z-index:3;font-size:11px;display:flex;align-items:center;gap:6px;
-  background:linear-gradient(90deg,transparent,var(--bg2) 14px);padding-left:16px;}
+/* v657 - was position:absolute, pinned top-right over the strip with an opaque
+   gradient behind it. On a wide screen the evidence line reached that corner and
+   was painted over, showing as text cut in half. Static keeps it in the flow, so
+   nothing can be covered. This is what the <=760px rule already did. */
+.radar-label{position:static;grid-column:1 / -1;z-index:3;font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+  background:none;padding-left:0;justify-content:flex-end;}
 .radar-grp .rg-l{font-size:6.5px;letter-spacing:.3px;}
 /* 132px: what "🏁 Rel-Strength" and "$250k+ Traded" need beside their number.
    At 96px they were clipped to "REL-STRE…", which is worse than any amount of
@@ -1713,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-656-open';
+const APP_VERSION='2026.08.01-657-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
