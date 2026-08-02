@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-657-open';
+const APP_VERSION='2026.08.01-658-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20585,7 +20585,18 @@ function climbersScan(){
     document.getElementById('toolbar').style.display='flex';
     // v528: the SHARES lead the report — they are what was asked for. Each row
     // names the share, what it fired today, and the gap its best climber faces.
-    var _need=function(it){ return it.fGap>0?('needs ~'+it.fGap+' more fires'):('strength '+it.at.toFixed(1)+' of 2.0'); };
+    var _whyHeld=function(it){
+      // the edge is on the record, so the money test is checked rather than assumed
+      try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
+        if(!(Math.abs(e)>=0.5)||e<0) return ' \u2014 but it earns '+(e<0?'less than nothing':'under $0.50 per $100')+', which brokerage eats';
+      }catch(e){}
+      return ' \u2014 not badged yet';
+    };
+    var _need=function(it){
+      if(it.fGap>0) return 'needs ~'+it.fGap+' more fires';
+      if(it.sGap>0) return 'strength '+it.at.toFixed(1)+' \u2014 needs 2.0';
+      return 'strength '+it.at.toFixed(1)+' \u2713 past 2.0'+_whyHeld(it);
+    };
     var shares=top.map(function(x,ix){
       var sh=x.s, best=x.firing[0];
       var pv=(sh.price!=null&&isFinite(sh.price))?('$'+(+sh.price<1?(+sh.price).toFixed(4):(+sh.price).toFixed(2))):'';
@@ -20603,7 +20614,13 @@ function climbersScan(){
     }).join('');
     // the line explainer — kept, demoted: it says WHY these shares are here
     var lines=climbers.slice(0,8).map(function(it){
-      var need=it.fGap>0?('needs ~'+it.fGap+' more fires'):('strength '+it.at.toFixed(1)+' of 2.0');
+      var need=it.fGap>0?('needs ~'+it.fGap+' more fires')
+        :(it.sGap>0?('strength '+it.at.toFixed(1)+' \u2014 needs 2.0')
+        :('strength '+it.at.toFixed(1)+' \u2713 past 2.0'+(function(){
+            try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
+              if(!(Math.abs(e)>=0.5)||e<0) return ' \u2014 but it earns '+(e<0?'less than nothing':'under $0.50 per $100')+', which brokerage eats';
+            }catch(x){}
+            return ' \u2014 not badged yet'; })()));
       return '<div style="padding:4px 0;border-bottom:1px dashed var(--border);font-size:11px;"><b style="color:var(--text)">'+nameK(it.k)+'</b> <span style="color:var(--muted)">— '+need+' · fired '+it.m.n.toLocaleString()+'× · edge '+((it.m.dirNeg?-it.m.edge:it.m.edge)>=0?'+':'')+(it.m.dirNeg?-it.m.edge:it.m.edge).toFixed(2)+'%</span></div>';
     }).join('');
     showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
