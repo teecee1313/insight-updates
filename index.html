@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-664-open';
+const APP_VERSION='2026.08.01-665-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2762,6 +2762,64 @@ function _refreshResearchBtns(){
 // reached since the order was placed. Deliberately skips the placement day: this
 // is an end-of-day app, so that day's low happened before the order existed and
 // filling on it would be hindsight - the same rule the fill engine uses.
+/* v665 - WHERE THE EXIT ACTUALLY SITS, for each holding.
+   With a 20% trail and no take-profit, the trailing stop IS the position: it
+   decides everything, moves every day, and until now it was invisible until it
+   fired. You could not tell a holding 2% from being sold from one with 18% of
+   room left.
+   This RE-USES the same arithmetic checkAutoSellTargets uses to decide a real
+   exit - manual stop wins outright, otherwise the highest of stop, break-even,
+   trail and ladder lock. Re-deriving it separately would let the number on
+   screen drift away from the number that acts, which is the worst possible
+   failure for this particular display. */
+window._pfEffectiveStop = function(h, R){
+  try{
+    const r = R || _rules();
+    let s = (h.stop > 0 ? h.stop : 0);
+    if (h.stopSrc === 'manual') return { stop: s, src: 'your own stop' };
+    let src = s > 0 ? 'stop' : null;
+    if (r.bePct > 0 && h.beArmed === true && h.buyPrice > 0 && h.buyPrice > s) { s = h.buyPrice; src = 'break-even'; }
+    if (r.trailPct > 0 && (h.peakClose || 0) > 0) {
+      const t = +(((h.peakClose) * (1 - r.trailPct / 100))).toFixed(4);
+      if (t > s) { s = t; src = 'trail'; }
+    }
+    if ((+h.ladderLock || 0) > 0 && h.buyPrice > 0) {
+      const l = +((h.buyPrice * (1 + h.ladderLock / 100))).toFixed(4);
+      if (l > s) { s = l; src = 'ladder lock'; }
+    }
+    return { stop: s, src: src };
+  }catch(e){ return { stop: 0, src: null }; }
+};
+window._pfRoomPass = function(){
+  let hold = [];
+  try{ hold = (_paper(window._pfCtx).holdings || []); }catch(e){ return; }
+  let R = null; try{ R = _rules(); }catch(e){ return; }
+  for (const h of hold) {
+    const el = document.getElementById('room_' + h.id);
+    if (!el) continue;
+    const px = +h.lastPrice || +h.buyPrice || 0;
+    const E = _pfEffectiveStop(h, R);
+    if (!(px > 0) || !(E.stop > 0)) {
+      el.innerHTML = '<span style="color:var(--muted)">no stop on this holding \u2014 nothing will sell it automatically</span>';
+      continue;
+    }
+    const roomPct = ((px - E.stop) / px) * 100;
+    const roomDollars = (px - E.stop) * (+h.qty || 0);
+    /* coloured by how TIGHT it is, not by profit - this is about how close the
+       exit is, and a position deep in profit can still be one bad day from it */
+    const col = roomPct <= 3 ? '#ff9caa' : (roomPct <= 8 ? 'var(--gold)' : 'var(--green)');
+    let peakBit = '';
+    if (E.src === 'trail' && (h.peakClose || 0) > 0) {
+      const offPeak = ((h.peakClose - px) / h.peakClose) * 100;
+      peakBit = ' \u00b7 best close ' + fmtP(h.peakClose, h.currency)
+        + (offPeak > 0.05 ? (', now ' + offPeak.toFixed(1) + '% under it') : ', sitting at its high');
+    }
+    el.innerHTML = '<span style="color:' + col + ';font-weight:700;">' + roomPct.toFixed(1) + '% of room</span>'
+      + '<span style="color:var(--muted)"> before it sells at ' + fmtP(E.stop, h.currency)
+      + (E.src ? (' (' + E.src + ')') : '')
+      + ' \u2014 ' + fmtP(roomDollars, h.currency) + ' of this position' + peakBit + '</span>';
+  }
+};
 window._pfPriceMetPass = async function(){
   let orders=[];
   try{ orders=(_paper(window._pfCtx).orders||[]); }catch(e){ return; }
@@ -9847,11 +9905,12 @@ function showPortfolio(exSel){
         // row cannot say "your price was reached" about an order that has just
         // filled and is no longer on screen.
         try{ await _pfPriceMetPass(); }catch(e){}
+        try{ _pfRoomPass(); }catch(e){}
       })();
     }
   }
   // v656 - and on every render, so opening the tab always populates them
-  setTimeout(function(){ try{ _pfPriceMetPass(); }catch(e){} }, 30);
+  setTimeout(function(){ try{ _pfPriceMetPass(); }catch(e){} try{ _pfRoomPass(); }catch(e){} }, 30);
   const {p,ex,hold:holdRaw,hist,histAll,vh}=_paperFiltered();
   const hold=_mergeHoldings(holdRaw); // one line per share, average buy price
   if(!p._merged)_paperSave(p,undefined,ex); // v408: save back to the store the view actually read (never the read-only All aggregate)
@@ -9905,6 +9964,9 @@ function showPortfolio(exSel){
     const tgt=h.target?`🎯 ${fmtP(h.target,h.currency)}`:'';
     const stp=h.stop?`🛑 ${fmtP(h.stop,h.currency)}${h.stopManual?' 🔒':''}`:'';
     const note=h.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-top:4px;">📝 ${String(h.note).slice(0,60)}${h.note.length>60?'…':''}</div>`:'';
+    /* v665 - filled in after render by _pfRoomPass; async because it reads the
+       saved rules, and blocking the card on that would be a poor trade */
+    const room=`<div id="room_${h.id}" style="font-size:10px;margin-top:4px;line-height:1.4;"></div>`;
     const fadeNudge=_fadeMap.get(h.ticker+'|'+h.exchange)?`<div style="font-size:10px;color:var(--orange);margin-top:4px;" title="A real backtest (250 trading days, ASX) found a 2+ day up-streak predicts a WORSE next-5-day return, not a better one — clearing this app's own SOLID bar.">📉 Fading Strength — consider taking profit</div>`:'';
     const btn=(fn,arg,title,label,style)=>`<button onclick="${fn}('${arg}')" title="${title}" style="${style}">${label}</button>`;
     return `<div class="pf-card">
@@ -9918,7 +9980,7 @@ function showPortfolio(exSel){
         <div><span>Buy</span> <b>${fmtP(h.buyPrice,h.currency)}</b></div>
         <div><span>Now</span> <b>${fmtP(px,h.currency)}</b></div>
         <div><span>Value</span> <b>${fmtP(val,h.currency)}</b></div>
-      </div>${fadeNudge}${note}
+      </div>${fadeNudge}${note}${room}
       <div class="pf-card-actions">
         ${btn('paperSetTarget',h.id,'Set / change auto-sell price target','🎯 Target',`padding:5px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
         ${btn('paperSetStop',h.id,'Set / change stop-loss','🛑 Stop',`padding:5px;border-radius:5px;border:1px solid ${h.stop?'var(--red)':'var(--border)'};background:${h.stop?'rgba(226,25,55,.12)':'var(--bg3)'};color:${h.stop?'#ff9caa':'var(--muted)'};font:600 10px var(--sans);cursor:pointer;`)}
