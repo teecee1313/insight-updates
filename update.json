@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.01-667",
+  "version": "2026.08.01-668",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v667 - the first step in making loading faster. Share history is now fetched from your OWN server in batches of up to 200 at a time, instead of one request per share through a public relay. Your server has held the daily bars back to 2023 all along; the app simply was not asking it. Anything the server does not have is still fetched the old way, so a gap becomes a slower share rather than a share with no history - which would quietly change its technicals and its score. This version covers the technicals pass. The main market download still uses the old per-share route and is the bigger job; it is next. Hard-refresh (Ctrl+F5)."
+  "notes": "v668 - fixes a confusing label on the My Picks form. The 'Sell at $' and 'Stop $' boxes showed the grey hint '% rule', which reads as an instruction to type a percentage. It actually meant 'leave this blank and your percentage rule from My Rules will be used'. Both boxes want a dollar PRICE, so a percentage was never going to be accepted. They now read 'blank = use my %', and hovering either one explains that it wants a price and what happens if you leave it empty. Nothing changed about how the fields work - only what they told you. Hard-refresh (Ctrl+F5)."
 }

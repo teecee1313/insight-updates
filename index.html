@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-667-open';
+const APP_VERSION='2026.08.01-668-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6504,8 +6504,8 @@ function showRules(){
         <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr auto auto;gap:4px;align-items:end;">
           <label style="font-size:9px;color:var(--muted);">Code<input id="apPkT" maxlength="6" placeholder="e.g. BHP" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;text-transform:uppercase;"></label>
           <label style="font-size:9px;color:var(--muted);">Buy at $<input id="apPkB" type="number" min="0" step="any" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);box-sizing:border-box;"></label>
-          <label style="font-size:9px;color:var(--muted);">Sell at $<input id="apPkS" type="number" min="0" step="any" placeholder="% rule" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
-          <label style="font-size:9px;color:var(--muted);">Stop $<input id="apPkX" type="number" min="0" step="any" placeholder="% rule" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
+          <label style="font-size:9px;color:var(--muted);" title="A dollar PRICE to sell at, not a percentage. Leave it empty and your take-profit % from My Rules is used instead.">Sell at $<input id="apPkS" type="number" min="0" step="any" placeholder="blank = use my %" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
+          <label style="font-size:9px;color:var(--muted);" title="A dollar PRICE to stop out at, not a percentage. Leave it empty and your stop % from My Rules is used instead.">Stop $<input id="apPkX" type="number" min="0" step="any" placeholder="blank = use my %" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
           <label style="font-size:9px;color:var(--muted);">Invest $<input id="apPkA" type="number" min="0" step="any" placeholder="default" style="width:100%;margin-top:2px;padding:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
           <label title="Repeat: after it sells at your 🎯 (a win), buy again at your buy point — cycles until you remove it. If a cycle ends on the 🛑 stop, the repeat pauses instead of churning." style="font-size:9px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:2px;">🔁<input type="checkbox" id="apPkR" style="width:14px;height:14px;"></label>
           <button onclick="addApPickFromForm()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.12);color:var(--green);font:700 10px var(--sans);cursor:pointer;">+ Add</button>
