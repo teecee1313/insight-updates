@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-659-open';
+const APP_VERSION='2026.08.01-660-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6142,12 +6142,27 @@ function _edgePosSize(){
     return {size:Math.max(100,Math.round(val*pct/100)), assumed:false};
   }catch(e){ return {size:5000, assumed:true}; }
 }
-function _edgeInMoney(edgePer100){
+function _edgeInMoney(edgePer100, sharePx){
   try{
     const P=_edgePosSize(), pct=(+edgePer100||0);          // $/100 IS a percentage
     const dollars=P.size*(pct/100);
-    return '$'+dollars.toFixed(dollars<10?2:0)+' on a '+('$'+P.size.toLocaleString())+' buy'
+    let out='$'+dollars.toFixed(dollars<10?2:0)+' on a '+('$'+P.size.toLocaleString())+' buy'
       +(P.assumed?' (example size)':'')+' \u2014 that is '+pct.toFixed(2)+'%';
+    // the honest cost comparison, and it depends on the SHARE PRICE, not the
+    // size of the buy. Brokerage is stated as what it really is at this size.
+    const feeRT=6, feePct=P.size>0?((feeRT/P.size)*100):0;
+    const px=+sharePx||0;
+    if(px>0){
+      const tick=px<0.10?0.001:(px<2?0.005:0.01);
+      const spreadRTpct=((tick/px)*100);               // half a tick each way = one tick round trip
+      const spread$=P.size*(spreadRTpct/100);
+      out+='. Brokerage is only $'+feeRT+' ('+feePct.toFixed(2)+'%), but one price step on a '
+        +fmtP(px,'AUD')+' share is '+((tick/px)*100).toFixed(1)+'%, so crossing the spread costs about $'
+        +Math.round(spread$)+' in and out';
+    } else {
+      out+='. Brokerage is only $'+feeRT+' ('+feePct.toFixed(2)+'%) \u2014 it is the SPREAD on a low-priced share that costs the most';
+    }
+    return out;
   }catch(e){ return 'under $0.50 per $100'; }
 }
 function _rules(){
@@ -20615,8 +20630,8 @@ function climbersScan(){
     var _whyHeld=function(it){
       // the edge is on the record, so the money test is checked rather than assumed
       try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
-        if(e<0) return ' \u2014 but on average it LOSES '+_edgeInMoney(-e)+', so it is not worth trading';
-        if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeInMoney(e)+', and brokerage plus the spread cost more than that';
+        if(e<0) return ' \u2014 but on average it LOSES '+_edgeInMoney(-e,(it.s&&it.s.price))+', so it is not worth trading';
+        if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeInMoney(e,(it.s&&it.s.price));
       }catch(e){}
       return ' \u2014 not badged yet';
     };
@@ -20646,8 +20661,8 @@ function climbersScan(){
         :(it.sGap>0?('strength '+it.at.toFixed(1)+' \u2014 needs 2.0')
         :('strength '+it.at.toFixed(1)+' \u2713 past 2.0'+(function(){
             try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
-              if(e<0) return ' \u2014 but on average it LOSES '+_edgeInMoney(-e)+', so it is not worth trading';
-              if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeInMoney(e)+', and brokerage plus the spread cost more than that';
+              if(e<0) return ' \u2014 but on average it LOSES '+_edgeInMoney(-e,(it.s&&it.s.price))+', so it is not worth trading';
+              if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeInMoney(e,(it.s&&it.s.price));
             }catch(x){}
             return ' \u2014 not badged yet'; })()));
       return '<div style="padding:4px 0;border-bottom:1px dashed var(--border);font-size:11px;"><b style="color:var(--text)">'+nameK(it.k)+'</b> <span style="color:var(--muted)">— '+need+' · fired '+it.m.n.toLocaleString()+'× · edge '+((it.m.dirNeg?-it.m.edge:it.m.edge)>=0?'+':'')+(it.m.dirNeg?-it.m.edge:it.m.edge).toFixed(2)+'%</span></div>';
