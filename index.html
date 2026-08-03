@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-661-open';
+const APP_VERSION='2026.08.01-662-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6141,6 +6141,12 @@ function _edgePosSize(){
     if(!(val>0)) return {size:5000, assumed:true};
     return {size:Math.max(100,Math.round(val*pct/100)), assumed:false};
   }catch(e){ return {size:5000, assumed:true}; }
+}
+function _edgeShort(edgePer100){
+  try{
+    const P=_edgePosSize(), pct=(+edgePer100||0), d=P.size*(pct/100);
+    return '$'+d.toFixed(d<10?2:0)+' on a $'+P.size.toLocaleString()+' buy ('+pct.toFixed(2)+'%)';
+  }catch(e){ return pct+'%'; }
 }
 function _edgeInMoney(edgePer100, sharePx){
   try{
@@ -20631,18 +20637,25 @@ function climbersScan(){
     document.getElementById('toolbar').style.display='flex';
     // v528: the SHARES lead the report — they are what was asked for. Each row
     // names the share, what it fired today, and the gap its best climber faces.
-    var _whyHeld=function(it){
-      // the edge is on the record, so the money test is checked rather than assumed
-      try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
-        if(e<0) return ' \u2014 but on average it LOSES '+_edgeInMoney(-e,(it.s&&it.s.price))+', so it is not worth trading';
-        if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeInMoney(e,(it.s&&it.s.price));
-      }catch(e){}
-      return ' \u2014 not badged yet';
+    // v662 - the LIST gets a verdict; the reasoning goes in the tooltip. Three
+    // lines of prose in a 96px gold column is unreadable, and the number people
+    // actually want was buried at the front of a paragraph nobody finishes.
+    var _needTip=function(it){
+      try{
+        var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
+        if(it.fGap>0) return 'Fired '+(m.n||0)+' times. A line needs 50 before its record counts as more than a small sample.';
+        if(it.sGap>0) return 'Strength '+it.at.toFixed(1)+'. It needs 2.0 - that is how many times its edge is bigger than its own margin of error.';
+        return 'Strength '+it.at.toFixed(1)+', past the 2.0 bar. Held back on money instead: '+_edgeInMoney(Math.abs(e),(it.s&&it.s.price)||(it.px||0));
+      }catch(x){ return ''; }
     };
     var _need=function(it){
       if(it.fGap>0) return 'needs ~'+it.fGap+' more fires';
-      if(it.sGap>0) return 'strength '+it.at.toFixed(1)+' \u2014 needs 2.0';
-      return 'strength '+it.at.toFixed(1)+' \u2713 past 2.0'+_whyHeld(it);
+      if(it.sGap>0) return 'strength '+it.at.toFixed(1)+' of 2.0 needed';
+      try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
+        if(e<0) return 'proven, but loses money';
+        if(!(Math.abs(e)>=0.5)) return 'proven, but too small to trade';
+      }catch(x){}
+      return 'strength '+it.at.toFixed(1)+' \u2713';
     };
     var shares=top.map(function(x,ix){
       var sh=x.s, best=x.firing[0];
@@ -20656,7 +20669,7 @@ function climbersScan(){
         +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'
         +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,34):'')+'<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+fired+more+'</div></span>'
         +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
-        +'<span style="flex:0 0 96px;text-align:right;font-size:10px;color:var(--gold);">'+_need(best)+'</span>'
+        +'<span title="'+String(_needTip(best)).replace(/"/g,'&quot;')+'" style="flex:0 0 96px;text-align:right;font-size:10px;color:var(--gold);cursor:help;">'+_need(best)+'</span>'
         +'</div>';
     }).join('');
     // the line explainer — kept, demoted: it says WHY these shares are here
@@ -20665,8 +20678,8 @@ function climbersScan(){
         :(it.sGap>0?('strength '+it.at.toFixed(1)+' \u2014 needs 2.0')
         :('strength '+it.at.toFixed(1)+' \u2713 past 2.0'+(function(){
             try{ var m=it.m, e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
-              if(e<0) return ' \u2014 but on average it LOSES '+_edgeInMoney(-e,(it.s&&it.s.price))+', so it is not worth trading';
-              if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeInMoney(e,(it.s&&it.s.price));
+              if(e<0) return ' \u2014 but it LOSES '+_edgeShort(-e)+' on average, so it is not worth trading';
+              if(!(Math.abs(e)>=0.5)) return ' \u2014 but it only earns '+_edgeShort(e)+', too small to cover the spread';
             }catch(x){}
             return ' \u2014 not badged yet'; })()));
       return '<div style="padding:4px 0;border-bottom:1px dashed var(--border);font-size:11px;"><b style="color:var(--text)">'+nameK(it.k)+'</b> <span style="color:var(--muted)">— '+need+' · fired '+it.m.n.toLocaleString()+'× · edge '+((it.m.dirNeg?-it.m.edge:it.m.edge)>=0?'+':'')+(it.m.dirNeg?-it.m.edge:it.m.edge).toFixed(2)+'%</span></div>';
