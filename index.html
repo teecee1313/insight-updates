@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-665-open';
+const APP_VERSION='2026.08.01-666-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16883,11 +16883,47 @@ Output the complete array. Start with [`;
     // or the current table. The store accumulates delisted/suspended symbols
     // over time (Tony's held 4,317 vs ~2,900 actually listed), so measuring the
     // live list against it rejected every good list forever.
-    let _kn=(parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0);
+    // v666 - the benchmark is per exchange AND per type filter, because the
+    // filtered count must never be judged against an unfiltered one.
+    const _fkey=(function(){ try{
+      const t=[...document.querySelectorAll('#dlTypes input[data-t]')].filter(c=>c.checked)
+        .map(c=>c.getAttribute('data-t')).sort().join(',');
+      return t||'all';
+    }catch(e){ return 'all'; } })();
+    let _kn=(parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch+'.'+_fkey))||0);
+    if(!_kn){
+      // No benchmark for THIS filter yet. The older whole-market figure is NOT
+      // reused - it is too high by exactly the amount the filter removes, which
+      // is the bug this fixes. But the gate must not switch off entirely either,
+      // or a badly truncated first load would be accepted and then saved as the
+      // benchmark. Fall back to the same static floor the original code used:
+      // low enough that a real shares-only list passes, high enough to catch a
+      // response that has plainly been cut short.
+      _kn=({ASX:1500,NYSE:2000,NASDAQ:3000,LSE:1800,TSX:1200}[exch]||0);
+    }
     if(!_kn)_kn=({ASX:1500,NYSE:2000,NASDAQ:3000,LSE:1800,TSX:1200}[exch]||0); // static floor only until a real live count is recorded
+    // v666 - a lower count that keeps coming back is the market, not a fault.
+    // Three consecutive fetches agreeing within 2% lower the benchmark instead
+    // of being refused forever.
+    let _agree=0;
+    try{
+      const _ck='asxScreener.lowStreak.'+exch+'.'+_fkey;
+      const _prevLow=parseInt(localStorage.getItem(_ck+'.n'))||0;
+      const _prevCnt=parseInt(localStorage.getItem(_ck+'.c'))||0;
+      if(_kn>0 && results.length<_kn*0.85){
+        _agree=(_prevCnt>0 && Math.abs(results.length-_prevCnt)<=Math.max(5,_prevCnt*0.02))?(_prevLow+1):1;
+        localStorage.setItem(_ck+'.n',String(_agree));
+        localStorage.setItem(_ck+'.c',String(results.length));
+        if(_agree>=3){
+          localStorage.setItem('asxScreener.lastLiveCount.'+exch+'.'+_fkey,String(results.length));
+          localStorage.removeItem(_ck+'.n'); localStorage.removeItem(_ck+'.c');
+          _kn=results.length;   // accept it: the market has genuinely changed
+        }
+      } else { localStorage.removeItem(_ck+'.n'); localStorage.removeItem(_ck+'.c'); }
+    }catch(e){}
     if(_kn>0 && results.length<_kn*0.85 && Array.isArray(allData) && allData.length>results.length){
       const _lsq=document.getElementById('loadStatus');
-      if(_lsq)_lsq.innerHTML='<span style="color:var(--gold)">⚠ The live list came back incomplete ('+results.length.toLocaleString()+' of ~'+_kn.toLocaleString()+' expected) — kept your fuller saved view. Retrying live in the background…</span>';
+      if(_lsq)_lsq.innerHTML='<span style="color:var(--gold)">⚠ The live list came back smaller than expected ('+results.length.toLocaleString()+' shares, against '+_kn.toLocaleString()+' last time) — kept your saved view for now. '+(_agree>0?('Seen '+_agree+' time'+(_agree===1?'':'s')+'; after 3 matching counts the app will accept it as the new size. '):'')+'If you have just changed which TYPES you download, the smaller number is probably correct.</span>';
       window._listRetryN=(window._listRetryN||0)+1;
       if(window._listRetryN<=4){ setTimeout(()=>{ try{ loadData(); }catch(e){} }, 45000*window._listRetryN); }
       btn.disabled=false;spEl.style.display='none';lbl.textContent='⚡ Refresh';
@@ -16897,7 +16933,19 @@ Output the complete array. Start with [`;
   }catch(e){}
   progFill.style.width='100%';
   allData=results;
-  try{ if(via!=='ai-proxy'){ const _prev=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0; localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(Math.max(_prev,results.length))); } }catch(e){} // v238: full-confidence routes only, never shrink (AI-relay truncation had poisoned this)
+  try{ if(via!=='ai-proxy'){
+    // v666 - was Math.max, a one-way ratchet: the benchmark could only ever rise,
+    // so any setting that legitimately shrank the list locked the app out of
+    // live data for good. An ACCEPTED live load is the truth by definition, so
+    // it is simply recorded - and keyed to the type filter it was measured under.
+    const _fk=(function(){ try{
+      const t=[...document.querySelectorAll('#dlTypes input[data-t]')].filter(c=>c.checked)
+        .map(c=>c.getAttribute('data-t')).sort().join(',');
+      return t||'all';
+    }catch(e){ return 'all'; } })();
+    localStorage.setItem('asxScreener.lastLiveCount.'+exch+'.'+_fk,String(results.length));
+    localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(results.length)); // legacy readers
+  } }catch(e){} // v238: full-confidence routes only, never shrink (AI-relay truncation had poisoned this)
   window._listRetryN=0;
   window._offlineMode=false; // v236: a successful LIVE load leaves offline mode — history & scans fetch normally again
 
