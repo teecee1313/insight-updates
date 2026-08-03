@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-666-open';
+const APP_VERSION='2026.08.01-667-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14733,15 +14733,43 @@ async function autoRunTechnicals(){
     // skip any that already have technicals from this session
     set=set.filter(s=>!s.techCalced);
     if(!set.length){window._autoTechRunning=false;return;}
-    const fetchDays=200, BATCH=16;
-    for(let i=0;i<set.length;i+=BATCH){
-      const slice=set.slice(i,i+BATCH);
-      if(ls)ls.innerHTML=`📐 Preparing technicals… <strong>${Math.min(i+BATCH,set.length)}/${set.length}</strong> <span style="font-size:9px;color:var(--dim)">(incl. watchlist)</span>`;
-      const results=await Promise.all(slice.map(s=>fetchHistory(s.exchange,s.ticker,apiKey,fetchDays).catch(()=>null)));
-      results.forEach((hist,j)=>{const s=slice[j];if(Array.isArray(hist)&&hist.length>=2){try{computeTechnicals(s,hist);}catch(e){}}});
-      _maybeSlowNetworkHint();
-      if(i+BATCH<set.length)await new Promise(r=>setTimeout(r,600));
+    const fetchDays=200;
+    // v667 - one call per 200 shares to our own server, instead of one relay
+    // request per share throttled at 16 per 600ms. Same bars, same shape.
+    const SBATCH=200;
+    let doneN=0, fellBack=0;
+    const _applyHist=(sh,hist)=>{ if(Array.isArray(hist)&&hist.length>=2){ try{ computeTechnicals(sh,hist); }catch(e){} } };
+    for(let i=0;i<set.length;i+=SBATCH){
+      const slice=set.slice(i,i+SBATCH);
+      if(ls)ls.innerHTML=`\u{1f4d0} Preparing technicals\u2026 <strong>${Math.min(i+SBATCH,set.length)}/${set.length}</strong> <span style="font-size:9px;color:var(--dim)">(from your own server)</span>`;
+      let got=null;
+      try{
+        const r=await _fetchTO(DATA_PROXY+'/history/bundle',{method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({exch:slice[0].exchange,tickers:slice.map(x=>x.ticker),days:fetchDays})},60000);
+        if(r&&r.ok){ const j=await r.json(); if(j&&j.ok&&j.series)got=j; }
+      }catch(e){}
+      const stillNeed=[];
+      for(const sh of slice){
+        const hist=got&&got.series?got.series[sh.ticker]:null;
+        if(Array.isArray(hist)&&hist.length>=2){ _applyHist(sh,hist); doneN++; }
+        else stillNeed.push(sh);
+      }
+      // whatever the server does not hold still comes from the relay, at the old
+      // polite pace - a gap must never become a share with no history
+      if(stillNeed.length){
+        fellBack+=stillNeed.length;
+        for(let k=0;k<stillNeed.length;k+=16){
+          const sub=stillNeed.slice(k,k+16);
+          if(ls)ls.innerHTML=`\u{1f4d0} Preparing technicals\u2026 <strong>${doneN}/${set.length}</strong> <span style="font-size:9px;color:var(--dim)">(${fellBack} not on the server yet \u2014 fetching those the slow way)</span>`;
+          const res=await Promise.all(sub.map(x=>fetchHistory(x.exchange,x.ticker,apiKey,fetchDays).catch(()=>null)));
+          res.forEach((hist,q)=>{ _applyHist(sub[q],hist); doneN++; });
+          _maybeSlowNetworkHint();
+          if(k+16<stillNeed.length)await new Promise(r=>setTimeout(r,600));
+        }
+      }
     }
+    try{ window._techFromServer=doneN-fellBack; window._techFromRelay=fellBack; }catch(e){}
     if(typeof applyF==='function')applyF();
     try{ if(typeof _evWarm==='function')setTimeout(function(){ try{_evWarm();}catch(e){} },1200); }catch(e){}   // v463
     if(ls)ls.innerHTML=`<span style="color:var(--green)">✓ Technicals ready</span> for the top shares and your watchlist. <span style="font-size:9px;color:var(--dim)">Sort by RSI / technical score, or click 📐 on any row.</span>`;
