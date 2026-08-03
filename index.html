@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-660-open';
+const APP_VERSION='2026.08.01-661-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6150,17 +6150,21 @@ function _edgeInMoney(edgePer100, sharePx){
       +(P.assumed?' (example size)':'')+' \u2014 that is '+pct.toFixed(2)+'%';
     // the honest cost comparison, and it depends on the SHARE PRICE, not the
     // size of the buy. Brokerage is stated as what it really is at this size.
-    const feeRT=6, feePct=P.size>0?((feeRT/P.size)*100):0;
+    const feeRT=6;
     const px=+sharePx||0;
     if(px>0){
       const tick=px<0.10?0.001:(px<2?0.005:0.01);
-      const spreadRTpct=((tick/px)*100);               // half a tick each way = one tick round trip
-      const spread$=P.size*(spreadRTpct/100);
-      out+='. Brokerage is only $'+feeRT+' ('+feePct.toFixed(2)+'%), but one price step on a '
-        +fmtP(px,'AUD')+' share is '+((tick/px)*100).toFixed(1)+'%, so crossing the spread costs about $'
-        +Math.round(spread$)+' in and out';
+      const stepPct=(tick/px)*100;
+      // you buy with a LIMIT resting under the market, so you do not cross the
+      // spread to get in. The exit does cross - a stop becomes a market order.
+      // One crossing, not two.
+      const spread$=P.size*(stepPct/100);
+      out+='. Brokerage is a flat $'+feeRT+' the round trip (a fee). Separately, the SPREAD on a '
+        +fmtP(px,'AUD')+' share is one price step of '+fmtP(tick,'AUD')+' = '+stepPct.toFixed(1)
+        +'% \u2014 not a fee, just the gap between the buy and sell price. Your dip order rests below the market so it does not pay that going IN, but selling does: about $'
+        +Math.round(spread$)+' on this size';
     } else {
-      out+='. Brokerage is only $'+feeRT+' ('+feePct.toFixed(2)+'%) \u2014 it is the SPREAD on a low-priced share that costs the most';
+      out+='. Brokerage is a flat $'+feeRT+' the round trip \u2014 it is the SPREAD on a low-priced share, not the fee, that costs the most';
     }
     return out;
   }catch(e){ return 'under $0.50 per $100'; }
