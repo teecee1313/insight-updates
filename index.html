@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-684-open';
+const APP_VERSION='2026.08.05-685-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4314,6 +4314,7 @@ function saveMyReport(){
 }
 
 function applyMyReport(){
+  window._myRepApplied=true;
   let preset;
   try{preset=JSON.parse(localStorage.getItem(MYREPORT_KEY));}catch(e){preset=null;}
   if(!preset){myReportMsg('No saved report yet — set filters and press 💾 Save.','var(--orange)');return;}
@@ -4356,6 +4357,7 @@ function toggleMyReportAuto(){
 // Called after data loads; applies My Report if the user opted in.
 function maybeAutoMyReport(){
   try{
+    if(document.body.classList.contains('simple-mode'))return; // v685: auto-run is an Advanced-view feature - in Starter it filtered the radar invisibly
     if(!myReportAutoOn())return;
     if(!localStorage.getItem(MYREPORT_KEY))return;
     if(!allData.length)return;
@@ -17433,7 +17435,7 @@ function setAppMode(mode){
   try{localStorage.setItem(APP_MODE_KEY,mode);}catch(_){}
   // reflect load state on the simple button whenever we enter simple mode
   if(simple)_refreshSimpleLoad();
-  else { try{ if(Array.isArray(allData)&&allData.length) renderWhatsNew(); }catch(_){} }
+  else { try{ if(Array.isArray(allData)&&allData.length) renderWhatsNew(); }catch(_){} try{ if(!window._myRepApplied) maybeAutoMyReport(); }catch(_){} }
   // keep the Advanced 📂 saved-data button current too
   try{ _refreshOfflineBtn(); }catch(_){}
 }
