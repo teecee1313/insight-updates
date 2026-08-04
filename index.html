@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.01-668-open';
+const APP_VERSION='2026.08.04-669-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7476,7 +7476,18 @@ function _autoPilotRun(manual){
         try{ const _dg=window._apLastDiag;
           if(Array.isArray(_dg)&&_dg.length){
             _msg+=' — where they dropped: '+_dg.map(x=>x[0]+' '+x[1].toLocaleString()).join(' → ');
-            const _last=_dg[_dg.length-1]; const _isCombo=_last&&String(_last[0]).indexOf('🧩')===0;
+            // v669 - find the FIRST gate that went to zero. Everything after it
+            // reads zero too, so the last entry is always innocent when an
+            // earlier one emptied the pool.
+            let _firstZero=null;
+            for(let _i=0;_i<_dg.length;_i++){ if(_dg[_i][1]===0){ _firstZero=_dg[_i]; break; } }
+            if(_firstZero && _firstZero!==_dg[_dg.length-1]){
+              const _prev=_dg[_dg.indexOf(_firstZero)-1];
+              _msg+='. It stopped at \u201c'+_firstZero[0]+'\u201d'
+                +(_prev?(' \u2014 '+_prev[1].toLocaleString()+' share'+(_prev[1]===1?'':'s')+' reached it and none got through'):'')
+                +'. Everything listed after that reads 0 because nothing was left to test, so changing those settings will not help.';
+            }
+            const _last=_dg[_dg.length-1]; const _isCombo=_last&&String(_last[0]).indexOf('🧩')===0 && _firstZero===_last;
             if(_isCombo&&_last[1]===0&&/^card-/.test(r.apCombo||''))
               _msg+=window._apCardFallback
                 ?'. Your 📋 card has no graded pairs yet, so the bot checked the proven starter pairs (🚀+🏦 · 🚀+🔷 · 🚀+🥇 · 🕵️+🏦) instead — none fired today. That is discipline, not a fault; it re-checks every day.'

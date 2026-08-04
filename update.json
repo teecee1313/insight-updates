@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.01-668",
+  "version": "2026.08.04-669",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "v668 - fixes a confusing label on the My Picks form. The 'Sell at $' and 'Stop $' boxes showed the grey hint '% rule', which reads as an instruction to type a percentage. It actually meant 'leave this blank and your percentage rule from My Rules will be used'. Both boxes want a dollar PRICE, so a percentage was never going to be accepted. They now read 'blank = use my %', and hovering either one explains that it wants a price and what happens if you leave it empty. Nothing changed about how the fields work - only what they told you. Hard-refresh (Ctrl+F5)."
+  "notes": "v669 - the auto-pilot diary was blaming the wrong setting. When it lists where the shares dropped, every stage after the one that emptied also reads 0 - so the advice at the end pointed at the LAST gate in the list, which had never seen a single share. It now names the FIRST gate that went to zero, says how many reached it, and states plainly that changing the settings listed after it will not help. Worth knowing while reading your own diary: the bot's evidence gate and the Today's picks list are graded on DIFFERENT report cards. The bot on 'best proven scan' waits for a SCAN to beat the market on the All scans card; the picks list is built from graded SIGNAL LINES on the Signal card. That is why the picks can be full while the bot stands aside - both are behaving correctly, they are answering different questions. Hard-refresh (Ctrl+F5)."
 }
