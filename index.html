@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-671-open';
+const APP_VERSION='2026.08.04-672-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7078,7 +7078,24 @@ function _apCandidates(r){
           window._apEvidenceNote=(_evNote||'')+' \u2014 and \ud83e\ude9c Auto-follow my report-card ladder is OFF, so there was no second source of evidence to fall back on. Tick it in \ud83d\udcd0 My Rules and the bot can follow proven SIGNALS when no scan is proven.';
         } else {
           const _ls2=(typeof _ladderTopSignals==='function')?_ladderTopSignals():[];
-          window._apEvidenceNote=(_evNote||'')+' \u2014 \ud83e\ude9c the ladder IS on, but your report card has no proven single signals ('+((Array.isArray(_ls2)?_ls2.length:0))+') and no proven combinations either, so there was nothing to fall back on.';
+          /* v672 - distinguish "the card says nothing is proven" from "the bot
+             cannot READ the card at all". They look identical in the diary and
+             have completely different fixes. */
+          let _why='';
+          try{
+            const _c=window._auditCache;
+            const _dd=(window._exchDataDate&&window._exchDataDate[currentExch])||_todayLocal();
+            const _lk=(typeof _cardLiqKey==='function')?_cardLiqKey():'?';
+            if(!_c) _why=' The bot could not read your report card at all \u2014 nothing is cached yet. Open \ud83d\udccb Signal report card once and let it finish, then run again.';
+            else{
+              const _bad=[];
+              if(_c.d!==_dd) _bad.push('data day (card '+_c.d+' vs market '+_dd+')');
+              if(_c.ex!==currentExch) _bad.push('exchange (card '+_c.ex+' vs loaded '+currentExch+')');
+              if(_c.liq!==_lk) _bad.push('\ud83d\udca7 liquidity floor (card '+_c.liq+' vs yours '+_lk+')');
+              if(_bad.length) _why=' The bot could not read your report card: '+_bad.join(' and ')+' do not match, so it treated the card as unavailable. Set the floor back to the one the card was graded on, or reopen \ud83d\udccb Signal report card to regrade at this one.';
+            }
+          }catch(e){}
+          window._apEvidenceNote=(_evNote||'')+' \u2014 \ud83e\ude9c the ladder IS on, but no proven single signals ('+((Array.isArray(_ls2)?_ls2.length:0))+') or combinations were found.'+_why;
         }
       }catch(e){}
       pool=_T('\ud83e\uddea evidence gate',[]);
