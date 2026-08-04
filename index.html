@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-670-open';
+const APP_VERSION='2026.08.04-671-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7044,15 +7044,43 @@ function _apCandidates(r){
     try{
       if(r.apLadder===true){
         const _ls=(typeof _ladderTopSignals==='function')?_ladderTopSignals():[];
-        if(Array.isArray(_ls)&&_ls.length) _ladRescue=true;
+        if(Array.isArray(_ls)&&_ls.length){ _ladRescue=true; window._apLadderVia='signals'; }
+        /* v671 - also accept proven COMBINATIONS. _ladderTopSignals only reads
+           SINGLE flags, but this card's edge lives in pairs and chains - which
+           is what Best Evidence itself says: "Combinations rank highest because
+           that is where the edge lives". Checking only singles is why the rescue
+           never fired on a card full of graded combos. The combo gate downstream
+           still has to agree, so this widens what COUNTS as evidence without
+           waving anything through. */
+        if(!_ladRescue && typeof _ladderData==='function' && typeof _auditCached==='function'){
+          const _A=_auditCached();
+          const _LD=_A?_ladderData(_A):null;
+          const _cb=(_LD&&Array.isArray(_LD.combos))?_LD.combos.filter(function(c){
+            var m=c&&c.m; if(!m)return false;
+            var e=(m.dirNeg?-(+m.edge||0):(+m.edge||0));
+            return (m.n>=30)&&(e>0)&&(m.tier==='solid'||m.tier==='promising');
+          }):[];
+          if(_cb.length){ _ladRescue=true; window._apLadderVia='combos'; window._apLadderComboN=_cb.length; }
+        }
       }
     }catch(e){}
     if(_ladRescue){
-      window._apEvidenceNote=(_evNote||'')+' \u2014 but your \ud83e\ude9c ladder has proven signals today, so the bot is following those instead of standing aside.';
+      window._apEvidenceNote=(_evNote||'')+' \u2014 but your \ud83e\ude9c ladder has proven '+(window._apLadderVia==='combos'?((window._apLadderComboN||0)+' COMBINATION(s)'):'signals')+' today, so the bot is following those instead of standing aside.';
       window._apLadderRescued=true;
       pool=_T('\ud83e\ude9c ladder (no proven scan)',pool);
     } else {
       window._apLadderRescued=false;
+      /* v671 - say WHY the ladder did not step in. Off and "on but empty" are
+         opposite problems with opposite fixes, and leaving the user to guess
+         between them is how three versions went by without an answer. */
+      try{
+        if(r.apLadder!==true){
+          window._apEvidenceNote=(_evNote||'')+' \u2014 and \ud83e\ude9c Auto-follow my report-card ladder is OFF, so there was no second source of evidence to fall back on. Tick it in \ud83d\udcd0 My Rules and the bot can follow proven SIGNALS when no scan is proven.';
+        } else {
+          const _ls2=(typeof _ladderTopSignals==='function')?_ladderTopSignals():[];
+          window._apEvidenceNote=(_evNote||'')+' \u2014 \ud83e\ude9c the ladder IS on, but your report card has no proven single signals ('+((Array.isArray(_ls2)?_ls2.length:0))+') and no proven combinations either, so there was nothing to fall back on.';
+        }
+      }catch(e){}
       pool=_T('\ud83e\uddea evidence gate',[]);
     }
   }
