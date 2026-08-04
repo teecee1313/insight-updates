@@ -18320,7 +18320,7 @@ function simpleRun(what){
   // in their OWN popup window — because in Simple mode the main table is hidden,
   // so filtering it alone would look like "nothing happened".
   const runners={
-    top20:{fn:()=>topTenScan(), label:'🏆 Today's top scorers', ownWindow:true},
+    top20:{fn:()=>topTenScan(), label:"🏆 Today's top scorers", ownWindow:true},
     smart:{fn:()=>bestEvidenceScan(), label:'🎯 Best evidence today', ownWindow:true}, // w-retire-smart: was smartMoneyScan(2) — its own criteria (2+ day up-streak + vol 50%+) is the exact pattern a real backtest found predicts a WORSE next-5-day return. bestEvidenceScan opens its own modal internally (unlike the old smartMoneyScan, which only filled the hidden table), so ownWindow flips to true — leaving it false here would double-popup.
     surge:{fn:()=>volumeSurgeReport(), label:'🔥 What\u2019s moving on big volume?', ownWindow:true},
     recovery:{fn:()=>recoveryScan(), label:'↩️ Recovery watch', ownWindow:false}
