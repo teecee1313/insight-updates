@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-669-open';
+const APP_VERSION='2026.08.04-670-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7027,7 +7027,35 @@ function _apCandidates(r){
     if(r.apSource==='best'||r.apProvenOnly){ _evKey='__none__'; _evNote='🧪 could not evaluate the evidence gate — standing aside for safety'; }
   }
   window._apEvidenceNote=_evNote;   // the run loop copies this into the diary
-  if(_evKey==='__none__'){ pool=_T('🧪 evidence gate',[]); }
+  /* v670 - the LADDER can now carry the pool on its own.
+     The order used to be wrong. With the source on "best proven scan" and no
+     SCAN currently beating the market, this line emptied the pool outright, and
+     the ladder - which selects on graded SIGNAL LINES - does not run until
+     twenty-five lines further down. It therefore never got a chance, however
+     much proven signal evidence existed. That is backwards: signal lines are the
+     evidence Today's picks is built on and the evidence the 1 August testing
+     measured. They are not subordinate to a scan grade.
+     This does NOT weaken the gate. If the ladder is off, or has no proven
+     signals of its own today, the pool is emptied exactly as before - a gate
+     that cannot check must not wave buys through. Every later gate (band, score,
+     green day, day-jump, combo, position cap) still applies unchanged. */
+  if(_evKey==='__none__'){
+    let _ladRescue=false;
+    try{
+      if(r.apLadder===true){
+        const _ls=(typeof _ladderTopSignals==='function')?_ladderTopSignals():[];
+        if(Array.isArray(_ls)&&_ls.length) _ladRescue=true;
+      }
+    }catch(e){}
+    if(_ladRescue){
+      window._apEvidenceNote=(_evNote||'')+' \u2014 but your \ud83e\ude9c ladder has proven signals today, so the bot is following those instead of standing aside.';
+      window._apLadderRescued=true;
+      pool=_T('\ud83e\ude9c ladder (no proven scan)',pool);
+    } else {
+      window._apLadderRescued=false;
+      pool=_T('\ud83e\uddea evidence gate',[]);
+    }
+  }
   else if(_evKey){ pool=_T('🧪 '+_evKey,_apRuleFilter(pool,_evKey)); }
   else if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
   else if(r.apSource&&r.apSource!=='smart'&&_AP_SRC_KEYS.indexOf(r.apSource)>=0){
