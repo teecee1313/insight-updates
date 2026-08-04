@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-676-open';
+const APP_VERSION='2026.08.04-677-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7060,10 +7060,11 @@ function _apCandidates(r){
   let _evKey=null, _evNote='', _G=null; /* v673: _G was const inside the try block yet read by the unrecognised-source branch below it - a ReferenceError waiting on a corrupted apSource */
   window._apEvidenceNote='';   // v436 (audit): never let a previous run's note be logged against this one
   window._apScoreCtx=null;     // v673: same rule for the score gate's context
+  window._apCardUnreadable=false; // v677: set when a stand-aside was caused by an unreadable/absent card
   try{
     _G=_apGrades();
     if(r.apSource==='best'){
-      if(!_G){ _evKey='__none__'; _evNote='🧪 no grading available yet — standing aside today rather than guessing. (The report is being prepared in the background; it will follow it from the next run.)'; _apWarmGrades(); }
+      if(!_G){ _evKey='__none__'; _evNote='🧪 no grading available yet — standing aside today rather than guessing. (The report is being prepared in the background; it will follow it from the next run.)'; window._apCardUnreadable=true; _apWarmGrades(); }
       else{
         const _b=_apBestScan(_G,'5');
         if(_b){ _evKey=_b.key; _evNote='🧪 following '+_b.name+' — edge '+((_b.edge>=0?'+':'')+_b.edge.toFixed(2))+'% over '+_b.fires+' fires'; }
@@ -7071,7 +7072,7 @@ function _apCandidates(r){
       }
     }else if(r.apProvenOnly){
       const _row=_G?_apGradeRow(_G,_apSrcKey(r.apSource),'5'):null;
-      if(!_G){ _evKey='__none__'; _evNote='🧪 evidence gate: no grading available yet — standing aside (a gate that cannot check must not wave buys through). Preparing the report in the background.'; _apWarmGrades(); }
+      if(!_G){ _evKey='__none__'; _evNote='🧪 evidence gate: no grading available yet — standing aside (a gate that cannot check must not wave buys through). Preparing the report in the background.'; window._apCardUnreadable=true; _apWarmGrades(); }
       else if(!_row||!_row.solid){ _evKey='__none__';
         // v498 — the gate is no longer about how often a scan fired. It asks
         // whether the record is bigger than its own margin of error, counted by
@@ -7682,12 +7683,32 @@ function _autoPilotRun(manual){
       if(cands.length&&window._apCardFallback&&/^card-/.test(r.apCombo||''))
         ent.skips.push('📋 your card has no graded pairs yet — today the bot used the proven starter pairs (🚀+🏦 · 🚀+🔷 · 🚀+🥇 · 🕵️+🏦). It follows YOUR card automatically the day pairs grade.');
     }
+    /* v677 - ADJUST, DON'T WRITE THE DAY OFF. A stand-aside caused only by an
+       unreadable or absent report card (floor changed, fresh profile, cache
+       not warm) used to consume the day's one automatic slot - so the warm
+       re-grade at the CURRENT floor (pantry-served since w504, seconds) would
+       land moments later and the bot still refused to look again until
+       tomorrow. Now such a run DEFERS: the 11-second ticker may try again
+       once the re-grade lands. Bounded to 30 deferrals per data day so a
+       server that can never answer still ends the day cleanly. Manual runs
+       never claimed the day on a stand-aside, so they are untouched. */
+    var _defer=false;
+    try{
+      if(!manual && (!ent.buys||!ent.buys.length) && window._apCardUnreadable===true){
+        var _dk='asxScreener.apDefer.v1', _dv=null;
+        try{ _dv=JSON.parse(localStorage.getItem(_dk)||'null'); }catch(e){}
+        if(!_dv||_dv.d!==dd)_dv={d:dd,n:0};
+        if(_dv.n<30){ _dv.n++; _defer=true; try{ localStorage.setItem(_dk,JSON.stringify(_dv)); }catch(e){}
+          ent.skips.push('⏳ your report card is being re-graded at the current floor — the bot keeps today open and will try again in a moment, instead of writing the day off.');
+        }
+      }
+    }catch(e){}
     _apLogAdd(ent);
     _apQueuePush(ent,r); // v396: mirror the day's practice buys to the bridge queue (customer builds only, silent)
     // v368: mark this data-day handled now that a real scan over a prepared pool completed.
     // Auto runs always claim the day; a manual run claims it only if it actually bought, so
     // testing with "▶ Run now" can't cancel the day's automatic run.
-    if(!manual||(ent.buys&&ent.buys.length>0)){ try{ localStorage.setItem(_apRunKey(),dd); }catch(e){} }
+    if(!_defer && (!manual||(ent.buys&&ent.buys.length>0))){ try{ localStorage.setItem(_apRunKey(),dd); }catch(e){} }
     return {ran:true,entry:ent};
   }catch(e){ try{ _apLogAdd({d:'?',ts:Date.now(),err:String(e).slice(0,80)}); }catch(_){ } return {ran:false,why:'error'}; }
 
