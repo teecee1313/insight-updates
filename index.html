@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-672-open';
+const APP_VERSION='2026.08.04-673-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6996,10 +6996,11 @@ function _apCandidates(r){
   if(+r.apMaxPrice>0)pool=_T('≤$'+r.apMaxPrice,pool.filter(s=>s.price<=+r.apMaxPrice));
   // v435: 🧪 evidence-led source. 'best' asks the all-scans grading which scan is
   // currently working; the evidence gate can veto ANY source that is losing.
-  let _evKey=null, _evNote='';
+  let _evKey=null, _evNote='', _G=null; /* v673: _G was const inside the try block yet read by the unrecognised-source branch below it - a ReferenceError waiting on a corrupted apSource */
   window._apEvidenceNote='';   // v436 (audit): never let a previous run's note be logged against this one
+  window._apScoreCtx=null;     // v673: same rule for the score gate's context
   try{
-    const _G=_apGrades();
+    _G=_apGrades();
     if(r.apSource==='best'){
       if(!_G){ _evKey='__none__'; _evNote='🧪 no grading available yet — standing aside today rather than guessing. (The report is being prepared in the background; it will follow it from the next run.)'; _apWarmGrades(); }
       else{
@@ -7102,7 +7103,7 @@ function _apCandidates(r){
     }
   }
   else if(_evKey){ pool=_T('🧪 '+_evKey,_apRuleFilter(pool,_evKey)); }
-  else if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>s.watchScore!=null).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); }
+  else if(r.apSource==='top20'){ pool=_T('top-20',pool.filter(s=>{ if(s.watchScore==null){ try{ s.watchScore=watchScore10(s).score; }catch(e){} } return s.watchScore!=null; }).sort((a,b)=>(b.watchScore||0)-(a.watchScore||0)).slice(0,20)); } /* v673: compute, don't hope */
   else if(r.apSource&&r.apSource!=='smart'&&_AP_SRC_KEYS.indexOf(r.apSource)>=0){
     // v441: any other graded scan — uses exactly the rule the 🧪 card measured
     pool=_T('🧪 '+r.apSource,_apRuleFilter(pool,r.apSource));
@@ -7121,7 +7122,25 @@ function _apCandidates(r){
     if(_b2){ pool=_T('🧪 '+_b2.key,_apRuleFilter(pool,_b2.key)); window._apEvidenceNote='🧪 unrecognised source — following '+_b2.name+' instead (edge '+((_b2.edge>=0?'+':'')+_b2.edge.toFixed(2))+'% over '+_b2.fires+' fires)'; }
     else{ pool=_T('🧪 evidence gate',[]); window._apEvidenceNote='🧪 unrecognised source and no scan currently beating the market with enough evidence — standing aside'; }
   }
-  if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,pool.filter(s=>(s.watchScore||0)>=r.apMinScore));
+  if(r.apMinScore>0)pool=_T('score≥'+r.apMinScore,(function(pl){
+    /* v673 - the gate read s.watchScore, a property only STAMPED as a side
+       effect of other screens running (Top 20, Today's picks, table filters).
+       A session that went straight to \u25b6 Run therefore judged every share 0
+       and failed the lot - the "947 reached it and none got through" diary on a
+       market full of 7+ shares. Judge the DATA instead: compute the same
+       watchScore10 the table shows, stamp it so later sorts agree, and count
+       how many shares had no history loaded so the diary can tell "low
+       activity" apart from "not loaded yet" - those need opposite responses. */
+    var _noHist=0;
+    var _out=pl.filter(function(s){
+      var ws=s.watchScore;
+      if(ws==null){ try{ ws=s.watchScore=watchScore10(s).score; }catch(e){ ws=0; } }
+      if(!(Array.isArray(s.series)&&s.series.length>=3))_noHist++;
+      return (ws||0)>=r.apMinScore;
+    });
+    window._apScoreCtx={noHist:_noHist,tested:pl.length};
+    return _out;
+  })(pool));
   if(r.apQuietOnly)pool=_T('🔇quiet',pool.filter(s=>{try{return _noNews5d(s);}catch(e){return false;}}));
   // v326: 🪜 auto-follow the ladder → the report card's top PROVEN bullish
   // singles become the signal filter, and the adaptive card gate picks combos.
@@ -7140,6 +7159,7 @@ function _apCandidates(r){
   const _combo=_ladOn?'card-good':r.apCombo; // 🪜 also auto-uses the best card-graded combos
   if(_combo){ pool=_T('🧩'+_comboShort(_combo),pool.filter(s=>{try{return _apComboOk(s,_combo);}catch(e){return false;}})); } // v313 🧩
   window._apLastDiag=_D;
+  pool.forEach(function(s){ if(s.watchScore==null){ try{ s.watchScore=watchScore10(s).score; }catch(e){} } }); /* v673: rank on computed scores, not on which screens were visited first */
   pool.sort((a,b)=>(_pnEdgeSortVal(b)-_pnEdgeSortVal(a))||((b.watchScore||0)-(a.watchScore||0))||((b.daysUp||0)-(a.daysUp||0))||((b.volPct||0)-(a.volPct||0))); // w-apedge: proven-and-measured-edge now decides first; watchScore etc. remain as the fallback among ties/unproven candidates
   return pool;
 }
@@ -7557,7 +7577,14 @@ function _autoPilotRun(manual){
             if(_firstZero && _firstZero!==_dg[_dg.length-1]){
               const _prev=_dg[_dg.indexOf(_firstZero)-1];
               _msg+='. It stopped at \u201c'+_firstZero[0]+'\u201d'
-                +(_prev?(' \u2014 '+_prev[1].toLocaleString()+' share'+(_prev[1]===1?'':'s')+' reached it and none got through'):'')
+                +(_prev?(' \u2014 '+_prev[1].toLocaleString()+' share'+(_prev[1]===1?'':'s')+' reached it and none got through'):'');
+              /* v673 - a score of 0 can mean "genuinely quiet" or "no history
+                 loaded yet". Those need opposite responses, so name which. */
+              try{ const _sx=window._apScoreCtx;
+                if(String(_firstZero[0]).indexOf('score')===0&&_sx&&_sx.tested>0&&_sx.noHist>_sx.tested/2)
+                  _msg+='. Note: '+_sx.noHist.toLocaleString()+' of the '+_sx.tested.toLocaleString()+' shares it tested have no price history loaded in this session yet, so their activity reads 0 \u2014 let the history download finish, then press Run again.';
+              }catch(e){}
+              _msg+=''
                 +'. Everything listed after that reads 0 because nothing was left to test, so changing those settings will not help.';
             }
             const _last=_dg[_dg.length-1]; const _isCombo=_last&&String(_last[0]).indexOf('🧩')===0 && _firstZero===_last;
