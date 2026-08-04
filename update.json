@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-685-open",
+ "version": "2026.08.05-686-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v685 — Starter always shows the full market: ⭐ My Report auto-run no longer applies its filters invisibly under Starter (it fires when you enter Advanced instead). v684 — dimmed cards answer taps with guidance."
+ "notes": "v686 — phones that RESUME the app (instead of restarting it) now auto-load saved shares on wake; startup progress is visible in Starter. v685 — My Report auto-run is Advanced-only."
 }

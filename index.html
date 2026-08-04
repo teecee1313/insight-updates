@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-685-open';
+const APP_VERSION='2026.08.05-686-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18656,12 +18656,29 @@ function setAutoLoad(on){
   // First run  → auto-download ASX to disk (once), then load + prepare from disk.
   // Later runs → load + prepare straight from disk (instant, no API cost).
   // Falls back to a live load if there's an API key but no disk data yet.
+  // v686 — wake-up loader: on phones the installed app often RESUMES a frozen page
+  // instead of re-booting, so the startup loader below never re-runs. If the page
+  // wakes with no market in memory but saved data on disk, load it now.
+  async function _wakeLoad(why){
+    try{
+      if(window._wakeLoading) return; 
+      if(Array.isArray(allData)&&allData.length) return;
+      const c=await histCount(); if(!c) return;
+      window._wakeLoading=true;
+      try{ const sst=document.getElementById('simpleStatus'); if(sst) sst.textContent='Waking up \u2014 loading your saved shares\u2026'; }catch(_){}
+      try{ await loadOfflineNow(); }catch(_){}
+      try{ if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad(); }catch(_){}
+      window._wakeLoading=false;
+    }catch(_){ window._wakeLoading=false; }
+  }
+  window.addEventListener('pageshow', function(e){ if(e&&e.persisted) _wakeLoad('pageshow'); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _wakeLoad('visible'); });
   (async function autoStartup(){
     // v380 — access gate: don't run automated data loads while the preview is locked.
     try{ const _g=await _gateCheck(); if(_g&&_g.locked){ _gateLock(); return; } }catch(e){}
     const ls=document.getElementById('loadStatus');
     const phase=document.getElementById('loadPhase');
-    const setPhase=(t)=>{ if(phase){phase.style.display='block';phase.textContent=t;} };
+    const setPhase=(t)=>{ if(phase){phase.style.display='block';phase.textContent=t;} try{ const sst=document.getElementById('simpleStatus'); if(sst&&document.body.classList.contains('simple-mode')) sst.textContent=t; }catch(_){} }; // v686: Starter hides the load panel, so mirror startup phases into the Starter status line
     let cached=0;
     try{ cached=await histCount(); }catch(e){}
     let key=(document.getElementById('apiKey')||{}).value||'';
