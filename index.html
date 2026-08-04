@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-673-open';
+const APP_VERSION='2026.08.04-674-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6969,6 +6969,41 @@ window._useDipPx=function(px){
   try{ const a=document.getElementById('paperAmt'); if(a&&a.oninput)a.oninput(); }catch(e){}
   try{ _paperLimitResync(); }catch(e){} // v414: 🎯/🛑 follow the new buy price
 };
+function _apPrepShare(s){
+  /* v674 - the bot must not depend on which screens were visited first. v673
+     fixed the SCORE this way; streaks, volume stats, RSI and the signal flags
+     were still only stamped by other passes. This computes every field the
+     funnel reads from the share's own saved series. s.series is ALREADY sorted
+     oldest\u2192newest (set that way by every loader), so streaks/RSI walk it
+     directly - same arithmetic as countStreak/_rsi, minus their re-sort, which
+     kept a 950-share prep under a phone frame budget instead of ~4s. Pattern
+     flags still go through the shared _setPatternFlags (v246) so those numbers
+     cannot drift from the table's. News flags (\ud83d\udcf0 dir 5d) stay feed-only. */
+  if(s._apPrepped)return true;
+  const ser=s.series;
+  if(!(Array.isArray(ser)&&ser.length>=3))return false;
+  try{
+    if(!s.streakCalced){ try{
+      let up=0; for(let i=ser.length-1;i>0;i--){ if(ser[i].c>ser[i-1].c)up++; else break; }
+      let dn=0; for(let i=ser.length-1;i>0;i--){ if(ser[i].c<ser[i-1].c)dn++; else break; }
+      s.daysUp=up; s.daysDown=dn; s.streakCalced=true; }catch(e){} }
+    if(!s.volCalced){ try{
+      const W=effVolWindow(); const from=Math.max(0,ser.length-W);
+      let vs=0,vn=0; for(let i=from;i<ser.length;i++){ if(ser[i].v>0){vs+=ser[i].v;vn++;} }
+      const a=vn>0?vs/vn:0;
+      if(a>0){ s.avg3mo=s.avg3mo||a; s.avgVol=s.avgVol||a; if(s.volume>0&&s.volPct==null)s.volPct=Math.round(((s.volume-a)/a)*100); s.volCalced=true; s.volWindow=effVolWindowLabel(); } }catch(e){} }
+    if(!s.volStreakCalced){ try{
+      const older=ser.slice(0,-5); let vs=0,vn=0; older.forEach(function(x){ if(x.v>0){vs+=x.v;vn++;} });
+      const avgV=vn>0?vs/vn:(s.avgVol||0); let vrun=0;
+      if(avgV>0){ for(let k=ser.length-1;k>=0;k--){ if(ser[k].v>0&&ser[k].v>avgV)vrun++; else break; } }
+      s.volDays=vrun; s.volStreakCalced=true; }catch(e){} }
+    if(s.sigBreakout==null&&s.instBuy==null){ try{ _setPatternFlags(s,ser.map(function(r){return {date:r.d,close:r.c,volume:r.v};})); }catch(e){} }
+    if(s.rsi==null){ try{ const _cl=ser.map(function(r){return r.c;}); s.rsi=_rsi(_cl,14); s.rsiState=s.rsi==null?null:(s.rsi>=70?'overbought':s.rsi<=30?'oversold':'neutral'); }catch(e){} }
+    if(s.accum10==null){ try{ s.accum10=accumDays(s,10); }catch(e){} }
+    if(s.watchScore==null){ try{ s.watchScore=watchScore10(s).score; }catch(e){} }
+    s._apPrepped=true; return true;
+  }catch(e){ return false; }
+}
 function _apCandidates(r){
   const p=_paper(); const held=new Set();
   (p.holdings||[]).forEach(h=>held.add(h.ticker)); (p.orders||[]).forEach(o=>held.add(o.ticker));
@@ -6994,6 +7029,7 @@ function _apCandidates(r){
   }
   if(+r.apMinPrice>0)pool=_T('≥$'+r.apMinPrice,pool.filter(s=>s.price>=+r.apMinPrice)); // v355: price band
   if(+r.apMaxPrice>0)pool=_T('≤$'+r.apMaxPrice,pool.filter(s=>s.price<=+r.apMaxPrice));
+  pool.forEach(function(s){ try{ _apPrepShare(s); }catch(e){} }); /* v674: prepare the bot's own evidence before any gate judges it */
   // v435: 🧪 evidence-led source. 'best' asks the all-scans grading which scan is
   // currently working; the evidence gate can veto ANY source that is losing.
   let _evKey=null, _evNote='', _G=null; /* v673: _G was const inside the try block yet read by the unrecognised-source branch below it - a ReferenceError waiting on a corrupted apSource */
@@ -7583,6 +7619,15 @@ function _autoPilotRun(manual){
               try{ const _sx=window._apScoreCtx;
                 if(String(_firstZero[0]).indexOf('score')===0&&_sx&&_sx.tested>0&&_sx.noHist>_sx.tested/2)
                   _msg+='. Note: '+_sx.noHist.toLocaleString()+' of the '+_sx.tested.toLocaleString()+' shares it tested have no price history loaded in this session yet, so their activity reads 0 \u2014 let the history download finish, then press Run again.';
+                else if(String(_firstZero[0]).indexOf('score')===0){
+                  /* v674 - two rules can select for OPPOSITE shares. If proven
+                     evidence picked a pool and the minimum-score gate removed
+                     all of it, say so plainly. */
+                  var _iz=_dg.indexOf(_firstZero), _evStage=null;
+                  for(var _k=0;_k<_iz;_k++){ var _lb=String(_dg[_k][0]); if((_lb.indexOf('\ud83e\uddea')===0||_lb.indexOf('\ud83e\ude9c')===0)&&_dg[_k][1]>0)_evStage=_dg[_k]; }
+                  if(_evStage)
+                    _msg+='. Heads-up: your minimum watch score removed every share the proven evidence had picked ('+_evStage[1].toLocaleString()+' from \u201c'+_evStage[0]+'\u201d). The score favours busy risers while recovery-style scans pick quiet turners \u2014 the two can cancel each other out, and the 250-day backtest found the score does not predict returns. Setting Min Watch Score to 0 lets the evidence gate do the vetting.';
+                }
               }catch(e){}
               _msg+=''
                 +'. Everything listed after that reads 0 because nothing was left to test, so changing those settings will not help.';
