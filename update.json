@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-683-open",
+ "version": "2026.08.05-684-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v683 — Starter's 🏆 card renamed to Today's top scorers (the 20 highest Watch Scores), so it can never be confused with 🎯 Today's picks, the server-graded rule picks. v682 — Simple mode is now Starter."
+ "notes": "v684 — dimmed Starter cards now answer a tap with \"Load your shares first\" guidance instead of silently ignoring it. v683 — Today's top scorers rename. v682 — Simple mode is now Starter."
 }

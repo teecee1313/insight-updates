@@ -129,7 +129,7 @@ body:not(.simple-mode) #simplePanel{display:none;}
 .simple-card.sc-amber .sc-title{color:var(--amber);}
 /* ── v212 UX improvements ── */
 /* 2. Cards dim when no data loaded */
-body.simple-no-data .simple-card:not(.sc-always-on){opacity:.45;pointer-events:none;filter:grayscale(.4);}
+body.simple-no-data .simple-card:not(.sc-always-on){opacity:.45;filter:grayscale(.4);} /* v684: taps must reach simpleRun so its "Load your shares first" guidance shows — pointer-events:none made dimmed cards silently dead */
 body.simple-no-data .simple-card:not(.sc-always-on) .sc-emoji{filter:grayscale(1);}
 /* 3. Section dividers in simple grid */
 .simple-section-label{grid-column:1/-1;font:700 9px var(--sans);color:var(--dim);letter-spacing:.8px;text-transform:uppercase;padding:4px 2px 2px;margin-top:2px;}
@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-683-open';
+const APP_VERSION='2026.08.05-684-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
