@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.04-674-open';
+const APP_VERSION='2026.08.04-675-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -22046,6 +22046,16 @@ async function _scServerReplay(shares, need){
     // Ask first whether today is already done — a few hundred bytes instead of
     // tens of megabytes. Only upload the market if the answer is no.
     if(dd){ try{ var hit=await post(Object.assign({},head,{shares:[]})); if(hit)return hit; }catch(e){} }
+    /* v675 - PANTRY FIRST. Ask the worker to grade from ITS OWN store: ~200
+       bytes up instead of tens of megabytes of series this server already
+       holds 99% complete. A w504+ worker answers from _pantrySeries and the
+       whole fleet shares one cached result per day; every refusal names
+       itself (floor too low / pantry not at that day / too thin) and simply
+       drops through to the upload path below, unchanged. A worker older than
+       w504 answers 400 to the empty share list - same fall-through. The
+       upload path is now the fallback, not the road. */
+    if(dd){ try{ var pk=await post(Object.assign({},head,{shares:[],pantry:true})); if(pk){ try{ window._scanVia='pantry'; }catch(e){} return pk; } }catch(e){} }
+    try{ window._scanVia='upload'; }catch(e){}
     var payload=shares.map(function(s){ return {ticker:s.ticker,series:s.series}; });
     return await post(Object.assign({},head,{shares:payload}));
   }catch(e){ return null; }
