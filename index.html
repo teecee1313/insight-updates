@@ -1717,7 +1717,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-686-open';
+const APP_VERSION='2026.08.05-687-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -17734,8 +17734,9 @@ async function simpleLoad(fresh){
       : 'Could not read saved data — try fresh prices.';
     return;
   }
-  // Otherwise we need a live load, which needs an API key.
-  if(!hasKey){
+  // Otherwise we need a live load. Since v382 the Worker supplies the data,
+  // so a key is only required when there is no server. (v687)
+  if(!hasKey && !(typeof _serverData==='function' && _serverData())){
     if(st)st.innerHTML='To load the latest end-of-day prices you need your free data key. Open Advanced to add it, or press Demo to try the app with sample shares.';
     _refreshSimpleLoad();
     return;
@@ -17746,7 +17747,7 @@ async function simpleLoad(fresh){
     else if(typeof startLoad==='function'){ await startLoad(); }
   }catch(e){}
   _refreshSimpleLoad();
-  if(st)st.textContent = (allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load. Open Advanced to check your data key.';
+  if(st)st.textContent = (allData&&allData.length)? (allData.length+' shares ready — tap a button below.') : 'Could not load \u2014 check your internet connection, then tap \u26a1 Load again.';
 }
 
 // ── Simple mode: Market breadth overview ────────────────────────────────────
@@ -18659,11 +18660,22 @@ function setAutoLoad(on){
   // v686 — wake-up loader: on phones the installed app often RESUMES a frozen page
   // instead of re-booting, so the startup loader below never re-runs. If the page
   // wakes with no market in memory but saved data on disk, load it now.
+  // v687 — the saved store is keyed EXCH:CODE; if the selector points at an
+  // exchange with nothing saved, every offline read comes back empty and the
+  // app looks dead. Align the selector to the saved data before disk reads.
+  async function _alignExchToSaved(){
+    try{
+      const sel=document.getElementById('exchSel'); if(!sel) return;
+      const exs=await offlineExchangeList(); if(!exs||!exs.length) return;
+      if(!exs.some(e=>e.exch===sel.value)) sel.value=exs[0].exch;
+    }catch(_){}
+  }
   async function _wakeLoad(why){
     try{
       if(window._wakeLoading) return; 
       if(Array.isArray(allData)&&allData.length) return;
       const c=await histCount(); if(!c) return;
+      try{ await _alignExchToSaved(); }catch(_){}
       window._wakeLoading=true;
       try{ const sst=document.getElementById('simpleStatus'); if(sst) sst.textContent='Waking up \u2014 loading your saved shares\u2026'; }catch(_){}
       try{ await loadOfflineNow(); }catch(_){}
@@ -18672,6 +18684,15 @@ function setAutoLoad(on){
     }catch(_){ window._wakeLoading=false; }
   }
   window.addEventListener('pageshow', function(e){ if(e&&e.persisted) _wakeLoad('pageshow'); });
+  // v687 — startup watchdog: whatever branch boot took, if the market is still
+  // empty after 12s, run the same path as the Load button (which self-reports
+  // into the Starter status) exactly once.
+  setTimeout(function(){ try{
+    if(window._bootWatchdogRan) return; window._bootWatchdogRan=true;
+    if(Array.isArray(allData)&&allData.length) return;
+    if(window._wakeLoading||window._bulkRunning) return;
+    if(typeof simpleLoad==='function') simpleLoad();
+  }catch(_){}} ,12000);
   document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _wakeLoad('visible'); });
   (async function autoStartup(){
     // v380 — access gate: don't run automated data loads while the preview is locked.
@@ -18699,6 +18720,7 @@ function setAutoLoad(on){
       // then fetch today's fresh prices in the background. The old order (live
       // list first) left the screen empty while a slow network ground away.
       setPhase('Step 1 of 2 — showing your saved data');
+      try{ await _alignExchToSaved(); }catch(_){}
       try{ await loadOfflineNow(); }catch(e){}
       if((key || _serverData()) && navigator.onLine!==false){
         setPhase('Step 2 of 2 — fetching today\'s fresh prices in the background');
@@ -18751,6 +18773,7 @@ function setAutoLoad(on){
       }, 2000);
     } else {
       if(ls)ls.innerHTML='<span style="color:var(--gold)">⚙ Enter your API key in Setup &amp; data to begin.</span>';
+      try{ const sst=document.getElementById('simpleStatus'); if(sst)sst.textContent='No saved data and no data source — open Advanced \u2192 Setup & data.'; }catch(_){}
       setPhase('The app will then download everything for offline use automatically');
     }
   })();

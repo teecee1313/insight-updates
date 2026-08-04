@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-686-open",
+ "version": "2026.08.05-687-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v686 — phones that RESUME the app (instead of restarting it) now auto-load saved shares on wake; startup progress is visible in Starter. v685 — My Report auto-run is Advanced-only."
+ "notes": "v687 — startup is self-healing: the exchange selector aligns to your saved data before any disk read; a 12-second watchdog runs the Load path if boot came up empty; live loads no longer demand an API key (the server supplies data); every startup outcome reports into the Starter status line."
 }
