@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-687-open",
+ "version": "2026.08.05-688-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v687 — startup is self-healing: the exchange selector aligns to your saved data before any disk read; a 12-second watchdog runs the Load path if boot came up empty; live loads no longer demand an API key (the server supplies data); every startup outcome reports into the Starter status line."
+ "notes": "v688 — Starter cards light the moment your saved list is in (signals keep preparing behind them), and every load path now shares a single in-flight load, ending the concurrent full-store reads that made phones crawl."
 }
