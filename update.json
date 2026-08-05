@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-688-open",
+ "version": "2026.08.05-689-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v688 — Starter cards light the moment your saved list is in (signals keep preparing behind them), and every load path now shares a single in-flight load, ending the concurrent full-store reads that made phones crawl."
+ "notes": "v689 — 🔗 Connect your broker: a guided 3-step Stake connection in ⚙ Setup & data (via SnapTrade's secure page; your password never touches Insight; approve-each orders only). v688 — instant card lighting + single-flight loads."
 }

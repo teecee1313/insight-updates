@@ -869,6 +869,11 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 <div class="ov-panel" id="ovSetup">
   <div class="ov-head"><div class="ov-title">⚙️ Setup &amp; data</div><button class="ov-close" onclick="closeOverlay()" title="Close">✕</button></div>
   <div class="ov-body">
+    <div class="field" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-weight:700;margin-bottom:4px;">🔗 Connect your broker (Stake)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Optional — practice money needs none of this. Connects through SnapTrade\u2019s secure page; your Stake password never touches Insight. Real orders stay approve-each.</div>
+      <button type="button" onclick="connectBroker()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Connect my broker</button>
+    </div>
     <div class="field">
       <label data-i18n="exchange">Exchange</label>
       <select id="exchSel" onchange="onExchChange()">
@@ -1717,7 +1722,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-688-open';
+const APP_VERSION='2026.08.05-689-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2361,6 +2366,62 @@ let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
 // injection, could repoint every request at an attacker's server permanently —
 // and the fetch wrapper below would then hand them the access key. Nothing in
 // the product needed it.
+// ═════ v689 — guided broker connect (SnapTrade via the worker + bridge) ═════
+function _connStop(){ try{ if(window._connT){clearInterval(window._connT); window._connT=null;} }catch(_){} }
+function connectBroker(){
+  _connStop();
+  showModal('🔗 Connect your broker', '<div id="connBody" style="min-height:90px;font-size:14px;line-height:1.55;">Checking your connection\u2026</div>');
+  fetch(DATA_PROXY+'/connect/start',{method:'POST'}).catch(function(){});
+  _connTick(); window._connT=setInterval(_connTick, 4000);
+}
+async function _connTick(){
+  var el=document.getElementById('connBody');
+  if(!el){ _connStop(); return; }
+  var j=null;
+  try{ var r=await fetch(DATA_PROXY+'/connect/status'); j=await r.json(); }catch(e){ el.innerHTML='Could not reach the server \u2014 check your internet, this screen retries by itself.'; return; }
+  if(!j || j.ok!==true){ el.innerHTML='Could not read your connection status \u2014 retrying\u2026'; return; }
+  if(!j.status || j.status==='requested'){
+    el.innerHTML='<b>Preparing your private connection link\u2026</b><br><span style="color:var(--muted);font-size:12px;">Usually under a minute. This screen updates itself.</span>';
+    return;
+  }
+  if(j.status==='portal_ready'){
+    el.innerHTML='<a href="'+j.portal_url+'" target="_blank" rel="noopener" style="display:inline-block;padding:10px 16px;border-radius:9px;background:var(--gold);color:#1c2333;font-weight:700;text-decoration:none;">Open the secure Stake connection \u2192</a>'
+      +'<div style="margin-top:10px;font-size:13px;">1. Choose <b>Stake AUS</b> (not Stake US).<br>2. Log in on SnapTrade\u2019s page \u2014 your password never touches Insight.<br>3. Approve, then come back \u2014 this screen updates itself.</div>';
+    return;
+  }
+  if(j.status==='connected'){
+    var accs=Array.isArray(j.accounts)?j.accounts:[];
+    if(j.account_id){
+      _connStop();
+      var pick=null; for(var i=0;i<accs.length;i++){ if(accs[i]&&accs[i].id===j.account_id) pick=accs[i]; }
+      el.innerHTML='\u2705 <b>Connected.</b> Orders will queue against <b>'+((pick&&(pick.name||pick.number))||j.account_id)+'</b> \u2014 approve-each, nothing places on its own.';
+      return;
+    }
+    if(!accs.length){ el.innerHTML='\u2705 Connected \u2014 waiting for your account list\u2026'; return; }
+    var h='<b>Connected \u2014 pick the account to use:</b><div style="margin:8px 0;">';
+    for(var i2=0;i2<accs.length;i2++){ var a=accs[i2]||{};
+      h+='<label style="display:block;margin:4px 0;"><input type="radio" name="connAcct" value="'+(a.id||'')+'"> '+(a.name||'Account')+' '+(a.number?('\u00b7 '+a.number):'')+'</label>';
+    }
+    h+='</div><button type="button" onclick="_connChoose()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Use this account</button>';
+    el.innerHTML=h;
+    return;
+  }
+  if(j.status==='failed'){
+    _connStop();
+    el.innerHTML='\u26a0 The connection attempt failed'+(j.note?(': '+j.note):'.')+'<br><button type="button" onclick="_connRetry()" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Try again</button>';
+  }
+}
+async function _connChoose(){
+  var sel=document.querySelector('input[name=connAcct]:checked');
+  if(!sel||!sel.value) return;
+  try{ await fetch(DATA_PROXY+'/connect/choose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account_id:sel.value})}); }catch(e){}
+  _connTick();
+}
+function _connRetry(){
+  fetch(DATA_PROXY+'/connect/start?force=1',{method:'POST'}).catch(function(){});
+  var el=document.getElementById('connBody'); if(el)el.innerHTML='Starting again\u2026';
+  if(!window._connT) window._connT=setInterval(_connTick,4000);
+}
 function _serverData(){ return (typeof DATA_PROXY==='string' && !!DATA_PROXY); } // v382: the Worker provides the data, so no user API key is needed
 // ═══ v380 — ACCESS GATE (client side) ══════════════════════════════════════
 // A shared "tester password" that the Worker enforces server-side (it refuses to
