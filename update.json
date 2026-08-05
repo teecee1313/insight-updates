@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-689-open",
+ "version": "2026.08.05-690-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v689 — 🔗 Connect your broker: a guided 3-step Stake connection in ⚙ Setup & data (via SnapTrade's secure page; your password never touches Insight; approve-each orders only). v688 — instant card lighting + single-flight loads."
+ "notes": "v690 — the radar now says when the six SIGNALS counts are still preparing (they are the slow tail of the signal pass), and offers a one-tap “prepare now” if the pass never ran. v689 — guided broker connect."
 }
