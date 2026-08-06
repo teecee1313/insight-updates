@@ -3512,6 +3512,18 @@ async function checkForUpdate(){
     const info=await r.json();
     if(!info||!info.version)return;
     if(_verNum(info.version)<=_verNum(APP_VERSION))return; // already current
+    // v693 — self-applying updates. Within the first 15s of a fresh boot a
+    // newer version applies itself (cache-busted reload); the updTried guard
+    // means a CDN still serving the old file can never cause a reload loop.
+    // Later discoveries (wake/interval checks) show the toast instead of
+    // yanking the app mid-work.
+    try{
+      var _tried=localStorage.getItem('asxScreener.updTried.v1');
+      if(_tried!==info.version && (Date.now()-(window._bootT0||0))<15000){
+        localStorage.setItem('asxScreener.updTried.v1', info.version);
+        _updApply(); return;
+      }
+    }catch(e){}
     showUpdateToast(info);
   }catch(e){/* offline / host down → silent; never bothers the user */}
 }
@@ -3544,7 +3556,13 @@ async function checkForUpdateNow(){
     }
   }catch(e){ say('⚠ Update check failed (likely offline). Your app still works normally.'); }
 }
+window._bootT0=Date.now();
 setTimeout(checkForUpdate, 5000);
+// v693 — one boot-time check was the whole update system; phones that RESUME
+// instead of rebooting could sit on last week's app forever. Re-check on
+// every wake and every 30 minutes; those later finds toast rather than reload.
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') checkForUpdate(); });
+setInterval(checkForUpdate, 1800000);
 // Show the running version in the footer so anyone can read it at a glance.
 function _setVerLabel(){try{const el=document.getElementById('verLabel');if(el)el.textContent='Insight Trading · version '+APP_VERSION;}catch(e){}}
 if(document.readyState!=='loading')_setVerLabel();else document.addEventListener('DOMContentLoaded',_setVerLabel);
