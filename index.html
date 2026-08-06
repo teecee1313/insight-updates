@@ -1722,7 +1722,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-691-open';
+const APP_VERSION='2026.08.06-692-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7139,7 +7139,7 @@ function _apPrepShare(s){
       const older=ser.slice(0,-5); let vs=0,vn=0; older.forEach(function(x){ if(x.v>0){vs+=x.v;vn++;} });
       const avgV=vn>0?vs/vn:(s.avgVol||0); let vrun=0;
       if(avgV>0){ for(let k=ser.length-1;k>=0;k--){ if(ser[k].v>0&&ser[k].v>avgV)vrun++; else break; } }
-      s.volDays=vrun; s.volStreakCalced=true; }catch(e){} }
+      s.volDays=vrun; s.volStreakCalced=!0; _liveTodayFix(s,ser,avgV); }catch(e){} }
     if(s.sigBreakout==null&&s.instBuy==null){ try{ _setPatternFlags(s,ser.map(function(r){return {date:r.d,close:r.c,volume:r.v};})); }catch(e){} }
     if(s.rsi==null){ try{ const _cl=ser.map(function(r){return r.c;}); s.rsi=_rsi(_cl,14); s.rsiState=s.rsi==null?null:(s.rsi>=70?'overbought':s.rsi<=30?'oversold':'neutral'); }catch(e){} }
     if(s.accum10==null){ try{ s.accum10=accumDays(s,10); }catch(e){} }
@@ -13468,6 +13468,25 @@ function buyingStreak(s){
 // Count qualifying days in the last N (default 10): price rose AND volume ran
 // ≥50% above its average. NOT necessarily consecutive — a running total. This
 // catches persistent accumulation over a fortnight even with the odd down day.
+function _liveTodayFix(s, rows, avgV){
+  // v692 — the saved series often ends YESTERDAY (today's bar only joins it at
+  // the nightly download), while s.volume/chgPct are TODAY's live numbers. The
+  // volume streak and 10-day accumulation walked only the series, so "2.6x
+  // average today" could sit beside "0 days above avg". If the live bar is not
+  // in the series yet, count today as the first step of both walks.
+  try{
+    var last=(rows&&rows.length)?rows[rows.length-1]:null;
+    var liveV=+s.volume||0;
+    if(!last||!liveV||!(avgV>0))return;
+    if(+last.v===liveV)return;              // series already carries today's bar
+    if(s.chgPct==null)return;               // no live day to add
+    if(liveV>avgV) s.volDays=(s.volDays||0)+1; else s.volDays=0;
+    if(typeof s.accum10==='number'){
+      var heavy=(liveV/avgV)>=1.5, held=(+s.chgPct)>=-5;
+      if(heavy&&held) s.accum10=Math.min(10,(s.accum10||0)+1);
+    }
+  }catch(_){ }
+}
 function accumDays(s,window){
   const ser=s.series;
   if(!Array.isArray(ser)||ser.length<3)return 0;
@@ -14074,7 +14093,7 @@ async function _computeSignalsFromSeries(){
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
         if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
-        s.volDays=vrun; s.volStreakCalced=true;
+        s.volDays=vrun; s.volStreakCalced=true; _liveTodayFix(s,rows,avgV);
       }catch(e){}
       try{computeTechnicals(s,hist,_rows||undefined);}catch(e){}
       if(typeof accumDays==='function')s.accum10=accumDays(s,10);
@@ -14118,7 +14137,7 @@ async function _freshenSeriesFromBulk(){
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
         if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
-        s.volDays=vrun; s.volStreakCalced=true;
+        s.volDays=vrun; s.volStreakCalced=true; _liveTodayFix(s,rows,avgV);
       }catch(e){}
       try{computeTechnicals(s,hist2);}catch(e){}
       if(typeof accumDays==='function')s.accum10=accumDays(s,10);
@@ -15515,7 +15534,7 @@ async function prepareAllSignals(auto){
               const avgV=vn>0?vs/vn:(s.avgVol||0);
               let vrun=0;
               if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
-              s.volDays=vrun; s.volStreakCalced=true;
+              s.volDays=vrun; s.volStreakCalced=true; _liveTodayFix(s,rows,avgV);
             }catch(e){}
             computeTechnicals(s,hist,srows);
             if(typeof accumDays==='function')s.accum10=accumDays(s,10);

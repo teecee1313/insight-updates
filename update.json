@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-691-open",
+ "version": "2026.08.06-692-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v691 — one signal-preparation per dataset (boot no longer stacks and restarts the heavy pass) and the live loader is single-flight across all 12 call sites. v690 — radar prep chip."
+ "notes": "v692 — the volume streak and 10-day accumulation now count TODAY's live bar when your saved history ends yesterday, so “2.6× average today” can never sit beside “0 days above avg” again."
 }
