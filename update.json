@@ -1,5 +1,5 @@
 {
- "version": "2026.08.07-696-open",
+ "version": "2026.08.07-697-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v696 — pre-open placeholder bars (a handful of pre-market trades) no longer count as the newest session: the volume streak and 10-day accumulation now skip any tail bar under 1% of average volume, so early-morning opens show the same honest numbers as evening ones. GML-style: streak now reads its true 4 days."
+ "notes": "v697 — the Starter search now actually searches shares: type a code or name, tap a result, its report opens. (It previously filtered the menu cards by their titles, which found nothing.)"
 }

@@ -1728,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.07-696-open';
+const APP_VERSION='2026.08.07-697-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -17894,23 +17894,37 @@ async function _loadOfflineExchange(exch){
   if(st)st.textContent = (allData&&allData.length) ? (allData.length+' '+exch+' shares ready. Tap a report below.') : ('Could not read saved '+exch+' data.');
 }
 // ── v212: Quick search in simple mode ─────────────────────────────────────
-function _simpleSearch(query){
+function _simpleSearch(query){ // v697 - it used to hide/show the CARDS by title text, so typing a
+  // ticker hid everything and found nothing. Now it searches the shares.
   const q=(query||'').trim().toLowerCase();
-  const cards=document.querySelectorAll('#simplePanel .simple-card:not(.sc-always-on)');
-  // When no data, searching is a no-op (cards are already dimmed/disabled)
-  if(!Array.isArray(allData)||!allData.length) return;
-  if(!q){
-    // Clear any previous search filtering; show all cards
-    cards.forEach(c=>c.style.display='');
-    return;
+  let box=document.getElementById('simpleSearchResults');
+  if(!box){
+    box=document.createElement('div'); box.id='simpleSearchResults';
+    box.style.cssText='display:none;margin:-2px 0 8px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);overflow:hidden;';
+    const inp=document.getElementById('simpleSearch'); if(inp&&inp.parentNode) inp.parentNode.insertBefore(box, inp.nextSibling);
   }
-  // Show only cards whose title/sub contain the query
-  cards.forEach(c=>{
-    const text=(c.textContent||'').toLowerCase();
-    c.style.display = text.includes(q) ? '' : 'none';
-  });
-  // Also if we want to search actual share data — only do so if in a scan
-  // (future: could open search results inline)
+  if(!q || q.length<2 || !Array.isArray(allData) || !allData.length){ box.style.display='none'; box.innerHTML=''; return; }
+  const hits=[]; const qU=q.toUpperCase();
+  for(let i2=0;i2<allData.length && hits.length<8;i2++){
+    const x=allData[i2]; if(!x) continue;
+    const tk=String(x.ticker||x.code||''); const nm=String(x.name||'');
+    if(tk.toUpperCase().startsWith(qU) || nm.toLowerCase().includes(q)) hits.push(x);
+  }
+  if(!hits.length){ box.style.display='block'; box.innerHTML='<div style="padding:9px 12px;font-size:13px;color:var(--muted);">No shares match \u201c'+q.replace(/</g,'&lt;')+'\u201d</div>'; return; }
+  box.innerHTML=hits.map(function(x){ const tk=String(x.ticker||x.code||'');
+    const chg=(x.chgPct!=null&&isFinite(x.chgPct))?((x.chgPct>=0?'+':'')+(+x.chgPct).toFixed(2)+'%'):'';
+    const col=(x.chgPct>0)?'var(--green)':(x.chgPct<0)?'#ff8b8b':'var(--muted)';
+    return '<div onclick="_simpleSearchOpen(\''+tk.replace(/[^A-Za-z0-9.]/g,'')+'\')" style="display:flex;justify-content:space-between;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px;">'
+      +'<span><b>'+tk+'</b> <span style="color:var(--muted);font-size:12px;">'+String(x.name||'').slice(0,28).replace(/</g,'&lt;')+'</span></span>'
+      +'<span style="color:'+col+';font-weight:600;">'+chg+'</span></div>';
+  }).join('');
+  box.style.display='block';
+}
+function _simpleSearchOpen(tk){
+  try{ const box=document.getElementById('simpleSearchResults'); if(box){box.style.display='none'; box.innerHTML='';}
+    const inp=document.getElementById('simpleSearch'); if(inp) inp.value='';
+    deepDive(tk);
+  }catch(e){}
 }
 async function simpleLoad(fresh){
   const st=document.getElementById('simpleStatus');
