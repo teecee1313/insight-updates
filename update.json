@@ -1,5 +1,5 @@
 {
- "version": "2026.08.07-697-open",
+ "version": "2026.08.07-698-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v697 — the Starter search now actually searches shares: type a code or name, tap a result, its report opens. (It previously filtered the menu cards by their titles, which found nothing.)"
+ "notes": "v698 — Starter is now clean: the Advanced table zone (second search bar, sort toolbar, big table) is hidden under Starter. Cards, radar and the Starter search remain; Advanced is unchanged."
 }
