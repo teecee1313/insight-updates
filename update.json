@@ -1,5 +1,5 @@
 {
- "version": "2026.08.07-695-open",
+ "version": "2026.08.07-696-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v695 — the volume streak and accumulation now ignore tradeless placeholder bars (a pre-open bar with zero volume was breaking the walk on its first step), the fresh-day heal never writes such bars again, and server-store dates are read correctly."
+ "notes": "v696 — pre-open placeholder bars (a handful of pre-market trades) no longer count as the newest session: the volume streak and 10-day accumulation now skip any tail bar under 1% of average volume, so early-morning opens show the same honest numbers as evening ones. GML-style: streak now reads its true 4 days."
 }
