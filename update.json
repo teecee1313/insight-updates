@@ -1,5 +1,5 @@
 {
- "version": "2026.08.05-690-open",
+ "version": "2026.08.05-691-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v690 — the radar now says when the six SIGNALS counts are still preparing (they are the slow tail of the signal pass), and offers a one-tap “prepare now” if the pass never ran. v689 — guided broker connect."
+ "notes": "v691 — one signal-preparation per dataset (boot no longer stacks and restarts the heavy pass) and the live loader is single-flight across all 12 call sites. v690 — radar prep chip."
 }

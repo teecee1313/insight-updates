@@ -1722,7 +1722,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.05-690-open';
+const APP_VERSION='2026.08.05-691-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15352,6 +15352,16 @@ function _setPatternFlags(s,hist){
 async function prepareAllSignals(auto){
   const apiKey=(document.getElementById('apiKey')||{}).value.trim();
   if(!allData.length)return;
+  // v691: ONE prepare per dataset. Boot could stack runs - the offline load,
+  // the background fresh-price load, a wake, the watchdog - and each restart
+  // threw away minutes of work on a full market. Identical data joins or
+  // skips; genuinely new data (fresh prices) still re-runs.
+  try{
+    var _psig=(currentExch||'')+'|'+allData.length+'|'+((allData[0]&&allData[0].code)||'')+'|'+((allData[0]&&allData[0].price)||'')+'|'+((allData[allData.length-1]&&allData[allData.length-1].code)||'');
+    if(window._prepRunning && window._prepSig===_psig) return;
+    if(!window._forceLiveRefresh && window._prepDoneSig===_psig) return;
+    window._prepSig=_psig;
+  }catch(_){}
   // We can prepare signals from EITHER a live API key OR the offline cache. Only
   // bail if we have neither (nothing to fetch history with).
   let haveOffline=false;
@@ -15582,6 +15592,7 @@ async function prepareAllSignals(auto){
         ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>${_presetNote}`;
       }
     }
+    window._prepDoneSig=window._prepSig; // v691: this dataset is done
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
   finally{window._prepRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function'){ var _wi=function(){ try{_auditWarmIdle();}catch(e2){} }; if(window.requestIdleCallback)requestIdleCallback(_wi,{timeout:3500}); else setTimeout(_wi,1200); }}catch(e){}/* v551: auto-warm stays automatic but yields to first paint */
   try{ if(!window._prepAbort&&typeof _evWarm==='function')setTimeout(function(){ try{_evWarm();}catch(e){} },1200); }catch(e){}   // v463: grade the day once the data is ready, so the radar fills itself in
@@ -17044,7 +17055,13 @@ function mapRecord(r,exch,currency,today){
 // ═══════════════════════════════════
 /* v362: ask the browser not to evict this site's saved data (offline history, watchlists, portfolio) under storage pressure — best-effort, silently ignored where unsupported */
 (function(){ try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persisted().then(function(p){ if(!p)navigator.storage.persist(); }).catch(function(){}); } }catch(e){} })();
-async function loadData(userClick){
+function loadData(userClick){ // v691 single-flight: 12 call sites (boot step 2, scheduled fetch, buttons) could stack full live loads
+  if(window._liveBusy) return window._liveBusy;
+  const _p=_loadDataInner(userClick);
+  window._liveBusy=_p; _p.then(function(){window._liveBusy=null;},function(){window._liveBusy=null;});
+  return _p;
+}
+async function _loadDataInner(userClick){
   if(typeof _histClearCache==="function")_histClearCache();
   let apiKey=document.getElementById('apiKey').value.trim();
   // v362: at startup the key box may not be restored yet (init is async), which
