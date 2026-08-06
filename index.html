@@ -1728,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.06-694-open';
+const APP_VERSION='2026.08.07-695-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7219,7 +7219,7 @@ function _apPrepShare(s){
     if(!s.volStreakCalced){ try{
       const older=ser.slice(0,-5); let vs=0,vn=0; older.forEach(function(x){ if(x.v>0){vs+=x.v;vn++;} });
       const avgV=vn>0?vs/vn:(s.avgVol||0); let vrun=0;
-      if(avgV>0){ for(let k=ser.length-1;k>=0;k--){ if(ser[k].v>0&&ser[k].v>avgV)vrun++; else break; } }
+      if(avgV>0){ let k=ser.length-1; while(k>=0&&!(ser[k].v>0))k--; /* v695: skip tradeless tail */ for(;k>=0;k--){ if(ser[k].v>0&&ser[k].v>avgV)vrun++; else break; } }
       s.volDays=vrun; s.volStreakCalced=!0; _liveTodayFix(s,ser,avgV); }catch(e){} }
     if(s.sigBreakout==null&&s.instBuy==null){ try{ _setPatternFlags(s,ser.map(function(r){return {date:r.d,close:r.c,volume:r.v};})); }catch(e){} }
     if(s.rsi==null){ try{ const _cl=ser.map(function(r){return r.c;}); s.rsi=_rsi(_cl,14); s.rsiState=s.rsi==null?null:(s.rsi>=70?'overbought':s.rsi<=30?'oversold':'neutral'); }catch(e){} }
@@ -12784,7 +12784,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
             const _ad=(typeof allData!=='undefined'&&Array.isArray(allData))?allData:(window.allData||[]);
             const live=_ad.find(x=>x.ticker===ticker&&x.exchange===exch);
             const q=live&&live._q;
-            if(q&&q.c>0&&lastD&&dd>lastD&&(new Date(dd)-new Date(lastD))<=4*86400000){
+            if(q&&q.c>0&&q.v>0&&lastD&&dd>lastD&&(new Date(dd)-new Date(lastD))<=4*86400000){ // v695: q.v>0 - a healed day without volume broke every streak walk at the newest bar
               const newRow={dateStamp:dd,open:q.o!=null?q.o:q.c,high:q.h!=null?q.h:q.c,low:q.l!=null?q.l:q.c,close:q.c,volume:q.v||0};
               const healed=stored.rows.concat([newRow]);
               histPut(exch,ticker,healed);
@@ -13075,7 +13075,7 @@ function _sortedCloses(history){
   // v231: no caching here — a session-long cache retained a second copy of every
   // share's history and pushed low-RAM machines into memory thrash. The prepare
   // loop now sorts once per share explicitly and passes the rows around instead.
-  const gd=q=>String(qField(q,['dateStamp','date','Date'])||'');
+  const gd=q=>String(qField(q,['d','dateStamp','date','Date'])||''); // v695: pantry rows are {d,c,v} - without 'd' every server-store row carried a blank date
   const gc=q=>parseFloat(qField(q,['close','Close','c']));
   const gh=q=>parseFloat(qField(q,['high','High','h']));
   const gl=q=>parseFloat(qField(q,['low','Low','l']));
@@ -13559,6 +13559,16 @@ function _liveTodayFix(s, rows, avgV){
     var last=(rows&&rows.length)?rows[rows.length-1]:null;
     var liveV=+s.volume||0;
     if(!last||!liveV||!(avgV>0))return;
+    // v695: healed rows could carry volume 0 (feed had no volume yet). The walk
+    // then broke at the NEWEST bar and reported a 0-day streak beside 2.6x
+    // volume. Skip terminal volumeless bars and recompute from real data.
+    var k=rows.length-1; while(k>=0 && !((+rows[k].v||+rows[k].volume||0)>0)) k--;
+    if(k<rows.length-1){
+      var run=0, kk=k;
+      while(kk>=0){ var vv=(+rows[kk].v||+rows[kk].volume||0); if(vv>0&&vv>avgV){run++;kk--;} else break; }
+      s.volDays=run;
+      try{ if(typeof accumDays==='function'&&typeof s.accum10==='number'){ s.accum10=accumDays({series:rows.slice(0,k+1).map(function(r){return {d:r.d||r.dateStamp||'',c:(+r.c||+r.close||0),v:(+r.v||+r.volume||0)};})},10); } }catch(_){}
+    }
     if(+last.v===liveV)return;              // series already carries today's bar
     if(s.chgPct==null)return;               // no live day to add
     if(liveV>avgV) s.volDays=(s.volDays||0)+1; else s.volDays=0;
@@ -13577,9 +13587,10 @@ function accumDays(s,window){
   let bsum=0,bn=0;(older.length?older:ser).forEach(x=>{if(x.v>0){bsum+=x.v;bn++;}});
   const baseVol=bn>0?bsum/bn:(s.avgVol||0);
   if(baseVol<=0)return 0;
-  const startIdx=Math.max(1,ser.length-W); // first index of the window (need a prior day)
+  let _endA=ser.length; while(_endA>1&&!(ser[_endA-1].v>0))_endA--; // v695: window ends at the last traded bar
+  const startIdx=Math.max(1,_endA-W); // first index of the window (need a prior day)
   let count=0;
-  for(let i=startIdx;i<ser.length;i++){
+  for(let i=startIdx;i<_endA;i++){
     const c=ser[i].c, p=ser[i-1].c, v=ser[i].v;
     const priceUp = p>0 && c>p;                 // closed higher than the prior day
     const heavyVol = v>0 && (v/baseVol)>=1.5;   // ≥50% above average
@@ -14173,7 +14184,7 @@ async function _computeSignalsFromSeries(){
         let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
-        if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
+        if(avgV>0){ let k=rows.length-1; while(k>=0&&!(rows[k].v>0))k--; /* v695 */ for(;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
         s.volDays=vrun; s.volStreakCalced=true; _liveTodayFix(s,rows,avgV);
       }catch(e){}
       try{computeTechnicals(s,hist,_rows||undefined);}catch(e){}
@@ -14217,7 +14228,7 @@ async function _freshenSeriesFromBulk(){
         let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
-        if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
+        if(avgV>0){ let k=rows.length-1; while(k>=0&&!(rows[k].v>0))k--; /* v695 */ for(;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
         s.volDays=vrun; s.volStreakCalced=true; _liveTodayFix(s,rows,avgV);
       }catch(e){}
       try{computeTechnicals(s,hist2);}catch(e){}
@@ -15614,7 +15625,7 @@ async function prepareAllSignals(auto){
               let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
               const avgV=vn>0?vs/vn:(s.avgVol||0);
               let vrun=0;
-              if(avgV>0){ for(let k=rows.length-1;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
+              if(avgV>0){ let k=rows.length-1; while(k>=0&&!(rows[k].v>0))k--; /* v695 */ for(;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
               s.volDays=vrun; s.volStreakCalced=true; _liveTodayFix(s,rows,avgV);
             }catch(e){}
             computeTechnicals(s,hist,srows);
@@ -16801,7 +16812,8 @@ async function bulkMonthAverageByDates(apiKey,say){
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
         if(avgV>0){
-          for(let i=rec.closes.length-1;i>=0;i--){
+          let i0=rec.closes.length-1; while(i0>=0&&!(rec.closes[i0].v>0))i0--; // v695: skip tradeless tail
+          for(let i=i0;i>=0;i--){
             if(rec.closes[i].v>0 && rec.closes[i].v>avgV)vrun++; else break;
           }
         }
@@ -16955,7 +16967,7 @@ async function bulkVolume(){
         s.volPct=avg>0?Math.round((vols[vols.length-1]-avg)/avg*100):0;
         s.volCalced=true; s.volWindow=s.volWindow||'demo';
         // volume-above-average streak
-        let vd=0; for(let i=vols.length-1;i>=0;i--){if(vols[i]>avg)vd++;else break;}
+        let vd=0; { let i=vols.length-1; while(i>=0&&!(vols[i]>0))i--; /* v695 */ for(;i>=0;i--){if(vols[i]>avg)vd++;else break;} }
         s.volDays=vd; s.volStreakCalced=true;
         _liveTodayFix(s,[{v:vols[vols.length-1]}],avg); // v694: second escaped site
       }

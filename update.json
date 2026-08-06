@@ -1,5 +1,5 @@
 {
- "version": "2026.08.06-694-open",
+ "version": "2026.08.07-695-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v694 — the volume-streak fix now covers the two computation paths that slipped v692 (GML-style “2.6× average but 0-day streak” ends for every share), and the ⭐ auto-apply banner is a proper full-width bar that waits for loading to finish so its counts are truthful."
+ "notes": "v695 — the volume streak and accumulation now ignore tradeless placeholder bars (a pre-open bar with zero volume was breaking the walk on its first step), the fresh-day heal never writes such bars again, and server-store dates are read correctly."
 }
