@@ -1,5 +1,5 @@
 {
- "version": "2026.08.07-699-open",
+ "version": "2026.08.07-700-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v699 — tap the Volume-streak row in any deep dive to see exactly how it was computed: the stored rows, the processed series, and a live recount. v698 — Starter shows only cards, radar and its own search."
+ "notes": "v700 — the volume streak and 10-day accumulation now measure against the recent 3-MONTH average (the same number the report shows), not the whole stored year. Shares that were loud a year ago and quieter lately could never streak before; GML now reads its true 4 days."
 }

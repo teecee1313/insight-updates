@@ -1728,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.07-699-open';
+const APP_VERSION='2026.08.07-700-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -7217,7 +7217,7 @@ function _apPrepShare(s){
       const a=vn>0?vs/vn:0;
       if(a>0){ s.avg3mo=s.avg3mo||a; s.avgVol=s.avgVol||a; if(s.volume>0&&s.volPct==null)s.volPct=Math.round(((s.volume-a)/a)*100); s.volCalced=true; s.volWindow=effVolWindowLabel(); } }catch(e){} }
     if(!s.volStreakCalced){ try{
-      const older=ser.slice(0,-5); let vs=0,vn=0; older.forEach(function(x){ if(x.v>0){vs+=x.v;vn++;} });
+      const older=ser.slice(0,-5); let vs=0,vn=0; older.slice(-63).forEach(function(x){ if(x.v>0){vs+=x.v;vn++;} }); /* v700: 3-month baseline, not all-history */
       const avgV=vn>0?vs/vn:(s.avgVol||0); let vrun=0;
       if(avgV>0){ let k=ser.length-1; while(k>=0&&!(ser[k].v>avgV*0.01))k--; /* v696: skip pre-open dust bars too - a healed today-bar with a handful of trades broke the walk at step one */ for(;k>=0;k--){ if(ser[k].v>0&&ser[k].v>avgV)vrun++; else break; } }
       s.volDays=vrun; s.volStreakCalced=!0; _liveTodayFix(s,ser,avgV); }catch(e){} }
@@ -13584,7 +13584,7 @@ function accumDays(s,window){
   const W=window||10;
   // baseline avg volume from the part of the series BEFORE the window we count
   const older=ser.slice(0,-W);
-  let bsum=0,bn=0;(older.length?older:ser).forEach(x=>{if(x.v>0){bsum+=x.v;bn++;}});
+  let bsum=0,bn=0;(older.length?older:ser).slice(-63).forEach(x=>{if(x.v>0){bsum+=x.v;bn++;}}); /* v700: 3-month baseline */
   const baseVol=bn>0?bsum/bn:(s.avgVol||0);
   if(baseVol<=0)return 0;
   let _endA=ser.length; while(_endA>1&&!(ser[_endA-1].v>baseVol*0.01))_endA--; // v696: window ends at the last REAL session (dust pre-open bars excluded)
@@ -14181,7 +14181,7 @@ async function _computeSignalsFromSeries(){
       try{
         const rows=_sortedCloses(hist); _rows=rows;
         const older=rows.slice(0,-5);
-        let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
+        let vs=0,vn=0; older.slice(-63).forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}}); /* v700 */
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
         if(avgV>0){ let k=rows.length-1; while(k>=0&&!(rows[k].v>avgV*0.01))k--; /* v696 */ for(;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
@@ -14225,7 +14225,7 @@ async function _freshenSeriesFromBulk(){
       try{
         const rows=_sortedCloses(hist2);
         const older=rows.slice(0,-5);
-        let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
+        let vs=0,vn=0; older.slice(-63).forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}}); /* v700 */
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
         if(avgV>0){ let k=rows.length-1; while(k>=0&&!(rows[k].v>avgV*0.01))k--; /* v696 */ for(;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
@@ -14853,7 +14853,7 @@ async function _streakWhy(tk){
     function walk(arr,label){
       if(!arr||!arr.length){ L.push(label+': no rows'); return; }
       var gv=function(r){ var v=(r.v!=null?r.v:r.volume); return (+v||0); };
-      var vs=0,vn=0; arr.forEach(function(r){ var v=gv(r); if(v>0){vs+=v;vn++;} });
+      var vs=0,vn=0; arr.slice(0,-5).slice(-63).forEach(function(r){ var v=gv(r); if(v>0){vs+=v;vn++;} }); // v700 baseline = recent ~3 months
       var avg=vn?vs/vn:0; var k=arr.length-1;
       while(k>=0 && !(gv(arr[k])>avg*0.01)) k--;
       var run=0; for(;k>=0;k--){ if(gv(arr[k])>0 && gv(arr[k])>avg) run++; else break; }
@@ -15652,7 +15652,7 @@ async function prepareAllSignals(auto){
             try{
               const rows=srows;
               const older=rows.slice(0,-5);
-              let vs=0,vn=0; older.forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}});
+              let vs=0,vn=0; older.slice(-63).forEach(x=>{const v=x.v; if(v>0){vs+=v;vn++;}}); /* v700 */
               const avgV=vn>0?vs/vn:(s.avgVol||0);
               let vrun=0;
               if(avgV>0){ let k=rows.length-1; while(k>=0&&!(rows[k].v>avgV*0.01))k--; /* v696 */ for(;k>=0;k--){ if(rows[k].v>0 && rows[k].v>avgV)vrun++; else break; } }
@@ -16838,7 +16838,7 @@ async function bulkMonthAverageByDates(apiKey,say){
       // Uses the same series; average from the earlier part of the window.
       {
         const older=rec.closes.slice(0,-5);
-        let vs=0,vn=0;older.forEach(x=>{if(x.v>0){vs+=x.v;vn++;}});
+        let vs=0,vn=0;older.slice(-63).forEach(x=>{if(x.v>0){vs+=x.v;vn++;}}); /* v700 */
         const avgV=vn>0?vs/vn:(s.avgVol||0);
         let vrun=0;
         if(avgV>0){
