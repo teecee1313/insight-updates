@@ -1,5 +1,5 @@
 {
- "version": "2026.08.06-692-open",
+ "version": "2026.08.06-693-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v692 — the volume streak and 10-day accumulation now count TODAY's live bar when your saved history ends yesterday, so “2.6× average today” can never sit beside “0 days above avg” again."
+ "notes": "v693 — when ⭐ My Report auto-run narrows your view at boot, a banner now says so with one-tap “Show full market” and “Turn auto-run off”. New in ⚙ Setup & data: 🧹 Remove old exchange data — clears retired NYSE history (~3,300 shares on long-standing devices) for lighter, faster loads."
 }

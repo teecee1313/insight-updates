@@ -874,6 +874,12 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Optional — practice money needs none of this. Connects through SnapTrade\u2019s secure page; your Stake password never touches Insight. Real orders stay approve-each.</div>
       <button type="button" onclick="connectBroker()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Connect my broker</button>
     </div>
+    <div class="field" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-weight:700;margin-bottom:4px;">🧹 Remove old exchange data</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Deletes saved history for exchanges other than the one you use (e.g. retired NYSE data). Frees storage and speeds up every load. Your ASX data, portfolio and lists are untouched.</div>
+      <button type="button" onclick="cleanOldExchanges()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Clean up now</button>
+      <span id="cleanExMsg" style="font-size:12px;margin-left:8px;"></span>
+    </div>
     <div class="field">
       <label data-i18n="exchange">Exchange</label>
       <select id="exchSel" onchange="onExchChange()">
@@ -1722,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.06-692-open';
+const APP_VERSION='2026.08.06-693-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2367,6 +2373,36 @@ let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
 // and the fetch wrapper below would then hand them the access key. Nothing in
 // the product needed it.
 // ═════ v689 — guided broker connect (SnapTrade via the worker + bridge) ═════
+async function cleanOldExchanges(){ // v693 — 7,734 saved shares when the ASX is ~4,400: the rest is retired-exchange history slowing every load
+  var msg=document.getElementById('cleanExMsg');
+  var say=function(t,c){ if(msg){msg.textContent=t; msg.style.color=c||'var(--muted)';} };
+  try{
+    var keep=(document.getElementById('exchSel')||{}).value||'ASX';
+    var exs=await offlineExchangeList();
+    var others=(exs||[]).filter(function(e){return e.exch!==keep;});
+    if(!others.length){ say('Nothing to clean — only '+keep+' data is saved. ✓','var(--green)'); return; }
+    var total=others.reduce(function(a,e){return a+(e.count||0);},0);
+    var names=others.map(function(e){return e.exch+' ('+(e.count||0).toLocaleString()+')';}).join(', ');
+    if(!confirm('Delete saved history for '+names+'?\n\nYour '+keep+' data, portfolio and lists are untouched. This cannot be undone (a re-download would restore it).')) return;
+    say('Cleaning\u2026');
+    var db=await cacheOpen(); if(!db){ say('Could not open the data store.','#ff8b8b'); return; }
+    var freed=0;
+    for(var i=0;i<others.length;i++){
+      var ex=others[i].exch;
+      freed+=await new Promise(function(res){
+        try{
+          var tx=db.transaction(HIST_STORE,'readwrite'), st=tx.objectStore(HIST_STORE);
+          var rng=IDBKeyRange.bound(ex+':', ex+':\uffff');
+          var nDel=0, cur=st.openCursor(rng);
+          cur.onsuccess=function(e2){ var c=e2.target.result; if(c){ c.delete(); nDel++; c.continue(); } };
+          tx.oncomplete=function(){ res(nDel); }; tx.onerror=function(){ res(nDel); };
+        }catch(_){ res(0); }
+      });
+    }
+    say('\u2713 Removed '+freed.toLocaleString()+' saved shares from '+others.map(function(e){return e.exch;}).join(', ')+'. Loads will be lighter from the next open.','var(--green)');
+    try{ if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad(); }catch(_){}
+  }catch(e){ say('Cleanup failed: '+(e&&e.message||e),'#ff8b8b'); }
+}
 function _connStop(){ try{ if(window._connT){clearInterval(window._connT); window._connT=null;} }catch(_){} }
 function connectBroker(){
   _connStop();
@@ -4423,8 +4459,27 @@ function maybeAutoMyReport(){
     if(!localStorage.getItem(MYREPORT_KEY))return;
     if(!allData.length)return;
     applyMyReport();
+    // v693 — auto-run kept surprising its own owner: the only trace was a tiny
+    // message in the report row, so a boot landing on 27-of-4,426 read as "only
+    // 27 shares loaded". Say it loudly, with one-tap outs.
+    setTimeout(function(){ try{
+      var old=document.getElementById('myRepBanner'); if(old)old.remove();
+      var shown=(typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered.length:null;
+      if(shown!=null && shown===allData.length) return; // report didn't narrow anything - no banner needed
+      var b=document.createElement('div'); b.id='myRepBanner';
+      b.style.cssText='position:sticky;top:0;z-index:900;margin:6px 8px;padding:9px 12px;border:1.5px solid var(--gold);border-radius:10px;background:var(--bg2);display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:600 12px var(--sans);box-shadow:0 2px 10px rgba(0,0,0,.12);';
+      var bs='padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 11px var(--sans);';
+      b.innerHTML='\u2b50 My Report auto-applied \u2014 showing <b>'+(shown!=null?shown.toLocaleString():'?')+'</b> of '+allData.length.toLocaleString()+' shares.'
+        +' <button type="button" onclick="_myRepShowAll()" style="'+bs+'">Show full market</button>'
+        +' <button type="button" onclick="_myRepAutoOff()" style="'+bs+'">Turn auto-run off</button>'
+        +' <button type="button" onclick="this.parentNode.remove()" style="'+bs+'" title="Keep this view">\u2715</button>';
+      var rl=document.querySelector('.radar-label'); var host=rl?rl.closest('div,section'):null;
+      if(host&&host.parentNode){ host.parentNode.insertBefore(b,host); } else { document.body.insertBefore(b,document.body.firstChild); }
+    }catch(_){}} ,450);
   }catch(e){}
 }
+function _myRepShowAll(){ try{ var b=document.getElementById('myRepBanner'); if(b)b.remove(); if(typeof doReset==='function')doReset(); }catch(_){}}
+function _myRepAutoOff(){ try{ setMyReportAuto(false); myReportMsg('Auto-run off \u2014 tap \u2b50 My Report to apply it.','var(--muted)'); }catch(_){} _myRepShowAll(); }
 
 
 // ═══════════════════════════════════
