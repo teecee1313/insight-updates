@@ -1728,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.07-698-open';
+const APP_VERSION='2026.08.07-699-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14834,6 +14834,35 @@ function _chartOut(){
   const svg=document.getElementById('pxChart'); const c=svg&&svg.querySelector('#chCross'); if(c)c.style.display='none';
 }
 
+// v699 — on-device streak forensics: taps on the Volume-streak row dump the
+// RAW store rows, the processed series, and a live recompute, so a device that
+// disagrees with every reproduction can finally explain itself.
+async function _streakWhy(tk){
+  try{
+    var s=allData.find(function(x){return (x.ticker||x.code)===tk;});
+    if(!s){ showModal('<pre style="font:11px monospace;">share not in allData</pre>','streak'); return; }
+    var L=[]; L.push('v'+APP_VERSION+' \u00b7 '+tk);
+    L.push('volDays='+s.volDays+'  accum10='+s.accum10+'  volume='+s.volume+'  avgVol='+s.avgVol+'  volPct='+s.volPct+'  calced='+s.volStreakCalced);
+    var ser=Array.isArray(s.series)?s.series:[];
+    L.push(''); L.push('SERIES last 6 of '+ser.length+':');
+    ser.slice(-6).forEach(function(r){ L.push('  '+JSON.stringify(r)); });
+    var store=null; try{ store=await histGet(s.exchange||currentExch||'ASX', tk); }catch(e){ L.push('histGet error: '+e); }
+    var rows=(store&&Array.isArray(store.rows))?store.rows:(Array.isArray(store)?store:null);
+    L.push(''); L.push('STORE last 6 of '+(rows?rows.length:'n/a')+':');
+    if(rows) rows.slice(-6).forEach(function(r){ L.push('  '+JSON.stringify(r)); });
+    function walk(arr,label){
+      if(!arr||!arr.length){ L.push(label+': no rows'); return; }
+      var gv=function(r){ var v=(r.v!=null?r.v:r.volume); return (+v||0); };
+      var vs=0,vn=0; arr.forEach(function(r){ var v=gv(r); if(v>0){vs+=v;vn++;} });
+      var avg=vn?vs/vn:0; var k=arr.length-1;
+      while(k>=0 && !(gv(arr[k])>avg*0.01)) k--;
+      var run=0; for(;k>=0;k--){ if(gv(arr[k])>0 && gv(arr[k])>avg) run++; else break; }
+      L.push(label+': avg='+Math.round(avg)+' recomputed streak='+run);
+    }
+    L.push(''); walk(ser,'RECOMPUTE(series)'); walk(rows,'RECOMPUTE(store)');
+    showModal('<div style="font:600 13px var(--sans);margin-bottom:6px;">Streak forensics \u2014 screenshot this</div><pre style="font:10px/1.5 monospace;white-space:pre-wrap;word-break:break-all;user-select:text;">'+L.join('\n').replace(/</g,'&lt;')+'</pre>', tk+' streak');
+  }catch(e){ try{ showModal('<pre>forensics failed: '+String(e).replace(/</g,'&lt;')+'</pre>','streak'); }catch(_){}}
+}
 function deepDive(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s){alert('Load data first.');return;}
@@ -14900,7 +14929,8 @@ function deepDive(ticker){
   if(s.watchScore!=null){const b=s.watchScore<2?'var(--orange)':'var(--muted)';html+=row('Watch score','<span style="color:'+b+';font-weight:700">'+s.watchScore+'/10</span>');}
   if(s.daysUp!=null)html+=row('Up-day streak',s.daysUp+(s.daysUp===1?' day':' days'));
   if(s.daysDown!=null)html+=row('Down-day streak',s.daysDown+(s.daysDown===1?' day':' days'));
-  if(s.volDays!=null)html+=row('Volume streak',s.volDays+' days above avg');
+  if(s.volDays!=null){ const _contra=(s.volPct!=null&&s.volPct>=50&&s.volDays===0);
+    html+=row('Volume streak','<span onclick="_streakWhy(\''+String(s.ticker||'').replace(/[^A-Za-z0-9.]/g,'')+'\')" style="cursor:pointer;border-bottom:1px dotted var(--muted);">'+s.volDays+' days above avg'+(_contra?' \u26a0 tap to inspect':'')+'</span>'); }
   if(s.accum10!=null)html+=row('Accumulation (10d)',s.accum10+'/10 heavy up-days');
   if(s.speedScore!=null)html+=row('Sharp-mover score',s.speedScore.toFixed(1),'abnormal-for-this-share');
   if(s.unusualScore!=null)html+=row('Unusual-activity score',s.unusualScore+'/5 patterns');

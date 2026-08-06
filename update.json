@@ -1,5 +1,5 @@
 {
- "version": "2026.08.07-698-open",
+ "version": "2026.08.07-699-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v698 — Starter is now clean: the Advanced table zone (second search bar, sort toolbar, big table) is hidden under Starter. Cards, radar and the Starter search remain; Advanced is unchanged."
+ "notes": "v699 — tap the Volume-streak row in any deep dive to see exactly how it was computed: the stored rows, the processed series, and a live recount. v698 — Starter shows only cards, radar and its own search."
 }
