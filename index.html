@@ -1728,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.06-693-open';
+const APP_VERSION='2026.08.06-694-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4480,20 +4480,28 @@ function maybeAutoMyReport(){
     // v693 — auto-run kept surprising its own owner: the only trace was a tiny
     // message in the report row, so a boot landing on 27-of-4,426 read as "only
     // 27 shares loaded". Say it loudly, with one-tap outs.
-    setTimeout(function(){ try{
-      var old=document.getElementById('myRepBanner'); if(old)old.remove();
-      var shown=(typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered.length:null;
-      if(shown!=null && shown===allData.length) return; // report didn't narrow anything - no banner needed
-      var b=document.createElement('div'); b.id='myRepBanner';
-      b.style.cssText='position:sticky;top:0;z-index:900;margin:6px 8px;padding:9px 12px;border:1.5px solid var(--gold);border-radius:10px;background:var(--bg2);display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:600 12px var(--sans);box-shadow:0 2px 10px rgba(0,0,0,.12);';
-      var bs='padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 11px var(--sans);';
-      b.innerHTML='\u2b50 My Report auto-applied \u2014 showing <b>'+(shown!=null?shown.toLocaleString():'?')+'</b> of '+allData.length.toLocaleString()+' shares.'
-        +' <button type="button" onclick="_myRepShowAll()" style="'+bs+'">Show full market</button>'
-        +' <button type="button" onclick="_myRepAutoOff()" style="'+bs+'">Turn auto-run off</button>'
-        +' <button type="button" onclick="this.parentNode.remove()" style="'+bs+'" title="Keep this view">\u2715</button>';
-      var rl=document.querySelector('.radar-label'); var host=rl?rl.closest('div,section'):null;
-      if(host&&host.parentNode){ host.parentNode.insertBefore(b,host); } else { document.body.insertBefore(b,document.body.firstChild); }
-    }catch(_){}} ,450);
+    // v694: the first banner rendered inside a narrow column (a squeezed
+    // vertical strip) and counted BEFORE loading settled ('showing 0 of 4,429').
+    // Now: fixed full-width bar on <body>, rendered only once prep and loads
+    // are quiet, with counts read at render time.
+    (function _bWait(tries){
+      if(tries>15) return;
+      if(window._prepRunning||window._oflBusy||window._liveBusy){ setTimeout(function(){_bWait(tries+1);},800); return; }
+      setTimeout(function(){ try{
+        var old=document.getElementById('myRepBanner'); if(old)old.remove();
+        var shown=(typeof filtered!=='undefined'&&Array.isArray(filtered))?filtered.length:null;
+        if(shown==null || !allData.length || shown===allData.length) return;
+        var b=document.createElement('div'); b.id='myRepBanner';
+        b.style.cssText='position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:9500;padding:10px 12px;border:1.5px solid var(--gold);border-radius:12px;background:var(--bg2);font:600 13px var(--sans);box-shadow:0 4px 18px rgba(0,0,0,.25);';
+        var bs='padding:6px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 12px var(--sans);margin:6px 6px 0 0;';
+        b.innerHTML='\u2b50 My Report auto-applied \u2014 showing <b>'+shown.toLocaleString()+'</b> of '+allData.length.toLocaleString()+' shares.<br>'
+          +'<button type="button" onclick="_myRepShowAll()" style="'+bs+'">Show full market</button>'
+          +'<button type="button" onclick="_myRepAutoOff()" style="'+bs+'">Turn auto-run off</button>'
+          +'<button type="button" onclick="this.parentNode.remove()" style="'+bs+'" title="Keep this view">\u2715 Keep</button>';
+        document.body.appendChild(b);
+        setTimeout(function(){ var bb=document.getElementById('myRepBanner'); if(bb)bb.remove(); },45000);
+      }catch(_){}} ,500);
+    })(0);
   }catch(e){}
 }
 function _myRepShowAll(){ try{ var b=document.getElementById('myRepBanner'); if(b)b.remove(); if(typeof doReset==='function')doReset(); }catch(_){}}
@@ -16799,6 +16807,7 @@ async function bulkMonthAverageByDates(apiKey,say){
         }
         s.volDays=vrun;
         s.volStreakCalced=true;
+        _liveTodayFix(s,rec.closes,avgV); // v694: this site slipped v692's net (whitespace)
       }
       // ---- accumulation count: up-days on heavy volume in last 10 (free) ----
       s.accum10=accumDays(s,10);
@@ -16948,6 +16957,7 @@ async function bulkVolume(){
         // volume-above-average streak
         let vd=0; for(let i=vols.length-1;i>=0;i--){if(vols[i]>avg)vd++;else break;}
         s.volDays=vd; s.volStreakCalced=true;
+        _liveTodayFix(s,[{v:vols[vols.length-1]}],avg); // v694: second escaped site
       }
       // days-up streak
       let du=0; for(let i=closes.length-1;i>0;i--){if(closes[i]>closes[i-1])du++;else break;}

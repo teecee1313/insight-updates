@@ -1,5 +1,5 @@
 {
- "version": "2026.08.06-693-open",
+ "version": "2026.08.06-694-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v693 — updates now apply THEMSELVES on a fresh open (no more phones stuck on last week's app), with re-checks on every wake and a loop-proof guard; plus a loud ⭐ My-Report-auto-applied banner with one-tap Show-full-market / Turn-auto-run-off."
+ "notes": "v694 — the volume-streak fix now covers the two computation paths that slipped v692 (GML-style “2.6× average but 0-day streak” ends for every share), and the ⭐ auto-apply banner is a proper full-width bar that waits for loading to finish so its counts are truthful."
 }
