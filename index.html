@@ -1728,7 +1728,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.07-701-open';
+const APP_VERSION='2026.08.07-702-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -21287,7 +21287,10 @@ function gradingCheckReport(){
     };
     var worst=proven.slice().sort(function(a,b){return a.next-b.next;}).slice(0,4);
     var best=proven.slice().sort(function(a,b){return b.next-a.next;}).slice(0,4);
-    var nameK=function(k){ return k.split('+').map(function(x){return (A.defs&&A.defs[x]&&A.defs[x].name)||x;}).join(' + '); };
+    var nameK=function(k){ /* v702: sequence keys (vr>cx) now get full names like the combos do */
+        return String(k).split('>').map(function(seg){
+          return seg.split('+').map(function(x){return (A.defs&&A.defs[x]&&A.defs[x].name)||x;}).join(' + ');
+        }).join(' \u2192 then '); };
     var lst=function(a){ return a.map(function(r){ return '<div style="font-size:10.5px;padding:3px 0;border-bottom:1px dashed var(--border);"><b style="color:var(--text)">'+nameK(r.k)+'</b> <span style="color:var(--dim)">\u00b7 '+r.tier.toUpperCase()+' '+r.from+' ('+f1(r.e)+') \u2192 next window <b style="color:'+(r.next>0?'var(--green)':'#ff9caa')+'">'+f1(r.next)+'</b></span></div>'; }).join(''); };
     showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
       +'<div style="font-weight:800;color:'+vcol+';font-size:13.5px;margin-bottom:5px;">'+verdict+'</div>'
@@ -21354,7 +21357,10 @@ function climbersScan(){
       showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">🌱 Nothing is genuinely climbing right now — no unproven line has both a positive edge and momentum toward the bar. That\u2019s information too: be extra sceptical of flags this week.</div>','🌱 Climbers Today');
       return;
     }
-    var nameK=function(k){ return k.split('+').map(function(x){return (A.defs&&A.defs[x]&&A.defs[x].name)||x;}).join(' + '); };
+    var nameK=function(k){ /* v702: sequence keys (vr>cx) now get full names like the combos do */
+        return String(k).split('>').map(function(seg){
+          return seg.split('+').map(function(x){return (A.defs&&A.defs[x]&&A.defs[x].name)||x;}).join(' + ');
+        }).join(' \u2192 then '); };
     var univ=allData.filter(function(sh){ return sh&&(typeof _cardLiqPass!=='function'||_cardLiqPass(sh)); });
     var items=[];
     for(var i=0;i<univ.length;i++){

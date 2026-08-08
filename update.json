@@ -1,5 +1,5 @@
 {
- "version": "2026.08.07-701-open",
+ "version": "2026.08.07-702-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v701 — the per-day history table now measures each day against its own trailing 3-month average (same fix as v700, seventh location): loud-past shares no longer show every surge day as negative vs average with a stuck 0 volume streak."
+ "notes": "v702 — sequence lines in the grading audit now show their full names (🥇 Vol record → then ⤴ MA cross) instead of shorthand like vr>cx."
 }
