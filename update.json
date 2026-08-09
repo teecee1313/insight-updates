@@ -1,5 +1,5 @@
 {
- "version": "2026.08.10-732-open",
+ "version": "2026.08.10-733-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v732 — 🎯 Today's picks now speak plain English: 'inst+vr' becomes '🏦 Inst? + 🥇 Vol record', sequences read '… → then …', the tier reads SOLID to match the report card, and the 🌐 server-decision note on practice trades carries the full signal names too."
+ "notes": "v733 — 🎯 Today's picks freshness banner now tells the truth in three situations: '✓ the server ran and its gates chose nothing — an empty day is normal' (green), '⚠ the last run hit an error' (gold), and the original 'these are not today's' only when the server genuinely has not run. Pairs with worker w510, which stamps every nightly pick run; on the old worker the banner behaves exactly as before."
 }

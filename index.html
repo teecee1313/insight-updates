@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.10-732-open';
+const APP_VERSION='2026.08.10-733-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3078,8 +3078,20 @@ async function showDailyPicks(mode){
     // identical to one from this morning unless the page says otherwise
     let fresh='';
     if(j.latestBar){
-      if(!j.latestPick) fresh='<span style="color:var(--muted)">Latest market day '+esc(j.latestBar)+' \u00b7 nothing picked yet.</span>';
-      else if(j.stale) fresh='<span style="color:var(--gold)">\u26a0 Newest pick is from '+esc(j.latestPick)+', but the market data runs to '+esc(j.latestBar)+' \u2014 these are not today\u2019s.</span>';
+      // v733 — the w510 server stamps every nightly lane run (day it decided, the
+      // newest bar it saw, any error). With the stamp, a stale banner can tell the
+      // truth in three different situations instead of always crying "not today's".
+      const LR=j.lastRun||null;
+      const ranOnLatest = LR && !LR.error && (LR.latestBar===j.latestBar || LR.day===j.latestBar);
+      if(!j.latestPick){
+        if(ranOnLatest) fresh='<span style="color:var(--muted)">Latest market day '+esc(j.latestBar)+' \u00b7 the server ran and its gates chose nothing \u2014 an empty day is normal.</span>';
+        else fresh='<span style="color:var(--muted)">Latest market day '+esc(j.latestBar)+' \u00b7 nothing picked yet.</span>';
+      }
+      else if(j.stale){
+        if(LR && LR.error) fresh='<span style="color:var(--gold)">\u26a0 The server\u2019s last pick run hit an error \u2014 newest pick is from '+esc(j.latestPick)+'. It should retry at the next close.</span>';
+        else if(ranOnLatest) fresh='<span style="color:var(--green)">\u2713 The server ran on '+esc(j.latestBar)+' and its gates chose nothing new \u2014 the newest pick stays '+esc(j.latestPick)+'. An empty day is normal; the gates are choosy.</span>';
+        else fresh='<span style="color:var(--gold)">\u26a0 Newest pick is from '+esc(j.latestPick)+', but the market data runs to '+esc(j.latestBar)+' \u2014 these are not today\u2019s.</span>';
+      }
       else fresh='<span style="color:var(--green)">\u2713 Up to date \u2014 picked from '+esc(j.latestPick)+', the latest market day.</span>';
     }
 
