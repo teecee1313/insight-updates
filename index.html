@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-730-open';
+const APP_VERSION='2026.08.10-731-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5114,7 +5114,7 @@ function renderRows(rows){
 <td><div class="tick-wrap">
   <a href="${tu}" target="_blank" class="tick-link"><span class="tick-code">${s.ticker}</span><span style="font-size:9px;color:var(--dim)">↗</span></a>
   <span class="tick-name" title="${s.name}">${s.name}</span>
-  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a>${(s.newsFlag==='likely')?'<span class="ph-only" title="News likely in the last 5 days — see Filter by news or the share report.">\ud83d\udcf0</span>':''}<button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}
+  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a>${(s.newsFlag==='likely')?'<span class="ph-only" title="News likely in the last 5 days — see Filter by news or the share report.">\ud83d\udcf0</span>':''}<button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}${(s._trendChip&&s._trendChip.indexOf('\ud83c\udfb2')>=0)?'':((typeof _laChipRow==='function'&&_laChipRow(s))||'')}
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
@@ -15175,6 +15175,21 @@ let _laOddsMin=60;
 // v720 — the odds chip for report rows (Best Evidence, Top 20): same rules as
 // the 🎲 scan — distinctive fingerprint + 30 lookalikes — or no chip at all.
 // First call in a session defers the index build so reports never jank.
+function _laChipRow(s){ // v731: memoised chip for the main table — renderRows paints thousands of
+  // rows per sort/filter, and the fingerprint sweep per row (63-day tail + 250-day max) adds up.
+  // Cache the built chip on the share, keyed to the odds source + the share's own latest bar, so
+  // a fresh price or a newly-arrived server index invalidates it and nothing ever shows stale.
+  try{
+    if(!s)return '';
+    if(!_laSrv&&!_laIdx)return _laChip(s); // not ready: cheap path (also kicks the loader once)
+    var ser=s.series, n=(ser&&ser.length)||0;
+    var key=(_laSrv?'S':'L')+'|'+n+'|'+((n&&ser[n-1]&&+ser[n-1].c)||0);
+    if(s._laChipC!=null&&s._laChipK===key)return s._laChipC;
+    var h=_laChip(s);
+    if(h!==''){ s._laChipC=h; s._laChipK=key; }
+    return h;
+  }catch(e){ return ''; }
+}
 function _laChipT(tk,ex,ctx){ // v726: chip via ticker (portfolio rows store tickers, not share objects)
   try{ var sh=(allData||[]).find(function(x){return x.ticker===tk&&(!ex||!x.exchange||x.exchange===ex);}); return sh?_laChip(sh,ctx):''; }catch(e){ return ''; }
 }
@@ -15195,7 +15210,9 @@ function _laChip(s,ctx){
   try{
     if(!s)return '';
     if(!_laSrv&&!_laIdx){ if(!window._laChipKick){ window._laChipKick=1;
-        setTimeout(function(){ try{ _laEnsureSrv(function(){ if(!_laSrv)_laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup(); }); }catch(_){}} ,50); }
+        setTimeout(function(){ try{ _laEnsureSrv(function(){ if(!_laSrv)_laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup();
+          try{ if(typeof render==='function'&&((typeof watchViewOn!=='undefined'&&watchViewOn)||(Array.isArray(filtered)&&filtered.length)))render(); }catch(_){} // v731: table rows asked for chips before the index landed — repaint them
+        }); }catch(_){}} ,50); }
       return ''; }
     var tk0=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
     var f=_laShareToday(s); if(!f)return (ctx==='pf')?_laMuted(tk0,'nodata'):'';
@@ -18816,7 +18833,7 @@ async function gapScan(){
     }
   }
   if(rows.length){
-    const row=x=>{const s=x.s;const up=s._gapPct>0;return `<div onclick="try{closeModal();}catch(e){};deepDive('${s.ticker}')" style="display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:13px;flex:none;">${up?'⬆':'⬇'}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${s.ticker}</b> opened ${s._gapPct>0?'+':''}${s._gapPct}% ${up?'above':'below'} yesterday's close and kept ${s._gapKept}% of the gap by the close${(s.volCalced&&s.volPct>=100)?` on +${Math.round(s.volPct)}% volume`:''}.</span></div>`;};
+    const row=x=>{const s=x.s;const up=s._gapPct>0;return `<div onclick="try{closeModal();}catch(e){};deepDive('${s.ticker}')" style="display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:13px;flex:none;">${up?'⬆':'⬇'}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${s.ticker}</b>${(typeof _laChip==='function'&&_laChip(s))||''} opened ${s._gapPct>0?'+':''}${s._gapPct}% ${up?'above':'below'} yesterday's close and kept ${s._gapKept}% of the gap by the close${(s.volCalced&&s.volPct>=100)?` on +${Math.round(s.volPct)}% volume`:''}.</span></div>`;};
     const sec=(t,arr)=>arr.length?`<div style="font-weight:700;font-size:11px;font-family:var(--sans);color:var(--text);margin:9px 0 2px;">${t} <span style="font-weight:400;color:var(--dim);">· ${arr.length}</span></div>${arr.slice(0,8).map(row).join('')}${arr.length>8?`<div style="font-size:9px;color:var(--dim);padding:3px 6px;">…all ${arr.length} are in the table underneath.</div>`:''}`:'';
     const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🕳 Gap Report</div><div style="font-size:9.5px;color:var(--dim);margin:3px 0 8px;">Shares that OPENED 3%+ away from yesterday's close — overnight news or a rush of morning orders. What matters is whether the gap survived the day.</div>`;
     const body=sec(`⬆ Gapped up & HELD it <span style="color:var(--green);font-weight:400;font-size:9px;">(buyers stayed — strength)</span>`,held)
@@ -19133,7 +19150,7 @@ function _simpleModalRender(label, rows){
     const sc=(s.watchScore!=null)?`${s.watchScore}/10`:'';
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);">
       <div style="min-width:0;">
-        <a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:var(--gold);font-weight:700;font-size:13px;text-decoration:underline;text-decoration-style:dotted;">${i+1}. ${s.ticker} <svg class="ic ic-print" aria-hidden="true"><use href="#i-printer"/></svg></a>
+        <a href="#" onclick="printShareReport('${s.ticker}');return false;" style="color:var(--gold);font-weight:700;font-size:13px;text-decoration:underline;text-decoration-style:dotted;">${i+1}. ${s.ticker} <svg class="ic ic-print" aria-hidden="true"><use href="#i-printer"/></svg></a>${(typeof _laChip==='function'&&_laChip(s))||''}
         <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(s.name||'').slice(0,28)}</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex:none;">
@@ -21955,7 +21972,7 @@ function climbersScan(){
       var more=(x.firing.length>1)?(' <span style="color:var(--dim);">('+x.firing.length+' climbing lines)</span>'):'';
       return '<div style="display:flex;align-items:baseline;gap:8px;padding:7px 3px;border-bottom:1px solid var(--border);font-size:11.5px;">'
         +'<span style="flex:0 0 26px;text-align:right;color:var(--muted);font-weight:700;">'+(ix+1)+'.</span>'
-        +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'
+        +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'+_laChip(sh)
         +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,34):'')+'<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+fired+more+'</div></span>'
         +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
         +'<span title="'+String(_needTip(best)).replace(/"/g,'&quot;')+'" style="flex:0 0 96px;text-align:right;font-size:10px;color:var(--gold);cursor:help;">'+_need(best)+'</span>'
