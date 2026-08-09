@@ -1472,6 +1472,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
       <button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🪙 Penny Movers</button>
       <button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🕵 Informed</button>
       <button type="button" onclick="technicalScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">📐 Technical</button>
+      <button type="button" onclick="_laOddsScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🎲 Odds</button>
     </div>
     <div class="simple-grid">
       <div id="simpleClosedBanner"><span class="sm-dot"></span>ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
@@ -1562,7 +1563,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <!-- STEP 2 · INSTANT REPORTS -->
     <div class="step-hdr"><span class="step-num">2</span> <span data-i18n="instantReports">Instant Reports</span> <span class="step-sub">drag ⠿ to reorder</span></div>
     <div id="whatsNewCardAdv" style="display:none;"></div>
-    <div id="quickPlansRowAdv" style="display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap;"><button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🚀 Breakout</button><button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🪙 Penny Movers</button><button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🕵 Informed</button><button type="button" onclick="technicalScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">📐 Technical</button></div><div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
+    <div id="quickPlansRowAdv" style="display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap;"><button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🚀 Breakout</button><button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🪙 Penny Movers</button><button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🕵 Informed</button><button type="button" onclick="technicalScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">📐 Technical</button><button type="button" onclick="_laOddsScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🎲 Odds</button></div><div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
     <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-primary" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades."><span data-i18n="smartScan">🎯 Best Evidence Today</span> <span class="scan-tag" data-i18n="smartScanTag">proven signals only</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-picks"><span class="drag-h">⠿</span><button id="picksScanBtn" onclick="showDailyPicks()" class="scan-primary" title="Today’s picks — the shares that met the tested rules on the latest session: a 20% trailing stop with no take-profit, $0.20–$0.99, a patient 5% dip entry and a minimum evidence score of 7. This is the only routine here whose exit rule has been measured head to head against the alternatives. Practice money only, not advice.">🎯 Today’s picks <span class="scan-tag">the tested rules · daily</span></button></div>
@@ -1736,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-717-open';
+const APP_VERSION='2026.08.08-718-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15086,6 +15087,59 @@ function _laBuild(){
   }
   _laIdx={idx:idx, shares:shares, days:days}; _laBuilt=Date.now();
   return _laIdx;
+}
+// v718 — 🎲 ODDS TODAY: every share's current fingerprint scored against the
+// lookalike index; the market ranked by "how often did lookalike days finish
+// higher over the next 10?" Sample floor 30 — thin data doesn't get to brag.
+let _laOddsMin=60;
+function _laShareToday(s){
+  var ser=s&&s.series; if(!ser||ser.length<80)return null;
+  var i=ser.length-1; while(i>0 && !(+ser[i].v>0)) i--;
+  var c=+ser[i].c||0, prev=i>0?(+ser[i-1].c||0):0; if(!(c>0&&prev>0))return null;
+  var chg=((c-prev)/prev)*100;
+  var tail=ser.slice(Math.max(0,i-63),i); var vs=0,vn=0;
+  tail.forEach(function(r){ if(+r.v>0){vs+=(+r.v);vn++;} });
+  var avg=vn?vs/vn:0; if(!(avg>0))return null;
+  var volR=(+ser[i].v||0)/avg;
+  var st=0; for(var k=i;k>0;k--){ if((+ser[k].c)>(+ser[k-1].c))st++; else break; }
+  var hi=Math.max.apply(null,ser.slice(-250).map(function(r){return +r.c||0;}));
+  return _laFinger(chg,volR,st,hi>0&&c>=hi*0.95);
+}
+function _laOddsScan(){
+  if(!Array.isArray(allData)||!allData.length){ alert('Load the market first — tap \u26a1 Refresh / redownload data.'); return; }
+  showModal('<div style="padding:14px;font:600 13px var(--sans);">\u23f3 Scoring every share\u2019s odds against the lookalike history\u2026</div>','\ud83c\udfb2 Odds today');
+  setTimeout(function(){ try{
+    var L=_laBuild(); var rows=[];
+    for(var a=0;a<allData.length;a++){
+      var s2=allData[a]; var f=_laShareToday(s2); if(!f)continue;
+      var arr=L.idx[f]; if(!arr||arr.length<30)continue;
+      var srt=arr.slice().sort(function(x,y){return x-y;});
+      var pos=srt.filter(function(x){return x>0;}).length/srt.length*100;
+      var med=srt[Math.floor(srt.length/2)];
+      rows.push({tk:String(s2.ticker||s2.code||''), nm:String(s2.name||''), odds:pos, med:med, n:srt.length,
+                 tier:(s2.money&&s2.tier)?s2.tier:null});
+    }
+    window._laOddsRows=rows; _laOddsRender();
+  }catch(e){ showModal('<div style="padding:10px;">Odds scan failed: '+String(e).replace(/</g,'&lt;')+'</div>','Odds'); } },60);
+}
+function _laOddsRender(){
+  var rows=(window._laOddsRows||[]).filter(function(r){return r.odds>=_laOddsMin;})
+      .sort(function(a,b){return b.odds-a.odds || b.med-a.med;}).slice(0,40);
+  var chips=[50,60,70].map(function(t){
+    return '<button type="button" onclick="_laOddsMin='+t+';_laOddsRender()" style="padding:5px 12px;border-radius:14px;border:1px solid '+(t===_laOddsMin?'var(--gold)':'var(--border2)')+';background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">\u2265'+t+'%</button>';
+  }).join(' ');
+  var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
+  var body=rows.length? rows.map(function(r){
+      var col=r.med>=0?'var(--green)':'#ff8b8b';
+      return '<div onclick="_lookalikeOpen(\''+r.tk.replace(/[^A-Za-z0-9.]/g,'')+'\')" style="display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font:600 12.5px var(--sans);align-items:baseline;">'
+      +'<span><b>'+r.tk+'</b> <span style="color:var(--muted);font-weight:400;font-size:10.5px;">'+r.nm.slice(0,20).replace(/</g,'&lt;')+'</span></span>'
+      +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'%</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">n='+r.n+'</span></span></div>';
+    }).join('')
+    : '<div style="padding:14px 10px;color:var(--muted);font:400 13px var(--sans);">No share\u2019s fingerprint clears \u2265'+_laOddsMin+'% today (with 30+ lookalikes behind it). An honest empty list beats a padded one \u2014 try a lower bar or another day.</div>';
+  showModal('<div style="font:700 15px var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font:400 10.5px var(--sans);color:var(--muted);margin-left:4px;">of lookalike days that finished higher (next 10)</span></div>'
+    +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'
+    +'<div style="margin-top:8px;font:400 11px/1.5 var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds%% sits beside its <b>median</b> because 60%% winners with a deep losing tail is a different game to 60%% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag. Tap a share for its full distribution. Research, not advice.</div>','\ud83c\udfb2 Odds today');
 }
 function _laExplain(){
   var pre='font-family:var(--mono);font-size:10.5px;line-height:1.5;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px;white-space:pre;overflow-x:auto;';

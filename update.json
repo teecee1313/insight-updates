@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-717-open",
+ "version": "2026.08.08-718-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v717 — 🔎 Deep dive joins each saved share in Research further: report, deep dive, lookalikes and watchlist, all one tap from the research card."
+ "notes": "v718 — 🎲 Odds today: the whole market ranked by lookalike base rates. Pick a bar (≥50/60/70%), see every share whose fingerprint historically finished higher that often over the next 10 days — odds beside median beside sample size, 30+ lookalikes required, tap through to the full distribution."
 }
