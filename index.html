@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-727-open';
+const APP_VERSION='2026.08.08-728-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15114,17 +15114,31 @@ let _laOddsMin=60;
 function _laChipT(tk,ex,ctx){ // v726: chip via ticker (portfolio rows store tickers, not share objects)
   try{ var sh=(allData||[]).find(function(x){return x.ticker===tk&&(!ex||!x.exchange||x.exchange===ex);}); return sh?_laChip(sh,ctx):''; }catch(e){ return ''; }
 }
+// v728 — on a scan, a missing chip means "filtered out" and that's fine. On
+// YOUR HOLDINGS, silence reads as broken — so portfolio rows get a muted 🎲 –
+// that explains itself on tap instead of an unexplained absence.
+function _laMuted(tk,why){
+  return '<span onclick="event.stopPropagation();_laWhyNone(\''+tk+'\',\''+why+'\')" title="No odds today \u2014 tap to see why" style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:var(--dim);border:1px solid var(--border2);border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;">\ud83c\udfb2 \u2013</span>';
+}
+function _laWhyNone(tk,why){
+  var msg = why==='quiet' ? 'Nothing notable about <b>'+tk+'</b> today \u2014 quiet volume, a small move, no streak. Ordinary days share the whole market\u2019s base rate (roughly a coin flip with drift), which honestly says nothing about one share. The dice appear when the day is DISTINCTIVE: real volume, a real move, a streak, or a surge near the yearly high.'
+   : why==='thin' ? 'Today\u2019s pattern for <b>'+tk+'</b> is rare \u2014 fewer than 30 lookalike days exist in the saved history, and thin data doesn\u2019t get to brag. Rarity is itself information: today doesn\u2019t look like much of the past.'
+   : why==='weather' ? 'Today\u2019s pattern for <b>'+tk+'</b> is so common it\u2019s market weather \u2014 the bucket holds a big slice of ALL market days, so its base rate describes the market, not this share.'
+   : 'No saved history for <b>'+tk+'</b> on this device yet \u2014 load the market data first, then odds can be measured.';
+  showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83c\udfb2 '+tk+' \u2014 why no odds today?</div><div style="font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">'+msg+'<div style="margin-top:10px;font-size:11px;color:var(--muted);">Odds describe the share\u2019s day, not your position \u2014 and an ordinary day is a perfectly fine day to be holding. Research, not advice.</div></div>','Lookalikes');
+}
 function _laChip(s,ctx){
   try{
     if(!s)return '';
     if(!_laIdx){ if(!window._laChipKick){ window._laChipKick=1;
         setTimeout(function(){ try{ _laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup(); }catch(_){}} ,50); }
       return ''; }
-    var f=_laShareToday(s); if(!f)return '';
+    var tk0=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
+    var f=_laShareToday(s); if(!f)return (ctx==='pf')?_laMuted(tk0,'nodata'):'';
     var nb=(function(ff){ var p2=ff.split('|'); return p2[0]==='V2'||p2[0]==='V3'||p2[0]==='V15'||p2[1]==='C10'||p2[1]==='C5'||p2[1]==='C2'||p2[1]==='Cm5'||p2[2]==='S2'||p2[2]==='S4'; })(f); // v722: H no longer qualifies alone
-    if(!nb)return '';
-    var arr=_laIdx.idx[f]; if(!arr||arr.length<30)return '';
-    if(arr.length>Math.max(500,(_laIdx.days||0)*0.04))return ''; // weather ceiling
+    if(!nb)return (ctx==='pf')?_laMuted(tk0,'quiet'):'';
+    var arr=_laIdx.idx[f]; if(!arr||arr.length<30)return (ctx==='pf')?_laMuted(tk0,'thin'):'';
+    if(arr.length>Math.max(500,(_laIdx.days||0)*0.04))return (ctx==='pf')?_laMuted(tk0,'weather'):''; // weather ceiling
     var pos=Math.round(arr.filter(function(x){return x>0;}).length/arr.length*100);
     var col=pos>=60?'var(--green)':pos>=45?'var(--gold)':'#ff8b8b';
     var tk=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');

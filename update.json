@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-727-open",
+ "version": "2026.08.08-728-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v727 — the 🎲 list and its tap-through can never disagree: each row now carries the exact lookalike days it was ranked with, the popup shows those same days, and if history has grown since the list was built it says so and suggests a fresh run. One truth per screen."
+ "notes": "v728 — every portfolio holding now carries a dice: a real 🎲 % when today is distinctive with 30+ lookalikes, or a muted 🎲 – that explains itself on tap (ordinary day, rare pattern, market weather, or no history yet). An ordinary day is a perfectly fine day to be holding — now the app says so instead of staying silent."
 }
