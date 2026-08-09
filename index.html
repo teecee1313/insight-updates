@@ -1729,7 +1729,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-706-open';
+const APP_VERSION='2026.08.08-707-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20494,6 +20494,13 @@ body.simple-mode #scanGroups{display:none;}
    (second search bar, sort toolbar, count line, the big table) confused the tier:
    two search bars, one of them Advanced furniture. Hidden under Starter. */
 body.simple-mode #toolbar, body.simple-mode #tblwrap, body.simple-mode #activeScanBanner, body.simple-mode #noResults{display:none!important;}
+/* v707 - report-card ladder rows on phones: the name was the only flexible cell,
+   so combo names crushed to three letters. Narrow screens wrap: full name on its
+   own line, the numbers underneath. */
+@media (max-width:640px){
+  .ladrow{flex-wrap:wrap;row-gap:2px;}
+  .ladrow .ladname{flex:1 1 100% !important;order:-1;white-space:normal !important;overflow:visible !important;text-overflow:clip !important;line-height:1.35;}
+}
 /* v445 — #sgCards is listed alongside #scanGroups on purpose. #scanGroups is
    built in JavaScript at runtime; the 📋 Report cards group is static markup
    that sits OUTSIDE it, so it was picking up none of these rules and rendered
@@ -23375,9 +23382,9 @@ function _renderReportCard(A){
       return chip(m);
     };
     const ladRow=(it,i,mx)=>{ const sc=_cardScore10(it.m); const _scCap=((it.m.dirNeg?-it.m.edge:it.m.edge)>3.5); /* v563: implausible money caps the score, v565: block comment — this is a ONE-LINE function */ const scCol=sc>=7?'var(--green)':sc>=4?'var(--gold)':(it.m.dirNeg?'#9fb2cc':'#ff9caa'); const md='<b style="color:'+(i===0?'#e8b923':i===1?'#c2cbd3':i===2?'#cd8a4b':'var(--muted)')+';">'+(i+1)+'</b>'; const warn=it.m.dirNeg?' <span style="color:var(--dim);font-weight:400;font-size:9px;">· warning (predicts a fall)</span>':''; const nm=nameOf(it.k); const _dt=it.m.dirNeg?'A WARNING — it scores by how well it caught FALLS (a high score means it warned well, NOT that you buy it).':'A buy-side flag — it scores by how well price ROSE after it fired.'; const pl=(nm.replace(/<[^>]+>/g,'').replace(/"/g,''))+' — Strength '+sc+'/10. '+(TIER[it.m.tier]?TIER[it.m.tier][0]:'')+' · edge '+f1(it.m.edge)+' vs market over '+A.hold+' days · '+it.m.n.toLocaleString()+' fires. '+_dt+' Score: the badge sets the band (TOO EARLY 0-4 / PROMISING 4-7 / SOLID 7-10) and the edge size places it inside — so a proven small edge outscores a big unproven one.';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:11px;">
+      return `<div class="ladrow" style="display:flex;align-items:center;gap:8px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:11px;">
         <span style="flex:0 0 20px;text-align:center;font-weight:700;color:var(--muted);">${md}</span>
-        <span title="${pl}" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}${warn}</span>
+        <span title="${pl}" class="ladname" style="flex:1 1 auto;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}${warn}</span>
         <span title="Strength /10 — how strong AND how proven, in one number (see 📖 How to read this card below)" style="flex:0 0 46px;text-align:right;font-weight:800;font-family:var(--mono);color:${scCol};cursor:help;">${_scCap?`<span title="This line's money is past the plausible ceiling for an end-of-day signal, so its score is capped — the app will not rank a figure it is also warning you about. Check the sighting count and the earlier years before believing it." style="cursor:help;color:#ff6b6b;">⚠</span>`:``}${sc}/10</span>
         <span title="The Paula–Niño Edge (PN Edge): money made per $100 invested, on average, over the ${_winWords(A.hold)} after each signal — beyond what the market did, before costs. ${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).tip}" style="flex:0 0 96px;text-align:right;font-size:9px;font-family:var(--mono);color:${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).col};cursor:help;">${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).money}<span style="color:var(--dim)">/$100</span></span>
         <span style="flex:0 0 46px;text-align:right;">${_edgeGauge(it.m.dirNeg?-it.m.edge:it.m.edge,it.m.n).bar}</span>
