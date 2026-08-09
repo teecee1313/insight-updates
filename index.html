@@ -1729,7 +1729,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-705-open';
+const APP_VERSION='2026.08.08-706-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14848,7 +14848,7 @@ const FLASHCARDS=[
  {d:'Signals',q:'🥇 Vol record',a:'Today\u2019s volume beats the share\u2019s previous 250-day record by 5%+ (min 10k traded). Big money can\u2019t hide its size.'},
  {d:'Signals',q:'⤴ MA cross',a:'The 20-day average crosses ABOVE the 50-day today. A slow, sturdy trend-turn signal \u2014 late by design.'},
  {d:'Signals',q:'🚀 Breakout',a:'Close above the prior 250-day high on 1.5\u00d7+ volume. New ground, with conviction behind it.'},
- {d:'Signals',q:'\ud83d\udccf 52-week high',a:'Closing at a 52-week high. Feels \u201ctoo expensive\u201d \u2014 the backtests say that feeling is usually a trap.'},
+ {d:'Signals',q:'\ud83d\udccf 52-week high',a:'Closing at a 52-week high. Feels \u201ctoo expensive\u201d \u2014 but the trap is the feeling, not the share: strength tends to persist, so it\u2019s a look-closer signal, not a stay-away sign.'},
  {d:'Signals',q:'✝️ Golden Cross',a:'The 50-day average crosses above the 200-day. The slowest signal in the app \u2014 confirmation, not prediction.'},
  {d:'Signals',q:'🌀 RSI Recovery',a:'RSI climbs back above 30 after being oversold \u2014 the bounce, not the fall.'},
  {d:'Signals',q:'🤏 Volatility Squeeze',a:'The trading range compresses to unusually tight \u2014 a coiled spring. Says a move is near, not which way.'},
@@ -14909,7 +14909,7 @@ const STUDYQUIZ=[
  {q:'Your rules run on autopilot while your phone is off because\u2026',o:['the app runs in the background','they execute on the server nightly','a friend runs them','they don\u2019t \u2014 phone must be on'],c:1,w:'Rules live on the server and run every night against fresh data \u2014 the morning report shows what they did and why.'},
  {q:'The PN Edge scale calls anything above $3.50 per $100\u2026',o:['excellent \u2014 buy immediately','suspicious \u2014 check the data first','normal for small caps','impossible'],c:1,w:'The realistic top is ~$2\u2013$3.50. Above that, the honest reflex is doubt: check the sample before believing it.'},
  {q:'What does this app tell you to buy?',o:['Its top pick each day','Whatever scores 10/10','Nothing \u2014 it measures, you decide','The highest PN Edge line'],c:2,w:'Research tool, not advice. It shows what the evidence says \u2014 including the failures \u2014 and the decision stays yours.'},
- {q:'A 52-week high often feels \u201ctoo expensive to buy\u201d. The backtests say that feeling is\u2026',o:['correct \u2014 wait for a dip','usually a trap','only true for miners','meaningless'],c:1,w:'Strength tends to persist more often than intuition expects \u2014 which is why the signal is graded on evidence, not vibes.'},
+ {q:'A share hits a 52-week high and your gut says \u201ctoo expensive \u2014 I\u2019ll wait for a dip\u201d. The backtests say that instinct\u2026',o:['is right \u2014 always wait for the dip','usually costs you \u2014 strength tends to persist','only applies to miners','means the share must be avoided'],c:1,w:'The trap is the FEELING, not the share: new highs keep performing more often than intuition expects, because everyone anchors on the old price as a ceiling. It\u2019s a look-closer signal, never a stay-away sign \u2014 and never a buy instruction either.'},
  {q:'The Golden Cross is the slowest signal in the app. Its job is\u2026',o:['prediction','confirmation','timing entries to the day','beating the RS Leader'],c:1,w:'By the time the 50-day crosses the 200-day, the turn is well underway \u2014 it confirms a trend, it doesn\u2019t call one.'},
  {q:'If a number on a card looks wrong, the app\u2019s answer is\u2026',o:['trust it \u2014 computers don\u2019t err','tap it and see the exact data behind it','clear your cache','email support and wait'],c:1,w:'Every number can explain itself \u2014 the deep-dive rows open their own working. The app would rather show receipts than be trusted blindly.'},
  {q:'Evidence tiers are earned on\u2026',o:['user votes','~3 years of real ASX history, re-graded nightly','a one-off lab backtest','broker recommendations'],c:1,w:'Grading never stops: every signal, combo and sequence is re-tested against real history every night.'},
