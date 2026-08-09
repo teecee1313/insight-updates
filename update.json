@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-707-open",
+ "version": "2026.08.08-708-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v707 — the report card is phone-friendly: ladder rows wrap on narrow screens so full signal and combination names show on their own line instead of crushing to three letters."
+ "notes": "v708 — the 👤 Account menu now always opens fully on-screen on phones (it could hang off the left edge with its first letters clipped)."
 }

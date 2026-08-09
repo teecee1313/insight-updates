@@ -1729,7 +1729,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-707-open';
+const APP_VERSION='2026.08.08-708-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10830,6 +10830,19 @@ window.toggleAcctMenu=function(ev){
   m.style.display=open?'none':'block';
   if(!open){
     try{ var v=document.getElementById('acctMenuVer'); if(v)v.textContent='Insight Trading · v'+APP_VERSION; }catch(e){}
+    // v708 - the menu is right-anchored to the button, which on phones sits near
+    // the LEFT edge, so the panel hung off-screen with its first letters clipped.
+    // Clamp it into the viewport after opening.
+    try{
+      m.style.right='0'; m.style.left='auto'; m.style.maxWidth=Math.min(300,window.innerWidth-16)+'px';
+      var r=m.getBoundingClientRect();
+      if(r.left<8){
+        var pr=(m.offsetParent||document.body).getBoundingClientRect();
+        m.style.right='auto'; m.style.left=(8-pr.left)+'px';
+        var r2=m.getBoundingClientRect();
+        if(r2.right>window.innerWidth-8) m.style.left=(8-pr.left-(r2.right-(window.innerWidth-8)))+'px';
+      }
+    }catch(e){}
     setTimeout(function(){document.addEventListener('click',function(e){ if(!m.contains(e.target))m.style.display='none'; },{once:true});},0);
   }
 };
