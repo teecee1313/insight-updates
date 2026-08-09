@@ -14918,7 +14918,14 @@ const STUDYQUIZ=[
 let _qz=null;
 function openStudyQuiz(){
   var pool=STUDYQUIZ.slice(); for(var k=pool.length-1;k>0;k--){var r=Math.floor(Math.random()*(k+1));var t=pool[k];pool[k]=pool[r];pool[r]=t;}
-  _qz={qs:pool.slice(0,10), i:0, score:0, answered:false};
+  // v705 - options are shuffled per run and the correct index re-tracked:
+  // the bank stored most correct answers second, so position B was a tell.
+  var qs=pool.slice(0,10).map(function(Q){
+    var idx=Q.o.map(function(_,k2){return k2;});
+    for(var k2=idx.length-1;k2>0;k2--){var r2=Math.floor(Math.random()*(k2+1));var t2=idx[k2];idx[k2]=idx[r2];idx[r2]=t2;}
+    return {q:Q.q, o:idx.map(function(k3){return Q.o[k3];}), c:idx.indexOf(Q.c), w:Q.w};
+  });
+  _qz={qs:qs, i:0, score:0, answered:false};
   showModal('<div style="font:700 15px var(--sans);margin-bottom:8px;">\u2753 Quiz \u2014 10 questions</div><div id="qzBox"></div>','Quiz'); _qzRender();
 }
 function _qzRender(){
@@ -14938,7 +14945,7 @@ function _qzRender(){
   var opts=Q.o.map(function(o,k){
     var st='display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 12.5px var(--sans);';
     if(_qz.answered){ if(k===Q.c) st+='border-color:var(--green);'; else st+='opacity:.55;'; }
-    return '<button type="button" '+(_qz.answered?'':'onclick="_qzPick('+k+')"')+' style="'+st+'">'+o+'</button>';
+    return '<button type="button" '+(_qz.answered?'':'onclick="_qzPick('+k+')"')+' style="'+st+'"><b style="color:var(--gold);margin-right:6px;">'+String.fromCharCode(65+k)+'</b>'+o+'</button>';
   }).join('');
   box.innerHTML='<div style="font:600 11px var(--sans);color:var(--muted);margin-bottom:6px;">Question '+(_qz.i+1)+' of '+_qz.qs.length+' \u00b7 score '+_qz.score+'</div>'
     +'<div style="font:700 14px/1.45 var(--sans);margin-bottom:8px;">'+Q.q+'</div>'+opts

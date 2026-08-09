@@ -1,5 +1,5 @@
 {
  "version": "2026.08.08-705-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v705 — 🏁 RS Leader now sits on the compact radar strip too (it was full-radar only), synced to the live count and tappable to filter."
+ "notes": "v705 — quiz answers are shuffled every run with A/B/C/D labels (no position is ever a tell), and 🏁 RS Leader joins the compact radar strip."
 }
