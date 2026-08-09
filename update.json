@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-714-open",
+ "version": "2026.08.08-715-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v714 — 📊 Lookalike History: in any share’s deep dive, tap “what usually happened next” and the app sweeps the saved market history for every day that looked like today (volume, move, streak, high-proximity) and shows the honest distribution of what followed over the next 10 trading days — median, middle half, odds of finishing higher, best and worst. A base rate, not a prediction."
+ "notes": "v715 — the broker-connect wizard now renders properly (its body was landing in the label strip), and the last three volume-estimate badges (quiet mover, unusual end-of-day, block-day) measure against the recent 3-month average like everything else."
 }

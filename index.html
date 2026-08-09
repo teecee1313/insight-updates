@@ -1736,7 +1736,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-714-open';
+const APP_VERSION='2026.08.08-715-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2414,7 +2414,7 @@ async function cleanOldExchanges(){ // v693 — 7,734 saved shares when the ASX 
 function _connStop(){ try{ if(window._connT){clearInterval(window._connT); window._connT=null;} }catch(_){} }
 function connectBroker(){
   _connStop();
-  showModal('🔗 Connect your broker', '<div id="connBody" style="min-height:90px;font-size:14px;line-height:1.55;">Checking your connection\u2026</div>');
+  showModal('<div id="connBody" style="min-height:90px;font-size:14px;line-height:1.55;">Checking your connection\u2026</div>', '🔗 Connect your broker') /* v715: args were reversed - the wizard body was rendering inside the label chip */;
   fetch(DATA_PROXY+'/connect/start',{method:'POST'}).catch(function(){});
   _connTick(); window._connT=setInterval(_connTick, 4000);
 }
@@ -13294,7 +13294,7 @@ function newsProxy(history){
   const last5=h.slice(0,6); // today + up to 5 prior days
   if(last5.length<2)return 'unknown';
   // baseline volume = average of the days beyond the recent window
-  const older=h.slice(6);
+  const older=h.slice(6,6+63); /* v715: 3-month baseline */
   let bsum=0,bn=0;older.forEach(q=>{const v=getVol(q);if(!isNaN(v)&&v>0){bsum+=v;bn++;}});
   const baseVol=bn>0?bsum/bn:0;
   for(let i=0;i<last5.length-1;i++){
@@ -13590,7 +13590,7 @@ function buyingStreak(s){
   const ser=s.series;
   if(!Array.isArray(ser)||ser.length<3)return 0;
   // baseline avg volume from the earlier part of the window
-  const older=ser.slice(0,-5);
+  const older=ser.slice(0,-5).slice(-63); /* v715 */
   let bsum=0,bn=0;older.forEach(x=>{if(x.v>0){bsum+=x.v;bn++;}});
   const baseVol=bn>0?bsum/bn:(s.avgVol||0);
   if(baseVol<=0)return 0;
@@ -14128,7 +14128,7 @@ function scoreUnusual(s){
   if(!Array.isArray(ser)||ser.length<6)return null;
   const n=ser.length;
   const today=ser[n-1], prev=ser[n-2];
-  const older=ser.slice(0,-5);
+  const older=ser.slice(0,-5).slice(-63); /* v715 */
   let bsum=0,bn=0;older.forEach(x=>{if(x.v>0){bsum+=x.v;bn++;}});
   const baseVol=bn>0?bsum/bn:0;
   const ratio=(baseVol>0&&today.v>0)?today.v/baseVol:0;
@@ -17127,7 +17127,7 @@ async function bulkMonthAverageByDates(apiKey,say){
     if(rec.closes.length>=3){
       const ser=rec.closes.slice().sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0); // oldest→newest
       const recent=ser.slice(-6);        // today + up to 5 prior
-      const older=ser.slice(0,-6);
+      const older=ser.slice(0,-6).slice(-63); /* v715 */
       let bsum=0,bn=0;older.forEach(x=>{if(x.v>0){bsum+=x.v;bn++;}});
       const baseVol=bn>0?bsum/bn:0;
       let flag='quiet';
