@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-721-open';
+const APP_VERSION='2026.08.08-722-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15102,9 +15102,10 @@ function _laChip(s){
         setTimeout(function(){ try{ _laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup(); }catch(_){}} ,50); }
       return ''; }
     var f=_laShareToday(s); if(!f)return '';
-    var nb=(function(ff){ var p2=ff.split('|'); return p2[0]==='V2'||p2[0]==='V3'||p2[0]==='V15'||p2[1]==='C10'||p2[1]==='C5'||p2[1]==='C2'||p2[1]==='Cm5'||p2[2]==='S2'||p2[2]==='S4'||p2[3]==='H'; })(f);
+    var nb=(function(ff){ var p2=ff.split('|'); return p2[0]==='V2'||p2[0]==='V3'||p2[0]==='V15'||p2[1]==='C10'||p2[1]==='C5'||p2[1]==='C2'||p2[1]==='Cm5'||p2[2]==='S2'||p2[2]==='S4'; })(f); // v722: H no longer qualifies alone
     if(!nb)return '';
     var arr=_laIdx.idx[f]; if(!arr||arr.length<30)return '';
+    if(arr.length>Math.max(500,(_laIdx.days||0)*0.04))return ''; // weather ceiling
     var pos=Math.round(arr.filter(function(x){return x>0;}).length/arr.length*100);
     var col=pos>=60?'var(--green)':pos>=45?'var(--gold)':'#ff8b8b';
     var tk=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
@@ -15134,19 +15135,23 @@ function _laOddsScan(){
     // market's giant ordinary-weather bucket — true, and empty. Only distinctive
     // days qualify now: real volume, a real move, a streak, or high-proximity.
     var _laNotable=function(f){
-      var p=f.split('|'); var vb=p[0], cb=p[1], sb=p[2], hb=p[3];
+      // v722 — near-the-high is a STATE, not an event: half the steady risers
+      // live within 5% of their highs, so H alone re-created the flood (29k
+      // identical rows). An event must be present; H only flavours it.
+      var p=f.split('|'); var vb=p[0], cb=p[1], sb=p[2];
       if(vb==='V2'||vb==='V3'||vb==='V15')return true;
       if(cb==='C10'||cb==='C5'||cb==='C2'||cb==='Cm5')return true;
       if(sb==='S2'||sb==='S4')return true;
-      if(hb==='H')return true;
       return false;
     };
+    var _laCeil=Math.max(500, (L.days||0)*0.04); // any bucket holding >4% of all days is weather, whatever its bands
     for(var a=0;a<allData.length;a++){
       var s2=allData[a]; 
       if(typeof _cardLiqPass==='function'&&!_cardLiqPass(s2))continue; // same liquidity floor as the cards
       var f=_laShareToday(s2); if(!f)continue;
       if(!_laNotable(f))continue;
       var arr=L.idx[f]; if(!arr||arr.length<30)continue;
+      if(arr.length>_laCeil)continue;
       var srt=arr.slice().sort(function(x,y){return x-y;});
       var pos=srt.filter(function(x){return x>0;}).length/srt.length*100;
       var med=srt[Math.floor(srt.length/2)];
