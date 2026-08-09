@@ -1613,6 +1613,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
       <div class="stat statclick" onclick="statFilter('bearish')" title="Shares showing bearish price/volume patterns: heavy selling, distribution, or a down-streak. A data summary, not advice."><div class="sv r" id="cBear">0</div><div class="sl">Bearish</div></div>
       <div class="stat statclick" onclick="statFilter('vol')" title="Show only shares with volume ≥200% of average"><div class="sv gold" id="cV">0</div><div class="sl">Vol ≥200%</div></div>
       <div class="stat statclick" onclick="statFilter('brk')" title="🚀 Breakout — closed above its highest stored close on above-average volume. An estimate, not advice."><div class="sv" id="cBrk">0</div><div class="sl">Breakout</div></div>
+      <div class="stat statclick" onclick="statFilter('sgrsl')" title="🏁 Relative-Strength Leader — the strongest slice of the WHOLE market by recent return, caught on a breather. Counts shares firing it TODAY; reads – until this view has been evidence-checked (tapping runs the check). Research, not advice."><div class="sv" id="cRsl">–</div><div class="sl">🏁 RS Leader</div></div>
       <div class="stat statclick" onclick="statFilter('sc7')" title="Watch score 7/10 or higher — the same accumulation-weighted score as Top 20 to Watch. A data summary, not advice."><div class="sv gold" id="cS7">0</div><div class="sl">Score 7+</div></div>
     </div>
     <div id="evCompact"></div>
@@ -1728,7 +1729,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-704-open';
+const APP_VERSION='2026.08.08-705-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -12025,7 +12026,7 @@ window._radarMore=function(){
 // statsBar() and whenever the evidence note is rewritten.
 function _radarCompactSync(){
   try{
-    var map={cTot:'sTot',cG:'sG',cL:'sL',cBull:'sBull',cBear:'sBear',cV:'sV',cBrk:'sBrk',cS7:'sS7'};
+    var map={cTot:'sTot',cG:'sG',cL:'sL',cBull:'sBull',cBear:'sBear',cV:'sV',cBrk:'sBrk',cRsl:'sgRsl',cS7:'sS7'}; // v705: 🏁 RS Leader joins the compact strip
     for(var k in map){ var c=document.getElementById(k), o=document.getElementById(map[k]);
       if(c&&o){ c.textContent=o.textContent; c.className=o.className; c.id=k; } }
     var ev=document.getElementById('evCompact'); if(!ev)return;
