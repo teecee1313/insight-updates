@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-728-open';
+const APP_VERSION='2026.08.08-729-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15055,6 +15055,41 @@ async function _streakWhy(tk){
 // stored ASX history, and we report the DISTRIBUTION of what actually followed
 // over the next 10 trading days. Base rates, not predictions.
 let _laIdx=null, _laBuilt=0, _laSig='';
+// v729 — w509 is live: the server builds the lookalike index nightly from the
+// FULL ~3-year pantry. The app fetches it once per session (~15KB) and every
+// odds surface reads from it; the on-device sweep remains the offline fallback.
+let _laSrv=null, _laSrvTried=0, _laSrvDays=0;
+function _laEnsureSrv(cb){
+  if(_laSrv||_laSrvTried){ cb(); return; }
+  _laSrvTried=1;
+  try{
+    fetch(DATA_PROXY+'/lookalike/idx').then(function(r){return r.json();}).then(function(j){
+      if(j&&j.ok&&j.buckets){ _laSrv=j; _laSrvDays=0; try{ Object.keys(j.buckets).forEach(function(k){ var b=j.buckets[k]; if(b&&b.h10)_laSrvDays+=b.h10.n||0; }); }catch(e){} }
+      cb();
+    }).catch(function(){ cb(); });
+  }catch(e){ cb(); }
+}
+function _laStatsFromArr(arr){
+  if(!arr||!arr.length)return null;
+  var a=arr.slice().sort(function(x,y){return x-y;});
+  var q=function(f){return a[Math.min(a.length-1,Math.floor(a.length*f))];};
+  return { n:a.length, pos:Math.round(a.filter(function(x){return x>0;}).length/a.length*100),
+           med:a[Math.floor(a.length/2)], q1:q(0.25), q3:q(0.75), mn:a[0], mx:a[a.length-1], src:'device' };
+}
+function _laStatsFromHist(b,edges){
+  if(!b||!b.n)return null;
+  var q=function(f){ var tgt=b.n*f, c=0;
+    for(var i2=0;i2<b.b.length;i2++){ c+=b.b[i2]; if(c>=tgt){ var lo=edges[i2], hi=(edges[i2+1]!=null?edges[i2+1]:lo); return (lo+hi)/2; } }
+    return edges[edges.length-1]; };
+  return { n:b.n, pos:Math.round((b.pos/b.n)*100), med:q(0.5), q1:q(0.25), q3:q(0.75),
+           mn:(b.mn!=null?b.mn:q(0.02)), mx:(b.mx!=null?b.mx:q(0.98)), src:'server' };
+}
+function _laGet(f){
+  if(_laSrv&&_laSrv.buckets&&_laSrv.buckets[f]&&_laSrv.buckets[f].h10) return _laStatsFromHist(_laSrv.buckets[f].h10,_laSrv.edges);
+  var L=_laBuild(); var arr=L.idx[f];
+  return arr?_laStatsFromArr(arr):null;
+}
+function _laTotalDays(){ return (_laSrv&&_laSrvDays)?_laSrvDays:((_laIdx&&_laIdx.days)||0); }
 // v725 — the device store loads history progressively, so consecutive 🎲 runs
 // saw different amounts of data (58% then 54%: same maths, moving ground) and
 // the time-keyed cache could mix an old index with new fingerprints. The cache
@@ -15130,19 +15165,19 @@ function _laWhyNone(tk,why){
 function _laChip(s,ctx){
   try{
     if(!s)return '';
-    if(!_laIdx){ if(!window._laChipKick){ window._laChipKick=1;
-        setTimeout(function(){ try{ _laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup(); }catch(_){}} ,50); }
+    if(!_laSrv&&!_laIdx){ if(!window._laChipKick){ window._laChipKick=1;
+        setTimeout(function(){ try{ _laEnsureSrv(function(){ if(!_laSrv)_laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup(); }); }catch(_){}} ,50); }
       return ''; }
     var tk0=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
     var f=_laShareToday(s); if(!f)return (ctx==='pf')?_laMuted(tk0,'nodata'):'';
     var nb=(function(ff){ var p2=ff.split('|'); return p2[0]==='V2'||p2[0]==='V3'||p2[0]==='V15'||p2[1]==='C10'||p2[1]==='C5'||p2[1]==='C2'||p2[1]==='Cm5'||p2[2]==='S2'||p2[2]==='S4'; })(f); // v722: H no longer qualifies alone
     if(!nb)return (ctx==='pf')?_laMuted(tk0,'quiet'):'';
-    var arr=_laIdx.idx[f]; if(!arr||arr.length<30)return (ctx==='pf')?_laMuted(tk0,'thin'):'';
-    if(arr.length>Math.max(500,(_laIdx.days||0)*0.04))return (ctx==='pf')?_laMuted(tk0,'weather'):''; // weather ceiling
-    var pos=Math.round(arr.filter(function(x){return x>0;}).length/arr.length*100);
+    var stc=_laGet(f); if(!stc||stc.n<30)return (ctx==='pf')?_laMuted(tk0,'thin'):'';
+    if(stc.n>Math.max(500,_laTotalDays()*0.04))return (ctx==='pf')?_laMuted(tk0,'weather'):''; // weather ceiling
+    var arr={length:stc.n}; var pos=stc.pos;
     var col=pos>=60?'var(--green)':pos>=45?'var(--gold)':'#ff8b8b';
     var tk=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
-    return '<span onclick="event.stopPropagation();_lookalikeOpen(\''+tk+'\')" title="Of '+arr.length+' lookalike days in the saved history, '+pos+'% finished higher over the next 10 \u2014 a base rate, not a prediction.'+(ctx==='pf'?' Odds describe the share\u2019s DAY, not your position \u2014 your entry, stop and plan are the decision layer.':'')+' Tap for the full distribution." style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:'+col+';border:1px solid '+col+';border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;">\ud83c\udfb2 '+pos+'%</span>';
+    return '<span onclick="event.stopPropagation();_lookalikeOpen(\''+tk+'\')" title="Of '+arr.length+' lookalike days in '+(stc.src==='server'?'\u22483 years of history':'the saved history')+', '+pos+'% finished higher over the next 10 \u2014 a base rate, not a prediction.'+(ctx==='pf'?' Odds describe the share\u2019s DAY, not your position \u2014 your entry, stop and plan are the decision layer.':'')+' Tap for the full distribution." style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:'+col+';border:1px solid '+col+';border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;">\ud83c\udfb2 '+pos+'%</span>';
   }catch(e){ return ''; }
 }
 function _laShareToday(s){
@@ -15161,8 +15196,8 @@ function _laShareToday(s){
 function _laOddsScan(){
   if(!Array.isArray(allData)||!allData.length){ alert('Load the market first — tap \u26a1 Refresh / redownload data.'); return; }
   showModal('<div style="padding:14px;font-weight:600;font-size:13px;font-family:var(--sans);">\u23f3 Scoring every share\u2019s odds against the lookalike history\u2026</div>','\ud83c\udfb2 Odds today');
-  setTimeout(function(){ try{
-    var L=_laBuild(); var rows=[];
+  _laEnsureSrv(function(){ setTimeout(function(){ try{
+    if(!_laSrv)_laBuild(); var rows=[];
     // v719 — Tony's catch: dozens of shares showed identical 56% / n=25,640.
     // They'd all had the same KIND of day (quiet drift), so they all matched the
     // market's giant ordinary-weather bucket — true, and empty. Only distinctive
@@ -15177,20 +15212,18 @@ function _laOddsScan(){
       if(sb==='S2'||sb==='S4')return true;
       return false;
     };
-    var _laCeil=Math.max(500, (L.days||0)*0.04); // any bucket holding >4% of all days is weather, whatever its bands
+    var _laCeil=Math.max(500, _laTotalDays()*0.04); // any bucket holding >4% of all days is weather, whatever its bands
     for(var a=0;a<allData.length;a++){
      try{
       var s2=allData[a]; 
       if(typeof _cardLiqPass==='function'&&!_cardLiqPass(s2))continue; // same liquidity floor as the cards
       var f=_laShareToday(s2); if(!f)continue;
       if(!_laNotable(f))continue;
-      var arr=L.idx[f]; if(!arr||arr.length<30)continue;
-      if(arr.length>_laCeil)continue;
-      var srt=arr.slice().sort(function(x,y){return x-y;});
-      var pos=srt.filter(function(x){return x>0;}).length/srt.length*100;
-      var med=srt[Math.floor(srt.length/2)];
-      rows.push({tk:String(s2.ticker||s2.code||''), nm:String(s2.name||''), odds:pos, med:med, n:srt.length,
-                 arr:srt, sig:_laSig, tier:(s2.money&&s2.tier)?s2.tier:null}); // v727: each row carries its evidence
+      var st=_laGet(f); if(!st||st.n<30)continue;
+      if(st.n>_laCeil)continue;
+      var pos=st.pos, med=st.med;
+      rows.push({tk:String(s2.ticker||s2.code||''), nm:String(s2.name||''), odds:pos, med:med, n:st.n,
+                 st:st, sig:_laSig, tier:(s2.money&&s2.tier)?s2.tier:null}); // v727/v729: each row carries its stats snapshot
      }catch(_e){} // v725: one bad share never empties the list
     }
     window._laOddsRows=rows;
@@ -15198,7 +15231,7 @@ function _laOddsScan(){
     // empty just because a stricter chip was left selected last time
     var bars=[70,60,50]; for(var bi=0;bi<bars.length;bi++){ if(rows.some(function(r){return r.odds>=bars[bi];})){ _laOddsMin=bars[bi]; break; } if(bi===bars.length-1)_laOddsMin=50; }
     _laOddsRender();
-  }catch(e){ showModal('<div style="padding:10px;">Odds scan failed: '+String(e).replace(/</g,'&lt;')+'</div>','Odds'); } },60);
+  }catch(e){ showModal('<div style="padding:10px;">Odds scan failed: '+String(e).replace(/</g,'&lt;')+'</div>','Odds'); } },60); });
 }
 function _laOddsRender(){
   var rows=(window._laOddsRows||[]).filter(function(r){return r.odds>=_laOddsMin;})
@@ -15216,7 +15249,8 @@ function _laOddsRender(){
     }).join('')
     : '<div style="padding:14px 10px;color:var(--muted);font-weight:400;font-size:13px;font-family:var(--sans);">No share\u2019s fingerprint clears \u2265'+_laOddsMin+'% today (with 30+ lookalikes behind it). An honest empty list beats a padded one \u2014 try a lower bar or another day.</div>';
   var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83c\udfb2 again then.</div>':'';
-  var _smp=(_laIdx&&_laIdx.shares)?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: '+_laIdx.shares.toLocaleString()+' shares \u00b7 '+_laIdx.days.toLocaleString()+' share-days on this device</div>'):'';
+  var _smp=_laSrv?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: server \u00b7 built '+String(_laSrv.built||'')+' \u00b7 '+_laSrvDays.toLocaleString()+' share-days across \u2248 3 years</div>')
+    :((_laIdx&&_laIdx.shares)?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: '+_laIdx.shares.toLocaleString()+' shares \u00b7 '+_laIdx.days.toLocaleString()+' share-days on this device</div>'):'');
   showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of lookalike days that finished higher (next 10)</span></div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'
@@ -15242,19 +15276,17 @@ function _laExplain(){
 // tap-through can never contradict each other (66% on the list, 49% in the
 // modal was both-honest-but-different-worlds: the background load had grown
 // the index between scan and tap).
-function _laDist(tk, arr, extraNote){
+function _laDist(tk, x, extraNote){
+  var st = Array.isArray(x)?_laStatsFromArr(x):x; // v729: arrays (device) or stats (server/snapshots)
   var html;
-  if(!arr||arr.length<15){
-    html='<div style="font-weight:400;font-size:13px;line-height:1.55;font-family:var(--sans);">Only <b>'+((arr&&arr.length)||0)+'</b> lookalike day(s) match this exact fingerprint \u2014 too few to say anything honest. Rare fingerprints are themselves information: this day doesn\u2019t look like much of the past.</div>';
+  if(!st||st.n<15){
+    html='<div style="font-weight:400;font-size:13px;line-height:1.55;font-family:var(--sans);">Only <b>'+((st&&st.n)||0)+'</b> lookalike day(s) match this exact fingerprint \u2014 too few to say anything honest. Rare fingerprints are themselves information: this day doesn\u2019t look like much of the past.</div>';
   }else{
-    var a2=arr.slice().sort(function(x,y){return x-y;});
-    var med=a2[Math.floor(a2.length/2)], best=a2[a2.length-1], worst=a2[0];
-    var pos=Math.round(a2.filter(function(x){return x>0;}).length/a2.length*100);
-    var q1=a2[Math.floor(a2.length*0.25)], q3=a2[Math.floor(a2.length*0.75)];
+    var med=st.med, best=st.mx, worst=st.mn, pos=st.pos, q1=st.q1, q3=st.q3;
     var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
     var col=function(x){return x>=0?'var(--green)':'#ff8b8b';};
     html='<div style="font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">'
-    +'<b>'+a2.length.toLocaleString()+'</b> days across the saved market history shared this fingerprint (volume, move, streak, high-proximity bands). Over the <b>next 10 trading days</b> they went:'
+    +'<b>'+st.n.toLocaleString()+'</b> days across '+(st.src==='server'?'\u2248 3 years of market history (server)':'the saved market history on this device')+' shared this fingerprint (volume, move, streak, high-proximity bands). Over the <b>next 10 trading days</b> they went:'
     +'<div style="margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);font-family:var(--mono);font-size:13px;">'
     +'<div style="display:flex;justify-content:space-between;"><span>median</span><b style="color:'+col(med)+'">'+fmt(med)+'</b></div>'
     +'<div style="display:flex;justify-content:space-between;"><span>middle half</span><span>'+fmt(q1)+' \u2026 '+fmt(q3)+'</span></div>'
@@ -15270,18 +15302,18 @@ function _laDist(tk, arr, extraNote){
 function _laOddsPick(k){
   try{
     var row=(window._laOddsShown||[])[k]; if(!row)return;
-    var note='<div style="margin:0 0 10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--muted);">These are the exact '+row.arr.length.toLocaleString()+' days behind the '+Math.round(row.odds)+'% on the list you tapped.'
+    var note='<div style="margin:0 0 10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--muted);">These are the exact '+row.st.n.toLocaleString()+' days behind the '+Math.round(row.odds)+'% on the list you tapped.'
       +((typeof _laDataSig==='function'&&_laDataSig()!==row.sig)?' <span style="color:var(--gold);">History has updated since that list was built \u2014 run \ud83c\udfb2 again for fresh numbers.</span>':'')+'</div>';
-    _laDist(row.tk, row.arr, note);
+    _laDist(row.tk, row.st, note);
   }catch(e){}
 }
 function _lookalikeOpen(tk){
   try{
     var s=allData.find(function(x){return (x.ticker||x.code)===tk;});
     if(!s||!s.series||s.series.length<25){ showModal('<div style="padding:10px;font-weight:400;font-size:13px;font-family:var(--sans);">Not enough saved history on this device for '+tk+' yet \u2014 load the market first.</div>','Lookalikes'); return; }
-    showModal('<div style="padding:14px;font-weight:600;font-size:13px;font-family:var(--sans);">\u23f3 Sweeping the saved market history for lookalike days\u2026</div>','Lookalikes');
-    setTimeout(function(){
-      var L=_laBuild();
+    showModal('<div style="padding:14px;font-weight:600;font-size:13px;font-family:var(--sans);">\u23f3 Checking the lookalike history\u2026</div>','Lookalikes');
+    _laEnsureSrv(function(){ setTimeout(function(){
+      if(!_laSrv)_laBuild();
       var ser=s.series; var i=ser.length-1;
       while(i>0 && !(+ser[i].v>0)) i--;               // skip placeholder tail
       var c=+ser[i].c||0, prev=i>0?(+ser[i-1].c||0):0;
@@ -15292,8 +15324,8 @@ function _lookalikeOpen(tk){
       var st=0; for(var k=i;k>0;k--){ if((+ser[k].c)>(+ser[k-1].c))st++; else break; }
       var hi=Math.max.apply(null,ser.slice(-250).map(function(r){return +r.c||0;}));
       var f=_laFinger(chg,volR,st,hi>0&&c>=hi*0.95);
-      var arr=(L.idx[f]||[]).slice();
-      _laDist(tk, arr, ''); return;
+      var st0=_laGet(f);
+      _laDist(tk, st0||{n:0}, ''); return;
       var html;
       if(arr.length<15){
         html='<div style="font-weight:400;font-size:13px;line-height:1.55;font-family:var(--sans);">Only <b>'+arr.length+'</b> lookalike day(s) in the saved history match today\u2019s exact fingerprint \u2014 too few to say anything honest. Rare fingerprints are themselves information: today doesn\u2019t look like much of the past.</div>';
@@ -15316,7 +15348,7 @@ function _lookalikeOpen(tk){
         +'<div style="font-size:11.5px;color:var(--muted);line-height:1.55;">A base rate from history, not a prediction: lookalike days overlap, the sample is the saved window on this device, and the worst case above really happened to someone. Todays that look alike can still end differently \u2014 this shows the odds the past dealt, nothing more. Not advice.</div></div>';
       }
       showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 lookalike history</div>'+html,'Lookalikes');
-    },60);
+    },60); });
   }catch(e){ try{ showModal('<div style="padding:10px;">Lookalike sweep failed: '+String(e).replace(/</g,'&lt;')+'</div>','Lookalikes'); }catch(_){}}
 }
 function deepDive(ticker){

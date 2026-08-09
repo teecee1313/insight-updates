@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-728-open",
+ "version": "2026.08.08-729-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v728 — every portfolio holding now carries a dice: a real 🎲 % when today is distinctive with 30+ lookalikes, or a muted 🎲 – that explains itself on tap (ordinary day, rare pattern, market weather, or no history yet). An ordinary day is a perfectly fine day to be holding — now the app says so instead of staying silent."
+ "notes": "v729 — 🎲 odds now run on the SERVER index: built nightly from ≈3 years of full market history, identical on every device, fetched in one ~15KB call. Every odds surface (scan, chips, lookalikes, portfolio, watchlist) reads it; the on-device sweep remains the offline fallback and every popup names its source."
 }
