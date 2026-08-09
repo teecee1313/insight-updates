@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.10-731-open';
+const APP_VERSION='2026.08.10-732-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3028,6 +3028,14 @@ window._picksOpen = function(ticker){
   if(typeof printShareReport==='function') printShareReport(ticker);
 };
 window._picksMode = 'trail';   // 'mine' = your saved rules · 'trail' = tested rules · 'fixed' = 15/15 control
+// v732 — Tony's catch: the picks cards showed the engine's shorthand (inst+vr) instead of the
+// signals' real names. Same vocabulary as the bot panel and the report card; standalone because
+// picks can render before the card's defs are on this device. Handles single keys, + combos,
+// and > sequences; anything unknown falls back to the raw key so nothing ever blanks out.
+function _sigPlainName(k){ try{
+  var NM={bo:'\ud83d\ude80 Breakout',inf:'\ud83d\udd75\ufe0f Informed?',inst:'\ud83c\udfe6 Inst?',cx:'\u2934 MA cross',vr:'\ud83e\udd47 Vol record',dir:'\ud83e\uddd1\u200d\ud83d\udcbc Director \u2713',blk:'\ud83d\udd37 Block day'};
+  return String(k||'').split('>').map(function(seg){ return seg.split('+').map(function(x){return NM[x]||x;}).join(' + '); }).join(' \u2192 then ');
+}catch(e){ return String(k||''); } }
 async function showDailyPicks(mode){
   if(mode) window._picksMode = mode;
   const M = window._picksMode;
@@ -3041,6 +3049,7 @@ async function showDailyPicks(mode){
   }catch(e){ err = String(e&&e.message||e); }
 
   const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const sigName=_sigPlainName; // v732: shared with the server-decision trade note
   const money=v=>(v==null||!isFinite(v))?'\u2014':('$'+(+v).toFixed(+v<1?4:2));
   let html='';
 
@@ -3109,7 +3118,7 @@ async function showDailyPicks(mode){
           +(r.status==='queued'?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(217,164,65,.18);color:var(--gold);">already queued</span>':'')
           +(oob?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(226,25,55,.18);color:#ff9caa;">outside the band</span>':'')
           +age+'</div>'
-          +'<div style="font-size:11px;color:var(--muted);margin:3px 0 7px;">'+esc(r.evidence_key||'')+' \u00b7 score '+(r.score==null?'\u2014':(+r.score).toFixed(1))+(r.tier?(' \u00b7 '+esc(r.tier)):'')+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin:3px 0 7px;">'+esc(sigName(r.evidence_key))+' \u00b7 score '+(r.score==null?'\u2014':(+r.score).toFixed(1))+(r.tier?(' \u00b7 '+esc(String(r.tier).toUpperCase())):'')+'</div>'
           +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;">'
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Buy under</span><b>'+money(r.limit_price)+'</b></div>'
           +(tr
@@ -7997,7 +8006,7 @@ window._apSrvConsume=function(){
           p.cash=+(p.cash-cost).toFixed(2); _chargeFee(p);
           p.orders.push({id:'o'+Date.now()+'s'+Math.floor(Math.random()*1000),ticker:x.ticker,exchange:ex,name:'',currency:undefined,
             limit:lim,qty:q,reserved:cost,placedDate:x.first_seen_day,checkedDate:x.first_seen_day,preOpen:_orderPreOpen(ex),expiry:_orderExpiry(x.first_seen_day),
-            target:tgt>0?tgt:null,stop:stp>0?stp:null,note:'\ud83c\udf10 server decision \u00b7 '+String(x.evidence_key||'')+' \u00b7 decided '+x.first_seen_day+' (practice)',fee:fee||0,
+            target:tgt>0?tgt:null,stop:stp>0?stp:null,note:'\ud83c\udf10 server decision \u00b7 '+((typeof _sigPlainName==='function')?_sigPlainName(x.evidence_key):String(x.evidence_key||''))+' \u00b7 decided '+x.first_seen_day+' (practice)',fee:fee||0,
             tgtLog:tgt>0?[{d:_pfMktDate(ex),ts:_pfStamp(),from:null,to:tgt}]:[],stopLog:stp>0?[{d:_pfMktDate(ex),ts:_pfStamp(),from:null,to:stp}]:[]});
           held.add(x.ticker); openN++; seen.push(k);
           ent.buys.push({tk:x.ticker,ex:ex,qty:q,cost:cost,px:lim,srv:true,score:(x.score!=null?x.score:null)});
