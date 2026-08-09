@@ -1729,7 +1729,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-710-open';
+const APP_VERSION='2026.08.08-711-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -13348,6 +13348,21 @@ const PLANS={
     dir:'all', pctLo:0, pctHi:Infinity, volLo:50, volHi:Infinity, days:'0', price:[0,500], needsVol:true, accum:5, quiet:true},
 };
 
+function _planResultsModal(label){ // v711: Starter hides the table, so presets show their answer as a list
+  var rows=(filtered||[]).slice(0,30);
+  var body= rows.length? rows.map(function(x){ var tk=String(x.ticker||x.code||'');
+      var chg=(x.chgPct!=null&&isFinite(x.chgPct))?((x.chgPct>=0?'+':'')+(+x.chgPct).toFixed(2)+'%'):'';
+      var col=(x.chgPct>0)?'var(--green)':(x.chgPct<0)?'#ff8b8b':'var(--muted)';
+      return '<div onclick="deepDive(\''+tk.replace(/[^A-Za-z0-9.]/g,'')+'\')" style="display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font:600 13px var(--sans);">'
+        +'<span><b>'+tk+'</b> <span style="color:var(--muted);font-weight:400;font-size:11px;">'+String(x.name||'').slice(0,24).replace(/</g,'&lt;')+'</span></span>'
+        +'<span style="font-family:var(--mono);">'+(x.price!=null?('$'+(+x.price).toFixed(x.price<1?3:2)):'')+' <span style="color:'+col+';">'+chg+'</span></span></div>';
+    }).join('')
+    : '<div style="padding:14px 10px;color:var(--muted);font:400 13px var(--sans);">No shares match this recipe today \u2014 that is a real answer, not a fault. Recipes are strict on purpose; try again after the next trading day.</div>';
+  var extra=(filtered&&filtered.length>30)?('<div style="padding:8px 10px;color:var(--muted);font:600 11px var(--sans);">Showing the first 30 of '+filtered.length.toLocaleString()+' \u2014 the full list lives in Advanced view.</div>'):'';
+  showModal('<div style="font:700 15px var(--sans);margin-bottom:8px;">'+label+' \u00b7 '+((filtered||[]).length.toLocaleString())+' matches</div>'
+    +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'+extra
+    +'<div style="margin-top:8px;color:var(--muted);font:400 11px var(--sans);">A filter recipe, not a verdict \u2014 tap any share for its evidence. <button onclick="doReset()" style="margin-left:6px;padding:4px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 11px var(--sans);">\u2715 Clear filter</button></div>', label);
+}
 function loadPlan(key){
   exitWatchView();
   const p=PLANS[key];
@@ -13397,6 +13412,22 @@ function loadPlan(key){
   if(p.quiet&&filtered.length)filterNoNewsPlan();
   const quietBtn=`<br><button onclick="filterNoNewsPlan()" style="margin-top:5px;padding:5px 8px;border-radius:5px;border:1px solid var(--purple);background:rgba(188,140,255,.12);color:var(--purple);font:600 10px var(--sans);cursor:pointer;">🔇 Keep only quiet movers (no news 5d)</button>`;
   st.innerHTML=`✓ <strong style="color:var(--text)">${p.label}</strong> loaded · ${filtered.length} match${filtered.length?quietBtn:''}`;
+  // v711 — presets ran fine but reported only into this popup's small status
+  // line, with results in a table that's below the popup (Advanced) or hidden
+  // (Starter). Now the outcome comes to the user.
+  try{
+    if(document.body.classList.contains('simple-mode')){
+      _planResultsModal(p.label);
+    }else{
+      setTimeout(function(){ try{
+        closeOverlay();
+        var b=document.getElementById('activeScanBanner');
+        if(b){ b.innerHTML='<div style="margin:8px 0;padding:9px 12px;border:1.5px solid var(--gold);border-radius:10px;background:var(--bg2);font:600 13px var(--sans);">'+p.label+' \u00b7 <b>'+filtered.length.toLocaleString()+'</b> matches \u2014 ranked below <button onclick="doReset()" style="float:right;padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 11px var(--sans);">\u2715 Clear</button></div>'; }
+        var t=document.getElementById('tblwrap'); if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(_){}} ,650);
+    }
+  }catch(_){}
+
 
   // Auto-run the calc this plan depends on, then re-apply
   if(p.needsStreak && (p.days!=='0'||p.daysMin)){

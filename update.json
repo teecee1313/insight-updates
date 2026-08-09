@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-710-open",
+ "version": "2026.08.08-711-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v710 — stale mentions of the retired 🎯 Smart Money scan now point at 🎯 Best Evidence Today, and the help guide tells the real story: its pattern failed the backtest, so it lost its button. The honesty machinery applies to our own features too."
+ "notes": "v711 — the 🚀🪙🕵 filter presets now show their answer: in Advanced the popup closes, a banner announces the match count and the ranked list scrolls into view; in Starter the matches open as a tappable list. Zero matches says so honestly."
 }
