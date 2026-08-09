@@ -838,6 +838,8 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <button id="sidebarToggle" onclick="toggleSidebar()" title="Hide / show the filters panel" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">◀ Hide panel</button>
 
     <button id="researchBtn" onclick="renderResearch()" title="🔬 Research further — open your worklist of shares parked to look into later. Flag any share from its report or the 🔔 What’s-changed list to add it here." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">🔬 Research <span data-research-count style="color:var(--green);font-weight:700;"></span></button>
+
+    <button id="wlNavBtn" onclick="_wlNavOpen()" title="⭐ Watchlist — the shares you've starred. In Starter it opens as a list; in Advanced it filters the table to your stars." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--gold);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">⭐ Watchlist</button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
     <!-- v482 — the 49 lessons used to be reachable only after unlocking
          training mode with a secret code, which made one of the better reasons
@@ -1737,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-729-open';
+const APP_VERSION='2026.08.08-730-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10863,6 +10865,33 @@ function logout(){
 function updateWatchBtn(){
   const b=document.getElementById('watchToggle');
   if(b)b.innerHTML=`★ ${activeWatch} (${Object.keys(curWL()).length})`+(watchViewOn?' ✓':'');
+  try{ const nb=document.getElementById('wlNavBtn'); if(nb){ const c=Object.keys(curWL()).length; nb.innerHTML='\u2b50 Watchlist'+(c?' ('+c+')':''); } }catch(e){}
+}
+// v730 — the watchlist finally lives on the top row. Starter opens a tappable
+// list (the table it used to toggle is hidden there); Advanced jumps into the
+// existing star-filtered view.
+function _wlNavOpen(){
+  try{
+    const entries=Object.values(curWL());
+    if(document.body.classList.contains('simple-mode')){
+      if(!entries.length){ showModal('<div style="padding:12px;font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">No stars yet \u2014 tap \u2b50 on any share\u2019s report, deep dive or list row and it lands here.</div>','\u2b50 Watchlist'); return; }
+      const rows=entries.map(function(w){
+        const live=(Array.isArray(allData)&&allData.find(function(x){return x.ticker===w.ticker;}))||w;
+        const chg=(live.chgPct!=null&&isFinite(live.chgPct))?((live.chgPct>=0?'+':'')+(+live.chgPct).toFixed(2)+'%'):'';
+        const col=(live.chgPct>0)?'var(--green)':(live.chgPct<0)?'#ff8b8b':'var(--muted)';
+        const chip=(typeof _laChip==='function')?_laChip(live):'';
+        return '<div onclick="deepDive(\''+String(w.ticker).replace(/[^A-Za-z0-9.]/g,'')+'\')" style="display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;font-family:var(--sans);align-items:baseline;">'
+          +'<span><b>'+w.ticker+'</b>'+chip+' <span style="color:var(--muted);font-weight:400;font-size:11px;">'+String(live.name||'').slice(0,22).replace(/</g,'&lt;')+'</span></span>'
+          +'<span style="font-family:var(--mono);">'+(live.price!=null?('$'+(+live.price).toFixed(live.price<1?3:2)):'')+' <span style="color:'+col+';">'+chg+'</span></span></div>';
+      }).join('');
+      showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\u2b50 '+activeWatch+' \u00b7 '+entries.length+' share'+(entries.length===1?'':'s')+'</div>'
+        +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+rows+'</div>'
+        +'<div style="margin-top:8px;font-weight:400;font-size:11px;color:var(--muted);font-family:var(--sans);">Tap a share for its deep dive \u00b7 star / unstar from any report. Advanced view shows the full sortable version.</div>','\u2b50 Watchlist');
+    }else{
+      if(!watchViewOn)toggleWatchView(); else updateWatchBtn();
+      const t=document.getElementById('tblwrap'); if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }catch(e){}
 }
 function toggleWatchView(){
   watchViewOn=!watchViewOn;

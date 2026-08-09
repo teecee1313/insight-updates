@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-729-open",
+ "version": "2026.08.08-730-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v729 — 🎲 odds now run on the SERVER index: built nightly from ≈3 years of full market history, identical on every device, fetched in one ~15KB call. Every odds surface (scan, chips, lookalikes, portfolio, watchlist) reads it; the on-device sweep remains the offline fallback and every popup names its source."
+ "notes": "v730 — ⭐ Watchlist joins the top row on every screen, with your star count. Starter opens it as a tappable list (price, day change, 🎲 odds when distinctive, tap for the deep dive); Advanced jumps straight into the star-filtered table."
 }
