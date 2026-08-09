@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-724-open';
+const APP_VERSION='2026.08.08-725-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15053,7 +15053,19 @@ async function _streakWhy(tk){
 // A share's TODAY is then matched against every lookalike day in ~3 years of
 // stored ASX history, and we report the DISTRIBUTION of what actually followed
 // over the next 10 trading days. Base rates, not predictions.
-let _laIdx=null, _laBuilt=0;
+let _laIdx=null, _laBuilt=0, _laSig='';
+// v725 — the device store loads history progressively, so consecutive 🎲 runs
+// saw different amounts of data (58% then 54%: same maths, moving ground) and
+// the time-keyed cache could mix an old index with new fingerprints. The cache
+// is now keyed by a DATA SIGNATURE: share count, exchange, and a sampled
+// checksum of series lengths — any change rebuilds the index.
+function _laDataSig(){
+  try{
+    var L=allData.length, sum=0;
+    for(var i=0;i<L;i+=17){ var sr=allData[i]&&allData[i].series; sum+=(sr?sr.length:0); }
+    return L+':'+(typeof currentExch!=='undefined'?currentExch:'')+':'+sum;
+  }catch(e){ return 'e'; }
+}
 function _laFinger(chg, volR, streak, nearHi){
   var vb = volR>=3?'V3':volR>=2?'V2':volR>=1.5?'V15':volR>=1?'V1':'V0';
   var cb = chg>=10?'C10':chg>=5?'C5':chg>=2?'C2':chg>=0?'C0':chg>=-5?'Cm':'Cm5';
@@ -15061,9 +15073,11 @@ function _laFinger(chg, volR, streak, nearHi){
   return vb+'|'+cb+'|'+sb+'|'+(nearHi?'H':'-');
 }
 function _laBuild(){
-  if(_laIdx && (Date.now()-_laBuilt)<30*60*1000) return _laIdx;
+  var sig=_laDataSig();
+  if(_laIdx && _laSig===sig && (Date.now()-_laBuilt)<30*60*1000) return _laIdx;
   var idx={}; var shares=0, days=0;
   for(var a=0;a<allData.length;a++){
+   try{
     var s=allData[a]; var ser=s&&s.series; if(!ser||ser.length<80)continue; shares++;
     var vsum=0,vn=0,hi=0,streak=0; var win=[]; var hiWin=[];
     for(var i=0;i<ser.length;i++){
@@ -15084,8 +15098,9 @@ function _laBuild(){
       hiWin.push(c); if(hiWin.length>250)hiWin.shift();
       hi=Math.max.apply(null,hiWin);
     }
+   }catch(_e){} // v725: skip a corrupt series, keep sweeping
   }
-  _laIdx={idx:idx, shares:shares, days:days}; _laBuilt=Date.now();
+  _laIdx={idx:idx, shares:shares, days:days}; _laBuilt=Date.now(); _laSig=sig;
   return _laIdx;
 }
 // v718 — 🎲 ODDS TODAY: every share's current fingerprint scored against the
@@ -15146,6 +15161,7 @@ function _laOddsScan(){
     };
     var _laCeil=Math.max(500, (L.days||0)*0.04); // any bucket holding >4% of all days is weather, whatever its bands
     for(var a=0;a<allData.length;a++){
+     try{
       var s2=allData[a]; 
       if(typeof _cardLiqPass==='function'&&!_cardLiqPass(s2))continue; // same liquidity floor as the cards
       var f=_laShareToday(s2); if(!f)continue;
@@ -15157,8 +15173,13 @@ function _laOddsScan(){
       var med=srt[Math.floor(srt.length/2)];
       rows.push({tk:String(s2.ticker||s2.code||''), nm:String(s2.name||''), odds:pos, med:med, n:srt.length,
                  tier:(s2.money&&s2.tier)?s2.tier:null});
+     }catch(_e){} // v725: one bad share never empties the list
     }
-    window._laOddsRows=rows; _laOddsRender();
+    window._laOddsRows=rows;
+    // v725: land on the highest bar with results, so reopening never LOOKS
+    // empty just because a stricter chip was left selected last time
+    var bars=[70,60,50]; for(var bi=0;bi<bars.length;bi++){ if(rows.some(function(r){return r.odds>=bars[bi];})){ _laOddsMin=bars[bi]; break; } if(bi===bars.length-1)_laOddsMin=50; }
+    _laOddsRender();
   }catch(e){ showModal('<div style="padding:10px;">Odds scan failed: '+String(e).replace(/</g,'&lt;')+'</div>','Odds'); } },60);
 }
 function _laOddsRender(){
@@ -15175,10 +15196,12 @@ function _laOddsRender(){
       +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'%</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">n='+r.n+'</span></span></div>';
     }).join('')
     : '<div style="padding:14px 10px;color:var(--muted);font-weight:400;font-size:13px;font-family:var(--sans);">No share\u2019s fingerprint clears \u2265'+_laOddsMin+'% today (with 30+ lookalikes behind it). An honest empty list beats a padded one \u2014 try a lower bar or another day.</div>';
-  showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
+  var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83c\udfb2 again then.</div>':'';
+  var _smp=(_laIdx&&_laIdx.shares)?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: '+_laIdx.shares.toLocaleString()+' shares \u00b7 '+_laIdx.days.toLocaleString()+' share-days on this device</div>'):'';
+  showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of lookalike days that finished higher (next 10)</span></div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'
-    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds% sits beside its <b>median</b> because 60% winners with a deep losing tail is a different game to 60% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice.</div>','\ud83c\udfb2 Odds today');
+    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds% sits beside its <b>median</b> because 60% winners with a deep losing tail is a different game to 60% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice.</div>'+_smp,'\ud83c\udfb2 Odds today');
 }
 function _laExplain(){
   var pre='font-family:var(--mono);font-size:10.5px;line-height:1.5;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px;white-space:pre;overflow-x:auto;';
