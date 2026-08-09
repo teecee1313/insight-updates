@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-725-open",
+ "version": "2026.08.08-726-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v725 — 🎲 Odds today is deterministic and self-explaining: the index rebuilds whenever the loaded data actually changes (odds no longer drift between runs mid-load), a loading banner says when numbers will settle, the scan lands on the highest bar that has results, one corrupt share can never empty the list, and the footer stamps how many shares and share-days the index saw."
+ "notes": "v726 — 🎲 odds join the ⭐ watchlist and the paper portfolio: each watched share and each holding shows its base rate when its day is distinctive with 30+ lookalikes. On holdings the tap-through is explicit: odds describe the share’s DAY, not your position — your entry, stop and plan are the decision layer."
 }
