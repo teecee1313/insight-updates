@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-723-open",
+ "version": "2026.08.08-724-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v723 — night-mode readability: the quick-filter buttons wear their accent colours (green, gold, purple, blue) and every utility button follows the theme’s text colour, so nothing renders black-on-dark. Day mode keeps dark text as it should."
+ "notes": "v724 — the ≥50/60/70% chips (and every button the app builds on the fly) follow the theme’s text colour, and a doubled % in the odds footer is fixed."
 }

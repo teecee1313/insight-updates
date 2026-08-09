@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-723-open';
+const APP_VERSION='2026.08.08-724-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15178,7 +15178,7 @@ function _laOddsRender(){
   showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of lookalike days that finished higher (next 10)</span></div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'
-    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds%% sits beside its <b>median</b> because 60%% winners with a deep losing tail is a different game to 60%% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice.</div>','\ud83c\udfb2 Odds today');
+    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds% sits beside its <b>median</b> because 60% winners with a deep losing tail is a different game to 60% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice.</div>','\ud83c\udfb2 Odds today');
 }
 function _laExplain(){
   var pre='font-family:var(--mono);font-size:10.5px;line-height:1.5;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px;white-space:pre;overflow-x:auto;';
