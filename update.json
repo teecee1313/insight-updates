@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-708-open",
+ "version": "2026.08.08-709-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v708 — the 👤 Account menu now always opens fully on-screen on phones (it could hang off the left edge with its first letters clipped)."
+ "notes": "v709 — every explanation in the scan and signal report cards now opens on TAP (phones have no hover): tap a number for its meaning, tap again to close. The “mid” line no longer overflows its column."
 }

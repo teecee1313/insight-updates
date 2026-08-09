@@ -1729,7 +1729,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-708-open';
+const APP_VERSION='2026.08.08-709-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20167,6 +20167,15 @@ function _trainResolve(el){
 var _trainHot=null;
 function _trainDelegate(){
   if(window._trainDeleg)return; window._trainDeleg=1;
+  document.addEventListener('click',function(e){ // v709: touch path for training tips
+    try{
+      if(!document.body.classList.contains('training-on'))return;
+      var t=e.target; if(!t||!t.closest)return; var el=t.closest(_TRAIN_SEL); if(!el)return;
+      if(el.closest('a,button,input,select'))return;
+      if(_trainHot===el&&_ttEl){ _trainHot=null; _hideTT(); return; }
+      _trainHot=el; var info=_trainResolve(el); if(info)_showTT(el,info); else _hideTT();
+    }catch(err){}
+  },true);
   document.addEventListener('mouseover',function(e){
     try{
       if(!document.body.classList.contains('training-on'))return;
@@ -20972,7 +20981,7 @@ function _attachTableTips(){
 }
 function _attachCardTips(container){
   try{
-    if(!container||!document.body.classList.contains('training-on'))return;
+    if(!container)return; // v709: tips now attach outside training mode too - phones have no hover, so tap is the only door
     var _all=container.querySelectorAll('[title]');
     if(_all.length>400)return; // v543: a modal this dense keeps native tooltips — attaching hundreds of listeners froze low-end devices
     _all.forEach(function(el){
@@ -20981,6 +20990,12 @@ function _attachCardTips(container){
       el.setAttribute('data-tip',d); el.removeAttribute('title'); el.style.cursor='help';
       el.addEventListener('mouseenter',function(){ _cardShowTip(el,d); });
       el.addEventListener('mouseleave',_cardHideTip);
+      el.addEventListener('click',function(ev){ // v709: tap = the phone's hover; second tap closes
+        if(el.tagName==='A'||el.closest('a,button'))return;
+        try{ev.stopPropagation();}catch(_){}
+        if(_cardTipEl&&el.__ttOpen){ _cardHideTip(); el.__ttOpen=0; }
+        else{ _cardShowTip(el,d); el.__ttOpen=1; setTimeout(function(){ document.addEventListener('click',function(){ _cardHideTip(); el.__ttOpen=0; },{once:true}); },0); }
+      });
     });
   }catch(e){}
 }
@@ -22795,7 +22810,7 @@ function _renderSCCard(R,win){
         +'<br><span title="Edge — how far this scan beat the AVERAGE share over the same '+w+' days." style="cursor:help;font-family:var(--mono);font-size:9.5px;font-weight:700;color:'+((ed!==null&&ed>0)?'var(--green)':'#ff9caa')+'">edge '+(ed===null?'—':f1(ed))+'</span>'
         +(function(){ if(news!=='all')return ''; var mm=med(m), bm=bmed(w); if(mm===null||bm===null)return '';
             var mb=mm-bm;
-            return '<br><span title="MIDDLE outcome — half the flagged shares did better, half worse. The market average is pulled up by a few explosive shares, so a scan can beat the TYPICAL share (green here) while still losing on the average. This line tells you which is happening." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:'+(mb>0?'var(--green)':'#ff9caa')+'">mid '+f1(mm)+' ('+f1(mb)+' vs mkt)</span>'; })()
+            return '<br><span title="MIDDLE outcome — half the flagged shares did better, half worse. The market average is pulled up by a few explosive shares, so a scan can beat the TYPICAL share (green here) while still losing on the average. This line tells you which is happening." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:'+(mb>0?'var(--green)':'#ff9caa')+';display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;">mid '+f1(mm)+' ('+f1(mb)+' vs mkt)</span>'; })()
         +'<br><span style="font-size:9px;color:var(--muted)">'+Math.round((m.up/m.n)*100)+'% · '+m.n+' fires</span></td>';
     }).join('');
     var t=TIER(x.fires), chip='<span title="'+TIP[t[0]]+'" style="cursor:help;border:1px solid '+t[1]+';color:'+t[1]+';border-radius:4px;padding:0 4px;font-size:8.5px;font-weight:800;letter-spacing:.4px;margin-left:6px;">'+t[0]+'</span>';
@@ -22807,7 +22822,7 @@ function _renderSCCard(R,win){
     if(view!=='all'){ var isUp=(view==='up'), cnt=isUp?m.up:(m.dn||0), tot=isUp?(m.wsum||0):(m.dsum||0);
       if(!cnt)return '<td style="text-align:center;color:var(--dim)">—</td>';
       return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(tot/cnt)+'</span><br><span style="font-size:9.5px;color:var(--dim)">'+Math.round((cnt/m.n)*100)+'% of shares</span></td>'; }
-    var bm=(news==='all')?med(m):null; return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim)">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
+    var bm=(news==='all')?med(m):null; return '<td style="text-align:center;'+((w===win)?'background:rgba(255,210,0,.06);':'')+'"><span style="font-family:var(--mono);color:var(--muted)">'+f1(m.sum/m.n)+'</span>'+(bm===null?'':'<br><span title="The MIDDLE share — half of the market did better than this, half worse. Compare it with the average just above: a big gap means a few extreme winners are lifting the average." style="cursor:help;font-family:var(--mono);font-size:9.5px;color:var(--dim);display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;">mid '+f1(bm)+'</span>')+'<br><span style="font-size:9px;color:var(--dim)">'+Math.round((m.up/m.n)*100)+'% higher</span></td>'; }).join('');
   var vsw=[['all','everything'],['up','📈 gainers only'],['down','📉 fallers only']].map(function(x){
     return '<button onclick="_scView(\''+x[0]+'\')" title="'+(x[0]==='up'?'Show only the flagged shares that ROSE — how big the wins were, and how often they happened.':x[0]==='down'?'Show only the flagged shares that FELL — how deep the losses were, and how often. Read it next to the gainers view: a scan can win often and still lose money.':'The average across every flagged share, winners and losers together.')+'" style="border:1px solid '+(x[0]===view?'var(--gold)':'var(--border2)')+';color:'+(x[0]===view?'var(--gold)':'var(--muted)')+';background:'+(x[0]===view?'rgba(255,210,0,.08)':'transparent')+';border-radius:20px;padding:3px 10px;font:700 9.5px var(--sans);cursor:pointer;margin-right:5px;">'+x[1]+'</button>';
   }).join('');
