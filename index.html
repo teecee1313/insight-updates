@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-719-open';
+const APP_VERSION='2026.08.08-720-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -14457,7 +14457,7 @@ function showTop10Panel(pairs){
       <div style="flex:1 1 auto;height:7px;border-radius:4px;background:var(--bg3);overflow:hidden;min-width:36px;"><div style="height:100%;width:${r.score*10}%;background:${b.c};"></div></div>
       <span style="flex:0 0 auto;font-weight:800;font-size:15px;color:${b.c};">${r.score}</span><span style="flex:0 0 auto;font-size:9px;color:var(--dim);">/10</span>
       <span style="flex:0 0 56px;font-size:9px;color:${b.c};text-align:right;">${b.t}</span>
-      ${(typeof _evRowChip==='function'&&_evRowChip(s))||''}${(typeof _qvChip==='function'&&_qvChip(s))||''}${_popupStar(s.ticker)}
+      ${(typeof _evRowChip==='function'&&_evRowChip(s))||''}${(typeof _qvChip==='function'&&_qvChip(s))||''}${_laChip(s)}${_popupStar(s.ticker)}
     </div>`;
   }).join('')||`<div style="padding:22px 8px;text-align:center;color:var(--muted);font-size:12px;">None of the Top ${_all.length} match the active quick filters.<br><br>Tap <b>Showing</b> in the stats bar above to clear them.</div>`;
   const filtNote=_anyOn?`<div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⚡ Quick filters on — showing ${_shown.length} of ${_all.length}. Tap <b>Showing</b> in the stats bar to clear.</div>`:'';
@@ -15092,6 +15092,25 @@ function _laBuild(){
 // lookalike index; the market ranked by "how often did lookalike days finish
 // higher over the next 10?" Sample floor 30 — thin data doesn't get to brag.
 let _laOddsMin=60;
+// v720 — the odds chip for report rows (Best Evidence, Top 20): same rules as
+// the 🎲 scan — distinctive fingerprint + 30 lookalikes — or no chip at all.
+// First call in a session defers the index build so reports never jank.
+function _laChip(s){
+  try{
+    if(!s)return '';
+    if(!_laIdx){ if(!window._laChipKick){ window._laChipKick=1;
+        setTimeout(function(){ try{ _laBuild(); if(typeof _reRenderScanPopup==='function')_reRenderScanPopup(); }catch(_){}} ,50); }
+      return ''; }
+    var f=_laShareToday(s); if(!f)return '';
+    var nb=(function(ff){ var p2=ff.split('|'); return p2[0]==='V2'||p2[0]==='V3'||p2[0]==='V15'||p2[1]==='C10'||p2[1]==='C5'||p2[1]==='C2'||p2[1]==='Cm5'||p2[2]==='S2'||p2[2]==='S4'||p2[3]==='H'; })(f);
+    if(!nb)return '';
+    var arr=_laIdx.idx[f]; if(!arr||arr.length<30)return '';
+    var pos=Math.round(arr.filter(function(x){return x>0;}).length/arr.length*100);
+    var col=pos>=60?'var(--green)':pos>=45?'var(--gold)':'#ff8b8b';
+    var tk=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
+    return '<span onclick="event.stopPropagation();_lookalikeOpen(\''+tk+'\')" title="Of '+arr.length+' lookalike days in the saved history, '+pos+'% finished higher over the next 10 \u2014 a base rate, not a prediction. Tap for the full distribution." style="cursor:pointer;font:700 10px var(--mono);color:'+col+';border:1px solid '+col+';border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;">\ud83c\udfb2 '+pos+'%</span>';
+  }catch(e){ return ''; }
+}
 function _laShareToday(s){
   var ser=s&&s.series; if(!ser||ser.length<80)return null;
   var i=ser.length-1; while(i>0 && !(+ser[i].v>0)) i--;
@@ -21518,7 +21537,7 @@ function bestEvidenceScan(){
       var sc=_cardScore10(best.m), scCol=sc>=7?'var(--green)':'var(--gold)';
       return '<div style="display:flex;align-items:baseline;gap:8px;padding:7px 3px;border-bottom:1px solid var(--border);font-size:11.5px;">'
         +'<span style="flex:0 0 26px;text-align:right;color:var(--muted);font-weight:700;">'+(ix+1)+'.</span>'
-        +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'
+        +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'+_laChip(sh)
         +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,30):'')
           +'<div style="font-size:10px;color:var(--muted);margin-top:2px;"><b style="color:var(--text)">'+nameK(best.k)+'</b>'+more
           +'<br>'+(best.m.tier==='solid'?'<span style="color:var(--green);font-weight:700;">SOLID</span>':'<span style="color:var(--gold);font-weight:700;">PROMISING</span>')
