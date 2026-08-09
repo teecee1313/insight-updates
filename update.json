@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-718-open",
+ "version": "2026.08.08-719-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v718 — 🎲 Odds today: the whole market ranked by lookalike base rates. Pick a bar (≥50/60/70%), see every share whose fingerprint historically finished higher that often over the next 10 days — odds beside median beside sample size, 30+ lookalikes required, tap through to the full distribution."
+ "notes": "v719 — 🎲 Odds today only lists DISTINCTIVE days now: real volume, a real move, a streak, or high-proximity. Ordinary-weather days all share one giant base rate (56% · +0.4% across half the market) — true, and empty — so they no longer flood the list. Liquidity floor applies."
 }
