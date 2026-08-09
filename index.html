@@ -1736,7 +1736,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-713-open';
+const APP_VERSION='2026.08.08-714-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15044,6 +15044,89 @@ async function _streakWhy(tk){
     showModal('<div style="font:600 13px var(--sans);margin-bottom:6px;">Streak forensics \u2014 screenshot this</div><pre style="font:10px/1.5 monospace;white-space:pre-wrap;word-break:break-all;user-select:text;">'+L.join('\n').replace(/</g,'&lt;')+'</pre>', tk+' streak');
   }catch(e){ try{ showModal('<pre>forensics failed: '+String(e).replace(/</g,'&lt;')+'</pre>','streak'); }catch(_){}}
 }
+// ═══ v714 — LOOKALIKE HISTORY ═══════════════════════════════════════════════
+// Every share-day in the on-device history gets a compact fingerprint (volume
+// band vs its trailing 3-month average, day-change band, up-streak, near-high).
+// A share's TODAY is then matched against every lookalike day in ~3 years of
+// stored ASX history, and we report the DISTRIBUTION of what actually followed
+// over the next 10 trading days. Base rates, not predictions.
+let _laIdx=null, _laBuilt=0;
+function _laFinger(chg, volR, streak, nearHi){
+  var vb = volR>=3?'V3':volR>=2?'V2':volR>=1.5?'V15':volR>=1?'V1':'V0';
+  var cb = chg>=10?'C10':chg>=5?'C5':chg>=2?'C2':chg>=0?'C0':chg>=-5?'Cm':'Cm5';
+  var sb = streak>=4?'S4':streak>=2?'S2':'S0';
+  return vb+'|'+cb+'|'+sb+'|'+(nearHi?'H':'-');
+}
+function _laBuild(){
+  if(_laIdx && (Date.now()-_laBuilt)<30*60*1000) return _laIdx;
+  var idx={}; var shares=0, days=0;
+  for(var a=0;a<allData.length;a++){
+    var s=allData[a]; var ser=s&&s.series; if(!ser||ser.length<80)continue; shares++;
+    var vsum=0,vn=0,hi=0,streak=0; var win=[]; var hiWin=[];
+    for(var i=0;i<ser.length;i++){
+      var r=ser[i]; var v=+r.v||0, c=+r.c||0;
+      var prev=i>0?(+ser[i-1].c||0):0;
+      var chg=prev>0?((c-prev)/prev)*100:0;
+      streak=(i>0&&c>prev)?streak+1:0;
+      var avg=vn>=10?vsum/vn:0;
+      var volR=avg>0?v/avg:0;
+      var nearHi=hi>0&&c>=hi*0.95;
+      if(i>=20 && avg>0 && v>0 && i+10<ser.length){
+        var f=_laFinger(chg,volR,streak,nearHi);
+        var fwd=c>0?((+ser[i+10].c||0)-c)/c*100:null;
+        if(fwd!=null&&isFinite(fwd)){ (idx[f]||(idx[f]=[])).push(fwd); days++; }
+      }
+      win.push(v>0?v:0); if(v>0){vsum+=v;vn++;}
+      if(win.length>63){ var old=win.shift(); if(old>0){vsum-=old;vn--;} }
+      hiWin.push(c); if(hiWin.length>250)hiWin.shift();
+      hi=Math.max.apply(null,hiWin);
+    }
+  }
+  _laIdx={idx:idx, shares:shares, days:days}; _laBuilt=Date.now();
+  return _laIdx;
+}
+function _lookalikeOpen(tk){
+  try{
+    var s=allData.find(function(x){return (x.ticker||x.code)===tk;});
+    if(!s||!s.series||s.series.length<25){ showModal('<div style="padding:10px;font:400 13px var(--sans);">Not enough saved history on this device for '+tk+' yet \u2014 load the market first.</div>','Lookalikes'); return; }
+    showModal('<div style="padding:14px;font:600 13px var(--sans);">\u23f3 Sweeping the saved market history for lookalike days\u2026</div>','Lookalikes');
+    setTimeout(function(){
+      var L=_laBuild();
+      var ser=s.series; var i=ser.length-1;
+      while(i>0 && !(+ser[i].v>0)) i--;               // skip placeholder tail
+      var c=+ser[i].c||0, prev=i>0?(+ser[i-1].c||0):0;
+      var chg=prev>0?((c-prev)/prev)*100:0;
+      var tail=ser.slice(Math.max(0,i-63),i); var vs=0,vn=0;
+      tail.forEach(function(r){ if(+r.v>0){vs+=(+r.v);vn++;} });
+      var avg=vn?vs/vn:0; var volR=avg>0?(+ser[i].v||0)/avg:0;
+      var st=0; for(var k=i;k>0;k--){ if((+ser[k].c)>(+ser[k-1].c))st++; else break; }
+      var hi=Math.max.apply(null,ser.slice(-250).map(function(r){return +r.c||0;}));
+      var f=_laFinger(chg,volR,st,hi>0&&c>=hi*0.95);
+      var arr=(L.idx[f]||[]).slice();
+      var html;
+      if(arr.length<15){
+        html='<div style="font:400 13px/1.55 var(--sans);">Only <b>'+arr.length+'</b> lookalike day(s) in the saved history match today\u2019s exact fingerprint \u2014 too few to say anything honest. Rare fingerprints are themselves information: today doesn\u2019t look like much of the past.</div>';
+      }else{
+        arr.sort(function(a,b){return a-b;});
+        var med=arr[Math.floor(arr.length/2)], best=arr[arr.length-1], worst=arr[0];
+        var pos=Math.round(arr.filter(function(x){return x>0;}).length/arr.length*100);
+        var q1=arr[Math.floor(arr.length*0.25)], q3=arr[Math.floor(arr.length*0.75)];
+        var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
+        var col=function(x){return x>=0?'var(--green)':'#ff8b8b';};
+        html='<div style="font:400 13px/1.6 var(--sans);">'
+        +'<b>'+arr.length.toLocaleString()+'</b> days across the saved market history shared today\u2019s fingerprint (volume, move, streak, high-proximity bands). Over the <b>next 10 trading days</b> they went:'
+        +'<div style="margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);font-family:var(--mono);font-size:13px;">'
+        +'<div style="display:flex;justify-content:space-between;"><span>median</span><b style="color:'+col(med)+'">'+fmt(med)+'</b></div>'
+        +'<div style="display:flex;justify-content:space-between;"><span>middle half</span><span>'+fmt(q1)+' \u2026 '+fmt(q3)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;"><span>finished higher</span><b>'+pos+'%</b></div>'
+        +'<div style="display:flex;justify-content:space-between;"><span>best / worst</span><span><span style="color:var(--green)">'+fmt(best)+'</span> / <span style="color:#ff8b8b">'+fmt(worst)+'</span></span></div>'
+        +'</div>'
+        +'<div style="font-size:11.5px;color:var(--muted);line-height:1.55;">A base rate from history, not a prediction: lookalike days overlap, the sample is the saved window on this device, and the worst case above really happened to someone. Todays that look alike can still end differently \u2014 this shows the odds the past dealt, nothing more. Not advice.</div></div>';
+      }
+      showModal('<div style="font:700 15px var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 lookalike history</div>'+html,'Lookalikes');
+    },60);
+  }catch(e){ try{ showModal('<div style="padding:10px;">Lookalike sweep failed: '+String(e).replace(/</g,'&lt;')+'</div>','Lookalikes'); }catch(_){}}
+}
 function deepDive(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s){alert('Load data first.');return;}
@@ -15113,6 +15196,7 @@ function deepDive(ticker){
   if(s.volDays!=null){ const _contra=(s.volPct!=null&&s.volPct>=50&&s.volDays===0);
     html+=row('Volume streak','<span onclick="_streakWhy(\''+String(s.ticker||'').replace(/[^A-Za-z0-9.]/g,'')+'\')" style="cursor:pointer;border-bottom:1px dotted var(--muted);">'+s.volDays+' days above avg'+(_contra?' \u26a0 tap to inspect':'')+'</span>'); }
   if(s.accum10!=null)html+=row('Accumulation (10d)',s.accum10+'/10 heavy up-days');
+  html+=row('Lookalike history','<span onclick="_lookalikeOpen(\''+String(s.ticker||'').replace(/[^A-Za-z0-9.]/g,'')+'\')" style="cursor:pointer;color:var(--gold);border-bottom:1px dotted var(--gold);">\ud83d\udcca what usually happened next \u2014 tap</span>');
   if(s.speedScore!=null)html+=row('Sharp-mover score',s.speedScore.toFixed(1),'abnormal-for-this-share');
   if(s.unusualScore!=null)html+=row('Unusual-activity score',s.unusualScore+'/5 patterns');
   if(s.newsFlag)html+=row('Likely-news flag',s.newsFlag==='likely'?'<span style="color:var(--gold)">⚡ likely recent news</span>':'<span style="color:var(--muted)">quiet</span>');

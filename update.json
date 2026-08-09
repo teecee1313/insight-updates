@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-713-open",
+ "version": "2026.08.08-714-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v713 — the More scans & presets popup has retired: its four buttons (🚀🪙🕵📐) live on the front page now, so there is one obvious way to run them."
+ "notes": "v714 — 📊 Lookalike History: in any share’s deep dive, tap “what usually happened next” and the app sweeps the saved market history for every day that looked like today (volume, move, streak, high-proximity) and shows the honest distribution of what followed over the next 10 trading days — median, middle half, odds of finishing higher, best and worst. A base rate, not a prediction."
 }
