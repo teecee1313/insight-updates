@@ -1736,7 +1736,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-716-open';
+const APP_VERSION='2026.08.08-717-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3165,6 +3165,7 @@ function renderResearch(){
         <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
           <button onclick="closeModal();printShareReport('${it.ticker}')" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 11px var(--sans);cursor:pointer;">📄 Open report</button>
           <button onclick="_lookalikeOpen('${it.ticker}')" title="What usually happened next to shares that looked like this — a base rate from history, not a prediction" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--gold);background:var(--bg2);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">📊 Lookalikes</button>
+          <button onclick="closeModal();deepDive('${it.ticker}')" title="Everything the app computes for this share — price, signals, technicals, links" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font:700 11px var(--sans);cursor:pointer;">🔎 Deep dive</button>
           <button onclick="promoteResearch('${it.ticker}');renderResearch()" title="Move to your watchlist and clear from here" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">★ To watchlist</button>
           <button onclick="removeResearch('${it.ticker}');renderResearch()" title="Done researching — remove from the list" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;">✓ Done</button>
         </div>
