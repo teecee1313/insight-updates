@@ -1736,7 +1736,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-715-open';
+const APP_VERSION='2026.08.08-716-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3164,6 +3164,7 @@ function renderResearch(){
         ${it.note?`<div style="font-size:12px;color:var(--text);margin-top:6px;padding:6px 8px;background:var(--navy);border-radius:6px;border-left:2px solid var(--gold);">“${it.note.replace(/</g,'&lt;')}”</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:6px;font-style:italic;">no note — <a href="#" onclick="_editResearchNote('${it.ticker}');return false;" style="color:var(--blue);">add why</a></div>`}
         <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
           <button onclick="closeModal();printShareReport('${it.ticker}')" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font:700 11px var(--sans);cursor:pointer;">📄 Open report</button>
+          <button onclick="_lookalikeOpen('${it.ticker}')" title="What usually happened next to shares that looked like this — a base rate from history, not a prediction" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--gold);background:var(--bg2);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">📊 Lookalikes</button>
           <button onclick="promoteResearch('${it.ticker}');renderResearch()" title="Move to your watchlist and clear from here" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font:700 11px var(--sans);cursor:pointer;">★ To watchlist</button>
           <button onclick="removeResearch('${it.ticker}');renderResearch()" title="Done researching — remove from the list" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font:700 11px var(--sans);cursor:pointer;">✓ Done</button>
         </div>
@@ -15085,6 +15086,21 @@ function _laBuild(){
   _laIdx={idx:idx, shares:shares, days:days}; _laBuilt=Date.now();
   return _laIdx;
 }
+function _laExplain(){
+  var pre='font-family:var(--mono);font-size:10.5px;line-height:1.5;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px;white-space:pre;overflow-x:auto;';
+  showModal('<div style="font:400 13px/1.6 var(--sans);">'
+  +'<b>What the app just did:</b>'
+  +'<div style="'+pre+'">this share today\n   \u2502  take its fingerprint:\n   \u2502   \u2022 how loud the volume\n   \u2502   \u2022 how big the move\n   \u2502   \u2022 the up-streak\n   \u2502   \u2022 near its yearly high?\n   \u25bc\nsearch EVERY share, EVERY day\nin the saved history for days\nthat looked the same \u2014 then ask:\nwhat happened over the NEXT 10 days?</div>'
+  +'<b>Reading the numbers</b> \u2014 line all those outcomes up from worst to best:'
+  +'<div style="'+pre+'">worst        median         best\n \u2500\u2500\u2500\u2524\u2588\u2588\u2588\u2588\u2588\u2502 mid \u2502\u2588\u2588\u2588\u2588\u251c\u2500\u2500\u2500\u2500\u2500\n     \u2514\u2500 middle half \u2500\u2518</div>'
+  +'<div style="margin:6px 0 10px;"><b>median</b> \u2014 the story standing in the centre: half did worse, half better.<br>'
+  +'<b>middle half</b> \u2014 chop the extreme quarter off each end; ordinary outcomes lived here.<br>'
+  +'<b>finished higher</b> \u2014 how many in 10 were up after 10 trading days.<br>'
+  +'<b>best / worst</b> \u2014 both really happened to someone.</div>'
+  +'<b>The shape matters.</b> A negative median with a huge best case is the <i>lottery-ticket shape</i>: most tickets lose a little, a rare one pays big \u2014 and the excitement is funded by everyone who did not win.'
+  +'<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">It never says what THIS share will do \u2014 it shows which game the past says you are playing. Research, not advice.</div>'
+  +'</div>','How to read lookalikes');
+}
 function _lookalikeOpen(tk){
   try{
     var s=allData.find(function(x){return (x.ticker||x.code)===tk;});
@@ -15121,6 +15137,7 @@ function _lookalikeOpen(tk){
         +'<div style="display:flex;justify-content:space-between;"><span>finished higher</span><b>'+pos+'%</b></div>'
         +'<div style="display:flex;justify-content:space-between;"><span>best / worst</span><span><span style="color:var(--green)">'+fmt(best)+'</span> / <span style="color:#ff8b8b">'+fmt(worst)+'</span></span></div>'
         +'</div>'
+        +'<div onclick="_laExplain()" style="margin:0 0 10px;font:700 12px var(--sans);color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);display:inline-block;">\u2753 How do I read this?</div>'
         +'<div style="font-size:11.5px;color:var(--muted);line-height:1.55;">A base rate from history, not a prediction: lookalike days overlap, the sample is the saved window on this device, and the worst case above really happened to someone. Todays that look alike can still end differently \u2014 this shows the odds the past dealt, nothing more. Not advice.</div></div>';
       }
       showModal('<div style="font:700 15px var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 lookalike history</div>'+html,'Lookalikes');

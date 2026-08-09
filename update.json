@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-715-open",
+ "version": "2026.08.08-716-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v715 — the broker-connect wizard now renders properly (its body was landing in the label strip), and the last three volume-estimate badges (quiet mover, unusual end-of-day, block-day) measure against the recent 3-month average like everything else."
+ "notes": "v716 — 📊 Lookalikes joins every saved share in 🔬 Research further, and the lookalike popup gains a ❓ How-do-I-read-this walkthrough with diagrams: the fingerprint sweep, the worst-to-best number line, and why the shape of the outcomes matters."
 }
