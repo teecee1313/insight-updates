@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-726-open",
+ "version": "2026.08.08-727-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v726 — 🎲 odds join the ⭐ watchlist and the paper portfolio: each watched share and each holding shows its base rate when its day is distinctive with 30+ lookalikes. On holdings the tap-through is explicit: odds describe the share’s DAY, not your position — your entry, stop and plan are the decision layer."
+ "notes": "v727 — the 🎲 list and its tap-through can never disagree: each row now carries the exact lookalike days it was ranked with, the popup shows those same days, and if history has grown since the list was built it says so and suggests a fresh run. One truth per screen."
 }

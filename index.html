@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-726-open';
+const APP_VERSION='2026.08.08-727-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15176,7 +15176,7 @@ function _laOddsScan(){
       var pos=srt.filter(function(x){return x>0;}).length/srt.length*100;
       var med=srt[Math.floor(srt.length/2)];
       rows.push({tk:String(s2.ticker||s2.code||''), nm:String(s2.name||''), odds:pos, med:med, n:srt.length,
-                 tier:(s2.money&&s2.tier)?s2.tier:null});
+                 arr:srt, sig:_laSig, tier:(s2.money&&s2.tier)?s2.tier:null}); // v727: each row carries its evidence
      }catch(_e){} // v725: one bad share never empties the list
     }
     window._laOddsRows=rows;
@@ -15189,13 +15189,14 @@ function _laOddsScan(){
 function _laOddsRender(){
   var rows=(window._laOddsRows||[]).filter(function(r){return r.odds>=_laOddsMin;})
       .sort(function(a,b){return b.odds-a.odds || b.med-a.med;}).slice(0,40);
+  window._laOddsShown=rows; // v727: tap-throughs read the snapshot, never a fresher index
   var chips=[50,60,70].map(function(t){
     return '<button type="button" onclick="_laOddsMin='+t+';_laOddsRender()" style="padding:5px 12px;border-radius:14px;border:1px solid '+(t===_laOddsMin?'var(--gold)':'var(--border2)')+';background:var(--bg3);color:var(--text);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2265'+t+'%</button>';
   }).join(' ');
   var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
-  var body=rows.length? rows.map(function(r){
+  var body=rows.length? rows.map(function(r,ri){
       var col=r.med>=0?'var(--green)':'#ff8b8b';
-      return '<div onclick="_lookalikeOpen(\''+r.tk.replace(/[^A-Za-z0-9.]/g,'')+'\')" style="display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:600;font-size:12.5px;font-family:var(--sans);align-items:baseline;">'
+      return '<div onclick="_laOddsPick('+ri+')" style="display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:600;font-size:12.5px;font-family:var(--sans);align-items:baseline;">'
       +'<span><b>'+r.tk+'</b> <span style="color:var(--muted);font-weight:400;font-size:10.5px;">'+((r.nm&&r.nm!==r.tk)?r.nm.slice(0,20).replace(/</g,'&lt;'):'')+'</span></span>'
       +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'%</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">n='+r.n+'</span></span></div>';
     }).join('')
@@ -15222,6 +15223,44 @@ function _laExplain(){
   +'<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">It never says what THIS share will do \u2014 it shows which game the past says you are playing. Research, not advice.</div>'
   +'</div>','How to read lookalikes');
 }
+// v727 — one distribution renderer for both paths: live opens compute fresh,
+// odds-list rows pass the SNAPSHOT they were ranked with, so the list and its
+// tap-through can never contradict each other (66% on the list, 49% in the
+// modal was both-honest-but-different-worlds: the background load had grown
+// the index between scan and tap).
+function _laDist(tk, arr, extraNote){
+  var html;
+  if(!arr||arr.length<15){
+    html='<div style="font-weight:400;font-size:13px;line-height:1.55;font-family:var(--sans);">Only <b>'+((arr&&arr.length)||0)+'</b> lookalike day(s) match this exact fingerprint \u2014 too few to say anything honest. Rare fingerprints are themselves information: this day doesn\u2019t look like much of the past.</div>';
+  }else{
+    var a2=arr.slice().sort(function(x,y){return x-y;});
+    var med=a2[Math.floor(a2.length/2)], best=a2[a2.length-1], worst=a2[0];
+    var pos=Math.round(a2.filter(function(x){return x>0;}).length/a2.length*100);
+    var q1=a2[Math.floor(a2.length*0.25)], q3=a2[Math.floor(a2.length*0.75)];
+    var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
+    var col=function(x){return x>=0?'var(--green)':'#ff8b8b';};
+    html='<div style="font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">'
+    +'<b>'+a2.length.toLocaleString()+'</b> days across the saved market history shared this fingerprint (volume, move, streak, high-proximity bands). Over the <b>next 10 trading days</b> they went:'
+    +'<div style="margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);font-family:var(--mono);font-size:13px;">'
+    +'<div style="display:flex;justify-content:space-between;"><span>median</span><b style="color:'+col(med)+'">'+fmt(med)+'</b></div>'
+    +'<div style="display:flex;justify-content:space-between;"><span>middle half</span><span>'+fmt(q1)+' \u2026 '+fmt(q3)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;"><span>finished higher</span><b>'+pos+'%</b></div>'
+    +'<div style="display:flex;justify-content:space-between;"><span>best / worst</span><span><span style="color:var(--green)">'+fmt(best)+'</span> / <span style="color:#ff8b8b">'+fmt(worst)+'</span></span></div>'
+    +'</div>'
+    +(extraNote||'')
+    +'<div onclick="_laExplain()" style="margin:0 0 10px;font-weight:700;font-size:12px;font-family:var(--sans);color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);display:inline-block;">\u2753 How do I read this?</div>'
+    +'<div style="font-size:11.5px;color:var(--muted);line-height:1.55;">A base rate from history, not a prediction: lookalike days overlap, the sample is the saved window on this device, and the worst case above really happened to someone. Todays that look alike can still end differently \u2014 this shows the odds the past dealt, nothing more. Not advice.</div></div>';
+  }
+  showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 lookalike history</div>'+html,'Lookalikes');
+}
+function _laOddsPick(k){
+  try{
+    var row=(window._laOddsShown||[])[k]; if(!row)return;
+    var note='<div style="margin:0 0 10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--muted);">These are the exact '+row.arr.length.toLocaleString()+' days behind the '+Math.round(row.odds)+'% on the list you tapped.'
+      +((typeof _laDataSig==='function'&&_laDataSig()!==row.sig)?' <span style="color:var(--gold);">History has updated since that list was built \u2014 run \ud83c\udfb2 again for fresh numbers.</span>':'')+'</div>';
+    _laDist(row.tk, row.arr, note);
+  }catch(e){}
+}
 function _lookalikeOpen(tk){
   try{
     var s=allData.find(function(x){return (x.ticker||x.code)===tk;});
@@ -15240,6 +15279,7 @@ function _lookalikeOpen(tk){
       var hi=Math.max.apply(null,ser.slice(-250).map(function(r){return +r.c||0;}));
       var f=_laFinger(chg,volR,st,hi>0&&c>=hi*0.95);
       var arr=(L.idx[f]||[]).slice();
+      _laDist(tk, arr, ''); return;
       var html;
       if(arr.length<15){
         html='<div style="font-weight:400;font-size:13px;line-height:1.55;font-family:var(--sans);">Only <b>'+arr.length+'</b> lookalike day(s) in the saved history match today\u2019s exact fingerprint \u2014 too few to say anything honest. Rare fingerprints are themselves information: today doesn\u2019t look like much of the past.</div>';
