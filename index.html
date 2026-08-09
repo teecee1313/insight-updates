@@ -1467,6 +1467,12 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     </div>
     <div id="whatsNewCard" style="display:none;"></div>
     <input id="simpleSearch" placeholder="Search shares by code or name…" oninput="_simpleSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div id="quickPlansRow" style="display:flex;gap:6px;margin:8px 0 2px;flex-wrap:wrap;">
+      <button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🚀 Breakout</button>
+      <button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🪙 Penny Movers</button>
+      <button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🕵 Informed</button>
+      <button type="button" onclick="technicalScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">📐 Technical</button>
+    </div>
     <div class="simple-grid">
       <div id="simpleClosedBanner"><span class="sm-dot"></span>ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
       <div class="simple-section-label">TODAY'S MARKET</div>
@@ -1556,7 +1562,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <!-- STEP 2 · INSTANT REPORTS -->
     <div class="step-hdr"><span class="step-num">2</span> <span data-i18n="instantReports">Instant Reports</span> <span class="step-sub">drag ⠿ to reorder</span></div>
     <div id="whatsNewCardAdv" style="display:none;"></div>
-    <div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
+    <div id="quickPlansRowAdv" style="display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap;"><button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🚀 Breakout</button><button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🪙 Penny Movers</button><button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">🕵 Informed</button><button type="button" onclick="technicalScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font:700 11px var(--sans);cursor:pointer;">📐 Technical</button></div><div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
     <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-primary" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades."><span data-i18n="smartScan">🎯 Best Evidence Today</span> <span class="scan-tag" data-i18n="smartScanTag">proven signals only</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-picks"><span class="drag-h">⠿</span><button id="picksScanBtn" onclick="showDailyPicks()" class="scan-primary" title="Today’s picks — the shares that met the tested rules on the latest session: a 20% trailing stop with no take-profit, $0.20–$0.99, a patient 5% dip entry and a minimum evidence score of 7. This is the only routine here whose exit rule has been measured head to head against the alternatives. Practice money only, not advice.">🎯 Today’s picks <span class="scan-tag">the tested rules · daily</span></button></div>
@@ -1729,7 +1735,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-711-open';
+const APP_VERSION='2026.08.08-712-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -13368,7 +13374,7 @@ function loadPlan(key){
   const p=PLANS[key];
   if(!p)return;
   const st=document.getElementById('planStatus');
-  if(!allData.length){st.textContent='Load an exchange first.';return;}
+  if(!allData.length){ if(st)st.textContent='Load an exchange first.'; else alert('Load the market first — tap \u26a1 Refresh / redownload data.'); return;}
 
   // Direction pills
   rst1('gDir',p.dir,'dir');
@@ -13411,7 +13417,7 @@ function loadPlan(key){
   // Quiet-only: strip likely-news movers (proxy) once results exist
   if(p.quiet&&filtered.length)filterNoNewsPlan();
   const quietBtn=`<br><button onclick="filterNoNewsPlan()" style="margin-top:5px;padding:5px 8px;border-radius:5px;border:1px solid var(--purple);background:rgba(188,140,255,.12);color:var(--purple);font:600 10px var(--sans);cursor:pointer;">🔇 Keep only quiet movers (no news 5d)</button>`;
-  st.innerHTML=`✓ <strong style="color:var(--text)">${p.label}</strong> loaded · ${filtered.length} match${filtered.length?quietBtn:''}`;
+  if(st)st.innerHTML=`✓ <strong style="color:var(--text)">${p.label}</strong> loaded · ${filtered.length} match${filtered.length?quietBtn:''}`;
   // v711 — presets ran fine but reported only into this popup's small status
   // line, with results in a table that's below the popup (Advanced) or hidden
   // (Starter). Now the outcome comes to the user.
@@ -14554,6 +14560,15 @@ async function technicalScan(){
   const gc=have.filter(s=>s.cross==='golden').length, nh=have.filter(s=>s.nearHigh).length, ob=have.filter(s=>s.rsiState==='oversold').length;
   const st=document.getElementById('loadStatus');
   if(st)st.innerHTML=`📐 <strong style="color:#58a6ff">Technical signals</strong> on ${have.length} shares · ${gc} golden cross · ${nh} near 52-wk high · ${ob} oversold (RSI≤30). <span style="color:var(--dim)">Estimates from closing prices — not advice.</span>`;
+  // v712 — the scan worked but reported into a popup-status the user had to hunt for.
+  try{
+    if(document.body.classList.contains('simple-mode')){ _planResultsModal('\ud83d\udcd0 Technical-ranked'); }
+    else{ setTimeout(function(){ try{ closeOverlay();
+      var b=document.getElementById('activeScanBanner');
+      if(b){ b.innerHTML='<div style="margin:8px 0;padding:9px 12px;border:1.5px solid #58a6ff;border-radius:10px;background:var(--bg2);font:600 13px var(--sans);">\ud83d\udcd0 Technical-ranked \u00b7 <b>'+filtered.length.toLocaleString()+'</b> shares, strongest first <button onclick="doReset()" style="float:right;padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font:600 11px var(--sans);">\u2715 Clear</button></div>'; }
+      var t=document.getElementById('tblwrap'); if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(_){}} ,650); }
+  }catch(_){}
 }
 // Per-share technical detail (opens from the 📐 link on a row)
 // ── 🔬 DEEP DIVE — everything Insight Trading knows about a share, plus smart
