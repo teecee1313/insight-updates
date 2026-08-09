@@ -1593,7 +1593,8 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     </div>
     <button class="menu-btn" id="myChangesBtn" onclick="showMyChanges(false)" title="Checks YOUR practice holdings and watchlist against the latest day's data: targets and stops hit or near, big moves, confirmed price-sensitive news, volume surges and trend crosses. Opens by itself once per fresh data day — only when there's something to say."><span>🔔 What's changed for me <span style="font-weight:400;color:var(--dim);font-size:10px;">your shares, today</span></span><span class="mb-chev">▶</span></button>
     <button class="menu-btn" onclick="showRules()" title="Write your own trading rules — take-profit %, stop-loss %, max size per share, max open positions, and your own checklist. Your 🎯/🛑 auto-fill practice buys and going over your limits flags gently in the 🔔 briefing. Your plan, not advice."><span>📋 My trading rules <span style="font-weight:400;color:var(--dim);font-size:10px;">your plan</span></span><span class="mb-chev">▶</span></button>
-    <button class="menu-btn" onclick="openOverlay('morescans')"><span>🔎 More scans &amp; presets</span><span class="mb-chev">▶</span></button>
+    <!-- v713: the More-scans popup retired from the menu - its four buttons live on the front page now (quickPlansRow). Panel markup kept dormant. -->
+<button class="menu-btn" onclick="openOverlay('morescans')" style="display:none!important;"><span>🔎 More scans &amp; presets</span><span class="mb-chev">▶</span></button>
     <div id="smartStatus" style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:7px;min-height:12px;text-align:center;"></div>
     <div id="planStatus" style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;min-height:12px;text-align:center;"></div>
     <div id="scanProgWrap" style="display:none;margin-top:6px;">
@@ -1735,7 +1736,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-712-open';
+const APP_VERSION='2026.08.08-713-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
