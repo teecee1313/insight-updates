@@ -1,5 +1,5 @@
 {
- "version": "2026.08.08-722-open",
+ "version": "2026.08.08-723-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v722 — 🎲 Odds today tightens its distinctiveness rule: being near a yearly high is a state, not an event, so it no longer qualifies a share on its own (half the steady risers live there — that was the 29,000-row flood). An event is required: real volume, a real move, or a streak. Any bucket holding over 4% of all market days is treated as weather and excluded, whatever its bands."
+ "notes": "v723 — night-mode readability: the quick-filter buttons wear their accent colours (green, gold, purple, blue) and every utility button follows the theme’s text colour, so nothing renders black-on-dark. Day mode keeps dark text as it should."
 }

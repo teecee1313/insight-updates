@@ -872,12 +872,12 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <div class="field" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
       <div style="font-weight:700;margin-bottom:4px;">🔗 Connect your broker (Stake)</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Optional — practice money needs none of this. Connects through SnapTrade\u2019s secure page; your Stake password never touches Insight. Real orders stay approve-each.</div>
-      <button type="button" onclick="connectBroker()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Connect my broker</button>
+      <button type="button" onclick="connectBroker()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;">Connect my broker</button>
     </div>
     <div class="field" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
       <div style="font-weight:700;margin-bottom:4px;">🧹 Remove old exchange data</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Deletes saved history for exchanges other than the one you use (e.g. retired NYSE data). Frees storage and speeds up every load. Your ASX data, portfolio and lists are untouched.</div>
-      <button type="button" onclick="cleanOldExchanges()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Clean up now</button>
+      <button type="button" onclick="cleanOldExchanges()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;">Clean up now</button>
       <span id="cleanExMsg" style="font-size:12px;margin-left:8px;"></span>
     </div>
     <div class="field">
@@ -1468,11 +1468,11 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <div id="whatsNewCard" style="display:none;"></div>
     <input id="simpleSearch" placeholder="Search shares by code or name…" oninput="_simpleSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
     <div id="quickPlansRow" style="display:flex;gap:6px;margin:8px 0 2px;flex-wrap:wrap;">
-      <button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🚀 Breakout</button>
-      <button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🪙 Penny Movers</button>
-      <button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🕵 Informed</button>
-      <button type="button" onclick="technicalScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📐 Technical</button>
-      <button type="button" onclick="_laOddsScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🎲 Odds</button>
+      <button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);color:var(--green);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🚀 Breakout</button>
+      <button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);color:var(--orange,#e8973a);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🪙 Penny Movers</button>
+      <button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);color:var(--purple,#bc8cff);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🕵 Informed</button>
+      <button type="button" onclick="technicalScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);color:#58a6ff;font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📐 Technical</button>
+      <button type="button" onclick="_laOddsScan()" style="flex:1;min-width:80px;padding:8px 6px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🎲 Odds</button>
     </div>
     <div class="simple-grid">
       <div id="simpleClosedBanner"><span class="sm-dot"></span>ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
@@ -1563,7 +1563,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <!-- STEP 2 · INSTANT REPORTS -->
     <div class="step-hdr"><span class="step-num">2</span> <span data-i18n="instantReports">Instant Reports</span> <span class="step-sub">drag ⠿ to reorder</span></div>
     <div id="whatsNewCardAdv" style="display:none;"></div>
-    <div id="quickPlansRowAdv" style="display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap;"><button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🚀 Breakout</button><button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🪙 Penny Movers</button><button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🕵 Informed</button><button type="button" onclick="technicalScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📐 Technical</button><button type="button" onclick="_laOddsScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🎲 Odds</button></div><div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
+    <div id="quickPlansRowAdv" style="display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap;"><button type="button" onclick="loadPlan('breakout')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--green);background:var(--bg3);color:var(--green);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🚀 Breakout</button><button type="button" onclick="loadPlan('penny')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--orange,#e8973a);background:var(--bg3);color:var(--orange,#e8973a);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🪙 Penny Movers</button><button type="button" onclick="loadPlan('informed')" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--purple,#bc8cff);background:var(--bg3);color:var(--purple,#bc8cff);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🕵 Informed</button><button type="button" onclick="technicalScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid #58a6ff;background:var(--bg3);color:#58a6ff;font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📐 Technical</button><button type="button" onclick="_laOddsScan()" style="flex:1;min-width:90px;padding:7px 6px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🎲 Odds</button></div><div id="scanGradedNote" title="The report card grades signals against the market and gives them a tier (SOLID / PROMISING / not proven). Most of the scans below are NOT graded — they are pattern searches that find shares matching a description. Useful for looking; they carry no evidence that the pattern has ever paid." style="cursor:help;font-size:9.5px;color:var(--dim);line-height:1.5;margin:-2px 0 7px;padding:5px 7px;border:1px dashed var(--border);border-radius:6px;">⚠ <b style="color:var(--muted)">These are searches, not verdicts.</b> Only <span style="color:var(--green)">🎯 Best Evidence Today</span> and <span style="color:var(--green)">🌱 Climbers Today</span> are built on graded evidence — the rest find shares matching a pattern that has never been tested for an edge. The 📋 report card is where evidence lives.</div>
     <div id="scanDragZone" class="drag-zone">
     <div class="drag-row" draggable="true" data-dragid="scan-bestev"><span class="drag-h">⠿</span><button id="bestEvBtn" onclick="bestEvidenceScan()" class="scan-primary" title="Of everything that fired TODAY, which shares carry the best graded evidence? Only lines holding a PROMISING or SOLID badge with a positive market-beating edge qualify — ranked by the strength of the best line each share fired. The buy-side door into the same evidence the report card grades."><span data-i18n="smartScan">🎯 Best Evidence Today</span> <span class="scan-tag" data-i18n="smartScanTag">proven signals only</span></button></div>
     <div class="drag-row" draggable="true" data-dragid="scan-picks"><span class="drag-h">⠿</span><button id="picksScanBtn" onclick="showDailyPicks()" class="scan-primary" title="Today’s picks — the shares that met the tested rules on the latest session: a 20% trailing stop with no take-profit, $0.20–$0.99, a patient 5% dip entry and a minimum evidence score of 7. This is the only routine here whose exit rule has been measured head to head against the alternatives. Practice money only, not advice.">🎯 Today’s picks <span class="scan-tag">the tested rules · daily</span></button></div>
@@ -1737,7 +1737,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.08-722-open';
+const APP_VERSION='2026.08.08-723-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2447,13 +2447,13 @@ async function _connTick(){
     for(var i2=0;i2<accs.length;i2++){ var a=accs[i2]||{};
       h+='<label style="display:block;margin:4px 0;"><input type="radio" name="connAcct" value="'+(a.id||'')+'"> '+(a.name||'Account')+' '+(a.number?('\u00b7 '+a.number):'')+'</label>';
     }
-    h+='</div><button type="button" onclick="_connChoose()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Use this account</button>';
+    h+='</div><button type="button" onclick="_connChoose()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;">Use this account</button>';
     el.innerHTML=h;
     return;
   }
   if(j.status==='failed'){
     _connStop();
-    el.innerHTML='\u26a0 The connection attempt failed'+(j.note?(': '+j.note):'.')+'<br><button type="button" onclick="_connRetry()" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-weight:600;">Try again</button>';
+    el.innerHTML='\u26a0 The connection attempt failed'+(j.note?(': '+j.note):'.')+'<br><button type="button" onclick="_connRetry()" style="margin-top:8px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;">Try again</button>';
   }
 }
 async function _connChoose(){
@@ -13371,7 +13371,7 @@ function _planResultsModal(label){ // v711: Starter hides the table, so presets 
   var extra=(filtered&&filtered.length>30)?('<div style="padding:8px 10px;color:var(--muted);font-weight:600;font-size:11px;font-family:var(--sans);">Showing the first 30 of '+filtered.length.toLocaleString()+' \u2014 the full list lives in Advanced view.</div>'):'';
   showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">'+label+' \u00b7 '+((filtered||[]).length.toLocaleString())+' matches</div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'+extra
-    +'<div style="margin-top:8px;color:var(--muted);font-weight:400;font-size:11px;font-family:var(--sans);">A filter recipe, not a verdict \u2014 tap any share for its evidence. <button onclick="doReset()" style="margin-left:6px;padding:4px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-weight:600;font-size:11px;font-family:var(--sans);">\u2715 Clear filter</button></div>', label);
+    +'<div style="margin-top:8px;color:var(--muted);font-weight:400;font-size:11px;font-family:var(--sans);">A filter recipe, not a verdict \u2014 tap any share for its evidence. <button onclick="doReset()" style="margin-left:6px;padding:4px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;font-size:11px;font-family:var(--sans);">\u2715 Clear filter</button></div>', label);
 }
 function loadPlan(key){
   exitWatchView();
@@ -13432,7 +13432,7 @@ function loadPlan(key){
       setTimeout(function(){ try{
         closeOverlay();
         var b=document.getElementById('activeScanBanner');
-        if(b){ b.innerHTML='<div style="margin:8px 0;padding:9px 12px;border:1.5px solid var(--gold);border-radius:10px;background:var(--bg2);font-weight:600;font-size:13px;font-family:var(--sans);">'+p.label+' \u00b7 <b>'+filtered.length.toLocaleString()+'</b> matches \u2014 ranked below <button onclick="doReset()" style="float:right;padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-weight:600;font-size:11px;font-family:var(--sans);">\u2715 Clear</button></div>'; }
+        if(b){ b.innerHTML='<div style="margin:8px 0;padding:9px 12px;border:1.5px solid var(--gold);border-radius:10px;background:var(--bg2);font-weight:600;font-size:13px;font-family:var(--sans);">'+p.label+' \u00b7 <b>'+filtered.length.toLocaleString()+'</b> matches \u2014 ranked below <button onclick="doReset()" style="float:right;padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;font-size:11px;font-family:var(--sans);">\u2715 Clear</button></div>'; }
         var t=document.getElementById('tblwrap'); if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(_){}} ,650);
     }
@@ -14569,7 +14569,7 @@ async function technicalScan(){
     if(document.body.classList.contains('simple-mode')){ _planResultsModal('\ud83d\udcd0 Technical-ranked'); }
     else{ setTimeout(function(){ try{ closeOverlay();
       var b=document.getElementById('activeScanBanner');
-      if(b){ b.innerHTML='<div style="margin:8px 0;padding:9px 12px;border:1.5px solid #58a6ff;border-radius:10px;background:var(--bg2);font-weight:600;font-size:13px;font-family:var(--sans);">\ud83d\udcd0 Technical-ranked \u00b7 <b>'+filtered.length.toLocaleString()+'</b> shares, strongest first <button onclick="doReset()" style="float:right;padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-weight:600;font-size:11px;font-family:var(--sans);">\u2715 Clear</button></div>'; }
+      if(b){ b.innerHTML='<div style="margin:8px 0;padding:9px 12px;border:1.5px solid #58a6ff;border-radius:10px;background:var(--bg2);font-weight:600;font-size:13px;font-family:var(--sans);">\ud83d\udcd0 Technical-ranked \u00b7 <b>'+filtered.length.toLocaleString()+'</b> shares, strongest first <button onclick="doReset()" style="float:right;padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:600;font-size:11px;font-family:var(--sans);">\u2715 Clear</button></div>'; }
       var t=document.getElementById('tblwrap'); if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});
     }catch(_){}} ,650); }
   }catch(_){}
@@ -14939,16 +14939,16 @@ function _fcRender(){
   var cards=_fcCards(); if(!_fc.order.length||_fc.order.length!==cards.length){_fc.order=cards.map(function(_,k){return k;});}
   var c=cards[_fc.order[_fc.i]||0]; if(!c)return;
   var decks=['All','Signals','Evidence','Numbers','Practice'];
-  var chips=decks.map(function(d){return '<button type="button" onclick="_fcDeck(\''+d+'\')" style="padding:5px 10px;border-radius:14px;border:1px solid '+(d===_fc.deck?'var(--gold)':'var(--border2)')+';background:var(--bg3);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">'+d+'</button>';}).join(' ');
+  var chips=decks.map(function(d){return '<button type="button" onclick="_fcDeck(\''+d+'\')" style="padding:5px 10px;border-radius:14px;border:1px solid '+(d===_fc.deck?'var(--gold)':'var(--border2)')+';background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">'+d+'</button>';}).join(' ');
   var face=_fc.flip? '<div style="font-weight:400;font-size:14px;line-height:1.55;font-family:var(--sans);color:var(--ink);">'+c.a+'</div>'
                    : '<div style="font-weight:700;font-size:20px;font-family:var(--sans);">'+c.q+'</div><div style="margin-top:10px;color:var(--muted);font-weight:400;font-size:12px;font-family:var(--sans);">tap card to reveal</div>';
   var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+chips+'</div>'
     +'<div onclick="_fcFlip()" style="min-height:210px;display:flex;flex-direction:column;justify-content:center;padding:18px;border:1.5px solid var(--gold);border-radius:14px;background:var(--bg2);cursor:pointer;text-align:center;">'+face+'</div>'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'
-    +'<button type="button" onclick="_fcStep(-1)" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-weight:700;font-size:12px;font-family:var(--sans);">\u2039 Prev</button>'
+    +'<button type="button" onclick="_fcStep(-1)" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:700;font-size:12px;font-family:var(--sans);">\u2039 Prev</button>'
     +'<span style="font-weight:600;font-size:12px;font-family:var(--sans);color:var(--muted);">'+(_fc.i+1)+' / '+cards.length+'</span>'
-    +'<button type="button" onclick="_fcShuffle()" style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-weight:700;font-size:12px;font-family:var(--sans);">\ud83d\udd00</button>'
-    +'<button type="button" onclick="_fcStep(1)" style="padding:8px 14px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);cursor:pointer;font-weight:700;font-size:12px;font-family:var(--sans);">Next \u203a</button></div>';
+    +'<button type="button" onclick="_fcShuffle()" style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:700;font-size:12px;font-family:var(--sans);">\ud83d\udd00</button>'
+    +'<button type="button" onclick="_fcStep(1)" style="padding:8px 14px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:700;font-size:12px;font-family:var(--sans);">Next \u203a</button></div>';
   var box=document.getElementById('fcBox'); if(box)box.innerHTML=html;
 }
 function openFlashcards(){ _fc={deck:'All',i:0,flip:false,order:[]};
@@ -15001,7 +15001,7 @@ function _qzRender(){
       +'<div style="font-weight:800;font-size:34px;font-family:var(--sans);">'+_qz.score+' / '+_qz.qs.length+'</div>'
       +'<div style="margin:6px 0 2px;color:var(--muted);font-weight:600;font-size:12px;font-family:var(--sans);">best on this device: '+best+'/10</div>'
       +'<div style="margin:10px 0 14px;font-weight:400;font-size:13px;font-family:var(--sans);">'+verdict+'</div>'
-      +'<button type="button" onclick="openStudyQuiz()" style="padding:9px 16px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);cursor:pointer;font-weight:700;font-size:13px;font-family:var(--sans);">\u21bb Try another 10</button></div>';
+      +'<button type="button" onclick="openStudyQuiz()" style="padding:9px 16px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:700;font-size:13px;font-family:var(--sans);">\u21bb Try another 10</button></div>';
     return;
   }
   var Q=_qz.qs[_qz.i];
@@ -15013,7 +15013,7 @@ function _qzRender(){
   box.innerHTML='<div style="font-weight:600;font-size:11px;font-family:var(--sans);color:var(--muted);margin-bottom:6px;">Question '+(_qz.i+1)+' of '+_qz.qs.length+' \u00b7 score '+_qz.score+'</div>'
     +'<div style="font-weight:700;font-size:14px;line-height:1.45;font-family:var(--sans);margin-bottom:8px;">'+Q.q+'</div>'+opts
     +(_qz.answered?('<div style="margin-top:8px;padding:10px 12px;border-radius:9px;background:var(--bg2);border:1px solid var(--border2);font-weight:400;font-size:12.5px;line-height:1.5;font-family:var(--sans);">'+(_qz.pick===Q.c?'\u2705 ':'\u274c ')+Q.w+'</div>'
-    +'<button type="button" onclick="_qzNext()" style="margin-top:10px;width:100%;padding:10px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);cursor:pointer;font-weight:700;font-size:13px;font-family:var(--sans);">'+(_qz.i+1>=_qz.qs.length?'See result':'Next \u203a')+'</button>'):'');
+    +'<button type="button" onclick="_qzNext()" style="margin-top:10px;width:100%;padding:10px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--text);cursor:pointer;font-weight:700;font-size:13px;font-family:var(--sans);">'+(_qz.i+1>=_qz.qs.length?'See result':'Next \u203a')+'</button>'):'');
 }
 function _qzPick(k){ if(!_qz||_qz.answered)return; _qz.answered=true; _qz.pick=k; if(k===_qz.qs[_qz.i].c)_qz.score++; _qzRender(); }
 function _qzNext(){ if(!_qz)return; _qz.i++; _qz.answered=false; _qzRender(); }
@@ -15165,7 +15165,7 @@ function _laOddsRender(){
   var rows=(window._laOddsRows||[]).filter(function(r){return r.odds>=_laOddsMin;})
       .sort(function(a,b){return b.odds-a.odds || b.med-a.med;}).slice(0,40);
   var chips=[50,60,70].map(function(t){
-    return '<button type="button" onclick="_laOddsMin='+t+';_laOddsRender()" style="padding:5px 12px;border-radius:14px;border:1px solid '+(t===_laOddsMin?'var(--gold)':'var(--border2)')+';background:var(--bg3);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2265'+t+'%</button>';
+    return '<button type="button" onclick="_laOddsMin='+t+';_laOddsRender()" style="padding:5px 12px;border-radius:14px;border:1px solid '+(t===_laOddsMin?'var(--gold)':'var(--border2)')+';background:var(--bg3);color:var(--text);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2265'+t+'%</button>';
   }).join(' ');
   var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
   var body=rows.length? rows.map(function(r){
@@ -19935,7 +19935,7 @@ body.training-on #trainBtn{background:rgba(147,51,234,.18);border-color:#9333ea;
   <button class="hp-fs" onclick="lessonFs()" title="Full screen — give the lesson the whole window (press again or Esc to shrink back)">⛶</button>
   <h3>🎓 Insight Trading — Learn the app</h3>
   <div id="lessonProg"></div>
-  <div id="studyRow" style="display:flex;gap:8px;margin:0 0 8px;"><button type="button" onclick="openFlashcards()" style="flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">🃏 Flashcards</button><button type="button" onclick="openStudyQuiz()" style="flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">❓ Quiz me</button></div><div id="lessonNav"></div>
+  <div id="studyRow" style="display:flex;gap:8px;margin:0 0 8px;"><button type="button" onclick="openFlashcards()" style="flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--text);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">🃏 Flashcards</button><button type="button" onclick="openStudyQuiz()" style="flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">❓ Quiz me</button></div><div id="lessonNav"></div>
   <div id="lessonBody"></div>
 </div>
 <script>
