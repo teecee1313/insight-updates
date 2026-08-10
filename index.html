@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.10-733-open';
+const APP_VERSION='2026.08.10-734-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15260,6 +15260,33 @@ function _laShareToday(s){
   var hi=Math.max.apply(null,ser.slice(-250).map(function(r){return +r.c||0;}));
   return _laFinger(chg,volR,st,hi>0&&c>=hi*0.95);
 }
+// v734 — the today-crowd split. A fingerprint worn by 9+ shares on the same
+// day is that day's weather: individually uninformative however rare it is in
+// history. Groups of 9+ collapse to one weather line; everyone else keeps
+// their row. 9 is deliberate — pairs and small clusters (2–8) can still be a
+// real shared setup worth seeing share-by-share.
+function _laCrowdSplit(rows){
+  var by={}; rows.forEach(function(r){ (by[r.f]=by[r.f]||[]).push(r); });
+  var keep=[], weather=[];
+  Object.keys(by).forEach(function(f){
+    var g=by[f];
+    if(g.length>=9) weather.push({f:f, count:g.length, odds:g[0].odds, med:g[0].med, n:g[0].n});
+    else keep=keep.concat(g);
+  });
+  weather.sort(function(a,b){return b.count-a.count;});
+  return {keep:keep, weather:weather};
+}
+// v734 — a fingerprint in plain words, for the weather line.
+function _laFingerPlain(f){
+  try{
+    var p=String(f||'').split('|'); var vb=p[0],cb=p[1],sb=p[2],hb=p[3];
+    var v={V0:'quiet volume',V1:'normal volume',V15:'busy volume',V2:'heavy volume',V3:'very heavy volume'}[vb]||'';
+    var c={C10:'up 10%+',C5:'up 5\u201310%',C2:'up 2\u20135%',C0:'flat to +2%',Cm:'slightly down',Cm5:'down 5%+'}[cb]||'';
+    var s={S4:'4th day up in a row',S2:'2\u20133 days up in a row',S0:''}[sb]||'';
+    var bits=[c+(v?' on '+v:'')]; if(s)bits.push(s); if(hb==='H')bits.push('near its high');
+    return bits.join(', ');
+  }catch(e){ return String(f||''); }
+}
 function _laOddsScan(){
   if(!Array.isArray(allData)||!allData.length){ alert('Load the market first — tap \u26a1 Refresh / redownload data.'); return; }
   showModal('<div style="padding:14px;font-weight:600;font-size:13px;font-family:var(--sans);">\u23f3 Scoring every share\u2019s odds against the lookalike history\u2026</div>','\ud83c\udfb2 Odds today');
@@ -15290,9 +15317,18 @@ function _laOddsScan(){
       if(st.n>_laCeil)continue;
       var pos=st.pos, med=st.med;
       rows.push({tk:String(s2.ticker||s2.code||''), nm:String(s2.name||''), odds:pos, med:med, n:st.n,
-                 st:st, sig:_laSig, tier:(s2.money&&s2.tier)?s2.tier:null}); // v727/v729: each row carries its stats snapshot
+                 st:st, sig:_laSig, f:f, tier:(s2.money&&s2.tier)?s2.tier:null}); // v727/v729: each row carries its stats snapshot; v734: and its fingerprint
      }catch(_e){} // v725: one bad share never empties the list
     }
+    // v734 — Tony's catch, the third weather door: v719 blocked buckets that are
+    // huge in HISTORY, v722 blocked near-high alone, but a broad quiet up-week
+    // put 30+ shares in the same rare-in-history bucket on the SAME DAY — a
+    // wall of identical 56% rows teaching nothing. When many shares wear one
+    // fingerprint today, that fingerprint is today's weather whatever its
+    // historical rarity: those rows collapse into one honest weather line
+    // instead of padding the list. Distinctive shares keep their own rows.
+    var split=_laCrowdSplit(rows); rows=split.keep;
+    window._laOddsWeather=split.weather;
     window._laOddsRows=rows;
     // v725: land on the highest bar with results, so reopening never LOOKS
     // empty just because a stricter chip was left selected last time
@@ -15315,12 +15351,20 @@ function _laOddsRender(){
       +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'%</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">n='+r.n+'</span></span></div>';
     }).join('')
     : '<div style="padding:14px 10px;color:var(--muted);font-weight:400;font-size:13px;font-family:var(--sans);">No share\u2019s fingerprint clears \u2265'+_laOddsMin+'% today (with 30+ lookalikes behind it). An honest empty list beats a padded one \u2014 try a lower bar or another day.</div>';
+  // v734 — the weather report: fingerprints worn by 9+ shares today, collapsed
+  // to one line each. Present so their absence from the list is explained,
+  // muted so they never read as picks.
+  var wx=(window._laOddsWeather||[]);
+  var wxHtml=wx.length? wx.map(function(w){
+      var fmt2=(w.med>=0?'+':'')+w.med.toFixed(1)+'%';
+      return '<div style="padding:8px 10px;border-top:1px dashed var(--border);font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">\ud83c\udf26 <b>'+w.count+' shares</b> share one look today \u2014 '+_laFingerPlain(w.f)+'. That\u2019s market weather, not an edge for any one of them; together such days ran <b>'+Math.round(w.odds)+'%</b> \u00b7 '+fmt2+' median (n='+w.n.toLocaleString()+'), which is the market\u2019s deal, not a share\u2019s.</div>';
+    }).join('') : '';
   var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83c\udfb2 again then.</div>':'';
   var _smp=_laSrv?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: server \u00b7 built '+String(_laSrv.built||'')+' \u00b7 '+_laSrvDays.toLocaleString()+' share-days across \u2248 3 years</div>')
     :((_laIdx&&_laIdx.shares)?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: '+_laIdx.shares.toLocaleString()+' shares \u00b7 '+_laIdx.days.toLocaleString()+' share-days on this device</div>'):'');
   showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of lookalike days that finished higher (next 10)</span></div>'
-    +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+'</div>'
+    +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+wxHtml+'</div>'
     +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds% sits beside its <b>median</b> because 60% winners with a deep losing tail is a different game to 60% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice.</div>'+_smp,'\ud83c\udfb2 Odds today');
 }
 function _laExplain(){
