@@ -1,5 +1,5 @@
 {
- "version": "2026.08.10-734-open",
+ "version": "2026.08.12-735-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v734 — 🎲 Odds today: when 9+ shares wear the same fingerprint on the same day (like today's quiet 4-day market drift), that's the day's weather, not an edge for any one of them — the wall of identical rows collapses into one honest 🌦 weather line with the group's shared stats, and only distinctive shares keep their own rows. Third weather door closed: v719 blocked history-huge buckets, v722 blocked near-high alone, v734 blocks today-crowded fingerprints."
+ "notes": "v735 — readable secondary numbers: the dollar change under the percent and the 'today <volume>' line were 9px hairline text that rendered near-black on the dark rows (tiny light-on-dark text loses half its brightness to antialiasing). Now 10px semibold — same colour, actually visible."
 }

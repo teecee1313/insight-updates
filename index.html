@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.10-734-open';
+const APP_VERSION='2026.08.12-735-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5139,10 +5139,10 @@ function renderRows(rows){
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
-    <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)}</span></td>
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;color:#c7d4ea">${up?'+':''}${Math.abs(s.chgAbs||0).toFixed(3)}</span></td>
 <td style="text-align:center;">${_pnEdgeCell(s)}</td>
 <td class="ph-hide"><div class="vw"><div class="vbg"><div class="vfl" style="width:${s.volCalced?bp:0}%"></div></div>
-    <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'–'}</span></div><div style="font-family:var(--mono);font-size:9px;color:${volDepthGood(s.volWindow)?'var(--green)':'var(--muted)'};margin-top:2px">today ${fmtV(s.volume)}${s.volCalced&&s.avgVol?` · vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}`:''}${(s.newsFlag==='likely')?` <span title="News likely in the last 5 days — a volume spike WITH news is a different animal from one without. Use Filter by news or the share's report for the detail." style="cursor:help;">📰</span>`:''}</div>${_srBadge}</td>
+    <span class="vp ${vc}">${s.volCalced?(s.volPct>=0?'+':'')+s.volPct+'%':'–'}</span></div><div style="font-family:var(--mono);font-size:10.5px;font-weight:700;color:${volDepthGood(s.volWindow)?'var(--green)':'#c7d4ea'};margin-top:2px">today ${fmtV(s.volume)}${s.volCalced&&s.avgVol?` · vs ${s.volWindow||''} avg ${fmtV(s.avgVol)}`:''}${(s.newsFlag==='likely')?` <span title="News likely in the last 5 days — a volume spike WITH news is a different animal from one without. Use Filter by news or the share's report for the detail." style="cursor:help;">📰</span>`:''}</div>${_srBadge}</td>
 <td class="ph-hide" title="Top: price up-days in a row. Bottom: volume above its average in a row."><div class="str">${dts}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.streakCalced?s.daysUp+'d px':'–'}</div><div class="str" style="margin-top:2px">${vds}</div><div style="font-family:var(--mono);font-size:8px;color:var(--muted)">${s.volStreakCalced?(s.volDays||0)+'d vol':'–'}</div></td>
 <td style="text-align:center;" title="Today's price/volume activity — backtested against real stored history (250 trading days, ASX): activity ABOVE zero has NOT been shown to predict a better next-5-day return, so it is not colour-ranked like PN Edge. Zero/near-zero IS a real, mild caution sign.">${s.watchScore!=null?`<span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${s.watchScore<2?'var(--orange)':'var(--muted)'}">${s.watchScore}</span><span style="font-size:9px;color:var(--dim)">/10</span>`:'<span style="color:var(--dim)">–</span>'}<div style="margin-top:2px">${s.accum10!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${s.accum10<1?'var(--orange)':'var(--muted)'}">🔥${s.accum10}</span><span style="font-size:8px;color:var(--dim)">/10</span>`:'<span style="font-size:9px;color:var(--dim)">–</span>'}</div></td>
 <td class="ph-hide">${sg}</td></tr>`;
