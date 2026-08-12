@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.12-735-open';
+const APP_VERSION='2026.08.12-736-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19523,10 +19523,17 @@ function setAutoLoad(on){
     var el=document.getElementById('radarPrep'); if(!el) return;
     var ids=['sgHi52','sgGold','sgRsi','sgSqz','sgRsl','sgNews'];
     var empty=0; for(var i=0;i<ids.length;i++){ var e=document.getElementById(ids[i]); if(e && /^[\u2013\u2014-]$/.test((e.textContent||'').trim())) empty++; }
-    if(window._prepRunning && empty){ el.style.display='inline'; el.textContent='\u23f3 signal counts still preparing \u2014 they fill in as each finishes'; return; }
-    if(empty && Array.isArray(allData)&&allData.length && !window._prepRunning){
+    if(!empty){ el.style.display='none'; return; }
+    if(window._prepRunning){ el.style.display='inline'; el.textContent='\u23f3 signal counts still preparing \u2014 they fill in as each finishes'; return; }
+    // v736 — Tony's catch: these six tiles wait on the day's EVIDENCE CHECK,
+    // not on signal preparation. The old message diagnosed dashes as "not
+    // prepared" and offered prepareAllSignals — the wrong lever, and one that
+    // silently no-ops once prep is done (v691 dedup), so the link felt broken.
+    // Say which pass is actually pending, and point the link at _evWarm.
+    if(window._scReplayP || window._warmState==='running'){ el.style.display='inline'; el.textContent='\u23f3 evidence check running \u2014 these six fill in on their own when it finishes (nothing to press)'; return; }
+    if(Array.isArray(allData)&&allData.length){
       el.style.display='inline';
-      el.innerHTML='signal counts not prepared \u2014 <a href="#" onclick="try{prepareAllSignals(true);}catch(_){};return false;" style="color:var(--gold);">prepare now</a>';
+      el.innerHTML='signal counts wait on today\u2019s evidence check \u2014 <a href="#" onclick="try{_evWarm();}catch(_){};return false;" style="color:var(--gold);">check now</a>';
       return; }
     el.style.display='none';
   }catch(_){} }

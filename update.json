@@ -1,5 +1,5 @@
 {
- "version": "2026.08.12-735-open",
+ "version": "2026.08.12-736-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v735 — readable secondary numbers: the dollar change under the percent and the 'today <volume>' line were 9px hairline text that rendered near-black on the dark rows (tiny light-on-dark text loses half its brightness to antialiasing). Now 10px semibold — same colour, actually visible."
+ "notes": "v736 — the radar's six 🔬 signal tiles wait on the day's evidence check, not on signal preparation. The status line now says which pass is actually pending: '⏳ evidence check running — these fill in on their own (nothing to press)' while the server grades the year, and if the check genuinely hasn't started, the link runs the evidence check (the old 'prepare now' pointed at the wrong function and silently did nothing once prep was done)."
 }
