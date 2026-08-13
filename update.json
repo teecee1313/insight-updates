@@ -1,5 +1,5 @@
 {
- "version": "2026.08.12-741-open",
+ "version": "2026.08.12-742-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v741 — the Days-like-today bars now match reality: ≥50 / ≥55 / ≥60 (the permanently-empty ≥70 shelf is gone), and the footer says why: readings above the mid-60s are vanishingly rare in real market data — a tool that shows them often is measuring noise."
+ "notes": "v742 — Days like today counts EVENTS, not overlapping days: with the new server index each streak of similar days counts once, medians are exact (no more bin rounding), and buckets can name real example days. Rows now read “…events”. Works with the current server too — exact numbers switch on when the new index is pasted."
 }
