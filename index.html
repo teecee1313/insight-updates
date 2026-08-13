@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.12-738-open';
+const APP_VERSION='2026.08.12-739-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15346,7 +15346,7 @@ function _laOddsRender(){
       var col=r.med>=0?'var(--green)':'#ff8b8b';
       return '<div onclick="_laOddsPick('+ri+')" style="display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:600;font-size:12.5px;font-family:var(--sans);align-items:baseline;">'
       +'<span><b>'+r.tk+'</b> <span style="color:var(--muted);font-weight:400;font-size:10.5px;">'+((r.nm&&r.nm!==r.tk)?r.nm.slice(0,20).replace(/</g,'&lt;'):'')+'</span></span>'
-      +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'%</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">n='+r.n+'</span></span></div>';
+      +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'/100</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">'+r.n.toLocaleString()+' days</span></span></div>';
     }).join('')
     : '<div style="padding:14px 10px;color:var(--muted);font-weight:400;font-size:13px;font-family:var(--sans);">No share\u2019s fingerprint clears \u2265'+_laOddsMin+'% today (with 30+ lookalikes behind it). An honest empty list beats a padded one \u2014 try a lower bar or another day.</div>';
   // v734 — the weather report: fingerprints worn by 9+ shares today, collapsed
@@ -15355,7 +15355,7 @@ function _laOddsRender(){
   var wx=(window._laOddsWeather||[]);
   var wxHtml=wx.length? wx.map(function(w){
       var fmt2=(w.med>=0?'+':'')+w.med.toFixed(1)+'%';
-      return '<div style="padding:8px 10px;border-top:1px dashed var(--border);font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">\ud83c\udf26 <b>'+w.count+' shares</b> share one look today \u2014 '+_laFingerPlain(w.f)+'. That\u2019s market weather, not an edge for any one of them; together such days ran <b>'+Math.round(w.odds)+'%</b> \u00b7 '+fmt2+' median (n='+w.n.toLocaleString()+'), which is the market\u2019s deal, not a share\u2019s.</div>';
+      return '<div style="padding:8px 10px;border-top:1px dashed var(--border);font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">\ud83c\udf26 <b>'+w.count+' shares</b> share one look today \u2014 '+_laFingerPlain(w.f)+'. That\u2019s market weather, not an edge for any one of them; together such days ran <b>'+Math.round(w.odds)+'/100</b> \u00b7 '+fmt2+' median ('+w.n.toLocaleString()+' days), which is the market\u2019s deal, not a share\u2019s.</div>';
     }).join('') : '';
   var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83c\udfb2 again then.</div>':'';
   var _smp=_laSrv?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: server \u00b7 built '+String(_laSrv.built||'')+' \u00b7 '+_laSrvDays.toLocaleString()+' share-days across \u2248 3 years</div>')
