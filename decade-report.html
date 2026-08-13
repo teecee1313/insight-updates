@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Decade Signal Report — Insight Trading</title>
+<style>
+body{font-family:'Segoe UI',system-ui,sans-serif;margin:0;background:#0d1524;color:#dfe7f3;line-height:1.5}
+.page{max-width:1000px;margin:0 auto;padding:26px 18px}
+h1{font-size:21px;margin:0 0 2px}.sub{color:#8fa0b8;font-size:12.5px;margin-bottom:14px}
+input,button{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid #33445f;background:#16233a;color:#dfe7f3}
+button{cursor:pointer;font-weight:700;background:#1d3a63}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+td,th{padding:5px 7px;border-bottom:1px solid #223florid;border-bottom:1px solid #223350;text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:#16233a;cursor:pointer}th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+.pos{color:#4cc38a;font-weight:700}.neg{color:#ff8b8b;font-weight:700}.rob{background:#1d2b1f}
+.tag{font-size:10px;font-weight:800;border-radius:9px;padding:1px 7px}
+.t-r{background:#153726;color:#4cc38a}.t-m{background:#3a2f14;color:#e3b341}.t-x{background:#3a1a1a;color:#ff8b8b}
+.note{font-size:11px;color:#8fa0b8;background:#132036;border-radius:8px;padding:9px 11px;margin:12px 0}
+#msg{font-size:12px;color:#e3b341;margin:8px 0}
+@media print{body{background:#fff;color:#111}th{background:#eee}.note{background:#f4f4f4}}
+</style></head><body><div class="page">
+<h1>📋 Decade Signal Report — every key, ten years, the real engine</h1>
+<div class="sub">Reads the stored decade grading (4 independent quarters of the liquid universe · hold 10 sessions · edge measured vs each quarter's own market · fires = signal-day events). Enter the admin key; nothing is stored.</div>
+<div><input id="k" type="password" placeholder="Admin key" style="width:220px"> <button onclick="run()">Load decade report</button> <button onclick="window.print()">🖨 Print</button></div>
+<div id="msg"></div><div id="out"></div>
+<div class="note"><b>Reading it:</b> <b>fires</b> = times the key fired across ten years (all quarters summed) · <b>up%</b> = raw share of fires that rose · <b>beat-mkt%</b> = fires that beat their own day's market (the honest win rate) · <b>edge/fire</b> = average excess vs the market per fire, in % (≈ dollars per $100 before costs; brokerage on $500 ≈ 1.2%) · <b>t</b> = weakest quarter's t-statistic (strength of evidence) · <b>Q</b> = quarters in which the key had ≥30 fires. <b>ROBUST</b> = positive edge and t ≥ 2.0 in every one of its 4 quarters — the decade's honour roll. MIXED = positive overall but not everywhere. FAILED = non-positive edge. Research, not advice.</div>
+<script>
+function fmt(x,d){return (x>=0?'+':'')+x.toFixed(d==null?2:d)}
+async function run(){
+ const k=document.getElementById('k').value, msg=document.getElementById('msg'), out=document.getElementById('out');
+ msg.textContent='loading 4 quarters…'; out.innerHTML='';
+ let j; try{
+  const r=await fetch('https://insight-data.tonycotton13.workers.dev/grades/decade?exch=ASX&hold=10',{headers:{'X-Insight-Admin':k}});
+  if(r.status===401){msg.textContent='admin key?';return}
+  j=await r.json();
+ }catch(e){msg.textContent='fetch failed: '+e;return}
+ if(!j.ok||!j.parts||!j.parts.length){msg.textContent='no decade grades stored yet';return}
+ const agg={}, defs={};
+ j.parts.forEach(P=>{ const A=P.A||{}; Object.assign(defs, A.defs||{});
+  const M=A.M||{};
+  Object.keys(M).forEach(key=>{ const m=M[key]; if(!m||!m.n)return;
+   const a=agg[key]||(agg[key]={q:[],n:0,up:0,upEx:0,sumOut:0,exc:0});
+   const edge=m.n?m.excSum/m.n:0;
+   const varr=m.n>1?Math.max(1e-9,(m.excSq-(m.excSum*m.excSum)/m.n)/(m.n-1)):1e9;
+   const t=m.n>1?edge/Math.sqrt(varr/m.n):0;
+   a.q.push({n:m.n,edge:edge,t:t}); a.n+=m.n; a.up+=m.up||0; a.upEx+=m.upEx||0; a.sumOut+=m.sumOut||0; a.exc+=m.excSum||0;
+  });
+ });
+ const rows=Object.keys(agg).map(key=>{ const a=agg[key];
+  const qBig=a.q.filter(q=>q.n>=30);
+  const minT=qBig.length?Math.min.apply(null,qBig.map(q=>q.t)):0;
+  const allPos=qBig.length===j.parts.length&&qBig.every(q=>q.edge>0&&q.t>=2.0);
+  const edge=a.n?a.exc/a.n:0;
+  const verdict=a.n<120?'THIN':(allPos?'ROBUST':(edge>0?'MIXED':'FAILED'));
+  const nm=(defs[key]&&(defs[key].name||defs[key].label))||'';
+  return {key,nm,q:qBig.length,n:a.n,up:a.n?Math.round(a.up/a.n*100):0,upEx:a.n?Math.round(a.upEx/a.n*100):0,avg:a.n?a.sumOut/a.n:0,edge:edge,minT:minT,verdict};
+ }).filter(r=>r.n>=60).sort((x,y)=>y.edge-x.edge);
+ msg.textContent='parts: '+j.partsStored+'/4 · keys shown (≥60 fires): '+rows.length;
+ let h='<table><tr><th>key</th><th>signal</th><th>Q</th><th>fires (10y)</th><th>up%</th><th>beat-mkt%</th><th>avg out</th><th>edge/fire</th><th>min t</th><th>verdict</th></tr>';
+ rows.forEach(r=>{
+  const tag=r.verdict==='ROBUST'?'t-r':(r.verdict==='MIXED'||r.verdict==='THIN'?'t-m':'t-x');
+  h+='<tr class="'+(r.verdict==='ROBUST'?'rob':'')+'"><td><b>'+r.key+'</b></td><td>'+String(r.nm).slice(0,26)+'</td><td>'+r.q+'/'+j.parts.length+'</td><td>'+r.n.toLocaleString()+'</td><td>'+r.up+'%</td><td>'+r.upEx+'%</td><td>'+fmt(r.avg)+'%</td><td class="'+(r.edge>0?'pos':'neg')+'">'+fmt(r.edge)+'%</td><td>'+r.minT.toFixed(1)+'</td><td><span class="tag '+tag+'">'+r.verdict+'</span></td></tr>';
+ });
+ h+='</table>';
+ const rob=rows.filter(r=>r.verdict==='ROBUST');
+ h='<div class="note"><b>Decade honour roll ('+rob.length+' keys ROBUST in all quarters):</b> '+(rob.length?rob.map(r=>r.key+' ('+fmt(r.edge)+'%)').join(' · '):'none met the bar — the decade is a hard examiner')+'</div>'+h;
+ out.innerHTML=h;
+}
+</script></div></body></html>
