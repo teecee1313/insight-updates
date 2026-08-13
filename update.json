@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.13-744-open",
+  "version": "2026.08.13-745-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "One dial re-set on ten-year evidence: the patient dip entry moves from 5% to 2% across all three presets, the bot default and the server picks lane. The ten-year replay (real daily highs and lows) showed the deeper dip was missing winners rather than filtering losers \u2014 returns fall steadily as the limit deepens. Comparison figures and the method caveat are printed on the button that applies the set, and lesson 55 explains the testing correction behind it.",
+  "notes": "Training, help and lessons brought up to the ten-year evidence: Hunter/Defender/All-rounder descriptions carry the 13 Aug 2026 replay figures with the look-ahead caveat intact, the trail-width guidance now states the measured curve (20% is the peak; 30% doubles the drawdown), hold times corrected to ~9 weeks, the bot patience-order default reads 2% to match the presets, and lesson 55 records the dip re-set as the first shipped setting its five corrections changed. Re-check confirmed all other preset dials \u2014 no rule values changed in this release.",
   "date": "2026-08-13"
 }
