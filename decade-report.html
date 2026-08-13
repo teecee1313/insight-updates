@@ -24,8 +24,10 @@ th{position:sticky;top:0;background:#16233a;cursor:pointer}th:first-child,td:fir
 <script>
 function fmt(x,d){return (x>=0?'+':'')+x.toFixed(d==null?2:d)}
 // v732's plain-English signal names — same dictionary as the app, combos (+) and sequences (>) handled
-function plain(k){ try{ var NM={bo:'\ud83d\ude80 Breakout',inf:'\ud83d\udd75\ufe0f Informed?',inst:'\ud83c\udfe6 Inst?',cx:'\u2934 MA cross',vr:'\ud83e\udd47 Vol record',dir:'\ud83e\uddd1\u200d\ud83d\udcbc Director \u2713',blk:'\ud83d\udd37 Block day',di:'\ud83d\udcc9 Dist? (warning)','vr-':'\ud83e\udd47 Vol record (down day)','blk-':'\ud83d\udd37 Block day (down)','blk+':'\ud83d\udd37 Block day (up)'};
- return String(k||'').split('>').map(function(seg){ return seg.split('+').map(function(x){return NM[x]||x;}).join(' + '); }).join(' \u2192 then '); }catch(e){ return String(k||''); } }
+function plain(k){ try{ var NM={bo:'\ud83d\ude80 Breakout',inf:'\ud83d\udd75\ufe0f Informed?',inst:'\ud83c\udfe6 Inst?',cx:'\u2934 MA cross',vr:'\ud83e\udd47 Vol record',dir:'\ud83e\uddd1\u200d\ud83d\udcbc Director \u2713',blk:'\ud83d\udd37 Block day',di:'\ud83d\udcc9 Dist? (warning)','vr-':'\ud83e\udd47 Vol record (down day)','blk-':'\ud83d\udd37 Block day (down)','vr+':'\ud83e\udd47 Vol record (up day)','blk+':'\ud83d\udd37 Block day (up)'};
+ var kk=String(k||''); if(NM[kk]) return NM[kk];
+ return kk.split('>').map(function(seg){ if(NM[seg]) return NM[seg];
+   return seg.split('+').map(function(x){return NM[x]||x;}).join(' + '); }).join(' \u2192 then '); }catch(e){ return String(k||''); } }
 async function run(){
  const k=document.getElementById('k').value, msg=document.getElementById('msg'), out=document.getElementById('out');
  msg.textContent='loading 4 quarters…'; out.innerHTML='';
@@ -67,14 +69,14 @@ async function run(){
   return {key,nm,q:qBig.length,n:a.n,up:a.n?Math.round(a.up/a.n*100):0,upEx:a.n?Math.round(a.upEx/a.n*100):0,avg:a.n?a.sumOut/a.n:0,edge:edge,minT:minT,verdict};
  }).filter(r=>r.n>=60).sort((x,y)=>y.edge-x.edge);
  msg.textContent='parts: '+j.partsStored+'/4 · keys shown (≥60 fires): '+rows.length;
- let h='<table><tr><th>key</th><th>signal</th><th>Q</th><th>fires (10y)</th><th>up%</th><th>beat-mkt%</th><th>avg out</th><th>edge/fire</th><th>pooled t</th><th>verdict</th></tr>';
+ let h='<table><tr><th>signal</th><th>Q</th><th>fires (10y)</th><th>up%</th><th>beat-mkt%</th><th>avg out</th><th>edge/fire</th><th>pooled t</th><th>verdict</th></tr>';
  rows.forEach(r=>{
   const tag=/PROVEN|SOLID/.test(r.verdict)?'t-r':(r.verdict==='FAILED'?'t-x':'t-m');
-  h+='<tr class="'+(r.verdict==='ROBUST'?'rob':'')+'"><td style="font-size:10px;color:#8fa0b8">'+r.key+'</td><td><b>'+String(r.nm).slice(0,44)+'</b></td><td>'+r.q+'/'+j.parts.length+'</td><td>'+r.n.toLocaleString()+'</td><td>'+r.up+'%</td><td>'+r.upEx+'%</td><td>'+fmt(r.avg)+'%</td><td class="'+(r.edge>0?'pos':'neg')+'">'+fmt(r.edge)+'%</td><td>'+r.minT.toFixed(1)+'</td><td><span class="tag '+tag+'">'+r.verdict+'</span></td></tr>';
+  h+='<tr class="'+(r.verdict==='ROBUST'?'rob':'')+'"><td><b>'+r.nm+'</b></td><td>'+r.q+'/'+j.parts.length+'</td><td>'+r.n.toLocaleString()+'</td><td>'+r.up+'%</td><td>'+r.upEx+'%</td><td>'+fmt(r.avg)+'%</td><td class="'+(r.edge>0?'pos':'neg')+'">'+fmt(r.edge)+'%</td><td>'+r.minT.toFixed(1)+'</td><td><span class="tag '+tag+'">'+r.verdict+'</span></td></tr>';
  });
  h+='</table>';
  const rob=rows.filter(r=>/PROVEN|SOLID/.test(r.verdict));
- h='<div class="note"><b>Decade honour roll ('+rob.length+' keys SOLID/PROVEN over ten years, pooled):</b> '+(rob.length?rob.map(r=>r.key+' ('+fmt(r.edge)+'%)').join(' · '):'none met the pooled bar')+'</div>'+h;
+ h='<div class="note"><b>Decade honour roll ('+rob.length+' keys SOLID/PROVEN over ten years, pooled):</b> '+(rob.length?rob.map(r=>r.nm+' ('+fmt(r.edge)+'%)').join(' · '):'none met the pooled bar')+'</div>'+h;
  out.innerHTML=h;
 }
 </script></div></body></html>
