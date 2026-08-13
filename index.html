@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.12-740-open';
+const APP_VERSION='2026.08.12-741-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15205,7 +15205,7 @@ function _laBuild(){
 // v718 — 🎲 ODDS TODAY: every share's current fingerprint scored against the
 // lookalike index; the market ranked by "how often did lookalike days finish
 // higher over the next 10?" Sample floor 30 — thin data doesn't get to brag.
-let _laOddsMin=60;
+let _laOddsMin=55;
 // v720 — the odds chip for report rows (Best Evidence, Top 20): same rules as
 // the 🎲 scan — distinctive fingerprint + 30 lookalikes — or no chip at all.
 // First call in a session defers the index build so reports never jank.
@@ -15336,7 +15336,7 @@ function _laOddsScan(){
     window._laOddsRows=rows;
     // v725: land on the highest bar with results, so reopening never LOOKS
     // empty just because a stricter chip was left selected last time
-    var bars=[70,60,50]; for(var bi=0;bi<bars.length;bi++){ if(rows.some(function(r){return r.odds>=bars[bi];})){ _laOddsMin=bars[bi]; break; } if(bi===bars.length-1)_laOddsMin=50; }
+    var bars=[60,55,50]; // v741: bars match reality — honest readings live 50–65 for(var bi=0;bi<bars.length;bi++){ if(rows.some(function(r){return r.odds>=bars[bi];})){ _laOddsMin=bars[bi]; break; } if(bi===bars.length-1)_laOddsMin=50; }
     _laOddsRender();
   }catch(e){ showModal('<div style="padding:10px;">Odds scan failed: '+String(e).replace(/</g,'&lt;')+'</div>','Odds'); } },60); });
 }
@@ -15344,7 +15344,7 @@ function _laOddsRender(){
   var rows=(window._laOddsRows||[]).filter(function(r){return r.odds>=_laOddsMin;})
       .sort(function(a,b){return b.odds-a.odds || b.med-a.med;}).slice(0,40);
   window._laOddsShown=rows; // v727: tap-throughs read the snapshot, never a fresher index
-  var chips=[50,60,70].map(function(t){
+  var chips=[50,55,60].map(function(t){
     return '<button type="button" onclick="_laOddsMin='+t+';_laOddsRender()" style="padding:5px 12px;border-radius:14px;border:1px solid '+(t===_laOddsMin?'var(--gold)':'var(--border2)')+';background:var(--bg3);color:var(--text);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2265'+t+'%</button>';
   }).join(' ');
   var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
@@ -15369,7 +15369,7 @@ function _laOddsRender(){
   showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83d\udcca Days like today \u2014 what similar days did</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of 100 similar days finished higher (next 10)</span></div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+wxHtml+'</div>'
-    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">A reading is the past\u2019s tally, not tomorrow\u2019s promise: it sits beside its <b>median</b> because 60/100 winners with a deep losing tail is a different game to 60/100 with a mild one. 30+ similar days required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a pattern shared by half the market says nothing about one share. Tap a share for its full history. Research, not advice. <span onclick="_laGateStudy()" style="color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);">\ud83e\uddea Backtest this idea</span></div>'+_smp,'\ud83d\udcca Days like today');
+    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">A reading is the past\u2019s tally, not tomorrow\u2019s promise: it sits beside its <b>median</b> because 60/100 winners with a deep losing tail is a different game to 60/100 with a mild one. 30+ similar days required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a pattern shared by half the market says nothing about one share. Tap a share for its full history. Readings above the mid-60s are vanishingly rare in real market data \u2014 a tool that shows them often is measuring noise. Research, not advice. <span onclick="_laGateStudy()" style="color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);">\ud83e\uddea Backtest this idea</span></div>'+_smp,'\ud83d\udcca Days like today');
 }
 function _laGateStudy(){
   showModal('<div style="padding:14px;font-weight:600;font-size:13px;font-family:var(--sans);">\ud83e\uddea Splitting history, training on the early 60%, testing the rest\u2026</div>','\ud83e\uddea Gate study');

@@ -1,5 +1,5 @@
 {
- "version": "2026.08.12-740-open",
+ "version": "2026.08.12-741-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v740 — the wall of identical +1.0% medians is fixed: server-index medians now interpolate within their histogram bin instead of snapping to the bin midpoint, so different buckets show their honest, different typical moves. (The next server update stores exact medians for perfect precision.)"
+ "notes": "v741 — the Days-like-today bars now match reality: ≥50 / ≥55 / ≥60 (the permanently-empty ≥70 shelf is gone), and the footer says why: readings above the mid-60s are vanishingly rare in real market data — a tool that shows them often is measuring noise."
 }
