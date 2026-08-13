@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.12-736-open';
+const APP_VERSION='2026.08.12-737-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15152,6 +15152,13 @@ function _laDataSig(){
     return L+':'+(typeof currentExch!=='undefined'?currentExch:'')+':'+sum;
   }catch(e){ return 'e'; }
 }
+function _laNotable(f){ // v737: global — scan, chips and the gate study share one rule
+  var p=f.split('|'); var vb=p[0], cb=p[1], sb=p[2];
+  if(vb==='V2'||vb==='V3'||vb==='V15')return true;
+  if(cb==='C10'||cb==='C5'||cb==='C2'||cb==='Cm5')return true;
+  if(sb==='S2'||sb==='S4')return true;
+  return false;
+}
 function _laFinger(chg, volR, streak, nearHi){
   var vb = volR>=3?'V3':volR>=2?'V2':volR>=1.5?'V15':volR>=1?'V1':'V0';
   var cb = chg>=10?'C10':chg>=5?'C5':chg>=2?'C2':chg>=0?'C0':chg>=-5?'Cm':'Cm5';
@@ -15296,16 +15303,7 @@ function _laOddsScan(){
     // They'd all had the same KIND of day (quiet drift), so they all matched the
     // market's giant ordinary-weather bucket — true, and empty. Only distinctive
     // days qualify now: real volume, a real move, a streak, or high-proximity.
-    var _laNotable=function(f){
-      // v722 — near-the-high is a STATE, not an event: half the steady risers
-      // live within 5% of their highs, so H alone re-created the flood (29k
-      // identical rows). An event must be present; H only flavours it.
-      var p=f.split('|'); var vb=p[0], cb=p[1], sb=p[2];
-      if(vb==='V2'||vb==='V3'||vb==='V15')return true;
-      if(cb==='C10'||cb==='C5'||cb==='C2'||cb==='Cm5')return true;
-      if(sb==='S2'||sb==='S4')return true;
-      return false;
-    };
+        // v737: distinctiveness rule hoisted to module scope (_laNotable)
     var _laCeil=Math.max(500, _laTotalDays()*0.04); // any bucket holding >4% of all days is weather, whatever its bands
     for(var a=0;a<allData.length;a++){
      try{
@@ -15365,7 +15363,63 @@ function _laOddsRender(){
   showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83c\udfb2 Odds today \u2014 lookalike base rates</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of lookalike days that finished higher (next 10)</span></div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+wxHtml+'</div>'
-    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds% sits beside its <b>median</b> because 60% winners with a deep losing tail is a different game to 60% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice.</div>'+_smp,'\ud83c\udfb2 Odds today');
+    +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">Odds are the past\u2019s deal, not tomorrow\u2019s promise: the odds% sits beside its <b>median</b> because 60% winners with a deep losing tail is a different game to 60% with a mild one. 30+ lookalikes required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a base rate shared by half the market says nothing about one share. Tap a share for its full distribution. Research, not advice. <span onclick="_laGateStudy()" style="color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);">\ud83e\uddea Backtest this idea</span></div>'+_smp,'\ud83c\udfb2 Odds today');
+}
+function _laGateStudy(){
+  showModal('<div style="padding:14px;font-weight:600;font-size:13px;font-family:var(--sans);">\ud83e\uddea Splitting history, training on the early 60%, testing the rest\u2026</div>','\ud83e\uddea Odds-gate study');
+  setTimeout(function(){ try{
+    var allD=[]; (allData||[]).forEach(function(sh){ var ser=sh&&sh.series; if(ser&&ser.length>120) allD.push(ser[Math.floor(ser.length*0.6)].d); });
+    if(allD.length<20){ showModal('<div style="padding:12px;font-weight:400;font-size:13px;font-family:var(--sans);">Not enough saved history \u2014 load the market first.</div>','\ud83e\uddea Odds-gate study'); return; }
+    allD.sort(); var CUT=allD[Math.floor(allD.length/2)];
+    var train={}, trainDays=0, test=[];
+    for(var a=0;a<allData.length;a++){ try{
+      var sh=allData[a]; var ser=sh&&sh.series; if(!ser||ser.length<120)continue;
+      if(typeof _cardLiqPass==='function'&&!_cardLiqPass(sh))continue;
+      var vsum=0,vn=0,streak=0; var win=[],hiWin=[];
+      for(var i=0;i<ser.length;i++){
+        var c=+ser[i].c||0, v=+ser[i].v||0, prev=i>0?(+ser[i-1].c||0):0;
+        var chg=prev>0?((c-prev)/prev)*100:0;
+        streak=(i>0&&c>prev)?streak+1:0;
+        var avg=vn>=10?vsum/vn:0; var volR=(avg>0&&v>0)?v/avg:0;
+        var hi=hiWin.length?Math.max.apply(null,hiWin):0; var nearHi=hi>0&&c>=hi*0.95;
+        if(i>=20&&avg>0&&v>0&&c>0&&i+10<ser.length){
+          var fc=+ser[i+10].c||0;
+          if(fc>0){ var fwd=(fc-c)/c*100; var f=_laFinger(chg,volR,streak,nearHi);
+            if(ser[i].d<CUT){ (train[f]||(train[f]=[])).push(fwd); trainDays++; }
+            else if(ser[i+10].d){ test.push({f:f,fwd:fwd}); }
+          }
+        }
+        win.push(v>0?v:0); if(v>0){vsum+=v;vn++;} if(win.length>63){var o=win.shift(); if(o>0){vsum-=o;vn--;}}
+        hiWin.push(c); if(hiWin.length>250)hiWin.shift();
+      }
+    }catch(_e){} }
+    var ceil=Math.max(500,trainDays*0.04);
+    var base=0; test.forEach(function(t){base+=t.fwd;}); base=test.length?base/test.length:0;
+    var fmt=function(x){return (x>=0?'+':'')+x.toFixed(2)+'%';};
+    var rowsH='';
+    [50,60,70].forEach(function(T){
+      var sel=test.filter(function(t){
+        if(!_laNotable(t.f))return false;
+        var arr=train[t.f]; if(!arr||arr.length<30||arr.length>ceil)return false;
+        var pos=arr.filter(function(x){return x>0;}).length/arr.length*100;
+        return pos>=T;
+      });
+      var m2=0,w=0; sel.forEach(function(t){m2+=t.fwd; if(t.fwd>0)w++;});
+      var avg=sel.length?m2/sel.length:0;
+      var srt=sel.map(function(t){return t.fwd;}).sort(function(a,b){return a-b;});
+      var med=srt.length?srt[Math.floor(srt.length/2)]:0;
+      var lift=avg-base; var col=lift>0?'var(--green)':'#ff8b8b';
+      rowsH+='<tr><td style="padding:5px 8px;font-weight:700;">\u2265'+T+'%</td><td style="padding:5px 8px;text-align:right;">'+sel.length.toLocaleString()+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;">'+(sel.length?Math.round(w/sel.length*100)+'%':'\u2013')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;">'+(sel.length?fmt(med):'\u2013')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;">'+(sel.length?fmt(avg):'\u2013')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;color:'+col+';font-weight:700;">'+(sel.length?fmt(lift):'\u2013')+'</td></tr>';
+    });
+    showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83e\uddea Does gating on odds help? (out-of-sample)</div>'
+      +'<div style="font-weight:400;font-size:12px;font-family:var(--sans);color:var(--muted);margin-bottom:8px;">Odds learned from days before <b>'+CUT+'</b> ('+trainDays.toLocaleString()+' train days) \u00b7 tested on '+test.length.toLocaleString()+' later days \u00b7 baseline: the average later day made <b>'+fmt(base)+'</b> over its next 10.</div>'
+      +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono);"><tr style="color:var(--muted);font-family:var(--sans);"><th style="text-align:left;padding:5px 8px;">gate</th><th style="text-align:right;">days</th><th style="text-align:right;">won</th><th style="text-align:right;">median</th><th style="text-align:right;">average</th><th style="text-align:right;">vs baseline</th></tr>'+rowsH+'</table></div>'
+      +'<div style="margin-top:10px;font-weight:400;font-size:11px;line-height:1.55;font-family:var(--sans);color:var(--muted);">Honesty notes: one device window, one split (no cherry-picking, but no averaging over many splits either); overlapping days inflate the day counts; returns are raw next-10-day moves, not a trading simulation with costs and position sizing. Green in the last column means days the gate picked beat the ordinary day out-of-sample \u2014 evidence the gate carries information, and the trigger to graduate it into a tested trading rule. Research, not advice.</div>','\ud83e\uddea Odds-gate study');
+  }catch(e){ showModal('<div style="padding:10px;">Study failed: '+String(e).replace(/</g,'&lt;')+'</div>','\ud83e\uddea Odds-gate study'); } },60);
 }
 function _laExplain(){
   var pre='font-family:var(--mono);font-size:10.5px;line-height:1.5;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px;white-space:pre;overflow-x:auto;';
