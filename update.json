@@ -1,5 +1,5 @@
 {
- "version": "2026.08.12-739-open",
+ "version": "2026.08.12-740-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v739 — the Days-like-today list rows now speak the same plain counting as everything else: 56/100 · typical move · 690 days (the old 56% · n=690 form is gone)."
+ "notes": "v740 — the wall of identical +1.0% medians is fixed: server-index medians now interpolate within their histogram bin instead of snapping to the bin midpoint, so different buckets show their honest, different typical moves. (The next server update stores exact medians for perfect precision.)"
 }

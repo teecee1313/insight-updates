@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.12-739-open';
+const APP_VERSION='2026.08.12-740-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15128,8 +15128,14 @@ function _laStatsFromArr(arr){
 }
 function _laStatsFromHist(b,edges){
   if(!b||!b.n)return null;
+  // v740 — quantiles interpolate WITHIN the bin (uniform-density assumption)
+  // instead of returning the bin midpoint. Midpoints made every median whose
+  // middle fell in the 0..2% bin print exactly +1.0% — different buckets, one
+  // number. Interpolation restores honest variety; w511 will store exact medians.
   var q=function(f){ var tgt=b.n*f, c=0;
-    for(var i2=0;i2<b.b.length;i2++){ c+=b.b[i2]; if(c>=tgt){ var lo=edges[i2], hi=(edges[i2+1]!=null?edges[i2+1]:lo); return (lo+hi)/2; } }
+    for(var i2=0;i2<b.b.length;i2++){ var k=b.b[i2]; if(c+k>=tgt){ var lo=edges[i2], hi=(edges[i2+1]!=null?edges[i2+1]:lo);
+        var frac=k>0?((tgt-c)/k):0.5; return lo+(hi-lo)*Math.max(0,Math.min(1,frac)); }
+      c+=k; }
     return edges[edges.length-1]; };
   return { n:b.n, pos:Math.round((b.pos/b.n)*100), med:q(0.5), q1:q(0.25), q3:q(0.75),
            mn:(b.mn!=null?b.mn:q(0.02)), mx:(b.mx!=null?b.mx:q(0.98)), src:'server' };
