@@ -1,5 +1,5 @@
 {
- "version": "2026.08.12-737-open",
+ "version": "2026.08.12-738-open",
  "url": "https://teecee1313.github.io/insight-updates/",
- "notes": "v737 — 🧪 the odds idea gets its own trial: tap “Backtest this idea” in the 🎲 footer. The app trains odds on the FIRST 60% of your saved history and tests every later day out-of-sample: days per gate (≥50/60/70), win rate, median, average, and lift vs an ordinary day. No peeking at the future — caveats printed with the results."
+ "notes": "v738 — 🎲 Odds becomes 📊 Days like today: same measurements, plainer language. Rows and chips read as counts (54/100 similar days rose), the dice is gone from the feature, and none of the maths changed. Deeper measurement upgrades (episode counting, typical dip, 5/20-day views) arrive with the next server update."
 }
