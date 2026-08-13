@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.13-745-open';
+const APP_VERSION='2026.08.13-746-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2967,7 +2967,7 @@ window._pfPriceMetPass = async function(){
     }catch(e){ try{ el.innerHTML=''; }catch(_){ } }
   }
 };
-window._picksBuy = function(ticker, limitPx, tgtPx, stopPx){
+window._picksBuy = function(ticker, limitPx, tgtPx, stopPx, trailPct){
   const have = (typeof allData!=='undefined') && allData.some(x=>x.ticker===ticker);
   if(!have){
     if(typeof showModal==='function'){
@@ -2992,6 +2992,16 @@ window._picksBuy = function(ticker, limitPx, tgtPx, stopPx){
         if(T){ T.value=tgtPx; try{ T.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} } }
       if(stopPx>0){ const S=document.getElementById('paperStop');
         if(S){ S.value=stopPx; try{ S.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} } }
+      // v746 — a trail-lane pick has NO take-profit by design. Mirror it exactly:
+      // set the pick's own trailing %, and blank the 🎯 fields that paperBuy
+      // pre-filled from saved rules, so the form shows the pick, not a hybrid.
+      if(trailPct>0){ const W=document.getElementById('paperTrailPct');
+        if(W){ W.value=trailPct; try{ W.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} }
+        if(!(tgtPx>0)){
+          for(const id of ['paperTgt','paperTgtPct']){ const F=document.getElementById(id);
+            if(F){ F.value=''; try{ F.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} } }
+        }
+      }
       const note=document.getElementById('paperBuyPrev');
       if(note) note.innerHTML='<span style="color:var(--gold)">Filled in from today\u2019s pick. Check the amount, then confirm - nothing is placed until you do.</span>';
     }catch(e){}
@@ -3141,7 +3151,7 @@ async function showDailyPicks(mode){
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Last close</span><b>'+money(r.ref_close)+'</b></div>'
           +'</div>'
           +'<div style="display:flex;gap:6px;margin-top:8px;">'
-          +'<button onclick="_picksBuy(\''+esc(r.ticker)+'\','+(+r.limit_price||0)+','+(tr?0:(+r.target_price||0))+','+(+sv||0)+')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\ud83d\uded2 Practice buy</button>'
+          +'<button onclick="_picksBuy(\''+esc(r.ticker)+'\','+(+r.limit_price||0)+','+(tr?0:(+r.target_price||0))+','+(+sv||0)+','+(tr?(+r.trail_pct||20):0)+')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\ud83d\uded2 Practice buy</button>'
           +'<button onclick="_picksOpen(\''+esc(r.ticker)+'\')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--gold);background:rgba(217,164,65,.15);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\ud83d\udcca Open '+esc(r.ticker)+'</button>'
           +'<button onclick="printShareReport(\''+esc(r.ticker)+'\')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">\ud83d\udcc4 Report</button>'
           +'</div>'
@@ -8860,7 +8870,7 @@ function paperBuy(ticker){
       <input type="number" id="paperLimit" min="0" step="any" oninput="_paperLimitResync()" placeholder="e.g. ${(s.price*0.95).toFixed(s.price<1?3:2)}" style="width:100%;padding:9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;box-sizing:border-box;">
     </div>
 
-    <label style="display:block;font-size:10px;color:var(--gold);margin:12px 0 4px;">🎯 Sell price (take-profit) — <strong>required</strong>: commit your exit. Auto-sells if the price rises to here.</label>
+    <label style="display:block;font-size:10px;color:var(--gold);margin:12px 0 4px;">🎯 Sell price (take-profit) — optional when a 🛑 stop or 🪤 trailing stop is set. Auto-sells if the price rises to here; blank = let the winner run.</label>
     <div style="display:flex;gap:6px;align-items:center;">
       <div style="position:relative;flex:0 0 92px;">
         <input type="number" id="paperTgtPct" min="0" step="any" placeholder="15" oninput="_paperPctSync('tgt')" style="width:100%;padding:9px 22px 9px 11px;border-radius:7px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);font-size:13px;box-sizing:border-box;">
@@ -8885,7 +8895,7 @@ function paperBuy(ticker){
         <span id="paperStopHint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#ff9caa;font-size:9px;"></span>
       </div>
     </div>
-    <div style="font-size:9px;color:var(--dim);margin-top:5px;">A sell price is <b style="color:var(--gold)">required</b> — type a <b>%</b> (fills the price from the ${fmtP(s.price,s.currency)} buy) or an exact price. The stop-loss is optional. You can change the target later — every change is dated and kept on the record.</div>
+    <div style="font-size:9px;color:var(--dim);margin-top:5px;">Every buy needs at least <b style="color:var(--gold)">one planned exit</b> — 🎯, 🛑 or 🪤. Type a <b>%</b> (fills the price from the ${fmtP(s.price,s.currency)} buy) or an exact price — or leave 🎯 blank and let the 🪤 trailing stop do the whole job, the tested-rules way. You can change any exit later — every change is dated and kept on the record.</div>
     <label style="display:block;font-size:10px;color:var(--muted);margin:10px 0 4px;">🪤 Trailing stop — auto-sells if it falls this % below its highest close (optional)</label>
     <div style="display:flex;gap:6px;align-items:center;">
       <div style="position:relative;flex:0 0 92px;">
@@ -8940,7 +8950,7 @@ function paperBuyConfirm(ticker){
   const px=(isLimit&&lim>0)?lim:(realFillsOn()?s.price:_slipBuy(s.price));
   const qty=Math.floor(amt/px);
   if(qty<1){alert('Enter an amount of at least one share ('+fmtP(px,s.currency)+').');return;}
-  if(!(tgt>0)){alert('Set a sell price (take-profit) before buying — every position needs a planned exit. Enter a % or a price in the \ud83c\udfaf field.');return;}
+  if(!(tgt>0)&&!(stop>0)&&!(_trV)){alert('Set at least ONE planned exit before buying — a \ud83c\udfaf take-profit, a \ud83d\uded1 stop-loss or a \ud83e\udea4 trailing stop.\n\nLeaving \ud83c\udfaf blank on purpose is fine when the \ud83e\udea4 trailing stop is set — that is exactly how the tested \u26a1 Hunter rules run: no target, the trail does the selling.');return;}
   if(tgt>0&&tgt<=px){alert('Take-profit target should be above your buy price.');return;}
   if(stop>0&&stop>=px){alert('Stop-loss should be below your buy price.');return;}
   // v513: one honest pause if any of YOUR rules is red — never a block.

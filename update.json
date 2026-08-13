@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.13-745-open",
+  "version": "2026.08.13-746-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training, help and lessons brought up to the ten-year evidence: Hunter/Defender/All-rounder descriptions carry the 13 Aug 2026 replay figures with the look-ahead caveat intact, the trail-width guidance now states the measured curve (20% is the peak; 30% doubles the drawdown), hold times corrected to ~9 weeks, the bot patience-order default reads 2% to match the presets, and lesson 55 records the dip re-set as the first shipped setting its five corrections changed. Re-check confirmed all other preset dials \u2014 no rule values changed in this release.",
+  "notes": "Practice buys no longer force a take-profit. The rule is now what the evidence says it should be: every buy needs at least ONE planned exit \u2014 target, stop-loss or trailing stop \u2014 and a blank target with a trailing stop set is the tested-rules shape (no target, the trail does the selling). Buying from Today\u2019s picks now mirrors the pick exactly: the pick\u2019s own trailing % is filled in and the saved-rules target prefill is cleared for trail-lane picks.",
   "date": "2026-08-13"
 }
