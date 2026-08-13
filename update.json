@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.13-746-open",
+  "version": "2026.08.13-747-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Practice buys no longer force a take-profit. The rule is now what the evidence says it should be: every buy needs at least ONE planned exit \u2014 target, stop-loss or trailing stop \u2014 and a blank target with a trailing stop set is the tested-rules shape (no target, the trail does the selling). Buying from Today\u2019s picks now mirrors the pick exactly: the pick\u2019s own trailing % is filled in and the saved-rules target prefill is cleared for trail-lane picks.",
+  "notes": "All-rounder price band re-set to $0.20\u2013$1.99 on ten-year evidence. The decomposition showed both edges of the old $0.15\u2013$1.75 band were costing it: dropping sub-20c shares and raising the ceiling each helped independently, and together lift the decade result to +85% with the best drawdown of the three presets. Hunter and Defender tested strictly WORSE on the widened band, so they keep $0.20\u2013$0.99 \u2014 that verdict is printed in the app alongside the change.",
   "date": "2026-08-13"
 }
