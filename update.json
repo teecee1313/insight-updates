@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.13-747-open",
+  "version": "2026.08.13-748-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "All-rounder price band re-set to $0.20\u2013$1.99 on ten-year evidence. The decomposition showed both edges of the old $0.15\u2013$1.75 band were costing it: dropping sub-20c shares and raising the ceiling each helped independently, and together lift the decade result to +85% with the best drawdown of the three presets. Hunter and Defender tested strictly WORSE on the widened band, so they keep $0.20\u2013$0.99 \u2014 that verdict is printed in the app alongside the change.",
+  "notes": "Groundwork for 30-day trial keys. This browser now identifies itself to the server with a random device id so a trial code can allow a small number of devices, and the lock screen tells the truth about why it refused \u2014 an ended trial says the trial ended, a full device list says so, instead of \"wrong password\". Nothing changes for anyone using the normal password.",
   "date": "2026-08-13"
 }

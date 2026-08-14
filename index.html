@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.13-747-open';
+const APP_VERSION='2026.08.13-748-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -2478,6 +2478,18 @@ function _serverData(){ return (typeof DATA_PROXY==='string' && !!DATA_PROXY); }
 // single unlock covers BOTH the customer and beta copies (same origin, same Worker).
 // This client code is NOT the security — the server withholding the data is.
 const _GATE_STORE='insightGate.v1';
+/* v748 — this browser's device id. A trial key allows a small number of
+   devices (2 by default), so a shared code runs out of slots on the SHARER's
+   own phone. Not namespaced by the beta kit (same id across both copies, same
+   worker). Random, meaningless on its own, never leaves this origin. */
+const _DEV_STORE='insightDevice.v1';
+function _devId(){
+  try{
+    let d=localStorage.getItem(_DEV_STORE);
+    if(!d){ d=(crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2,10)); localStorage.setItem(_DEV_STORE,d); }
+    return d;
+  }catch(e){ return ''; }
+}
 function _gateKey(){ try{ return localStorage.getItem(_GATE_STORE)||''; }catch(e){ return ''; } }
 function _gateSet(k){ try{ if(k) localStorage.setItem(_GATE_STORE,String(k)); else localStorage.removeItem(_GATE_STORE); }catch(e){} }
 function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PROXY.replace(/\/+$/,''):''; }
@@ -2502,7 +2514,7 @@ function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PRO
     // The unlock attempt sends the password you TYPED; this line used to replace
     // it with the stale stored key, so a device holding an old password could
     // never be unlocked with the new one no matter what you entered.
-    if(k){ try{ const h=new Headers((init&&init.headers)||{}); if(!h.get('X-Insight-Access'))h.set('X-Insight-Access',k); init.headers=h; }catch(e){} }
+    if(k){ try{ const h=new Headers((init&&init.headers)||{}); if(!h.get('X-Insight-Access'))h.set('X-Insight-Access',k); const _d=_devId(); if(_d&&!h.get('X-Insight-Device'))h.set('X-Insight-Device',_d); init.headers=h; }catch(e){} }
     return _raw(input,init).then(function(r){ try{ if(r&&r.status===401)_gateLock(); }catch(e){} return r; });
   };
 })();
@@ -2560,18 +2572,32 @@ function _gateTry(){
   say('Checking…','var(--muted)'); if(btn)btn.disabled=true;
   const b=_gateBase();
   const _f=(window._gateRawFetch||window.fetch);
-  _f(b+'/gate',{headers:{'X-Insight-Access':key}}).then(function(r){
+  _f(b+'/gate',{headers:{'X-Insight-Access':key,'X-Insight-Device':_devId()}}).then(function(r){
     if(r&&r.ok){ _gateSet(key); say('Unlocked ✓','var(--green)'); setTimeout(function(){ try{ location.reload(); }catch(e){} },250); return; }
     // v520: tell the truth about WHY. After 12 wrong tries in 15 minutes the
     // server pauses this connection and refuses to even CHECK the password —
     // showing "didn't work" for that made a correct password look wrong.
     if(r&&r.status===429){ say('⏳ Too many attempts — the lock is paused for up to 15 minutes and is not checking passwords right now. Wait it out (or switch between Wi‑Fi and mobile data), then try ONCE.','var(--orange)'); if(btn)btn.disabled=false; return; }
     if(r&&r.status===401){
+      // v748 — the server now says WHY. An expired trial and a full device
+      // list are not "wrong password", and telling someone to check their
+      // typing when their trial ended is the kind of small lie that erodes
+      // trust in everything else the app says.
+      try{ r.clone().json().then(function(j){
+        const why=j&&j.reason;
+        if(why==='expired'){ say('⌛ This 30-day trial has ended. Contact us to keep going — your saved rules and practice portfolio stay exactly as they are.','var(--gold)'); if(btn)btn.disabled=false; return; }
+        if(why==='devices'){ say('📱 This code is already in use on its allowed devices. If you have a new phone or cleared your browser, ask for a device reset.','var(--gold)'); if(btn)btn.disabled=false; return; }
+        _gateSay401();
+      }).catch(function(){ _gateSay401(); }); }catch(e){ _gateSay401(); }
+      return;
+    }
+    function _gateSay401(){
       // v529: on a phone the box is usually filled by AUTOFILL with an old
       // saved password — so \"check your typing\" is the wrong advice.
       say((_cl.repaired?'Your keyboard had added hidden characters — those were removed and it still didn\u2019t work. ':'')
         +'That password didn\u2019t work. On a phone, tap \uD83D\uDC41 show to SEE what is really in the box — it is often an old password your browser filled in. Clear it, type the new one by hand, then Unlock.');
-      if(btn)btn.disabled=false; return; }
+      if(btn)btn.disabled=false;
+    }
     say('The server answered unexpectedly ('+((r&&r.status)||'no reply')+'). Try again in a moment.'); if(btn)btn.disabled=false;
   }).catch(function(){ say('Couldn’t reach the server. Check your connection and try again.'); if(btn)btn.disabled=false; });
 }
