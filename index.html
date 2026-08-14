@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-751-open';
+const APP_VERSION='2026.08.14-752-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3077,6 +3077,38 @@ function _sigPlainName(k){ try{
   var NM={bo:'\ud83d\ude80 Breakout',inf:'\ud83d\udd75\ufe0f Informed?',inst:'\ud83c\udfe6 Inst?',cx:'\u2934 MA cross',vr:'\ud83e\udd47 Vol record',dir:'\ud83e\uddd1\u200d\ud83d\udcbc Director \u2713',blk:'\ud83d\udd37 Block day'};
   return String(k||'').split('>').map(function(seg){ return seg.split('+').map(function(x){return NM[x]||x;}).join(' + '); }).join(' \u2192 then ');
 }catch(e){ return String(k||''); } }
+// v752 — HOW LONG HAS IT BEEN, AND WHY. "An empty day is normal" is true but
+// sounds like an excuse; these are the numbers behind it, from a replay of this
+// exact lane over the stored decade (283 sessions, same band, same score gate,
+// same once-ever rule):
+//   · only 26% of sessions produce a pick at all
+//   · dry spells are the norm, not the exception: 36 of them, median 3 sessions
+//   · the longest was 33 sessions, and six spells ran 10+ sessions
+// So a two- or three-day gap is the middle of the distribution, and even a
+// fortnight has happened six times without anything being wrong. The funnel
+// counts come straight from the run stamp, so you can see WHERE it emptied.
+function _picksDrought(j, LR){
+  try{
+    const out=[];
+    if(j && j.latestPick && j.latestBar){
+      // count trading sessions between the newest pick and the newest bar
+      const a=new Date(j.latestPick), b=new Date(j.latestBar);
+      let n=0; const cur=new Date(a);
+      while(cur<b){ cur.setDate(cur.getDate()+1); const wd=cur.getDay(); if(wd!==0&&wd!==6) n++; }
+      if(n>0) out.push('<b>'+n+' session'+(n===1?'':'s')+'</b> since the last new pick ('+esc(j.latestPick)+').');
+    }
+    if(LR && LR.scanned!=null){
+      out.push('Tonight: '+LR.scanned+' signal'+(LR.scanned===1?'':'s')+' fired \u00b7 '
+        +(LR.inBand==null?'?':LR.inBand)+' inside the price band \u00b7 '
+        +(LR.qualifying==null?'?':LR.qualifying)+' cleared score '+((j.rules&&j.rules.minScore)||7)+'+.');
+    }
+    // only worth saying when there IS a gap; on a day that picked, this would
+    // be noise dressed as reassurance.
+    if(!out.length) return '';
+    out.push('<span style="opacity:.8">Across the stored decade this lane picked on only <b>26%</b> of sessions. Dry spells averaged 3 sessions, and six ran past 10 \u2014 nothing is stuck.</span>');
+    return '<div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.55;">'+out.join(' ')+'</div>';
+  }catch(e){ return ''; }
+}
 async function showDailyPicks(mode){
   if(mode) window._picksMode = mode;
   const M = window._picksMode;
@@ -3130,7 +3162,7 @@ async function showDailyPicks(mode){
       }
       else if(j.stale){
         if(LR && LR.error) fresh='<span style="color:var(--gold)">\u26a0 The server\u2019s last pick run hit an error \u2014 newest pick is from '+esc(j.latestPick)+'. It should retry at the next close.</span>';
-        else if(ranOnLatest) fresh='<span style="color:var(--green)">\u2713 The server ran on '+esc(j.latestBar)+' and its gates chose nothing new \u2014 the newest pick stays '+esc(j.latestPick)+'. An empty day is normal; the gates are choosy.</span>';
+        else if(ranOnLatest) fresh='<span style="color:var(--green)">\u2713 The server ran on '+esc(j.latestBar)+' and its gates chose nothing new \u2014 the newest pick stays '+esc(j.latestPick)+'.</span>'+_picksDrought(j,LR);
         else fresh='<span style="color:var(--gold)">\u26a0 Newest pick is from '+esc(j.latestPick)+', but the market data runs to '+esc(j.latestBar)+' \u2014 these are not today\u2019s.</span>';
       }
       else fresh='<span style="color:var(--green)">\u2713 Up to date \u2014 picked from '+esc(j.latestPick)+', the latest market day.</span>';

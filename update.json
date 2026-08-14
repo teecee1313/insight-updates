@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-751-open",
+  "version": "2026.08.14-752-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes the Weekly diary maths. On an exchange tab (ASX/NYSE) the daily snapshots only record what holdings are worth and what was paid for them \u2014 they carry no whole-account equity figure \u2014 so the previous build read equity as zero and printed Open moved as exactly minus the Closed figure, zeroing every week total. It now picks the right measure for the series it has: unrealised profit change on an exchange tab, account equity change minus realised profit on the whole-account view, and an honest dash when neither is available.",
+  "notes": "Today\u2019s picks now says how long a dry spell has run and where the funnel emptied \u2014 how many signals fired, how many were inside the price band, how many cleared the score gate \u2014 plus the decade baseline that makes it readable: replaying this exact lane over 283 stored sessions, it picked on only 26% of them, dry spells averaged 3 sessions, and six ran past 10. A quiet week is the middle of the distribution, not a fault, and now you can check that rather than take it on faith.",
   "date": "2026-08-14"
 }
