@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-750-open';
+const APP_VERSION='2026.08.14-751-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10456,16 +10456,37 @@ function _wkBuild(hist,vh){
   // open-position movement: last snapshot of the week minus the last snapshot
   // BEFORE it, then strip out the part explained by closed trades and by money
   // moving in or out, so this column is genuinely "the shares moved".
+  // v751 — WHICH NUMBER MEANS "WHAT THE SHARES DID" depends on the snapshot.
+  // The whole-account series carries `eq` (cash + reserved + holdings). The
+  // PER-EXCHANGE series (vhByEx, what you get on an ASX or NYSE tab) carries
+  // only {d, inv, val} — no eq at all. v750 read eq blindly, got 0 on an
+  // exchange tab, and printed "open moved" as exactly minus the closed figure
+  // every week, zeroing the total. Now the field is chosen per snapshot, and
+  // when neither is usable the week honestly shows a dash.
+  //
+  // On the per-exchange series the right measure is val MINUS inv: `val` is
+  // what the holdings are worth and `inv` is what was paid for them, so their
+  // difference is unrealised profit, and its week-on-week change is exactly
+  // what the still-held shares did — unaffected by buying or selling, which
+  // move val and inv together. No closed-trade subtraction is needed there.
+  const eqOf=(x)=>{
+    if(!x) return null;
+    if(isFinite(+x.eq)&&+x.eq!==0) return {v:+x.eq, kind:'eq'};
+    if(isFinite(+x.val)&&isFinite(+x.inv)) return {v:+x.val-+x.inv, kind:'unreal'};
+    return null;
+  };
   const snaps=(vh||[]).slice().filter(x=>x&&x.d).sort((a,b)=>a.d<b.d?-1:1);
   const lastOf={};
   snaps.forEach(function(x){ const k=_wkKey(x.d); if(k)lastOf[k]=x; });
   const keys=Object.keys(lastOf).sort();
   keys.forEach(function(k,i){
     const w=touch(k);
-    const prev=i>0?lastOf[keys[i-1]]:null;
-    if(!prev){ w.openMoved=null; return; }   // first week has nothing to compare to
-    const dEq=(+lastOf[k].eq||0)-(+prev.eq||0);
-    w.openMoved=+(dEq-(w.closed||0)).toFixed(2);
+    const cur=eqOf(lastOf[k]), prev=i>0?eqOf(lastOf[keys[i-1]]):null;
+    if(!cur||!prev||cur.kind!==prev.kind){ w.openMoved=null; return; }
+    const d=cur.v-prev.v;
+    // 'eq' is the whole account, so realised profit is already inside it and
+    // has to come out; 'unreal' is already only the open positions.
+    w.openMoved=+((cur.kind==='eq'?d-(w.closed||0):d)).toFixed(2);
   });
   return Object.keys(weeks).sort().reverse().map(k=>weeks[k]);
 }
@@ -10473,8 +10494,9 @@ function _wkTable(hist,vh){
   const rows=_wkBuild(hist,vh);
   if(!rows.length) return '<div style="font-size:11px;color:var(--muted);padding:10px 2px;">No weeks yet — the diary fills in as trades close and the days tick over.</div>';
   const notes=_wkNotes();
-  const money=(v)=>(v>=0?'+$':'-$')+Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  const col=(v)=>v>0?'var(--green)':(v<0?'var(--red)':'var(--muted)');
+  const money=(v)=>{ const n2=Math.abs(v)<0.005?0:v;   // kill -$0.00 from float dust
+    return (n2>=0?'+$':'-$')+Math.abs(n2).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const col=(v)=>Math.abs(v)<0.005?'var(--muted)':(v>0?'var(--green)':'var(--red)');
   let out='<div class="wk-wrap"><table class="wk-table" style="width:100%;border-collapse:collapse;font-size:11px;">'
     +'<tr style="color:var(--muted);text-align:left;"><th style="padding:5px 4px;">Week</th>'
     +'<th style="text-align:right;">Closed</th><th style="text-align:right;">Open moved</th>'

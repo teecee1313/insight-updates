@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-750-open",
+  "version": "2026.08.14-751-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes the new Weekly diary being invisible on phones. The portfolio hides its wide tables on small screens and swaps in cards; the diary was caught by that rule and rendered as blank space under its own heading. It now has its own wrapper that stays visible, with the two profit columns folding into the week total on narrow screens (turn the phone sideways to see them split).",
+  "notes": "Fixes the Weekly diary maths. On an exchange tab (ASX/NYSE) the daily snapshots only record what holdings are worth and what was paid for them \u2014 they carry no whole-account equity figure \u2014 so the previous build read equity as zero and printed Open moved as exactly minus the Closed figure, zeroing every week total. It now picks the right measure for the series it has: unrealised profit change on an exchange tab, account equity change minus realised profit on the whole-account view, and an honest dash when neither is available.",
   "date": "2026-08-14"
 }
