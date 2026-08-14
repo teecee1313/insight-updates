@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-754-open';
+const APP_VERSION='2026.08.14-755-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15561,8 +15561,26 @@ function _laOddsScan(){
   }catch(e){ showModal('<div style="padding:10px;">Odds scan failed: '+String(e).replace(/</g,'&lt;')+'</div>','Odds'); } },60); });
 }
 function _laOddsRender(){
-  var rows=(window._laOddsRows||[]).filter(function(r){return r.odds>=_laOddsMin;})
-      .sort(function(a,b){return b.odds-a.odds || b.med-a.med;}).slice(0,40);
+  // v755 — the list used to be a dead end: tapping a share replaced it, and
+  // getting back meant closing and starting again. Rows now open IN PLACE with
+  // the same actions the picks cards carry, so the list survives the detour.
+  if(window._laOddsSort===undefined) window._laOddsSort='odds';
+  if(window._laOddsQ===undefined) window._laOddsQ='';
+  var q=String(window._laOddsQ||'').trim().toUpperCase();
+  var rows=(window._laOddsRows||[]).filter(function(r){
+    if(r.odds<_laOddsMin) return false;
+    if(q && String(r.tk).toUpperCase().indexOf(q)<0 && String(r.nm||'').toUpperCase().indexOf(q)<0) return false;
+    return true;
+  }).sort(function(a,b){
+    if(window._laOddsSort==='med')    return b.med-a.med   || b.odds-a.odds;
+    if(window._laOddsSort==='events') return b.n-a.n       || b.odds-a.odds;
+    return b.odds-a.odds || b.med-a.med;
+  }).slice(0,40);
+  // (5) shares showing IDENTICAL numbers are one fingerprint worn by several
+  // shares, not several independent findings. Counting them here so a row can
+  // say so — three rows reading 63/100 look like agreement and are not.
+  var _fpCount={};
+  (window._laOddsRows||[]).forEach(function(r){ var k=r.f||(r.n+'|'+Math.round(r.odds)); _fpCount[k]=(_fpCount[k]||0)+1; });
   window._laOddsShown=rows; // v727: tap-throughs read the snapshot, never a fresher index
   var chips=[50,55,60].map(function(t){
     return '<button type="button" onclick="_laOddsMin='+t+';_laOddsRender()" style="padding:5px 12px;border-radius:14px;border:1px solid '+(t===_laOddsMin?'var(--gold)':'var(--border2)')+';background:var(--bg3);color:var(--text);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2265'+t+'%</button>';
@@ -15570,9 +15588,20 @@ function _laOddsRender(){
   var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
   var body=rows.length? rows.map(function(r,ri){
       var col=r.med>=0?'var(--green)':'#ff8b8b';
-      return '<div onclick="_laOddsPick('+ri+')" style="display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:600;font-size:12.5px;font-family:var(--sans);align-items:baseline;">'
-      +'<span><b>'+r.tk+'</b> <span style="color:var(--muted);font-weight:400;font-size:10.5px;">'+((r.nm&&r.nm!==r.tk)?r.nm.slice(0,20).replace(/</g,'&lt;'):'')+'</span></span>'
-      +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'/100</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">'+r.n.toLocaleString()+' events</span></span></div>';
+      var _k=r.f||(r.n+'|'+Math.round(r.odds));
+      var _shared=(_fpCount[_k]||1)>1;
+      var open=(window._laOddsOpenRow===ri);
+      var acts=open?('<div style="padding:8px 10px 11px;border-bottom:1px solid var(--line);background:var(--bg2);display:flex;flex-wrap:wrap;gap:6px;">'
+        +_laAct('_laOddsPick('+ri+')','\ud83d\udcca Its full history')
+        +_laAct('closeModal();deepDive(\''+r.tk+'\')','\ud83d\udd0e Open '+r.tk)
+        +_laAct('closeModal();printShareReport(\''+r.tk+'\')','\ud83d\udcc4 Report')
+        +_laAct('_laOddsWatch(\''+r.tk+'\')','\u2b50 Watchlist')
+        +_laAct('closeModal();paperBuy(\''+r.tk+'\')','\ud83d\uded2 Practice buy')
+        +'</div>'):'';
+      return '<div onclick="window._laOddsOpenRow=(window._laOddsOpenRow==='+ri+'?null:'+ri+');_laOddsRender()" style="display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:600;font-size:12.5px;font-family:var(--sans);align-items:baseline;'+(open?'background:var(--bg2);':'')+'">'
+      +'<span><b>'+r.tk+'</b> <span style="color:var(--muted);font-weight:400;font-size:10.5px;">'+((r.nm&&r.nm!==r.tk)?r.nm.slice(0,20).replace(/</g,'&lt;'):'')+'</span>'
+      +(_shared?' <span title="Several shares share this exact fingerprint today — one pattern, not several findings." style="color:var(--dim);font-weight:400;font-size:9.5px;">\ud83d\udc65 shared look</span>':'')+'</span>'
+      +'<span style="font-family:var(--mono);font-size:12px;white-space:nowrap;"><b>'+Math.round(r.odds)+'/100</b> \u00b7 <span style="color:'+col+'">'+fmt(r.med)+'</span> <span style="color:var(--dim);font-size:9.5px;">'+r.n.toLocaleString()+' events</span></span></div>'+acts;
     }).join('')
     : '<div style="padding:14px 10px;color:var(--muted);font-weight:400;font-size:13px;font-family:var(--sans);">No share\u2019s fingerprint clears \u2265'+_laOddsMin+'% today (with 30+ lookalikes behind it). An honest empty list beats a padded one \u2014 try a lower bar or another day.</div>';
   // v734 — the weather report: fingerprints worn by 9+ shares today, collapsed
@@ -15584,10 +15613,15 @@ function _laOddsRender(){
       return '<div style="padding:8px 10px;border-top:1px dashed var(--border);font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">\ud83c\udf26 <b>'+w.count+' shares</b> share one look today \u2014 '+_laFingerPlain(w.f)+'. That\u2019s market weather, not an edge for any one of them; together such days ran <b>'+Math.round(w.odds)+'/100</b> \u00b7 '+fmt2+' median ('+w.n.toLocaleString()+' events), which is the market\u2019s deal, not a share\u2019s.</div>';
     }).join('') : '';
   var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83c\udfb2 again then.</div>':'';
-  var _smp=_laSrv?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: server \u00b7 built '+String(_laSrv.built||'')+' \u00b7 '+_laSrvDays.toLocaleString()+' share-days across \u2248 3 years</div>')
+  var _smp=_laSrv?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: server \u00b7 built '+String(_laSrv.built||'')+' \u00b7 '+_laSrvDays.toLocaleString()+' share-days in the server index</div>')
     :((_laIdx&&_laIdx.shares)?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: '+_laIdx.shares.toLocaleString()+' shares \u00b7 '+_laIdx.days.toLocaleString()+' share-days on this device</div>'):'');
   showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83d\udcca Days like today \u2014 what similar days did</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of 100 similar days finished higher (next 10)</span></div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">'+chips+'<span style="font-weight:400;font-size:10.5px;font-family:var(--sans);color:var(--muted);margin-left:4px;">of 100 similar days finished higher (next 10)</span></div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">'
+      +'<input id="laFind" value="'+String(window._laOddsQ||'').replace(/"/g,'&quot;')+'" placeholder="find a code or name\u2026" oninput="window._laOddsQ=this.value;window._laOddsOpenRow=null;_laOddsRender();var f=document.getElementById(\'laFind\');if(f){f.focus();f.setSelectionRange(f.value.length,f.value.length);}" style="flex:1;min-width:130px;padding:6px 9px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:11.5px;font-family:var(--sans);">'
+      +['odds','med','events'].map(function(k){var lbl=(k==='odds'?'odds':k==='med'?'median':'events');
+         return '<button type="button" onclick="window._laOddsSort=\''+k+'\';_laOddsRender()" style="padding:5px 10px;border-radius:12px;border:1px solid '+(window._laOddsSort===k?'var(--gold)':'var(--border2)')+';background:var(--bg3);color:'+(window._laOddsSort===k?'var(--gold)':'var(--muted)')+';font-weight:700;font-size:10.5px;font-family:var(--sans);cursor:pointer;">'+lbl+'</button>';}).join('')
+    +'</div>'
     +'<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">'+body+wxHtml+'</div>'
     +'<div style="margin-top:8px;font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">A reading is the past\u2019s tally, not tomorrow\u2019s promise: it sits beside its <b>median</b> because 60/100 winners with a deep losing tail is a different game to 60/100 with a mild one. 30+ similar days required \u2014 thin data doesn\u2019t get to brag \u2014 and ordinary-weather days (quiet volume, tiny move, no streak) don\u2019t qualify: a pattern shared by half the market says nothing about one share. Tap a share for its full history. Readings above the mid-60s are vanishingly rare in real market data \u2014 a tool that shows them often is measuring noise. Research, not advice. <span onclick="_laGateStudy()" style="color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);">\ud83e\uddea Backtest this idea</span></div>'+_smp,'\ud83d\udcca Days like today');
 }
@@ -15701,12 +15735,23 @@ function _laDist(tk, x, extraNote){
   } }catch(e){}
   showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 lookalike history</div>'+html,'Lookalikes');
 }
+function _laAct(js,label){
+  return '<button type="button" onclick="event.stopPropagation();'+js+'" style="padding:6px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">'+label+'</button>';
+}
+window._laOddsWatch=function(tk){
+  try{ if(typeof toggleWatch==='function') toggleWatch(tk); else if(typeof addToWatchlist==='function') addToWatchlist(tk);
+    _laOddsRender();   // stay put: adding to a watchlist should not cost you the list
+  }catch(e){}
+};
 function _laOddsPick(k){
   try{
     var row=(window._laOddsShown||[])[k]; if(!row)return;
     var note='<div style="margin:0 0 10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--muted);">These are the exact '+row.st.n.toLocaleString()+' days behind the '+Math.round(row.odds)+'% on the list you tapped.'
       +((typeof _laDataSig==='function'&&_laDataSig()!==row.sig)?' <span style="color:var(--gold);">History has updated since that list was built \u2014 run \ud83c\udfb2 again for fresh numbers.</span>':'')+'</div>';
-    _laDist(row.tk, row.st, note);
+    // v755 (2) — the drill-in is now a detour, not a departure: this button
+    // rebuilds the list exactly as it was, filter, sort and open row included.
+    var back='<div style="margin:0 0 10px;"><button type="button" onclick="_laOddsRender()" style="padding:6px 11px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2190 back to the list</button></div>';
+    _laDist(row.tk, row.st, back+note);
   }catch(e){}
 }
 function _lookalikeOpen(tk){

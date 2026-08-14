@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-754-open",
+  "version": "2026.08.14-755-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Lookalikes get honest about sample size, and the window claim stops hard-coding three years. Fingerprints with 15-199 matching days now carry a thin-sample warning above the figures: at that many events the percentages move several points on a handful of extra days, and nothing in the layout used to say so. Under 15 days it still refuses to print numbers at all. Paired with a worker change that rebuilds the lookalike index over the full stored decade, which nearly triples the evidence behind every fingerprint.",
+  "notes": "Days like today stops being a dead end. Tap a row and it opens in place with its own actions \u2014 full history, deep dive, report, watchlist, practice buy \u2014 so you never lose the list to look at one share. If you do open a full history there is now a back button that returns you to the list exactly as it was. A find box and sort buttons (odds, median, events) were added, sorting by events matters because 63/100 on 1,904 days and 60/100 on 2,744 days are not the same quality of evidence. And shares wearing the same fingerprint today are tagged shared look: three rows showing identical numbers are one pattern, not three findings.",
   "date": "2026-08-14"
 }
