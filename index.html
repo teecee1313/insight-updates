@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-752-open';
+const APP_VERSION='2026.08.14-753-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20958,7 +20958,14 @@ function attachTraining(){ try{ _trainDelegate(); }catch(e){} }
 // Tony found. So anything still uncovered gets one built from its own label and
 // the nearest explained ancestor. A button added next year is explained the day
 // it ships rather than the day somebody notices it is not.
-var _TRAIN_SEL='button,[onclick],select,input:not([type=hidden]):not([type=submit]),.statclick,summary,a.btn,th';
+// v753 — the SIGNAL CHIPS were the one thing training mode could not explain.
+// Each chip (\ud83d\udcc9 Dist?, \ud83d\ude80 Breakout, \ud83c\udfe6 Inst? \u2026) ships a full written
+// explanation, but v469 parks every title in data-ttip and deletes the
+// attribute, so there is no native tooltip either. With .tag outside this
+// selector the words were shipped and never reachable by any means: hovering
+// the most jargon-heavy thing in the app gave nothing at all. The chips are
+// exactly what a new user points at first, so they belong here.
+var _TRAIN_SEL='button,[onclick],select,input:not([type=hidden]):not([type=submit]),.statclick,summary,a.btn,th,.tag,[data-ttip],[data-tip]';
 function _trainKind(el){
   var tg=el.tagName.toLowerCase(), ty=(el.getAttribute('type')||'').toLowerCase();
   if(tg==='select')return 'a drop-down: pick one option from the list';
