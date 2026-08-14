@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-749-open",
+  "version": "2026.08.14-750-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New \ud83d\uddd3 Weekly tab in the portfolio: a week-by-week diary of how you actually went. Two honest columns \u2014 Closed (realised profit after fees on trades that finished that week) and Open moved (what your still-held shares did, real but only on paper until you sell) \u2014 because either one alone tells half the story. Weeks run Monday to Friday, every week since you started is there, and you can write yourself a note on any of them. Weeks with fewer than five closed trades say so plainly: too small a sample to read as skill either way.",
+  "notes": "Fixes the new Weekly diary being invisible on phones. The portfolio hides its wide tables on small screens and swaps in cards; the diary was caught by that rule and rendered as blank space under its own heading. It now has its own wrapper that stays visible, with the two profit columns folding into the week total on narrow screens (turn the phone sideways to see them split).",
   "date": "2026-08-14"
 }

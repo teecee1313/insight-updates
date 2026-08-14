@@ -590,6 +590,11 @@ body.pf-hideprofit .pf-pl{filter:blur(8px)!important;-webkit-filter:blur(8px)!im
      instead (built in JS). Each card shows the share, the numbers as labelled
      rows, and the action buttons full-width — nothing gets cut off. */
   .pf-tablewrap{display:none!important;}
+  /* v750: the weekly diary is six narrow columns and DOES fit a phone, so it
+     keeps its own wrapper and stays visible where pf-tablewrap is hidden. */
+  .wk-wrap{display:block!important;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .wk-table th,.wk-table td{padding:5px 3px!important;font-size:10px!important;}
+  .wk-table th:nth-child(3),.wk-table td:nth-child(3){display:none;} /* 'Open moved' folds into the Week total on narrow screens */
   .pf-cards{display:block!important;}
   .shd-sec{display:none!important;} /* v264: hide History table's secondary columns on phones so Date/Close/Change/Volume fit */
   .shd-table td,.shd-table th{padding:7px 5px!important;font-size:11px!important;}
@@ -1739,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-749-open';
+const APP_VERSION='2026.08.14-750-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10470,7 +10475,7 @@ function _wkTable(hist,vh){
   const notes=_wkNotes();
   const money=(v)=>(v>=0?'+$':'-$')+Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   const col=(v)=>v>0?'var(--green)':(v<0?'var(--red)':'var(--muted)');
-  let out='<div class="pf-tablewrap"><table style="width:100%;border-collapse:collapse;font-size:11px;">'
+  let out='<div class="wk-wrap"><table class="wk-table" style="width:100%;border-collapse:collapse;font-size:11px;">'
     +'<tr style="color:var(--muted);text-align:left;"><th style="padding:5px 4px;">Week</th>'
     +'<th style="text-align:right;">Closed</th><th style="text-align:right;">Open moved</th>'
     +'<th style="text-align:right;">Week</th><th style="text-align:center;">Trades</th><th></th></tr>';
@@ -10775,7 +10780,7 @@ ${_undoOn()?`<div class="pf-card-actions">
     <div style="font-size:10px;color:var(--muted);margin-bottom:7px;line-height:1.5;">
       <b>Closed</b> is realised profit on trades that finished that week, after fees.
       <b>Open moved</b> is what your still-held shares did — real money, but only on paper until you sell.
-      Weeks run Monday to Friday. Tap <b>+ note</b> to write yourself a line about the week: what you changed, what you learned. That is the part worth keeping.
+      Weeks run Monday to Friday (on a phone the two columns fold into the week total — turn sideways to see them split). Tap <b>+ note</b> to write yourself a line about the week: what you changed, what you learned. That is the part worth keeping.
     </div>
     ${_wkTable(histAll&&histAll.length?hist:hist,vh)}
     </div>
