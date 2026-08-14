@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-753-open';
+const APP_VERSION='2026.08.14-754-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -15677,7 +15677,7 @@ function _laDist(tk, x, extraNote){
     var fmt=function(x){return (x>=0?'+':'')+x.toFixed(1)+'%';};
     var col=function(x){return x>=0?'var(--green)':'#ff8b8b';};
     html='<div style="font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">'
-    +'<b>'+st.n.toLocaleString()+'</b> similar-day events across '+(st.src==='server'?'\u2248 3 years of market history (server)':'the saved market history on this device')+' shared this fingerprint (volume, move, streak, high-proximity bands). Over the <b>next 10 trading days</b> they went:'
+    +'<b>'+st.n.toLocaleString()+'</b> similar-day events across '+(st.src==='server'?'\u2248 the market history stored on the server':'the saved market history on this device')+' shared this fingerprint (volume, move, streak, high-proximity bands). Over the <b>next 10 trading days</b> they went:'
     +'<div style="margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);font-family:var(--mono);font-size:13px;">'
     +'<div style="display:flex;justify-content:space-between;"><span>median</span><b style="color:'+col(med)+'">'+fmt(med)+'</b></div>'
     +'<div style="display:flex;justify-content:space-between;"><span>middle half</span><span>'+fmt(q1)+' \u2026 '+fmt(q3)+'</span></div>'
@@ -15688,6 +15688,17 @@ function _laDist(tk, x, extraNote){
     +'<div onclick="_laExplain()" style="margin:0 0 10px;font-weight:700;font-size:12px;font-family:var(--sans);color:var(--gold);cursor:pointer;border-bottom:1px dotted var(--gold);display:inline-block;">\u2753 How do I read this?</div>'
     +'<div style="font-size:11.5px;color:var(--muted);line-height:1.55;">A base rate from history, not a prediction: lookalike days overlap, the sample is the saved window on this device, and the worst case above really happened to someone. Todays that look alike can still end differently \u2014 this shows the odds the past dealt, nothing more. Not advice.</div></div>';
   }
+  // v754 — under 15 events this refuses to speak already. Between 15 and 200
+  // it printed a median, a middle half and an up-percentage in exactly the same
+  // authoritative type as a 200,000-event bucket. At 30 events that percentage
+  // carries roughly a nine-point margin of error and nothing said so.
+  try{ if(st && st.n>=15 && st.n<200){
+    html = '<div style="margin-bottom:10px;padding:9px 11px;border:1px solid var(--gold);'
+         + 'border-radius:9px;background:rgba(255,210,0,.10);font-size:12px;line-height:1.5;'
+         + 'color:var(--gold);font-family:var(--sans);">\u26a0 <b>Thin sample</b> \u2014 only '
+         + st.n + ' matching days. Read these as a rough hint, not a base rate: at this many '
+         + 'events the percentages move several points on a handful of extra days.</div>' + html;
+  } }catch(e){}
   showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 lookalike history</div>'+html,'Lookalikes');
 }
 function _laOddsPick(k){

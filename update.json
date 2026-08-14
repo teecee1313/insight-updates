@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-753-open",
+  "version": "2026.08.14-754-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Training mode now explains the signal chips. Each chip (Dist?, Breakout, Inst?, Vol record and the rest) always shipped a full written explanation, but it was parked out of reach: the app strips tooltip attributes so nothing pops up unasked, and the chips were not in the list of things training mode covers. Hovering the most jargon-heavy part of the screen therefore gave nothing at all. It now gives the whole explanation, on hover or on tap.",
+  "notes": "Lookalikes get honest about sample size, and the window claim stops hard-coding three years. Fingerprints with 15-199 matching days now carry a thin-sample warning above the figures: at that many events the percentages move several points on a handful of extra days, and nothing in the layout used to say so. Under 15 days it still refuses to print numbers at all. Paired with a worker change that rebuilds the lookalike index over the full stored decade, which nearly triples the evidence behind every fingerprint.",
   "date": "2026-08-14"
 }
