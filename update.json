@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.13-748-open",
+  "version": "2026.08.14-749-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Groundwork for 30-day trial keys. This browser now identifies itself to the server with a random device id so a trial code can allow a small number of devices, and the lock screen tells the truth about why it refused \u2014 an ended trial says the trial ended, a full device list says so, instead of \"wrong password\". Nothing changes for anyone using the normal password.",
-  "date": "2026-08-13"
+  "notes": "New \ud83d\uddd3 Weekly tab in the portfolio: a week-by-week diary of how you actually went. Two honest columns \u2014 Closed (realised profit after fees on trades that finished that week) and Open moved (what your still-held shares did, real but only on paper until you sell) \u2014 because either one alone tells half the story. Weeks run Monday to Friday, every week since you started is there, and you can write yourself a note on any of them. Weeks with fewer than five closed trades say so plainly: too small a sample to read as skill either way.",
+  "date": "2026-08-14"
 }

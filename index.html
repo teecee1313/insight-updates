@@ -1739,7 +1739,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.13-748-open';
+const APP_VERSION='2026.08.14-749-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10393,9 +10393,107 @@ function paperAcceptBalance(){
 // v263: flip the portfolio between its two pages without a full re-render.
 function _pfHideProfit(){ try{return localStorage.getItem('asxScreener.pfHideProfit.v1')==='1';}catch(e){return false;} }
 function _pfToggleProfit(){ const on=!_pfHideProfit(); try{localStorage.setItem('asxScreener.pfHideProfit.v1',on?'1':'0');}catch(e){} try{document.body.classList.toggle('pf-hideprofit',on);}catch(e){} const b=document.getElementById('pfHideBtn'); if(b)b.textContent=on?'🙈 Show P/L':'👁 Hide P/L'; }
+// ── v749 · WEEKLY DIARY ────────────────────────────────────────────────────
+// Answers a question the rest of the portfolio can't: not "what am I worth"
+// but "how did this week go, and am I getting better?"
+// Two columns on purpose. CLOSED is realised P&L — unarguable, but with ~9-week
+// holds most weeks would read $0 on its own. OPEN MOVED is the mark-to-market
+// change on positions still held, taken from the daily value snapshots. Neither
+// alone is honest: closed-only hides the eight positions doing the work, and
+// total-only makes paper wobble look like performance. Both, side by side, and
+// the gap between them is itself the lesson.
+function _wkKey(dstr){
+  // Monday-anchored week key. Dates in the ledger are plain YYYY-MM-DD local
+  // trading dates, so parse as local — never as UTC, which shifts Adelaide
+  // Mondays into the previous week.
+  const p2=String(dstr||'').slice(0,10).split('-');
+  if(p2.length<3) return null;
+  const d=new Date(+p2[0],+p2[1]-1,+p2[2]);
+  if(isNaN(d)) return null;
+  const dow=(d.getDay()+6)%7;            // Mon=0 … Sun=6
+  d.setDate(d.getDate()-dow);
+  const mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return d.getFullYear()+'-'+mm+'-'+dd;
+}
+function _wkLabel(key){
+  const p2=key.split('-'); const mon=new Date(+p2[0],+p2[1]-1,+p2[2]);
+  const fri=new Date(mon); fri.setDate(fri.getDate()+4);
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const sameMonth=mon.getMonth()===fri.getMonth();
+  return mon.getDate()+(sameMonth?'':' '+M[mon.getMonth()])+'–'+fri.getDate()+' '+M[fri.getMonth()];
+}
+function _wkNotes(){ try{ return JSON.parse(localStorage.getItem('asxScreenerWeekNotes')||'{}'); }catch(e){ return {}; } }
+function _wkNoteSet(key,txt){
+  try{ const all=_wkNotes(); if(txt&&txt.trim())all[key]=txt.trim().slice(0,280); else delete all[key];
+    localStorage.setItem('asxScreenerWeekNotes',JSON.stringify(all)); }catch(e){}
+}
+window._wkEditNote=function(key){
+  const all=_wkNotes();
+  const cur=all[key]||'';
+  const t=prompt('Note for the week of '+_wkLabel(key)+'\n\nWhat happened, what you changed, what you learned:',cur);
+  if(t===null)return;                    // cancelled — leave it alone
+  _wkNoteSet(key,t);
+  try{ showPortfolio(); _setPfView('diary'); }catch(e){}
+};
+// Builds the week rows from the ledger + daily snapshots. Nothing is stored:
+// the diary is derived, so it works retroactively over your whole history and
+// can never drift out of sync with the trades it describes.
+function _wkBuild(hist,vh){
+  const weeks={};
+  const touch=(k)=>{ if(!weeks[k])weeks[k]={key:k,closed:0,fees:0,opened:0,shut:0,wins:0,losses:0,openMoved:null}; return weeks[k]; };
+  (hist||[]).forEach(function(h){
+    const k=_wkKey(h.sellDate); if(!k)return;
+    const w=touch(k);
+    w.closed+=(+h.plAbs||0); w.fees+=(+h.fees||0); w.shut++;
+    if((+h.plAbs||0)>0)w.wins++; else if((+h.plAbs||0)<0)w.losses++;
+    const bk=_wkKey(h.buyDate); if(bk)touch(bk).opened++;
+  });
+  // open-position movement: last snapshot of the week minus the last snapshot
+  // BEFORE it, then strip out the part explained by closed trades and by money
+  // moving in or out, so this column is genuinely "the shares moved".
+  const snaps=(vh||[]).slice().filter(x=>x&&x.d).sort((a,b)=>a.d<b.d?-1:1);
+  const lastOf={};
+  snaps.forEach(function(x){ const k=_wkKey(x.d); if(k)lastOf[k]=x; });
+  const keys=Object.keys(lastOf).sort();
+  keys.forEach(function(k,i){
+    const w=touch(k);
+    const prev=i>0?lastOf[keys[i-1]]:null;
+    if(!prev){ w.openMoved=null; return; }   // first week has nothing to compare to
+    const dEq=(+lastOf[k].eq||0)-(+prev.eq||0);
+    w.openMoved=+(dEq-(w.closed||0)).toFixed(2);
+  });
+  return Object.keys(weeks).sort().reverse().map(k=>weeks[k]);
+}
+function _wkTable(hist,vh){
+  const rows=_wkBuild(hist,vh);
+  if(!rows.length) return '<div style="font-size:11px;color:var(--muted);padding:10px 2px;">No weeks yet — the diary fills in as trades close and the days tick over.</div>';
+  const notes=_wkNotes();
+  const money=(v)=>(v>=0?'+$':'-$')+Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const col=(v)=>v>0?'var(--green)':(v<0?'var(--red)':'var(--muted)');
+  let out='<div class="pf-tablewrap"><table style="width:100%;border-collapse:collapse;font-size:11px;">'
+    +'<tr style="color:var(--muted);text-align:left;"><th style="padding:5px 4px;">Week</th>'
+    +'<th style="text-align:right;">Closed</th><th style="text-align:right;">Open moved</th>'
+    +'<th style="text-align:right;">Week</th><th style="text-align:center;">Trades</th><th></th></tr>';
+  rows.forEach(function(w){
+    const net=(w.closed||0)+(w.openMoved||0);
+    const thin=w.shut>0&&w.shut<5;
+    const note=notes[w.key]||'';
+    out+='<tr style="border-top:1px solid var(--border);">'
+      +'<td style="padding:6px 4px;font-weight:700;">'+_wkLabel(w.key)+'</td>'
+      +'<td style="text-align:right;color:'+col(w.closed)+';">'+(w.shut?money(w.closed):'—')+'</td>'
+      +'<td style="text-align:right;color:'+(w.openMoved===null?'var(--muted)':col(w.openMoved))+';">'+(w.openMoved===null?'—':money(w.openMoved))+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:'+col(net)+';">'+((w.shut||w.openMoved!==null)?money(net):'—')+'</td>'
+      +'<td style="text-align:center;color:var(--muted);">'+(w.opened?'▲'+w.opened+' ':'')+(w.shut?('▼'+w.shut+' · '+w.wins+'W/'+w.losses+'L'):(w.opened?'':'—'))+'</td>'
+      +'<td style="text-align:right;"><button onclick="_wkEditNote(\''+w.key+'\')" style="padding:3px 7px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:10px;cursor:pointer;">'+(note?'✎ note':'+ note')+'</button></td>'
+      +'</tr>';
+    if(note) out+='<tr><td colspan="6" style="padding:0 4px 7px 4px;color:var(--text);font-size:11px;font-style:italic;opacity:.85;">“'+note.replace(/</g,'&lt;')+'”</td></tr>';
+    if(thin) out+='<tr><td colspan="6" style="padding:0 4px 7px 4px;color:var(--muted);font-size:10px;">'+w.shut+' closed trade'+(w.shut===1?'':'s')+' — too few to read as skill either way (lesson 55).</td></tr>';
+  });
+  return out+'</table></div>';
+}
 function _setPfView(v){
   try{
-    const views=['holdings','pending','history','performance'];
+    const views=['holdings','pending','history','performance','diary'];
     window._pfView=views.indexOf(v)>=0?v:'holdings';
     views.forEach(function(k){
       const el=document.getElementById('pf'+k.charAt(0).toUpperCase()+k.slice(1)+'View');
@@ -10641,6 +10739,7 @@ ${_undoOn()?`<div class="pf-card-actions">
       <button onclick="_setPfView('pending')" id="pfTab_pending" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='pending'?'var(--gold)':'var(--border)'};background:${pv==='pending'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='pending'?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">⏳ Pending (${_ordN})</button>
       <button onclick="_setPfView('history')" id="pfTab_history" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='history'?'var(--gold)':'var(--border)'};background:${pv==='history'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='history'?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📜 History (${hist.length})</button>
       <button onclick="_setPfView('performance')" id="pfTab_performance" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='performance'?'var(--gold)':'var(--border)'};background:${pv==='performance'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='performance'?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📈 Performance</button>
+      <button onclick="_setPfView('diary')" id="pfTab_diary" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='diary'?'var(--gold)':'var(--border)'};background:${pv==='diary'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='diary'?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🗓 Weekly</button>
     </div>
     <div id="pfHoldingsView" style="display:${pv==='holdings'?'block':'none'};">
     ${hold.length?_pfSortControl:''}
@@ -10670,6 +10769,15 @@ ${_undoOn()?`<div class="pf-card-actions">
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market buys AND sells fill at the next day's open. Reserved cash (buys) returns — and queued shares (sells) unlock — on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
 
+    </div>
+    <div id="pfDiaryView" style="display:${pv==='diary'?'block':'none'};">
+    <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px;">Week by week${ex==='ALL'?'':' · '+ex}</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:7px;line-height:1.5;">
+      <b>Closed</b> is realised profit on trades that finished that week, after fees.
+      <b>Open moved</b> is what your still-held shares did — real money, but only on paper until you sell.
+      Weeks run Monday to Friday. Tap <b>+ note</b> to write yourself a line about the week: what you changed, what you learned. That is the part worth keeping.
+    </div>
+    ${_wkTable(histAll&&histAll.length?hist:hist,vh)}
     </div>
     <div id="pfPerformanceView" style="display:${pv==='performance'?'block':'none'};">
     ${(hold.length||hist.length)?(function(){
