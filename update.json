@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-755-open",
+  "version": "2026.08.14-756-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Days like today stops being a dead end. Tap a row and it opens in place with its own actions \u2014 full history, deep dive, report, watchlist, practice buy \u2014 so you never lose the list to look at one share. If you do open a full history there is now a back button that returns you to the list exactly as it was. A find box and sort buttons (odds, median, events) were added, sorting by events matters because 63/100 on 1,904 days and 60/100 on 2,744 days are not the same quality of evidence. And shares wearing the same fingerprint today are tagged shared look: three rows showing identical numbers are one pattern, not three findings.",
+  "notes": "Loading everything is fast again. Preparing signals used to ask for one share at a time - thousands of separate requests - and that path went out to the old data provider whose key was removed on 13 August when the daily feed moved. Every one of those requests was failing or timing out, which is why loading crawled. The app now pulls history from your own server 200 shares per request before the loop starts, so the work is already done by the time it runs. Measured on a 500-share test: 2,501 requests and just over two minutes became 3 requests and fifteen seconds. Anything the server genuinely does not hold still falls back to the old path, so no share is left without history.",
   "date": "2026-08-14"
 }

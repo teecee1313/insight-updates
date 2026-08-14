@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-755-open';
+const APP_VERSION='2026.08.14-756-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16527,6 +16527,52 @@ async function prepareAllSignals(auto){
       });
     }catch(e){}
     const fetchDays=200, BATCH=16;
+    // ── v756 · PANTRY PRE-FILL ──────────────────────────────────────────────
+    // Prepare-all used to ask the relay for ONE SHARE AT A TIME — thousands of
+    // requests, sixteen at a time. That path builds an EODData URL and the
+    // worker relays it, but EODDATA_KEY was removed on 13 Aug when the daily
+    // feed moved to EODHD, so every one of those requests now fails or times
+    // out: the crawl Tony reported on 15 Aug. The history it wants is already
+    // in our own D1 pantry, so ask for it 200 shares at a time from
+    // /history/bundle FIRST and write it into the local cache. The per-share
+    // loop below is untouched and simply finds everything already cached; only
+    // what the pantry genuinely lacks still falls through to the old path.
+    // Effect: ~4,400 requests become ~22, and a missing third-party key can no
+    // longer bring the app to a halt.
+    try{
+      if(typeof DATA_PROXY==='string' && DATA_PROXY && _serverData() && !window._forceLiveRefresh){
+        const PB=200;
+        const _need=[];
+        for(const sh of ranked){
+          if(!sh || !sh.ticker || !sh.exchange) continue;
+          let cached=null; try{ cached=await histGet(sh.exchange, sh.ticker); }catch(e){}
+          // already fresh today -> the loop will skip it anyway; don't re-fetch
+          if(cached && cached.saved===new Date().toISOString().slice(0,10) && Array.isArray(cached.rows) && cached.rows.length>=2) continue;
+          _need.push(sh);
+        }
+        let _pf2=0;
+        for(let i=0;i<_need.length;i+=PB){
+          if(window._prepAbort) break;
+          const slice=_need.slice(i,i+PB);
+          if(ls)ls.innerHTML='\u{1f3fa} Loading history from your own server\u2026 <strong>'+Math.min(i+PB,_need.length).toLocaleString()+'/'+_need.length.toLocaleString()+'</strong> <span style="font-size:9px;color:var(--dim)">(one request per 200 shares)</span>';
+          try{
+            const r=await _fetchTO(DATA_PROXY+'/history/bundle',{method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({exch:slice[0].exchange,tickers:slice.map(x=>x.ticker),days:fetchDays})},60000);
+            if(r&&r.ok){
+              const j=await r.json();
+              if(j&&j.ok&&j.series){
+                for(const sh of slice){
+                  const rows=j.series[sh.ticker];
+                  if(Array.isArray(rows)&&rows.length>=2){ try{ await histPut(sh.exchange, sh.ticker, rows); _pf2++; }catch(e){} }
+                }
+              }
+            }
+          }catch(e){}
+        }
+        try{ window._prefilledFromPantry=_pf2; }catch(e){}
+      }
+    }catch(e){}
     let done=0;
     const _pf=document.getElementById('progFill'), _pw=document.getElementById('progWrap');
     if(_pw)_pw.style.display='block';try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}
