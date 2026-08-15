@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-769-open",
+  "version": "2026.08.15-770-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🎓 Training catch-up: the lessons now match the app. Fixed inside the lessons: the scan-picker no longer recommends the retired Smart Money scan (Best Evidence took its slot and the lesson now says so consistently); the pinned-scans list, the daily-routine lesson and the bot lessons name the real source lanes (🧪 Best proven scan is the default, not Smart Money); and every description of Top 20 to Watch now teaches the real ranking — proven evidence first, score second. Also caught three sidebar tooltips still claiming Top 20 ranks purely by score. Nothing about how anything WORKS changed — only the teaching now tells the truth about it.",
+  "notes": "Finishes v769's training catch-up: the bot's own advice message suggested switching its source to “the Smart Money list” — an option that no longer exists — and now suggests real lenses (🔥 Unusual Activity, 📈 Volume 2×). The demo walkthrough also told you to click the removed Smart Money button; it now names 🎯 Best Evidence. Every mention of Smart Money left in the app is deliberate history — the retirement story in the lessons, the graded signal line on the report card, and the past-qualifiers replay.",
   "date": "2026-08-15"
 }
