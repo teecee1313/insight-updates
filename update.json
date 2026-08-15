@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-781-open",
+  "version": "2026.08.16-782-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🔢 Max open positions is now 20 in all three ready-made rule sets, so tapping a preset never takes that number away again (previously Defender set 6, All-rounder 8, Hunter 5 — and a preset tap overwrote whatever you'd typed). One honest note: with 1% risk per trade, twenty open positions can mean up to ~20% of the account at risk at once — in practice the evidence and score gates rarely offer that many qualifying shares in a day, so treat it as a ceiling rather than a target. Tooltips and the lesson describing the presets were updated to match.",
-  "date": "2026-08-15"
+  "notes": "⚡ New radar tile: PN EDGE. One tap in the 🧪 Evidence row now shows every share carrying a proven edge today — the strongest line it fired holds a SOLID or PROMISING badge, and badges are only awarded when the edge is positive. It's the same gate 🎯 Best Evidence Today uses, but as a live radar filter you can combine with any other tile (e.g. PN EDGE + Gainers + Vol ≥200%). Shows – until the view has been evidence-checked — tapping it runs the check.",
+  "date": "2026-08-16"
 }
