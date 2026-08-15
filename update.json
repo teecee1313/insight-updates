@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-758-open",
+  "version": "2026.08.15-759-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes four leftovers from the dice-to-chart rename, found from your screenshots. Two banners and a popup title still told you to run the old 🎲 button; they now point at 📊. More importantly, the check that stops the days-like-today chip appearing twice on watchlist rows was still looking for the old dice symbol, so watchlist rows could show the chip doubled — the check now looks for the chip itself rather than its symbol, so a future rename can never break it again.",
+  "notes": "Market today now shows the market you actually trade. Your screenshot caught the gainers and fallers lists full of codes like TWEKOP and ZCLKOB — those are knock-out warrants and listed options, not shares, and the breadth numbers were counting them too. Two fixes: the share classifier now recognises the knock-out family (about 700 codes like BHPKOA, TLSKOP — all six letters with KO in the middle), and the Market today panel excludes options, notes and preference shares from its counts and movers lists — it says so under the heading. Ordinary shares and funds are unchanged.",
   "date": "2026-08-15"
 }

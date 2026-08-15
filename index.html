@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-758-open';
+const APP_VERSION='2026.08.15-759-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18172,7 +18172,8 @@ function mapRecord(r,exch,currency,today){
   // Only applied when the name gave no signal (still 'Ordinary'), so real ETFs
   // with 4-letter codes (whose names contain "ETF") are unaffected.
   if(type==='Ordinary'&&exch==='ASX'&&ticker.length>=4&&ticker.length<=6){
-    if(/O[A-G]?$/.test(ticker.slice(3)))type='Option';              // XYZO, XYZOA…  listed options
+    if(/^KO[A-Z]?$/.test(ticker.slice(3)))type='Option';            // v759: XYZKOx  knock-out warrants (~700 on ASX: BHPKO*, TLSKO*, TWEKO*…)
+    else if(/O[A-G]?$/.test(ticker.slice(3)))type='Option';              // XYZO, XYZOA…  listed options
     else if(/^R[A-C]?$/.test(ticker.slice(3)))type='Option';        // XYZR, XYZRA   rights (options bucket)
     else if(/^P[A-Z]$/.test(ticker.slice(3)))type='Preference';     // XYZPA, XYZPB  preference shares
     else if(/^G[A-Z]?$/.test(ticker.slice(3)))type='Bond';          // XYZG, XYZGA   notes/bonds
@@ -19021,7 +19022,11 @@ function simpleMarketPulse(){
     if(typeof _refreshSimpleLoad==='function')_refreshSimpleLoad();
     return;
   }
-  const all=allData.filter(s=>s.price>0);
+  // v759: Tony's screenshot — the movers lists were all knock-outs and options.
+  // The pulse now counts the same kinds of lines the app trades: options,
+  // notes/bonds and preference shares are out. The exclusion is by TYPE, so it
+  // follows the classifier (including the new KO rule) rather than a second list.
+  const all=allData.filter(s=>s.price>0&&s.type!=='Option'&&s.type!=='Preference'&&s.type!=='Bond');
   const up=all.filter(s=>s.chgPct>0.1);
   const dn=all.filter(s=>s.chgPct<-0.1);
   const fl=all.filter(s=>Math.abs(s.chgPct)<=0.1);
@@ -19060,7 +19065,7 @@ function simpleMarketPulse(){
     :'';
   const html=''
     +'<div style="font-size:13px;font-weight:700;color:'+moodC+';margin-bottom:10px;line-height:1.3;">'+mood+'</div>'
-    +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;">Market breadth — '+all.length.toLocaleString()+' shares</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;">Market breadth — '+all.length.toLocaleString()+' shares <span style="font-weight:400;color:var(--muted)">(options, notes &amp; prefs excluded)</span></div>'
     +bar
     +'<div style="display:flex;gap:10px;font-size:11px;margin-bottom:10px;">'
     +'<span style="color:var(--green);">▲ '+up.length+' up ('+pctUp+'%)</span>'
