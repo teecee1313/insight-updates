@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-777-open",
+  "version": "2026.08.15-778-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "⚡ Fixes today's slow/frozen loading. Your saved store recently grew from ~2,900 to ~4,400 lines because a full download now pulls the warrant series, notes and bonds too — and every one of them was being sent to the server for grading (and reground in the browser whenever the server was slow), which is what froze the app. Grading is for investable shares: the ~1,500 derivative codes (the same ones the classifier learned to recognise this morning) are now excluded from the gradeable set. Their data stays on your device; they just never enter the report card, the radar warm-up or the upload. Loads should feel like last week again. The “live list came back smaller” notice is a separate, real issue — the symbol feed is degraded until the EODDATA key is restored on the server dashboard.",
+  "notes": "📋 The three preset buttons now say what they do. Their hover text still described the OLD rule sets from before the 13 August ten-year re-derivation — Hunter's even said “no trail” when Hunter is trail-ONLY. Each tooltip now states exactly what one tap applies, plus its ten-year character (Defender: won 64.1% of trades, worst drawdown −8.5%; Hunter: no take-profit or fixed stop, a 20% trailing stop does all the exits — rides rare big winners, most weeks feel flat). A lesson that wrongly gave Defender and All-rounder a break-even and max-hold was fixed to match. And the 🛑 Stop-loss box no longer wears a permanent red border — it was styling, not an error, and it made legitimate trail-only setups (stop = 0) look broken. It now shows “0 = off — trail covers exits”.",
   "date": "2026-08-15"
 }
