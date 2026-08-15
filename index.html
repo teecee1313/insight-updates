@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-779-open';
+const APP_VERSION='2026.08.15-780-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11520,6 +11520,16 @@ function showModal(html,label){
 // the banner never covers them. Measures the banner's live bottom edge.
 function _syncStatOverTop(){
   try{
+    // v780: phones never push panels down. The stat-over drop exists so the
+    // radar's quick-filter chips stay tappable ABOVE the panel — on a narrow
+    // screen that space shows unrelated content and the panel loses half the
+    // display (Tony, 15 Aug: Top 20 stuck at half page even after the v779 cap).
+    // Full-sheet like every other panel; desktop behaviour unchanged.
+    if((window.innerWidth||1024)<=700){
+      try{document.body.classList.remove('stat-over-modal');}catch(_){}
+      document.documentElement.style.removeProperty('--soModalTop');
+      return;
+    }
     if(!document.body.classList.contains('stat-over-modal')){document.documentElement.style.removeProperty('--soModalTop');return;}
     const sb=document.getElementById('statsBar');
     if(!sb||sb.style.display==='none')return;

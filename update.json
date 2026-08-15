@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-779-open",
+  "version": "2026.08.15-780-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📱 Report panels un-stick on phones. Panels that open under the Market Radar (Top 20, scans) are pushed down past the radar's live bottom edge — and after the radar grew taller, that push could pin a panel to the bottom half of a phone screen, clipped and unable to scroll or expand. The rule is now “the panel always keeps at least 45% of the screen” (never less than 320px), and anything still too tall scrolls instead of clipping. Desktop keeps the tall-radar behaviour it wanted.",
+  "notes": "📱 Top 20 (and scan panels) now open FULL-PAGE on phones. The half-page behaviour was a desktop feature leaking onto mobile: panels are pushed below the Market Radar so its quick-filter chips stay tappable above them — but on a phone that upper space shows unrelated content, so the push just cost half the screen. On screens 700px and narrower the push is now off entirely and panels open as full sheets, like every other report. Desktop keeps the radar-above-panel layout.",
   "date": "2026-08-15"
 }
