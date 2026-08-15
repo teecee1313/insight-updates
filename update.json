@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-778-open",
+  "version": "2026.08.15-779-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📋 The three preset buttons now say what they do. Their hover text still described the OLD rule sets from before the 13 August ten-year re-derivation — Hunter's even said “no trail” when Hunter is trail-ONLY. Each tooltip now states exactly what one tap applies, plus its ten-year character (Defender: won 64.1% of trades, worst drawdown −8.5%; Hunter: no take-profit or fixed stop, a 20% trailing stop does all the exits — rides rare big winners, most weeks feel flat). A lesson that wrongly gave Defender and All-rounder a break-even and max-hold was fixed to match. And the 🛑 Stop-loss box no longer wears a permanent red border — it was styling, not an error, and it made legitimate trail-only setups (stop = 0) look broken. It now shows “0 = off — trail covers exits”.",
+  "notes": "📱 Report panels un-stick on phones. Panels that open under the Market Radar (Top 20, scans) are pushed down past the radar's live bottom edge — and after the radar grew taller, that push could pin a panel to the bottom half of a phone screen, clipped and unable to scroll or expand. The rule is now “the panel always keeps at least 45% of the screen” (never less than 320px), and anything still too tall scrolls instead of clipping. Desktop keeps the tall-radar behaviour it wanted.",
   "date": "2026-08-15"
 }

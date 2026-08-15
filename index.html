@@ -438,7 +438,7 @@ input[type=range].dual::-moz-range-track{background:none;height:24px;}
 .radar-grp .sl{font-size:7.5px;letter-spacing:.2px;}
 body.stat-over-modal .stats{z-index:2100;}
 body.stat-over-modal #appModal{align-items:flex-start!important;}
-body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-height:calc(96vh - var(--soModalTop,150px))!important;}
+body.stat-over-modal #modalBox{margin-top:var(--soModalTop,150px)!important;max-height:calc(96vh - var(--soModalTop,150px))!important;overflow-y:auto!important;}
 /* ── v228: which-report banner above the results table ── */
 #activeScanBanner{display:none;align-items:center;gap:10px;padding:7px 16px;background:linear-gradient(90deg,rgba(255,210,0,.15),rgba(255,210,0,.03));border-bottom:1px solid var(--gold);font-weight:700;font-size:12.5px;font-family:var(--sans);color:var(--gold);flex-shrink:0;flex-wrap:wrap;}
 #activeScanBanner .asb-spin{width:12px;height:12px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-778-open';
+const APP_VERSION='2026.08.15-779-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11524,15 +11524,15 @@ function _syncStatOverTop(){
     const sb=document.getElementById('statsBar');
     if(!sb||sb.style.display==='none')return;
     let h=Math.max(0,Math.ceil(sb.getBoundingClientRect().bottom))+8;
-    // v406: cap the drop — if the banner sits low (phone layouts, scrolled pages) it must
-    // never push the panel out of view. Worst case the panel opens slightly under the banner.
-    // w-modal: was 0.35 — too tight for the fully-expanded radar (Market/Evidence/Signals/
-    // Volume/Trend/Caution all showing), whose real bottom edge on a normal desktop
-    // viewport comfortably exceeds 35%. Raised to 0.55: still leaves the modal well
-    // within view even on a small phone screen (its own max-height + internal
-    // scrolling handle the rest), but now actually covers the tall banner case
-    // instead of quietly clipping the drop and letting the modal peek out from under it.
-    h=Math.min(h,Math.max(60,Math.round((window.innerHeight||600)*0.55)));
+    // v406 capped the drop at 0.35; w-modal raised it to 0.55 for the tall desktop
+    // radar — which regressed phones (Tony, 15 Aug: Top 20 pinned to the bottom
+    // half, clipped, unscrollable). v779: cap by what the MODAL needs, not by a
+    // blind fraction — the panel always keeps at least 45% of the viewport (min
+    // 320px). On desktop the tall radar still gets its room; on a phone the drop
+    // can never crush the panel again.
+    const vh=(window.innerHeight||600);
+    const reserve=Math.max(320,Math.round(vh*0.45));
+    h=Math.min(h,Math.max(60,vh-reserve));
     document.documentElement.style.setProperty('--soModalTop',h+'px');
   }catch(e){}
 }
