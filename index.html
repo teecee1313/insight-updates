@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-770-open';
+const APP_VERSION='2026.08.15-771-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11032,7 +11032,11 @@ function toggleStar(ticker){
   else{
     const s=allData.find(x=>x.ticker===ticker)||filtered.find(x=>x.ticker===ticker);
     if(s)wl[ticker]=JSON.parse(JSON.stringify(s)); // snapshot so it persists & shows regardless of filters
-    if(s&&wl[ticker]){ wl[ticker]._starPrice=s.price; wl[ticker]._starred=new Date().toISOString().slice(0,10); }
+    if(s&&wl[ticker]){ wl[ticker]._starPrice=s.price; wl[ticker]._starred=new Date().toISOString().slice(0,10);
+      // v771: record WHERE the star happened — the report open at the time, or the
+      // table/watch view. Three weeks later "why is this here?" has an answer.
+      try{ wl[ticker]._starFrom=_sanText((window._curModalLabel||''),48)||(watchViewOn?'watchlist view':'main table'); }catch(e){}
+    }
   }
   saveWatchlists();
   updateWatchBtn();
@@ -11221,7 +11225,7 @@ function renderWatch(){
       const live=(typeof allData!=='undefined'&&Array.isArray(allData)&&allData.find(x=>x.ticker===w.ticker&&(!w.exchange||!x.exchange||x.exchange===w.exchange)))||w;
       const m=Object.assign({},live);
       const sp=(w._starPrice!=null&&w._starPrice>0)?w._starPrice:((w.price>0)?w.price:null);
-      try{ if(typeof _watchTrendChip==='function')m._trendChip=_watchTrendChip(m,sp,w._starred||null); }catch(e){}
+      try{ if(typeof _watchTrendChip==='function')m._trendChip=_watchTrendChip(m,sp,w._starred||null,w); }catch(e){} // v771: w carries _starFrom/_starNote
       try{ m._trendChip=(m._trendChip||'')+_laChip(m); }catch(e){} // v726: 🎲 odds join watch rows
       return m;
     });
@@ -14682,7 +14686,9 @@ function _popupToggleStar(ticker){
       const s=(Array.isArray(allData)?allData.find(x=>x.ticker===ticker):null)
         ||((window._lastTop10||[]).map(p=>p&&p.s).find(x=>x&&x.ticker===ticker))
         ||((window._simpleModalLastRows||[]).find(x=>x&&x.ticker===ticker));
-      if(s){ wl[ticker]=JSON.parse(JSON.stringify(s)); wl[ticker]._starPrice=s.price; wl[ticker]._starred=new Date().toISOString().slice(0,10); }
+      if(s){ wl[ticker]=JSON.parse(JSON.stringify(s)); wl[ticker]._starPrice=s.price; wl[ticker]._starred=new Date().toISOString().slice(0,10);
+        try{ wl[ticker]._starFrom=_sanText((window._curModalLabel||''),48)||'report popup'; }catch(e){} // v771
+      }
     }
     saveWatchlists(); if(typeof updateWatchBtn==='function')updateWatchBtn();
     _reRenderScanPopup();
@@ -24403,7 +24409,19 @@ body.tbl-tight .wtrendline{font-size:9px;gap:6px;}
 </style>
 <script id="wtrendJs">
 /* ═══ v252 — watch-trend chip: direction now + change since you starred it ═══ */
-function _watchTrendChip(s,starPrice,starDate){
+function _wlEsc(t){ return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+window._wlEditNote=function(tk){
+  try{
+    const wl=curWL(); if(!wl[tk])return;
+    const cur=wl[tk]._starNote||'';
+    const v=prompt('Note for '+tk+' — why is it on your watchlist?',cur);
+    if(v==null)return;
+    wl[tk]._starNote=_sanText(v,140);
+    if(!wl[tk]._starNote)delete wl[tk]._starNote;
+    saveWatchlists(); if(typeof renderWatch==='function'&&watchViewOn)renderWatch();
+  }catch(e){}
+};
+function _watchTrendChip(s,starPrice,starDate,w){
   try{
     const r=Array.isArray(s.series)?s.series:null;
     let chip;
@@ -24443,7 +24461,20 @@ function _watchTrendChip(s,starPrice,starDate){
         star='<span class="wsince" style="color:'+(d>=0?'var(--green)':'#ff9caa')+';" title="Change since you starred it'+(starDate?' on '+starDate:'')+'.">'+(d>=0?'+':'')+d.toFixed(1)+'% since ⭐</span>';
       }
     }
-    return '<div class="wtrendline">'+chip+star+'</div>';
+    // v771: provenance — where the star happened — and a tap-to-edit note.
+    let prov='';
+    try{
+      if(w&&w._starFrom){
+        prov='<span class="wsince" style="color:var(--dim);" title="Where you starred it'+(starDate?' ('+starDate+')':'')+'. Recorded automatically so the list can answer &quot;why is this here?&quot;">⭐ from '+_wlEsc(w._starFrom)+'</span>';
+      }
+      const tk=_wlEsc(s.ticker||'');
+      if(w&&w._starNote){
+        prov+='<span class="wsince" style="color:var(--gold);cursor:pointer;" onclick="event.stopPropagation();_wlEditNote(\''+tk+'\')" title="Your note (tap to edit): '+_wlEsc(w._starNote)+'">📝 '+_wlEsc(w._starNote.length>36?w._starNote.slice(0,34)+'…':w._starNote)+'</span>';
+      } else if(w){
+        prov+='<span class="wsince" style="color:var(--dim);cursor:pointer;" onclick="event.stopPropagation();_wlEditNote(\''+tk+'\')" title="Write yourself one line on why you starred this — the thesis you\'ll want when reviewing later.">📝 add note</span>';
+      }
+    }catch(e){}
+    return '<div class="wtrendline">'+chip+star+prov+'</div>';
   }catch(e){ return ''; }
 }
 </script>

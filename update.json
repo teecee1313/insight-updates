@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-770-open",
+  "version": "2026.08.15-771-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Finishes v769's training catch-up: the bot's own advice message suggested switching its source to “the Smart Money list” — an option that no longer exists — and now suggests real lenses (🔥 Unusual Activity, 📈 Volume 2×). The demo walkthrough also told you to click the removed Smart Money button; it now names 🎯 Best Evidence. Every mention of Smart Money left in the app is deliberate history — the retirement story in the lessons, the graded signal line on the report card, and the past-qualifiers replay.",
+  "notes": "Every ⭐ now remembers WHERE it happened — the report open at the time is stamped on the star, and a tap-to-edit 📝 note lets you write the one-line thesis. Three weeks later, 'why is this here?' has an answer.",
   "date": "2026-08-15"
 }
