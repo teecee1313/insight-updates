@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-764-open",
+  "version": "2026.08.15-765-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🏆 Top 20 to Watch now describes its real ranking. A while back the list was changed to put proven evidence first — a share carrying a graded signal sorts by that signal's edge, ahead of every share without one, with the /10 score deciding the rest — but the heading still said “ranked by score out of 10”, which made the list look broken (your screenshot: scores 2, 3.1, 1.3 in ranks 1-3, while their evidence edges ran perfectly in order). The heading, button and status line now say what the sort actually is. The ranking itself is unchanged — if you'd rather have the pure score-ranked list back, say so, it's a one-line change.",
+  "notes": "🎯 Best Evidence Today gets the same two fixes as Climbers. Rows are now two lines — number, code, chip, price and score on the first line, the name and the evidence detail on a full-width second line — so nothing gets squeezed into one word per line on a phone. And the heading now describes the real ranking: by the best line's edge (money per $100 beyond the market), then by how many proven lines fired. The SOLID/PROMISING badge gets a share onto the list but doesn't decide the order — which is why a bigger PROMISING edge can sit above a smaller SOLID one. Ranking unchanged; only the layout and the words.",
   "date": "2026-08-15"
 }

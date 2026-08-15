@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-764-open';
+const APP_VERSION='2026.08.15-765-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -22199,20 +22199,21 @@ function bestEvidenceScan(){
       var chc=(sh.chgPct>0?'var(--green)':(sh.chgPct<0?'#ff9caa':'var(--muted)'));
       var more=(x.firing.length>1)?(' <span style="color:var(--dim);">(+'+(x.firing.length-1)+' more proven line'+(x.firing.length>2?'s':'')+')</span>'):'';
       var sc=_cardScore10(best.m), scCol=sc>=7?'var(--green)':'var(--gold)';
-      return '<div style="display:flex;align-items:baseline;gap:8px;padding:7px 3px;border-bottom:1px solid var(--border);font-size:11.5px;">'
+      return '<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:7px 3px;border-bottom:1px solid var(--border);font-size:11.5px;">'
         +'<span style="flex:0 0 26px;text-align:right;color:var(--muted);font-weight:700;">'+(ix+1)+'.</span>'
         +'<a href="#" onclick="printShareReport(\''+sh.ticker+'\');return false;" title="Open the printable report for '+sh.ticker+'" style="flex:0 0 auto;color:var(--gold);font-weight:800;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">'+sh.ticker+'</a>'+_laChip(sh)
-        +'<span style="flex:1 1 auto;color:var(--text);">'+(sh.name?String(sh.name).slice(0,30):'')
+        
+        +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
+        +'<span style="flex:0 0 52px;text-align:right;font-family:var(--mono);font-weight:800;font-size:13px;color:'+scCol+';">'+sc+'<span style="font-size:9px;color:var(--dim);">/10</span></span>'
+        +'<span style="flex:1 1 100%;min-width:0;overflow-wrap:break-word;color:var(--text);padding-left:34px;">'+(sh.name?String(sh.name).slice(0,30):'')
           +'<div style="font-size:10px;color:var(--muted);margin-top:2px;"><b style="color:var(--text)">'+nameK(best.k)+'</b>'+more
           +'<br>'+(best.m.tier==='solid'?'<span style="color:var(--green);font-weight:700;">SOLID</span>':'<span style="color:var(--gold);font-weight:700;">PROMISING</span>')
           +(function(){var g=_edgeGauge(best.m.dirNeg?-best.m.edge:best.m.edge,best.m.n);return ' \u00b7 <span title="The Paula\u2013Niño Edge \u2014 money made per \u0024100 invested, on average, beyond the market, before costs. '+g.tip.replace(/"/g,'&quot;')+'" style="cursor:help;color:'+g.col+';font-weight:700;">PN Edge '+g.money+'/\u0024100</span> '+g.bar;})()+' \u00b7 seen '+best.m.n.toLocaleString()+' times'+eraBit(best)+'</div></span>'
-        +'<span style="flex:0 0 auto;text-align:right;color:var(--text);">'+pv+'<div style="font-size:10px;color:'+chc+';">'+ch+'</div></span>'
-        +'<span style="flex:0 0 52px;text-align:right;font-family:var(--mono);font-weight:800;font-size:13px;color:'+scCol+';">'+sc+'<span style="font-size:9px;color:var(--dim);">/10</span></span>'
         +'</div>';
     }).join('');
     showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
       +'<div style="font-weight:800;color:var(--text);font-size:13px;margin-bottom:4px;">\ud83c\udfaf Best Evidence Today \u2014 '+top.length+' share'+(top.length===1?'':'s')+' now in the table'+(items.length>top.length?(' <span style="font-weight:400;color:var(--dim);font-size:11px;">(strongest '+top.length+' of '+items.length+' firing a proven line today)</span>'):'')+'</div>'
-      +'<div style="font-size:11px;margin-bottom:8px;">Of everything that fired today, these carry the <b style="color:var(--text)">best graded evidence</b>: each share fired at least one line holding a PROMISING or SOLID badge with a positive market-beating edge, ranked by the strength of the best line it fired. Combinations rank highest because that is where the edge lives.</div>'
+      +'<div style="font-size:11px;margin-bottom:8px;">Of everything that fired today, these carry the <b style="color:var(--text)">best graded evidence</b>: each share fired at least one line holding a PROMISING or SOLID badge with a positive market-beating edge, ranked by the best line\u2019s edge \u2014 money per \u0024100 beyond the market \u2014 then by how many proven lines fired. The badge (SOLID or PROMISING) gets a share onto this list; it does not decide the order, so a bigger PROMISING edge can rank above a smaller SOLID one.</div>'
       +shares
       +'<div style="margin-top:10px;font-size:10px;color:var(--dim);line-height:1.5;border-top:1px solid var(--border);padding-top:7px;">The evidence is about the <b>LINE</b>, not the share \u2014 a proven pattern fired on it today, which is a reason to LOOK, backed by a track record. It says nothing about this company\u2019s news, sector or story, and \u201cDID work\u201d is never \u201cWILL work\u201d. Same maths as the \ud83d\udccb report card \u2014 the two can\u2019t disagree.</div>'
       +'</div>','\ud83c\udfaf Best Evidence Today');
