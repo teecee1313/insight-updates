@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-761-open",
+  "version": "2026.08.15-762-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "A small honesty fix in ⚖ Does the grading actually work, from your screenshot. The two lists at the bottom are simply the four best and four worst next-window results — but the old headings said “kept delivering” and “let you down”, and on a good year a line can be among the four weakest while still being UP (Inst? faded from +0.23% to +0.07% — a fade, not a failure — yet sat under “let you down” with a green number). The headings now say what the lists actually are: Strongest / Weakest in the NEXT window, with a note that weakest doesn’t mean negative. The numbers and the test itself are unchanged.",
+  "notes": "🌱 Climbers Today rows are now two lines by design. On a phone the row's fixed parts — number, code, odds chip, price and strength — already fill the width, so the share name and signals were being squeezed into a one-word-per-line sliver (and the v760 word-breaking made it worse, splitting words mid-way). Each row now puts number, code, chip, price and strength on the first line, with the name and its strongest climbing line on a full-width second line. Nothing about the ranking or the (+N more — hold to see) list changed.",
   "date": "2026-08-15"
 }
