@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-766-open",
+  "version": "2026.08.15-767-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🕳 The Gap Report stops showing warrants, and stops saying “kept 199%”. Your screenshot caught BHPMOS and ALDSO1 topping the gapped-up list — warrant series, not shares. A census of every code in the ten-year store settled it: EVERY six-letter ASX code is a warrant series, a government bond or one of three metal funds — no ordinary share has six letters. The classifier now knows this outright (1,611 warrant series covered in one rule), government bonds and the metal funds are typed correctly, and the Gap Report excludes options, notes and prefs — it says so under the heading. Also fixed the wording: a share can't keep MORE than 100% of a gap — anything above that now reads “kept the WHOLE gap and closed above its open” instead of a capped number like 199%.",
+  "notes": "🕳 The Gap Report now carries its own ten-year verdict. We backtested every gap in the ten-year store (247,775 gap days, 39 million rows, buys lagged one day so every trade was placeable): no gap group beat simply holding the market's quiet shares after costs, and every gap group won LESS often (38–43% of the time vs 47%). Surprises: faded up-gaps did BEST in the following week and held ones worst — and a down-gap that bounced back during the day was the weakest group of all. So the section labels now describe the day without predicting anything (“buyers stayed” rather than “strength”), and the finding is printed at the top of the report. The Gap Report stays — as a lens on what happened, not a reason to buy.",
   "date": "2026-08-15"
 }

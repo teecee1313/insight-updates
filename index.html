@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-766-open';
+const APP_VERSION='2026.08.15-767-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19324,11 +19324,11 @@ async function gapScan(){
   if(rows.length){
     const row=x=>{const s=x.s;const up=s._gapPct>0;return `<div onclick="try{closeModal();}catch(e){};deepDive('${s.ticker}')" style="display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:13px;flex:none;">${up?'⬆':'⬇'}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${s.ticker}</b>${(typeof _laChip==='function'&&_laChip(s))||''} opened ${s._gapPct>0?'+':''}${s._gapPct}% ${up?'above':'below'} yesterday's close and ${s._gapKept>100?`kept the WHOLE gap and closed above its open`:`kept ${s._gapKept}% of the gap by the close`}${(s.volCalced&&s.volPct>=100)?` on +${Math.round(s.volPct)}% volume`:''}.</span></div>`;};
     const sec=(t,arr)=>arr.length?`<div style="font-weight:700;font-size:11px;font-family:var(--sans);color:var(--text);margin:9px 0 2px;">${t} <span style="font-weight:400;color:var(--dim);">· ${arr.length}</span></div>${arr.slice(0,8).map(row).join('')}${arr.length>8?`<div style="font-size:9px;color:var(--dim);padding:3px 6px;">…all ${arr.length} are in the table underneath.</div>`:''}`:'';
-    const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🕳 Gap Report</div><div style="font-size:9.5px;color:var(--dim);margin:3px 0 8px;">Shares that OPENED 3%+ away from yesterday's close — overnight news or a rush of morning orders. What matters is whether the gap survived the day. <span style="color:var(--dim)">Options, notes &amp; prefs excluded.</span></div>`;
-    const body=sec(`⬆ Gapped up & HELD it <span style="color:var(--green);font-weight:400;font-size:9px;">(buyers stayed — strength)</span>`,held)
+    const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🕳 Gap Report</div><div style="font-size:9.5px;color:var(--dim);margin:3px 0 8px;">Shares that OPENED 3%+ away from yesterday's close — overnight news or a rush of morning orders. What matters is whether the gap survived the day. <span style="color:var(--dim)">Options, notes &amp; prefs excluded.</span><div style="margin-top:6px;padding:6px 9px;border:1px dashed var(--border);border-radius:7px;font-size:10px;color:var(--dim);line-height:1.5;">\u2696 <b style="color:var(--muted)">Ten-year check (Aug 2026, 247,775 gap days, buys lagged one day):</b> no gap group beat simply holding the market\u2019s quiet shares after costs, and every gap group won LESS often (38\u201343% vs 47%). Faded up-gaps actually did best afterwards and held ones worst \u2014 the market takes back some of what gap-chasers paid. The one steady result: a down-gap that bounced intraday was the weakest group of all (\u22120.44%/5d). A description of the day, not a forecast.</div></div>`;
+    const body=sec(`⬆ Gapped up & HELD it <span style="color:var(--green);font-weight:400;font-size:9px;">(buyers stayed)</span>`,held)
       +sec(`⬆ Gapped up, kept part of it`,part)
-      +sec(`⬆ Gapped up & FADED <span style="color:var(--orange);font-weight:400;font-size:9px;">(the jump fizzled — a common trap)</span>`,fade)
-      +sec(`⬇ Gapped down but RECOVERED <span style="color:var(--green);font-weight:400;font-size:9px;">(buyers stepped in)</span>`,rec)
+      +sec(`⬆ Gapped up & FADED <span style="color:var(--orange);font-weight:400;font-size:9px;">(the jump fizzled)</span>`,fade)
+      +sec(`⬇ Gapped down but RECOVERED <span style="color:var(--orange);font-weight:400;font-size:9px;">(bounced intraday)</span>`,rec)
       +sec(`⬇ Gapped down, partial bounce`,dpart)
       +sec(`⬇ Gapped down & stayed weak`,weak)
       +`<div style="font-size:9px;color:var(--dim);margin-top:8px;">Tap any line for that share's deep dive. ${noOpen?`Opens missing for ${noOpen} share${noOpen===1?'':'s'} (older stored data) — 🔄 Refresh fills them in. `:''}End-of-day estimates — not advice.</div>`;
