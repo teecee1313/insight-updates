@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-775-open';
+const APP_VERSION='2026.08.15-776-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11402,6 +11402,7 @@ function renderWatch(){
       const m=Object.assign({},live);
       const sp=(w._starPrice!=null&&w._starPrice>0)?w._starPrice:((w.price>0)?w.price:null);
       try{ if(typeof _watchTrendChip==='function')m._trendChip=_watchTrendChip(m,sp,w._starred||null,w); }catch(e){} // v771: w carries _starFrom/_starNote
+      try{ m._wlDipPct=(sp&&m.price>0&&isFinite(sp))?((sp-m.price)/sp*100):null; }catch(e){} // v776: for the header count
       try{ m._trendChip=(m._trendChip||'')+_laChip(m); }catch(e){} // v726: 🎲 odds join watch rows
       try{ m._trendChip=(m._trendChip||'')+_wlEntryChip(m); }catch(e){} // v773: distance to the bot's dip entry
       try{ m._trendChip=(m._trendChip||'')+_wlAlignedTag(m); }catch(e){} // v775: 🎼 aligned — lenses agreeing, presentation only
@@ -11419,7 +11420,8 @@ function renderWatch(){
   document.getElementById('tblwrap').style.display='block';
   document.getElementById('noResults').style.display='none';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('rcount').textContent=(_statNarrow?`${rows.length} of ${_wlBase} in ${activeWatch} · quick filters on`:`${rows.length} in ${activeWatch}`)+(hiddenOther>0?` · ${hiddenOther} on other exchanges hidden`:'');
+  const _nDip=rows.filter(r=>r._wlDipPct!=null&&r._wlDipPct>=2).length; // v776
+  document.getElementById('rcount').textContent=(_statNarrow?`${rows.length} of ${_wlBase} in ${activeWatch} · quick filters on`:`${rows.length} in ${activeWatch}`)+(hiddenOther>0?` · ${hiddenOther} on other exchanges hidden`:'')+(_nDip>0?` · ${_nDip} below your ⭐ price`:'');
   if(!rows.length){
     const msg = (_statNarrow&&_wlBase>0)
       ? `No shares in “${activeWatch}” match the active quick filters. Tap <b>Showing</b> in the stats bar to clear them.`
@@ -24602,7 +24604,7 @@ window._wlEditNote=function(tk){
 function _watchTrendChip(s,starPrice,starDate,w){
   try{
     const r=Array.isArray(s.series)?s.series:null;
-    let chip;
+    let chip, trendT=null; // v776: the dip-below-⭐ chip needs the trend score
     if(r&&r.length>=25){
       const n=r.length,c=i=>r[i].c,v=i=>r[i].v||0;
       const last=c(n-1);
@@ -24621,6 +24623,7 @@ function _watchTrendChip(s,starPrice,starDate,w){
       const volUp=a20>0&&a5/a20>1.15;
       if(volUp)t+=(p5>=0?8:-8);
       t=Math.max(-100,Math.min(100,t));
+      trendT=t; // v776
       let lbl,col;
       if(t>=40){lbl='▲▲ strengthening';col='var(--green)';}
       else if(t>=15){lbl='▲ improving';col='#7ee2a8';}
@@ -24632,10 +24635,24 @@ function _watchTrendChip(s,starPrice,starDate,w){
     } else {
       chip='<span class="wtrend" style="color:var(--dim);font-weight:600;" title="The trend chip appears once this share\'s history and signals are prepared.">trend pending…</span>';
     }
-    let star='';
+    let star='', dipStrong=false;
     if(starPrice&&s.price>0&&isFinite(starPrice)){
       const d=((s.price-starPrice)/starPrice)*100;
-      if(Math.abs(d)>=0.05){
+      const dip=-d; // positive when the share now sits BELOW your ⭐ price
+      if(dip>=2){
+        // v776: cheaper than when you decided you liked it. The ⭐ price is YOUR
+        // anchor, not evidence — the tested entry is a 2% dip from the previous
+        // close, never "N% under a weeks-old anchor". So this is a highlight to
+        // look closer, and it reads the trend chip before dressing up as one.
+        const falling=(trendT!=null&&trendT<=-40);
+        const band=dip>=5?'5%+':'2%+';
+        dipStrong=(dip>=5&&!falling);
+        if(falling){
+          star='<span class="wsince" style="color:var(--dim);border:1px solid var(--border);border-radius:9px;padding:1px 6px;" title="'+dip.toFixed(1)+'% below your ⭐ price, but the trend chip reads falling — cheaper AND still falling is a knife, not a discount. A discount is only a discount if what you liked is intact: re-read your 📝 note and what changed before treating a markdown as a gift. Never a buy signal.">🔻 '+band+' under ⭐ · still falling</span>';
+        } else {
+          star='<span class="wsince" style="color:var(--gold);border:1px solid var(--gold);border-radius:9px;padding:1px 6px;'+(dipStrong?'font-weight:700;':'')+'" title="This share now sits '+dip.toFixed(1)+'% below the price it had when you starred it'+(starDate?' on '+starDate:'')+(trendT!=null?', and the trend chip does not read falling':'')+'. A highlight to look closer, NOT a signal — your ⭐ price is an anchor you chose, not evidence, and this anchor entry has never been backtested here (the tested entry is a 2% dip from the previous close). Check your 📝 note and recent news first.">🔻 '+band+' under ⭐ ('+(d).toFixed(1)+'%)</span>';
+        }
+      } else if(Math.abs(d)>=0.05){
         star='<span class="wsince" style="color:'+(d>=0?'var(--green)':'#ff9caa')+';" title="Change since you starred it'+(starDate?' on '+starDate:'')+'.">'+(d>=0?'+':'')+d.toFixed(1)+'% since ⭐</span>';
       }
     }
@@ -24652,7 +24669,7 @@ function _watchTrendChip(s,starPrice,starDate,w){
         prov+='<span class="wsince" style="color:var(--dim);cursor:pointer;" onclick="event.stopPropagation();_wlEditNote(\''+tk+'\')" title="Write yourself one line on why you starred this — the thesis you\'ll want when reviewing later.">📝 add note</span>';
       }
     }catch(e){}
-    return '<div class="wtrendline">'+chip+star+prov+'</div>';
+    return '<div class="wtrendline"'+(dipStrong?' style="border-left:3px solid var(--gold);padding-left:6px;"':'')+'>'+chip+star+prov+'</div>';
   }catch(e){ return ''; }
 }
 </script>
