@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-757-open';
+const APP_VERSION='2026.08.15-758-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5208,7 +5208,7 @@ function renderRows(rows){
 <td><div class="tick-wrap">
   <a href="${tu}" target="_blank" class="tick-link"><span class="tick-code">${s.ticker}</span><span style="font-size:9px;color:var(--dim)">↗</span></a>
   <span class="tick-name" title="${s.name}">${s.name}</span>
-  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a>${(s.newsFlag==='likely')?'<span class="ph-only" title="News likely in the last 5 days — see Filter by news or the share report.">\ud83d\udcf0</span>':''}<button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}${(s._trendChip&&s._trendChip.indexOf('\ud83c\udfb2')>=0)?'':((typeof _laChipRow==='function'&&_laChipRow(s))||'')}
+  <div class="tick-links"><a href="#" onclick="paperBuy('${s.ticker}');return false;" style="color:var(--green);font-weight:700;">💼 Buy</a>${(s.newsFlag==='likely')?'<span class="ph-only" title="News likely in the last 5 days — see Filter by news or the share report.">\ud83d\udcf0</span>':''}<button class="row-more" onclick="_rowMenu('${s.ticker}',event)" title="More for ${s.ticker} — 🔬 deep dive, 📈 chart, 📊 history, 📢 announcements, 🖨 report">⋯ more</button><span class="exch-tag">${s.exchange}</span></div>${s._trendChip||''}${(s._trendChip&&s._trendChip.indexOf('la-chip')>=0)?'':((typeof _laChipRow==='function'&&_laChipRow(s))||'')}
 </div></td>
 <td><span class="pv">${fmtP(s.price,s.currency)}</span></td>
 <td><span class="cv ${up?'up':dn?'dn':'fl'}">${up?'+':''}${(s.chgPct||0).toFixed(2)}%</span><br>
@@ -15451,14 +15451,14 @@ function _laChipT(tk,ex,ctx){ // v726: chip via ticker (portfolio rows store tic
 // YOUR HOLDINGS, silence reads as broken — so portfolio rows get a muted 🎲 –
 // that explains itself on tap instead of an unexplained absence.
 function _laMuted(tk,why){
-  return '<span onclick="event.stopPropagation();_laWhyNone(\''+tk+'\',\''+why+'\')" title="No reading today \u2014 tap to see why" style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:var(--dim);border:1px solid var(--border2);border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;">\ud83d\udcca \u2013</span>';
+  return '<span onclick="event.stopPropagation();_laWhyNone(\''+tk+'\',\''+why+'\')" title="No reading today \u2014 tap to see why" style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:var(--dim);border:1px solid var(--border2);border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;" class="la-chip">\ud83d\udcca \u2013</span>';
 }
 function _laWhyNone(tk,why){
   var msg = why==='quiet' ? 'Nothing notable about <b>'+tk+'</b> today \u2014 quiet volume, a small move, no streak. Ordinary days share the whole market\u2019s base rate (roughly a coin flip with drift), which honestly says nothing about one share. The dice appear when the day is DISTINCTIVE: real volume, a real move, a streak, or a surge near the yearly high.'
    : why==='thin' ? 'Today\u2019s pattern for <b>'+tk+'</b> is rare \u2014 fewer than 30 lookalike days exist in the saved history, and thin data doesn\u2019t get to brag. Rarity is itself information: today doesn\u2019t look like much of the past.'
    : why==='weather' ? 'Today\u2019s pattern for <b>'+tk+'</b> is so common it\u2019s market weather \u2014 the bucket holds a big slice of ALL market days, so its base rate describes the market, not this share.'
    : 'No saved history for <b>'+tk+'</b> on this device yet \u2014 load the market data first, then odds can be measured.';
-  showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83c\udfb2 '+tk+' \u2014 why no reading today?</div><div style="font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">'+msg+'<div style="margin-top:10px;font-size:11px;color:var(--muted);">Odds describe the share\u2019s day, not your position \u2014 and an ordinary day is a perfectly fine day to be holding. Research, not advice.</div></div>','Lookalikes');
+  showModal('<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:8px;">\ud83d\udcca '+tk+' \u2014 why no reading today?</div><div style="font-weight:400;font-size:13px;line-height:1.6;font-family:var(--sans);">'+msg+'<div style="margin-top:10px;font-size:11px;color:var(--muted);">Odds describe the share\u2019s day, not your position \u2014 and an ordinary day is a perfectly fine day to be holding. Research, not advice.</div></div>','Lookalikes');
 }
 function _laChip(s,ctx){
   try{
@@ -15477,7 +15477,7 @@ function _laChip(s,ctx){
     var arr={length:stc.n}; var pos=stc.pos;
     var col=pos>=60?'var(--green)':pos>=45?'var(--gold)':'#ff8b8b';
     var tk=String(s.ticker||s.code||'').replace(/[^A-Za-z0-9.]/g,'');
-    return '<span onclick="event.stopPropagation();_lookalikeOpen(\''+tk+'\')" title="Of '+arr.length+' lookalike days in '+(stc.src==='server'?'\u22483 years of history':'the saved history')+', '+pos+'% finished higher over the next 10 \u2014 a base rate, not a prediction.'+(ctx==='pf'?' Odds describe the share\u2019s DAY, not your position \u2014 your entry, stop and plan are the decision layer.':'')+' Tap for the full distribution." style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:'+col+';border:1px solid '+col+';border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;">\ud83d\udcca '+pos+'/100</span>';
+    return '<span onclick="event.stopPropagation();_lookalikeOpen(\''+tk+'\')" title="Of '+arr.length+' lookalike days in '+(stc.src==='server'?'\u22483 years of history':'the saved history')+', '+pos+'% finished higher over the next 10 \u2014 a base rate, not a prediction.'+(ctx==='pf'?' Odds describe the share\u2019s DAY, not your position \u2014 your entry, stop and plan are the decision layer.':'')+' Tap for the full distribution." style="cursor:pointer;font-weight:700;font-size:10px;font-family:var(--mono);color:'+col+';border:1px solid '+col+';border-radius:9px;padding:1px 6px;margin-left:5px;white-space:nowrap;" class="la-chip">\ud83d\udcca '+pos+'/100</span>';
   }catch(e){ return ''; }
 }
 function _laShareToday(s){
@@ -15612,7 +15612,7 @@ function _laOddsRender(){
       var fmt2=(w.med>=0?'+':'')+w.med.toFixed(1)+'%';
       return '<div style="padding:8px 10px;border-top:1px dashed var(--border);font-weight:400;font-size:11px;line-height:1.5;font-family:var(--sans);color:var(--muted);">\ud83c\udf26 <b>'+w.count+' shares</b> share one look today \u2014 '+_laFingerPlain(w.f)+'. That\u2019s market weather, not an edge for any one of them; together such days ran <b>'+Math.round(w.odds)+'/100</b> \u00b7 '+fmt2+' median ('+w.n.toLocaleString()+' events), which is the market\u2019s deal, not a share\u2019s.</div>';
     }).join('') : '';
-  var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83c\udfb2 again then.</div>':'';
+  var _ldNote=(window._prepRunning&&!window._prepAbort)?'<div style="margin:0 0 8px;padding:7px 10px;border:1px solid var(--gold);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--gold);">\u23f3 History is still loading \u2014 these odds will settle once the load finishes. Run \ud83d\udcca again then.</div>':'';
   var _smp=_laSrv?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: server \u00b7 built '+String(_laSrv.built||'')+' \u00b7 '+_laSrvDays.toLocaleString()+' share-days in the server index</div>')
     :((_laIdx&&_laIdx.shares)?('<div style="margin-top:4px;font-size:10px;font-family:var(--sans);color:var(--dim);">index: '+_laIdx.shares.toLocaleString()+' shares \u00b7 '+_laIdx.days.toLocaleString()+' share-days on this device</div>'):'');
   showModal(_ldNote+'<div style="font-weight:700;font-size:15px;font-family:var(--sans);margin-bottom:6px;">\ud83d\udcca Days like today \u2014 what similar days did</div>'
@@ -15747,7 +15747,7 @@ function _laOddsPick(k){
   try{
     var row=(window._laOddsShown||[])[k]; if(!row)return;
     var note='<div style="margin:0 0 10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;font-family:var(--sans);color:var(--muted);">These are the exact '+row.st.n.toLocaleString()+' days behind the '+Math.round(row.odds)+'% on the list you tapped.'
-      +((typeof _laDataSig==='function'&&_laDataSig()!==row.sig)?' <span style="color:var(--gold);">History has updated since that list was built \u2014 run \ud83c\udfb2 again for fresh numbers.</span>':'')+'</div>';
+      +((typeof _laDataSig==='function'&&_laDataSig()!==row.sig)?' <span style="color:var(--gold);">History has updated since that list was built \u2014 run \ud83d\udcca again for fresh numbers.</span>':'')+'</div>';
     // v755 (2) — the drill-in is now a detour, not a departure: this button
     // rebuilds the list exactly as it was, filter, sort and open row included.
     var back='<div style="margin:0 0 10px;"><button type="button" onclick="_laOddsRender()" style="padding:6px 11px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u2190 back to the list</button></div>';
