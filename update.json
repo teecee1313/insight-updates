@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-757-open",
+  "version": "2026.08.15-758-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes a freeze introduced yesterday. The new server pre-fill checked the local cache one share at a time, which is invisible on a 60-share prepare and about 4,400 round trips when preparing everything - the app sat still for all of it before a single request went out. It now reads the whole cache in one pass, writes each downloaded batch in parallel, waits 25 seconds rather than 60 for a slow batch, and gives up on the server route after two failed batches instead of grinding through every one. Shares already downloaded today are skipped entirely, so a second prepare asks the server for almost nothing.",
-  "date": "2026-08-14"
+  "notes": "Fixes four leftovers from the dice-to-chart rename, found from your screenshots. Two banners and a popup title still told you to run the old 🎲 button; they now point at 📊. More importantly, the check that stops the days-like-today chip appearing twice on watchlist rows was still looking for the old dice symbol, so watchlist rows could show the chip doubled — the check now looks for the chip itself rather than its symbol, so a future rename can never break it again.",
+  "date": "2026-08-15"
 }
