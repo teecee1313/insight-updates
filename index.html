@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-772-open';
+const APP_VERSION='2026.08.15-773-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11261,6 +11261,37 @@ window.wlScorecard=function(){
   }catch(e){ try{ showModal('<div style="padding:16px;color:var(--muted);">The scorecard hit an error: '+_wlEsc(e&&e.message||e)+'</div>','📊 Watchlist scorecard'); }catch(_){} }
 };
 
+// ── v773: the "could I act on this tonight?" chip ─────────────────────────
+// Shows the limit price a DIP-entry order would sit at under YOUR saved rules
+// (the same entry every preset was measured under), or says plainly that the
+// share is outside your price band. Mirrors the form; changes nothing.
+function _wlEntryRules(){
+  try{
+    const sv=id=>{const el=document.getElementById(id);return el?String(el.value):'';};
+    const sel=sv('rApEntrySel');
+    let dip=+sv('rApDip'); if(!(dip>0&&dip<=15))dip=2;
+    if(sel&&sel!=='dip')dip=0;
+    let lo=+sv('rApMinPx'), hi=+sv('rApMaxPx');
+    if(!(lo>0))lo=0.20; if(!(hi>0))hi=1.99;
+    return {dip:dip,lo:lo,hi:hi};
+  }catch(e){ return {dip:2,lo:0.20,hi:1.99}; }
+}
+function _wlPxFmt(v){ return '$'+(v<1?v.toFixed(3):v.toFixed(2)); }
+function _wlEntryChip(s){
+  try{
+    if(!s||!(s.price>0))return '';
+    const R=_wlEntryRules();
+    if(s.price<R.lo||s.price>R.hi){
+      return '<span class="wsince" style="color:var(--dim);" title="Your saved rules only buy between '+_wlPxFmt(R.lo)+' and '+_wlPxFmt(R.hi)+' — the band the presets were measured on. This share closed at '+_wlPxFmt(s.price)+', outside it, so the bot would not touch it. Watching it is fine; the rules just would not buy it.">outside '+_wlPxFmt(R.lo)+'–'+_wlPxFmt(R.hi)+' band</span>';
+    }
+    if(!(R.dip>0)){
+      return '<span class="wsince" style="color:var(--dim);" title="Your entry rule is set to buy the open, not a dip — so there is no dip price to show. This chip mirrors your saved rules; change the entry in 🤖 rules to see a dip level here.">buys the open</span>';
+    }
+    const entry=s.price*(1-R.dip/100);
+    return '<span class="wsince" style="color:var(--blue);" title="A '+R.dip+'% dip from today\'s close ('+_wlPxFmt(s.price)+') = '+_wlPxFmt(entry)+' — the level a dip-entry limit order would sit at under your saved rules, the same entry the presets were measured under. It only fills if tomorrow actually dips there. A level, not advice.">🎯 '+R.dip+'% dip = '+_wlPxFmt(entry)+'</span>';
+  }catch(e){ return ''; }
+}
+
 // Render the active watchlist INDEPENDENTLY of current filters.
 function renderWatch(){
   let rows=Object.values(curWL());
@@ -11285,6 +11316,7 @@ function renderWatch(){
       const sp=(w._starPrice!=null&&w._starPrice>0)?w._starPrice:((w.price>0)?w.price:null);
       try{ if(typeof _watchTrendChip==='function')m._trendChip=_watchTrendChip(m,sp,w._starred||null,w); }catch(e){} // v771: w carries _starFrom/_starNote
       try{ m._trendChip=(m._trendChip||'')+_laChip(m); }catch(e){} // v726: 🎲 odds join watch rows
+      try{ m._trendChip=(m._trendChip||'')+_wlEntryChip(m); }catch(e){} // v773: distance to the bot's dip entry
       return m;
     });
   }catch(e){}
