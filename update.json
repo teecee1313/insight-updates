@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-762-open",
+  "version": "2026.08.15-763-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🌱 Climbers Today rows are now two lines by design. On a phone the row's fixed parts — number, code, odds chip, price and strength — already fill the width, so the share name and signals were being squeezed into a one-word-per-line sliver (and the v760 word-breaking made it worse, splitting words mid-way). Each row now puts number, code, chip, price and strength on the first line, with the name and its strongest climbing line on a full-width second line. Nothing about the ranking or the (+N more — hold to see) list changed.",
+  "notes": "The 📐 Technical button now explains itself. Pressing it ranks every loaded share by classic chart signals (golden cross, near 52-week high, above the 200-day average, oversold RSI, rising money-flow, gap up) and shows them in the main table, strongest first — that part is unchanged. What's new: the blue banner now says exactly that, and reminds you it's a pattern search, not graded evidence — nothing in it has a proven edge. Press ✕ Clear to go back.",
   "date": "2026-08-15"
 }
