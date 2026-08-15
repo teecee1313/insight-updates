@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-765-open';
+const APP_VERSION='2026.08.15-766-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18177,6 +18177,9 @@ function mapRecord(r,exch,currency,today){
     else if(/^R[A-C]?$/.test(ticker.slice(3)))type='Option';        // XYZR, XYZRA   rights (options bucket)
     else if(/^P[A-Z]$/.test(ticker.slice(3)))type='Preference';     // XYZPA, XYZPB  preference shares
     else if(/^G[A-Z]?$/.test(ticker.slice(3)))type='Bond';          // XYZG, XYZGA   notes/bonds
+    else if(/^(GSB|GSI)/.test(ticker))type='Bond';                  // v766: Australian Government Bond series (GSBU31…)
+    else if(/^ETPM/.test(ticker))type='ETF';                        // v766: the three physical-metal ETCs (ETPMPM/PT/PD)
+    else if(ticker.length===6)type='Option';                        // v766: census of ALL 4,455 pantry tickers: every 6-char code is a warrant series (KO/JO/SO/WO/IO/MO/QO — 1,611 of them), a GSB bond, or an ETPM ETC. No 6-char ordinary exists, so the suffix whack-a-mole ends here.
   }
   // Very low-priced ordinary shares are treated as Speculative / micro-cap.
   if(type==='Ordinary'&&price>0&&price<0.10)type='Speculative';
@@ -19293,7 +19296,7 @@ async function gapScan(){
   }
   // v485 — the deciding moved to _selGaps. The six bucket counts below are
   // derived from these rows, so they did not have to move with it.
-  const _gp=_selGaps(allData);
+  const _gp=_selGaps(allData.filter(function(x){return x&&x.type!=='Option'&&x.type!=='Preference'&&x.type!=='Bond';})) /* v766: warrants (BHPMOS, ALDSO1…) were topping the gap lists — the wrapper filters so the parity-mirrored _selGaps stays byte-identical to the worker's */;
   const rows=_gp.rows; const priced=_gp.priced, noOpen=_gp.noOpen;
   F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
   filtered=rows.map(x=>x.s);
@@ -19319,9 +19322,9 @@ async function gapScan(){
     }
   }
   if(rows.length){
-    const row=x=>{const s=x.s;const up=s._gapPct>0;return `<div onclick="try{closeModal();}catch(e){};deepDive('${s.ticker}')" style="display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:13px;flex:none;">${up?'⬆':'⬇'}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${s.ticker}</b>${(typeof _laChip==='function'&&_laChip(s))||''} opened ${s._gapPct>0?'+':''}${s._gapPct}% ${up?'above':'below'} yesterday's close and kept ${s._gapKept}% of the gap by the close${(s.volCalced&&s.volPct>=100)?` on +${Math.round(s.volPct)}% volume`:''}.</span></div>`;};
+    const row=x=>{const s=x.s;const up=s._gapPct>0;return `<div onclick="try{closeModal();}catch(e){};deepDive('${s.ticker}')" style="display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-bottom:1px solid var(--border2);cursor:pointer;border-radius:6px;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'"><span style="font-size:13px;flex:none;">${up?'⬆':'⬇'}</span><span style="font-size:11.5px;color:var(--muted);line-height:1.45;"><b style="color:var(--gold)">${s.ticker}</b>${(typeof _laChip==='function'&&_laChip(s))||''} opened ${s._gapPct>0?'+':''}${s._gapPct}% ${up?'above':'below'} yesterday's close and ${s._gapKept>100?`kept the WHOLE gap and closed above its open`:`kept ${s._gapKept}% of the gap by the close`}${(s.volCalced&&s.volPct>=100)?` on +${Math.round(s.volPct)}% volume`:''}.</span></div>`;};
     const sec=(t,arr)=>arr.length?`<div style="font-weight:700;font-size:11px;font-family:var(--sans);color:var(--text);margin:9px 0 2px;">${t} <span style="font-weight:400;color:var(--dim);">· ${arr.length}</span></div>${arr.slice(0,8).map(row).join('')}${arr.length>8?`<div style="font-size:9px;color:var(--dim);padding:3px 6px;">…all ${arr.length} are in the table underneath.</div>`:''}`:'';
-    const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🕳 Gap Report</div><div style="font-size:9.5px;color:var(--dim);margin:3px 0 8px;">Shares that OPENED 3%+ away from yesterday's close — overnight news or a rush of morning orders. What matters is whether the gap survived the day.</div>`;
+    const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🕳 Gap Report</div><div style="font-size:9.5px;color:var(--dim);margin:3px 0 8px;">Shares that OPENED 3%+ away from yesterday's close — overnight news or a rush of morning orders. What matters is whether the gap survived the day. <span style="color:var(--dim)">Options, notes &amp; prefs excluded.</span></div>`;
     const body=sec(`⬆ Gapped up & HELD it <span style="color:var(--green);font-weight:400;font-size:9px;">(buyers stayed — strength)</span>`,held)
       +sec(`⬆ Gapped up, kept part of it`,part)
       +sec(`⬆ Gapped up & FADED <span style="color:var(--orange);font-weight:400;font-size:9px;">(the jump fizzled — a common trap)</span>`,fade)

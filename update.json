@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-765-open",
+  "version": "2026.08.15-766-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🎯 Best Evidence Today gets the same two fixes as Climbers. Rows are now two lines — number, code, chip, price and score on the first line, the name and the evidence detail on a full-width second line — so nothing gets squeezed into one word per line on a phone. And the heading now describes the real ranking: by the best line's edge (money per $100 beyond the market), then by how many proven lines fired. The SOLID/PROMISING badge gets a share onto the list but doesn't decide the order — which is why a bigger PROMISING edge can sit above a smaller SOLID one. Ranking unchanged; only the layout and the words.",
+  "notes": "🕳 The Gap Report stops showing warrants, and stops saying “kept 199%”. Your screenshot caught BHPMOS and ALDSO1 topping the gapped-up list — warrant series, not shares. A census of every code in the ten-year store settled it: EVERY six-letter ASX code is a warrant series, a government bond or one of three metal funds — no ordinary share has six letters. The classifier now knows this outright (1,611 warrant series covered in one rule), government bonds and the metal funds are typed correctly, and the Gap Report excludes options, notes and prefs — it says so under the heading. Also fixed the wording: a share can't keep MORE than 100% of a gap — anything above that now reads “kept the WHOLE gap and closed above its open” instead of a capped number like 199%.",
   "date": "2026-08-15"
 }
