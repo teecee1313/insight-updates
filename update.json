@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-759-open",
+  "version": "2026.08.15-760-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Market today now shows the market you actually trade. Your screenshot caught the gainers and fallers lists full of codes like TWEKOP and ZCLKOB — those are knock-out warrants and listed options, not shares, and the breadth numbers were counting them too. Two fixes: the share classifier now recognises the knock-out family (about 700 codes like BHPKOA, TLSKOP — all six letters with KO in the middle), and the Market today panel excludes options, notes and preference shares from its counts and movers lists — it says so under the heading. Ordinary shares and funds are unchanged.",
+  "notes": "Fixes the 🌱 Climbers Today layout from your screenshot. When one share fired many climbing lines at once (BBN fired ten), the row printed every combination in full — a wall of repeated signal names that squeezed the share name into one word per line. The row now names only the STRONGEST climbing line (the one the ranking is built on) with “(+N more — hold to see)”; press-and-hold shows the complete list. The ranking itself is unchanged — this was a display problem, not a scoring one.",
   "date": "2026-08-15"
 }
