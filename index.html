@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-773-open';
+const APP_VERSION='2026.08.15-774-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11170,6 +11170,7 @@ function openWatchManager(){
       <button onclick="printWatch()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">🖨 Print this list</button>
       <button onclick="shareWatchCSV()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--green);background:rgba(63,185,80,.1);color:var(--green);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">⬇️ CSV</button>
       <button onclick="shareWatchEmail()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--blue);background:rgba(56,139,253,.1);color:var(--blue);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">✉️ Email</button>
+      <button onclick="wlSweep()" title="Finds stars 60+ days old that have barely moved since you starred them, and offers to move them to a 📦 Archive list. Your list stays a working set, not a museum." style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">🧹 Sweep stale</button>
       <button onclick="renameWatch()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">Rename</button>
       <button onclick="deleteWatch()" style="padding:6px 10px;border-radius:5px;border:1px solid var(--red);background:rgba(248,81,73,.1);color:var(--red);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">Delete</button>
     </div>
@@ -11291,6 +11292,69 @@ function _wlEntryChip(s){
     return '<span class="wsince" style="color:var(--blue);" title="A '+R.dip+'% dip from today\'s close ('+_wlPxFmt(s.price)+') = '+_wlPxFmt(entry)+' — the level a dip-entry limit order would sit at under your saved rules, the same entry the presets were measured under. It only fills if tomorrow actually dips there. A level, not advice.">🎯 '+R.dip+'% dip = '+_wlPxFmt(entry)+'</span>';
   }catch(e){ return ''; }
 }
+
+// ── v774: stale-star sweep — the watchlist is a to-do list, not a museum ──
+// A candidate = starred 60+ days ago AND moved less than ±5% since (or has no
+// live price to judge by). Nothing is deleted: archiving moves the star to a
+// 📦 Archive list, keeping its ⭐ price, date, source and note intact.
+const _WL_ARCHIVE='📦 Archive';
+window._wlArchiveOne=function(tk){
+  try{
+    const wl=curWL(); if(!wl[tk])return;
+    if(activeWatch===_WL_ARCHIVE)return;
+    if(!watchlists[_WL_ARCHIVE])watchlists[_WL_ARCHIVE]={};
+    watchlists[_WL_ARCHIVE][tk]=wl[tk]; delete wl[tk];
+    saveWatchlists(); updateWatchBtn(); wlSweep();
+    if(watchViewOn)renderWatch();
+  }catch(e){}
+};
+window._wlArchiveAll=function(tks){
+  try{
+    const list=String(tks||'').split(',').filter(Boolean);
+    if(!list.length)return;
+    if(!confirm('Move '+list.length+' share'+(list.length===1?'':'s')+' from “'+activeWatch+'” to 📦 Archive? Nothing is deleted — stars keep their price, date and note.'))return;
+    const wl=curWL();
+    if(!watchlists[_WL_ARCHIVE])watchlists[_WL_ARCHIVE]={};
+    list.forEach(tk=>{ if(wl[tk]){ watchlists[_WL_ARCHIVE][tk]=wl[tk]; delete wl[tk]; } });
+    saveWatchlists(); updateWatchBtn(); wlSweep();
+    if(watchViewOn)renderWatch();
+  }catch(e){}
+};
+window.wlSweep=function(){
+  try{
+    const lbl='🧹 Stale stars — '+activeWatch;
+    if(activeWatch===_WL_ARCHIVE){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">This IS the archive — nothing to sweep here. Switch to another list first.</div>',lbl);
+      return;
+    }
+    const wl=curWL(); const cands=[]; const now=Date.now();
+    Object.keys(wl).forEach(tk=>{
+      const w=wl[tk]; if(!w||!w._starred)return;
+      const days=(now-new Date(w._starred+'T00:00:00').getTime())/86400000;
+      if(!(isFinite(days)&&days>=60))return;
+      const sp=(w._starPrice!=null&&w._starPrice>0)?w._starPrice:null;
+      const live=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.find(x=>x.ticker===tk):null;
+      let chg=null;
+      if(sp&&live&&live.price>0)chg=((live.price-sp)/sp)*100;
+      if(chg===null||Math.abs(chg)<5)cands.push({tk:tk,days:Math.round(days),chg:chg,note:w._starNote||'',from:w._starFrom||''});
+    });
+    if(!cands.length){
+      showModal('<div style="padding:16px;font-size:12.5px;color:var(--muted);line-height:1.6;">Nothing stale in “'+_wlEsc(activeWatch)+'” — no star is both 60+ days old and stuck within ±5% of its ⭐ price. A young or moving list needs no sweep.</div>',lbl);
+      return;
+    }
+    cands.sort((a,b)=>b.days-a.days);
+    const fmt=v=>v==null?'—':((v>=0?'+':'')+v.toFixed(1)+'%');
+    const rows=cands.map(c=>'<tr><td style="padding:4px 8px;font-family:var(--mono);font-weight:700;">'+_wlEsc(c.tk)+'</td><td style="padding:4px 8px;color:var(--muted);">'+c.days+'d</td><td style="padding:4px 8px;font-family:var(--mono);color:var(--muted);">'+fmt(c.chg)+'</td><td style="padding:4px 8px;color:var(--dim);font-size:10px;">'+_wlEsc(c.note||c.from)+'</td><td style="padding:4px 8px;"><button onclick="_wlArchiveOne(\''+_wlEsc(c.tk)+'\')" style="padding:4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:10px;font-family:var(--sans);cursor:pointer;">📦 Archive</button></td></tr>').join('');
+    const all=cands.map(c=>c.tk).join(',');
+    const html='<div style="font-size:12.5px;line-height:1.6;">'
+      +'<div style="font-weight:700;color:var(--text);margin-bottom:6px;">'+cands.length+' stale star'+(cands.length===1?'':'s')+' in “'+_wlEsc(activeWatch)+'”</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Starred 60+ days ago and still within ±5% of the ⭐ price (or unmeasurable today). <b>Not a sell signal</b> — a flat 60 days just means the reason you starred it hasn\'t shown up yet. Archiving moves it to 📦 Archive with its price, date and note intact; nothing is deleted.</div>'
+      +'<div style="max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:10px;"><table style="width:100%;border-collapse:collapse;font-size:11px;"><tr style="color:var(--dim);"><td style="padding:4px 8px;">Share</td><td style="padding:4px 8px;">Age</td><td style="padding:4px 8px;">Since ⭐</td><td style="padding:4px 8px;">Note / from</td><td></td></tr>'+rows+'</table></div>'
+      +'<button onclick="_wlArchiveAll(\''+all+'\')" style="padding:8px 12px;border-radius:6px;border:1px solid var(--gold);background:rgba(210,153,34,.12);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📦 Archive all '+cands.length+'</button>'
+      +'</div>';
+    showModal(html,lbl);
+  }catch(e){}
+};
 
 // Render the active watchlist INDEPENDENTLY of current filters.
 function renderWatch(){
