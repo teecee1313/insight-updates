@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-774-open';
+const APP_VERSION='2026.08.15-775-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -11356,6 +11356,29 @@ window.wlSweep=function(){
   }catch(e){}
 };
 
+// ── v775: 🎼 aligned — a PRESENTATION tag, never a score ──────────────────
+// Three independent lenses already paint this row: today's evidence tier, the
+// 📊 days-like-today base rate, and the watch-trend estimate. When 2 of the 3
+// agree favourably, this tag names the agreement. It reads the lenses as they
+// were rendered — nothing is blended, weighted or fed back into any score, so
+// each lens stays separately auditable. If a lens changes shape upstream, this
+// tag silently drops rather than guess.
+function _wlAlignedTag(m){
+  try{
+    if(!m)return '';
+    const chips=String(m._trendChip||'');
+    const lenses=[];
+    // Lens 1 — evidence: a SOLID line fired on this share on the CURRENT data day.
+    try{ if(m._evTier==='SOLID' && typeof _evDD==='function' && m._evD===_evDD())lenses.push('a SOLID-tier line fired today'); }catch(e){}
+    // Lens 2 — lookalike base rate: the rendered 📊 chip shows 60+/100.
+    try{ const la=chips.match(/la-chip[^>]*>[^<]*?(\d+)\/100/); if(la&&+la[1]>=60)lenses.push('lookalike days finished higher '+la[1]+'% of the time'); }catch(e){}
+    // Lens 3 — the watch-trend estimate reads ▲▲ strengthening.
+    try{ if(chips.indexOf('▲▲')>=0)lenses.push('the price/volume trend reads strengthening'); }catch(e){}
+    if(lenses.length<2)return '';
+    return '<span class="wsince" style="color:var(--gold);border:1px solid var(--gold);border-radius:9px;padding:1px 6px;font-weight:700;" title="'+lenses.length+' independent lenses agree on this share today: '+_wlEsc(lenses.join(' · '))+'. Presentation only — nothing is blended into any score, each lens keeps its own audit trail, and agreement between lenses is NOT a prediction.">🎼 aligned</span>';
+  }catch(e){ return ''; }
+}
+
 // Render the active watchlist INDEPENDENTLY of current filters.
 function renderWatch(){
   let rows=Object.values(curWL());
@@ -11381,6 +11404,7 @@ function renderWatch(){
       try{ if(typeof _watchTrendChip==='function')m._trendChip=_watchTrendChip(m,sp,w._starred||null,w); }catch(e){} // v771: w carries _starFrom/_starNote
       try{ m._trendChip=(m._trendChip||'')+_laChip(m); }catch(e){} // v726: 🎲 odds join watch rows
       try{ m._trendChip=(m._trendChip||'')+_wlEntryChip(m); }catch(e){} // v773: distance to the bot's dip entry
+      try{ m._trendChip=(m._trendChip||'')+_wlAlignedTag(m); }catch(e){} // v775: 🎼 aligned — lenses agreeing, presentation only
       return m;
     });
   }catch(e){}
