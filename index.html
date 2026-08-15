@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.14-756-open';
+const APP_VERSION='2026.08.14-757-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16542,33 +16542,67 @@ async function prepareAllSignals(auto){
     try{
       if(typeof DATA_PROXY==='string' && DATA_PROXY && _serverData() && !window._forceLiveRefresh){
         const PB=200;
+        // v757 — the v756 pre-check opened ONE IndexedDB transaction PER SHARE.
+        // On a 60-share prepare that is invisible; on "everything" it is ~4,400
+        // round trips before a single request goes out, and the app looks frozen
+        // for exactly as long as that takes. One cursor pass over the store
+        // collects every fresh key at once instead: 4,400 transactions -> 1.
+        const _today=new Date().toISOString().slice(0,10);
+        const _fresh=new Set();
+        try{
+          const db=await cacheOpen();
+          if(db){
+            await new Promise(function(res){
+              try{
+                const st2=db.transaction(HIST_STORE,'readonly').objectStore(HIST_STORE);
+                const cur=st2.openCursor();
+                cur.onsuccess=function(ev){
+                  const c=ev.target.result;
+                  if(!c){ res(); return; }
+                  try{ const v=c.value; if(v && v.saved===_today && Array.isArray(v.rows) && v.rows.length>=2) _fresh.add(String(c.key)); }catch(e){}
+                  c.continue();
+                };
+                cur.onerror=function(){ res(); };
+              }catch(e){ res(); }
+            });
+          }
+        }catch(e){}
         const _need=[];
         for(const sh of ranked){
           if(!sh || !sh.ticker || !sh.exchange) continue;
-          let cached=null; try{ cached=await histGet(sh.exchange, sh.ticker); }catch(e){}
-          // already fresh today -> the loop will skip it anyway; don't re-fetch
-          if(cached && cached.saved===new Date().toISOString().slice(0,10) && Array.isArray(cached.rows) && cached.rows.length>=2) continue;
+          if(_fresh.has(String(histKey(sh.exchange, sh.ticker)))) continue;
           _need.push(sh);
         }
-        let _pf2=0;
+        let _pf2=0, _bad=0;
         for(let i=0;i<_need.length;i+=PB){
           if(window._prepAbort) break;
           const slice=_need.slice(i,i+PB);
           if(ls)ls.innerHTML='\u{1f3fa} Loading history from your own server\u2026 <strong>'+Math.min(i+PB,_need.length).toLocaleString()+'/'+_need.length.toLocaleString()+'</strong> <span style="font-size:9px;color:var(--dim)">(one request per 200 shares)</span>';
+          let _okBatch=false;
           try{
+            // 25s, not 60: if the server is struggling, waiting a full minute per
+            // batch is worse than falling back — and 22 batches of that is a
+            // frozen app for eight minutes.
             const r=await _fetchTO(DATA_PROXY+'/history/bundle',{method:'POST',
               headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({exch:slice[0].exchange,tickers:slice.map(x=>x.ticker),days:fetchDays})},60000);
+              body:JSON.stringify({exch:slice[0].exchange,tickers:slice.map(x=>x.ticker),days:fetchDays})},25000);
             if(r&&r.ok){
               const j=await r.json();
               if(j&&j.ok&&j.series){
+                _okBatch=true;
+                const puts=[];
                 for(const sh of slice){
                   const rows=j.series[sh.ticker];
-                  if(Array.isArray(rows)&&rows.length>=2){ try{ await histPut(sh.exchange, sh.ticker, rows); _pf2++; }catch(e){} }
+                  if(Array.isArray(rows)&&rows.length>=2){ puts.push(histPut(sh.exchange, sh.ticker, rows)); _pf2++; }
                 }
+                try{ await Promise.all(puts); }catch(e){}   // write the batch in parallel, not one by one
               }
             }
           }catch(e){}
+          // two dud batches in a row means the pantry route is not working today;
+          // stop asking and let the normal path do its job rather than crawl.
+          _bad = _okBatch ? 0 : (_bad+1);
+          if(_bad>=2){ if(ls)ls.innerHTML='\u{1f3fa} Server history unavailable \u2014 continuing the usual way\u2026'; break; }
         }
         try{ window._prefilledFromPantry=_pf2; }catch(e){}
       }

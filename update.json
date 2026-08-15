@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.14-756-open",
+  "version": "2026.08.14-757-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Loading everything is fast again. Preparing signals used to ask for one share at a time - thousands of separate requests - and that path went out to the old data provider whose key was removed on 13 August when the daily feed moved. Every one of those requests was failing or timing out, which is why loading crawled. The app now pulls history from your own server 200 shares per request before the loop starts, so the work is already done by the time it runs. Measured on a 500-share test: 2,501 requests and just over two minutes became 3 requests and fifteen seconds. Anything the server genuinely does not hold still falls back to the old path, so no share is left without history.",
+  "notes": "Fixes a freeze introduced yesterday. The new server pre-fill checked the local cache one share at a time, which is invisible on a 60-share prepare and about 4,400 round trips when preparing everything - the app sat still for all of it before a single request went out. It now reads the whole cache in one pass, writes each downloaded batch in parallel, waits 25 seconds rather than 60 for a slow batch, and gives up on the server route after two failed batches instead of grinding through every one. Shares already downloaded today are skipped entirely, so a second prepare asks the server for almost nothing.",
   "date": "2026-08-14"
 }
