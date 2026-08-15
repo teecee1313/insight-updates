@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-780-open",
+  "version": "2026.08.15-781-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📱 Top 20 (and scan panels) now open FULL-PAGE on phones. The half-page behaviour was a desktop feature leaking onto mobile: panels are pushed below the Market Radar so its quick-filter chips stay tappable above them — but on a phone that upper space shows unrelated content, so the push just cost half the screen. On screens 700px and narrower the push is now off entirely and panels open as full sheets, like every other report. Desktop keeps the radar-above-panel layout.",
+  "notes": "🔢 Max open positions is now 20 in all three ready-made rule sets, so tapping a preset never takes that number away again (previously Defender set 6, All-rounder 8, Hunter 5 — and a preset tap overwrote whatever you'd typed). One honest note: with 1% risk per trade, twenty open positions can mean up to ~20% of the account at risk at once — in practice the evidence and score gates rarely offer that many qualifying shares in a day, so treat it as a ceiling rather than a target. Tooltips and the lesson describing the presets were updated to match.",
   "date": "2026-08-15"
 }
