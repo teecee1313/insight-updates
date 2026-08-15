@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-760-open",
+  "version": "2026.08.15-761-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes the 🌱 Climbers Today layout from your screenshot. When one share fired many climbing lines at once (BBN fired ten), the row printed every combination in full — a wall of repeated signal names that squeezed the share name into one word per line. The row now names only the STRONGEST climbing line (the one the ranking is built on) with “(+N more — hold to see)”; press-and-hold shows the complete list. The ranking itself is unchanged — this was a display problem, not a scoring one.",
+  "notes": "A small honesty fix in ⚖ Does the grading actually work, from your screenshot. The two lists at the bottom are simply the four best and four worst next-window results — but the old headings said “kept delivering” and “let you down”, and on a good year a line can be among the four weakest while still being UP (Inst? faded from +0.23% to +0.07% — a fade, not a failure — yet sat under “let you down” with a green number). The headings now say what the lists actually are: Strongest / Weakest in the NEXT window, with a note that weakest doesn’t mean negative. The numbers and the test itself are unchanged.",
   "date": "2026-08-15"
 }

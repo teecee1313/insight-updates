@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-760-open';
+const APP_VERSION='2026.08.15-761-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -22347,8 +22347,8 @@ function gradingCheckReport(){
       +tbl(proven,'\u2705 had earned a badge')+tbl(unprov,'\u2014 had not (TOO EARLY)')
       +'</table>'
       +decayTxt
-      +(best.length?'<div style="margin-top:10px;font-weight:700;color:var(--text);font-size:11.5px;">Badges that kept delivering</div>'+lst(best):'')
-      +(worst.length?'<div style="margin-top:8px;font-weight:700;color:var(--text);font-size:11.5px;">Badges that let you down</div>'+lst(worst):'')
+      +(best.length?'<div style="margin-top:10px;font-weight:700;color:var(--text);font-size:11.5px;">Strongest in the NEXT window</div>'+lst(best):'')
+      +(worst.length?'<div style="margin-top:8px;font-weight:700;color:var(--text);font-size:11.5px;">Weakest in the NEXT window <span style="font-weight:400;color:var(--dim);font-size:10px;">(weakest \u2260 negative \u2014 a badge can fade and still be up)</span></div>'+lst(worst):'')
       +'<div style="margin-top:11px;font-size:10px;color:var(--dim);line-height:1.5;border-top:1px solid var(--border);padding-top:7px;">'
       +'<b>What this cannot tell you.</b> There are only ~'+Object.keys(A.M).length+' lines and they overlap heavily (a triple contains its pairs), so these are not '+rows.length+' independent tests. It is one market, over three years that included one particular set of conditions. The windows are per-share relative years, not calendar years. And the thresholds being tested (30 fires / strength 1, 50 / 2) were chosen by us, not discovered \u2014 this measures whether they held up, not whether they are optimal. Treat it as the best evidence available about the app\u2019s own premise, not as proof.'
       +'</div></div>','\u2696 Does the grading actually work?');
