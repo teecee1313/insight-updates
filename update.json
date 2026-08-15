@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.15-776-open",
+  "version": "2026.08.15-777-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Watch rows now highlight shares sitting BELOW the price you starred them at: 🔻 2%+ under ⭐ (gold), 5%+ gets a stronger flag and a row tint — unless the trend chip reads falling, in which case it turns muted with a knife warning: cheaper AND still falling is not a discount. The header counts how many sit under your ⭐ price. A highlight to look closer, never a signal — your ⭐ price is an anchor you chose, not evidence, and this anchor entry has never been backtested here.",
+  "notes": "⚡ Fixes today's slow/frozen loading. Your saved store recently grew from ~2,900 to ~4,400 lines because a full download now pulls the warrant series, notes and bonds too — and every one of them was being sent to the server for grading (and reground in the browser whenever the server was slow), which is what froze the app. Grading is for investable shares: the ~1,500 derivative codes (the same ones the classifier learned to recognise this morning) are now excluded from the gradeable set. Their data stays on your device; they just never enter the report card, the radar warm-up or the upload. Loads should feel like last week again. The “live list came back smaller” notice is a separate, real issue — the symbol feed is degraded until the EODDATA key is restored on the server dashboard.",
   "date": "2026-08-15"
 }

@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.15-776-open';
+const APP_VERSION='2026.08.15-777-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -22026,7 +22026,7 @@ function _auditWarmIdle(){
     if(window._prepRunning||window._auditWarming)return;
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||(typeof _todayLocal==='function'?_todayLocal():'');
     if(window._auditCache&&window._auditCache.A&&window._auditCache.d===dd&&window._auditCache.ex===currentExch&&window._auditCache.liq===_cardLiqKey()&&(window._auditCache.A.hold||5)===((typeof _cardHold==='function')?_cardHold():5))return; /* v597 ROOT CAUSE FIX: this guard never checked hold, so a card window change could never even trigger a re-warm — added the hold==_cardHold() check. v408: re-warm when the exchange changed · v568: ALSO when the 💧 floor changed — the card and the grade fetcher already keyed on it, so the warm was the odd one out, leaving the radar on stale-floor grades and pushing a full re-grade into the next card open */
-    const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS).filter(_cardLiqPassSrv); /* v572: server-floor-aware payload */
+    const _sh=(Array.isArray(allData)?allData:[]).filter(s=>Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS).filter(_gradeTypeOk).filter(_cardLiqPassSrv); /* v572: server-floor-aware payload · v777: investable types only */
     if(_sh.length<3)return;
     if(!(typeof DATA_PROXY==='string' && DATA_PROXY))return; // v378: grading is server-side — nothing to warm without the server
     window._auditWarming=true;
@@ -22146,7 +22146,7 @@ function _rcAltOpen(dd,hold){
   // shows a plain warning instead of silence.)
   if(hit&&hit.M&&((hit.hold||5)===hold)){ return _renderReportCard(hit); }
   var _fail=function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not grade the '+hold+'-day view just now.</b><br>Longer windows are computed fresh on your server — give it a moment and try again, or switch back to 5d.</div>','📋 Signal report card'); }catch(e){} } };
-  var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_cardLiqPassSrv); /* v572 */
+  var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_gradeTypeOk).filter(_cardLiqPassSrv); /* v572 · v777 types */
   if(!(typeof DATA_PROXY==='string'&&DATA_PROXY)||_sh.length<3){ _fail(); return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal over '+hold+' trading days…</b><br>the '+hold+'d view is computed fresh on your server — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
@@ -23562,6 +23562,14 @@ function _cardLiqPass(s){
     return (v*p)>=need;
   }catch(e){ return true; }
 }
+function _gradeTypeOk(s){
+  /* v777: grading is for investable lines. Warrant series, notes and bonds
+     (typed by the v766 census classifier) are excluded from the gradeable set —
+     Tony's store grew 2,906→4,395 when Download-all pulled the derivative codes,
+     which bloated the /grades upload ~50% and made the in-browser fallback grind
+     the UI. Their bars stay on the device; they just never enter grading. */
+  try{ var t=s&&s.type; return t!=='Option'&&t!=='Preference'&&t!=='Bond'; }catch(e){ return true; }
+}
 function _cardLiqPassSrv(s){
   /* v572: the grading payload's floor. The server always applies its own
      $50k/day floor (_AUD.LIQ_FLOOR) and discards anything below it, so
@@ -24195,7 +24203,7 @@ function signalReportCard(){
   // say so plainly rather than grading here — the recipe is no longer in this page.
   var _fail=function(){ var m=document.getElementById('appModal'); if(window._rcTok===_tok && m && m.style.display!=='none' && window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not reach your grading server just now.</b><br>The report card is graded on your server — give it a moment and open it again. Your prices, signals and portfolio are unaffected.</div>','📋 Signal report card'); }catch(e){} } };
   if(typeof DATA_PROXY==='string' && DATA_PROXY){
-    var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_cardLiqPassSrv).map(function(s){return {ticker:s.ticker,series:s.series};});
+    var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_gradeTypeOk).filter(_cardLiqPassSrv).map(function(s){return {ticker:s.ticker,series:s.series};});
     _serverGrades(_sh,_dd,currentExch).then(function(A){ if(A&&A.M){ window._gradeSrc='server'; _show(A); } else { _fail(); } }).catch(function(){ _fail(); });
   } else { _fail(); }
 }
