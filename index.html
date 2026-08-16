@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-792-open';
+const APP_VERSION='2026.08.16-793-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3109,6 +3109,24 @@ function _picksDrought(j, LR){
     return '<div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.55;">'+out.join(' ')+'</div>';
   }catch(e){ return ''; }
 }
+function _csSpreadFromRows(rows){ /* v793: Corwin–Schultz daily high/low spread estimator — the SAME formula the 16-Aug D1 study ran across 1,946 ordinaries. Pairwise over consecutive stored days, negatives floored at 0, averaged. Returns a fraction (0.012 = 1.2%) or null when there aren't ≥40 clean pairs (old saved rows may lack high/low). */
+  try{
+    if(!Array.isArray(rows)||rows.length<45)return null;
+    const R=rows.slice(-100); const k=3-2*Math.SQRT2; let sum=0,n=0;
+    for(let i=1;i<R.length;i++){
+      const a=R[i-1],b=R[i];
+      const h1=+(a.high!=null?a.high:a.hi), l1=+(a.low!=null?a.low:a.lo);
+      const h2=+(b.high!=null?b.high:b.hi), l2=+(b.low!=null?b.low:b.lo);
+      if(!(h1>0&&l1>0&&h2>0&&l2>0&&h1>=l1&&h2>=l2))continue;
+      const beta=Math.pow(Math.log(h1/l1),2)+Math.pow(Math.log(h2/l2),2);
+      const gamma=Math.pow(Math.log(Math.max(h1,h2)/Math.min(l1,l2)),2);
+      const alpha=(Math.sqrt(2*beta)-Math.sqrt(beta))/k - Math.sqrt(gamma/k);
+      const s=2*(Math.exp(alpha)-1)/(1+Math.exp(alpha));
+      sum+=Math.max(0,s); n++;
+    }
+    return n>=40 ? sum/n : null;
+  }catch(e){ return null; }
+}
 async function showDailyPicks(mode){
   if(mode) window._picksMode = mode;
   const M = window._picksMode;
@@ -3133,6 +3151,13 @@ async function showDailyPicks(mode){
       +'<span style="font-size:12px;">If this says <i>locked</i>, the app needs its password again. Otherwise the server may not have run yet today.</span></div>';
   } else {
     const R=j.rules||{}, rows=(j.rows||[]).filter(x=>x.status!=='queued'||true);
+    const _csMap={}; /* v793: per-ticker estimated spread from the device's own stored highs/lows — no network, no server dependency */
+    try{ await Promise.all(rows.slice(0,16).map(async rr=>{
+      if(!rr||!rr.ticker)return;
+      const hv=await histGet(currentExch||'ASX', rr.ticker);
+      const cs=_csSpreadFromRows(hv&&hv.rows);
+      if(cs!=null)_csMap[rr.ticker]=cs;
+    })); }catch(_ce){}
     const trail=(j.mode==='trail');
     const mine=(j.mode==='mine');
     const noRules=mine && !!R.note;   // the worker says 'no saved rules on the server yet'
@@ -3212,17 +3237,25 @@ async function showDailyPicks(mode){
             : '<div><span style="color:var(--muted);font-size:10px;display:block;">Target</span><b>'+money(r.target_price)+'</b></div>'
               +'<div><span style="color:var(--muted);font-size:10px;display:block;">Stop</span><b>'+money(sv)+'</b></div>')
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Last close</span><b>'+money(r.ref_close)+'</b></div>'
-          +(function(){ /* v788: lever #1 — friction, visible. Round trip = $6 brokerage on the parcel
-             + one ASX tick crossed on exit. The 13-Aug study priced entries; nothing prices EXITS
-             until the trade is over — this line does it before the buy. Visibility only for now:
-             the behavioural gate waits for Monday's clean-maths baseline. */
+          +(function(){ /* v788: lever #1 — friction, visible. v793: the exit cost is now per-share —
+             max(one ASX tick, this share's own estimated spread from ~100 days of stored highs/lows,
+             Corwin–Schultz). The 16-Aug study across 1,946 ordinaries found the tick dominates below
+             50c (the flat assumption was right where the bot lives) but understates true friction
+             2–9× above $1 — this line now says which cost is binding, per share. Visibility only:
+             the behavioural gate still waits for Monday's clean-maths baseline. */
             try{ var _px=+r.limit_price||+r.ref_close||0; if(!(_px>0))return '';
               var _amt=+(r.amount_dollars||r.parcel||0)||1000;
               var _tick=_px<0.10?0.001:(_px<2?0.005:0.01);
-              var _fr=((6/_amt)+(_tick/_px))*100;
+              var _tickPct=_tick/_px*100;
+              var _cs=(_csMap[r.ticker]!=null)?_csMap[r.ticker]*100:null;
+              var _sprBinds=(_cs!=null&&_cs>_tickPct);
+              var _cross=_sprBinds?_cs:_tickPct;
+              var _fr=(6/_amt)*100+_cross;
+              var _lbl=_sprBinds?('est. spread '+_cs.toFixed(2)+'%'):'one tick';
+              var _tip='Round trip = $6 brokerage on the parcel + the larger of one ASX tick and this share\u2019s own estimated spread (from ~100 days of its stored daily highs and lows). A 16-Aug check across 1,946 ordinaries: below 50c the exchange\u2019s minimum tick is almost always the larger cost, so the old one-tick line was already right there \u2014 but above $1 the real spread usually exceeds one tick, so the line now uses whichever is binding for THIS share. An estimate, not a quote \u2014 the live spread on the day can differ.';
               var _ed=(r.edge!=null&&isFinite(+r.edge))?+r.edge:null;
               var _ok=(_ed!=null)?(_ed>=2*_fr):null;
-              return '<div style="flex-basis:100%;font-size:10px;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:2px;">\ud83d\udcb8 friction \u2248 '+_fr.toFixed(2)+'% round trip ($6 + one tick)'+(_ed!=null?(' \u00b7 line edge '+_ed.toFixed(2)+'% \u2014 '+(_ok?'clears 2\u00d7 friction \u2713':'does NOT clear 2\u00d7 friction')):'')+'</div>';
+              return '<div title="'+_tip+'" style="flex-basis:100%;font-size:10px;cursor:help;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:2px;">\ud83d\udcb8 friction \u2248 '+_fr.toFixed(2)+'% round trip ($6 + '+_lbl+')'+(_ed!=null?(' \u00b7 line edge '+_ed.toFixed(2)+'% \u2014 '+(_ok?'clears 2\u00d7 friction \u2713':'does NOT clear 2\u00d7 friction')):'')+'</div>';
             }catch(_fe){ return ''; } })()
           +'</div>'
           +'<div style="display:flex;gap:6px;margin-top:8px;">'
