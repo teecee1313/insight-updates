@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-800-open",
+  "version": "2026.08.16-801-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🔢 Small tidy-up on Today's picks: the price band now always shows two decimals — '$0.20–$0.99' instead of '$0.2–$0.99' — so it reads as money everywhere, matching the rest of the app. No change to any rule, pick or number's meaning; the low end was always $0.20, it just displayed the trailing zero inconsistently.",
+  "notes": "🎯 The Biggest gainers / Biggest falls boards now exclude shares priced below half a cent. On Market today, several 'gainers' were showing an identical +50.0% and several 'falls' an identical −33.3% — those weren't real moves. Below about half a cent the exchange records prices only to a tenth of a cent, so a single one-notch tick (a tenth of a cent) reads as +50% or −33% even when almost nothing happened. Those quantization artifacts were crowding genuine movers off the board. The boards now require a price of at least $0.005, so what you see are real percentage moves. 'Most active on volume' is unchanged — a big volume spike on a cheap share is still a real spike worth seeing. No change to any pick, grade or the robot.",
   "date": "2026-08-16"
 }

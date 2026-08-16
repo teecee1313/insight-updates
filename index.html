@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-800-open';
+const APP_VERSION='2026.08.16-801-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19492,9 +19492,15 @@ function simpleMarketPulse(){
   else if(pctUp>=55){mood='🟢 Slightly positive — mild buying edge';moodC='var(--green)';}
   else if(pctDn>=55){mood='🔴 Slightly negative — mild selling edge';moodC='var(--red)';}
   else{mood='↔️ Mixed — buyers and sellers roughly balanced';moodC='var(--muted)';}
-  // Top movers
-  const gainers=[...up].sort((a,b)=>b.chgPct-a.chgPct).slice(0,5);
-  const losers=[...dn].sort((a,b)=>a.chgPct-b.chgPct).slice(0,5);
+  // Top movers. v801: exclude shares priced below $0.005 from the gainers/falls
+  // boards. Below a half-cent, ASX stores prices to a tenth of a cent, so ONE
+  // increment (0.001→0.002) reads as +100% and 0.003→0.002 as −33% — the
+  // "+50.0%" and "−33.3%" clusters are quantization artifacts, not real moves,
+  // and they were crowding genuine movers off the board. "Most active" keeps
+  // the full universe (a volume spike on a sub-cent share is still a real spike).
+  const _moverFloor=s=>((+s.price||+s.c||0)>=0.005);
+  const gainers=[...up].filter(_moverFloor).sort((a,b)=>b.chgPct-a.chgPct).slice(0,5);
+  const losers=[...dn].filter(_moverFloor).sort((a,b)=>a.chgPct-b.chgPct).slice(0,5);
   const active=[...volArr].sort((a,b)=>(b.volPct||0)-(a.volPct||0)).slice(0,3);
   // Row builder (string concat, no nested template)
   const row=(s,col)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">'
