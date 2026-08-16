@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-801-open';
+const APP_VERSION='2026.08.16-802-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -24654,7 +24654,9 @@ function _renderReportCard(A){
                 if(!(m.tier==='solid'||m.tier==='promising'))return '';
                 const eAdj=m.dirNeg?-m.edge:m.edge; if(!(eAdj>0))return '';
                 const after=eAdj*P.keep;
-                return ` <span title="This line's edge (${f1(eAdj)}) multiplied by the pooled keep-ratio from the ⏳ header — the fraction of themselves badge-earning edges kept, on average, in the year that followed (${Math.round(100*P.keep)}%, from ${P.n} transitions in this card's own three-year history). A rule of thumb applied uniformly, NOT a forecast for this line — its own ↘ fading / ↗ strengthening chip below is the better per-line read. If it fades like the average badge-holder, expect about ${f1(after)}." style="cursor:help;color:var(--dim);">· ⏳ ≈${f1(after)} after the typical fade</span>`;
+                const grew=P.keep>=1.15; // v802: pooled edges strengthened next window, not faded — don't call growth a haircut
+                const _lbl=grew?('· ⏳ \\u2248'+f1(after)+' if it holds like the average badge'):('· \\u23f3 \\u2248'+f1(after)+' after the typical fade');
+                return ` <span title="This line's edge (${f1(eAdj)}) multiplied by the pooled ratio from the ⏳ header — what badge-earning edges averaged, on average, in the year that followed versus the year they earned the badge (${Math.round(100*P.keep)}%, from ${P.n} transitions in this card's own three-year history). ${grew?'On this history badges tended to STRENGTHEN next window, not fade':'On this history badges tended to give back some edge next window'} — but this is a rule of thumb applied uniformly, NOT a forecast for this line; its own ↘ fading / ↗ strengthening chip is the better per-line read." style="cursor:help;color:var(--dim);">${_lbl}</span>`;
               }catch(_de){ return ''; } })()}`;})()}</div></div>`;
     };
     const _flagTip={
@@ -24735,11 +24737,12 @@ function _renderReportCard(A){
         const pThen=P.pThen, pNext=P.pNext, pos=P.pos, keep=Math.round(100*P.keep);
         let word,col;
         if(pNext<=0){ word='did NOT survive on average'; col='#ff9caa'; }
+        else if(keep>=115){ word='actually STRENGTHENED, not faded, in the year that followed'; col='var(--green)'; } // v802: growth case — the report shows this honestly; the card must too
         else if(keep>=90){ word='held almost fully'; col='var(--green)'; }
         else if(keep>=50){ word='kept roughly '+keep+'% of themselves'; col='var(--gold)'; }
         else { word='kept only ~'+keep+'% of themselves'; col='#ff9caa'; }
         const tip='Measured on this card\u2019s own three-year history: every line that had earned a badge (SOLID or PROMISING) in one stored year is followed into the year after. '+P.n+' such transitions exist. Badge-year edge averaged '+f1(pThen)+'; the following year those same lines averaged '+f1(pNext)+' ('+pos+'% stayed positive). Some fade is normal \u2014 a graded edge is a ceiling estimate of its own future \u2014 so read every edge on this card with this haircut in mind, and lean on the \u2198 fading / \u2197 strengthening chips on each line. Full breakdown, including which lines held and which collapsed: the \u2696 \u201cDoes the grading work?\u201d report in the sidebar. Lines overlap (a triple contains its pairs), so treat this as one honest pooled read, not '+P.n+' independent experiments.';
-        return `<div title="${tip}" style="font-size:11px;margin-bottom:10px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);line-height:1.5;cursor:help;">⏳ <b style="color:${col}">Expect decay:</b> on this card's own history, badge-earning edges ${word} in the year that followed (${f1(pThen)} → ${f1(pNext)}, ${pos}% stayed positive). <span style="color:var(--dim)">Each graded line below now shows its own after-haircut figure — hover for the maths.</span></div>`;
+        return `<div title="${tip}" style="font-size:11px;margin-bottom:10px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);line-height:1.5;cursor:help;">⏳ <b style="color:${col}">${keep>=115?'Edges held up:':'Expect decay:'}</b> on this card's own history, badge-earning edges ${word} (${f1(pThen)} → ${f1(pNext)}, ${pos}% stayed positive). <span style="color:var(--dim)">Each graded line below shows its own next-window figure — hover for the maths.</span></div>`;
       }catch(e){ return ''; } })();
     // rank helper for combo/sequence sections
     const tierRank={solid:2,promising:1,early:0};
