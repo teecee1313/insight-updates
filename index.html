@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-782-open';
+const APP_VERSION='2026.08.16-783-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -20787,6 +20787,7 @@ body.training-on #trainBtn{background:rgba(147,51,234,.18);border-color:#9333ea;
   <button class="hp-fs" onclick="lessonFs()" title="Full screen — give the lesson the whole window (press again or Esc to shrink back)">⛶</button>
   <h3>🎓 Insight Trading — Learn the app</h3>
   <div id="lessonProg"></div>
+  <div style="display:flex;gap:8px;margin:0 0 8px;flex-wrap:wrap;align-items:center;"><span style="font-size:10px;color:var(--dim);">📖 Written guides:</span><a href="https://teecee1313.github.io/insight-updates/guides/Insight-Trading-Beginners-Guide.pdf" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:var(--gold);text-decoration:none;border:1px solid var(--border2);border-radius:6px;padding:4px 9px;background:var(--bg3);" title="The beginner setup &amp; how-to guide — 4 pages, opens in a new tab. Covers setup, the daily routine, the rule sets, reading evidence, and losing streaks.">📕 Beginner's Guide (PDF)</a><a href="https://teecee1313.github.io/insight-updates/guides/Insight-Trading-Beginners-Guide.pptx" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:var(--muted);text-decoration:none;border:1px solid var(--border2);border-radius:6px;padding:4px 9px;background:var(--bg3);" title="The same guide as slides — downloads a PowerPoint file.">📊 Setup deck (PowerPoint)</a></div>
   <div id="studyRow" style="display:flex;gap:8px;margin:0 0 8px;"><button type="button" onclick="openFlashcards()" style="flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--gold);background:var(--bg3);color:var(--text);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">🃏 Flashcards</button><button type="button" onclick="openStudyQuiz()" style="flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">❓ Quiz me</button></div><div id="lessonNav"></div>
   <div id="lessonBody"></div>
 </div>
