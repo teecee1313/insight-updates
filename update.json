@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-799-open",
+  "version": "2026.08.16-800-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "⚡ Instant Today page, the robot explains its buys, and a money-display fix. The robot's practice-money card was showing the wrong return — it did its own sums and left out cash tied up in pending buy orders and profit already taken out of the account, so a winning account could read as a big loss. It now uses the app's own account-value formula, the exact one the portfolio screen and the header briefcase use, so the numbers always agree. Plus: the Today page now opens instantly (it remembers yesterday's and refreshes in place), and the robot narrates its buying as well as its selling — 'Buying KAU at $0.155 — a breakout fired' — with the reason taken straight from the signal that triggered it. Under the hood the app can now also receive the whole morning brief pre-composed from the server in one fetch, the moment the next server update is live. No grades, picks or robot decisions changed.",
+  "notes": "🔢 Small tidy-up on Today's picks: the price band now always shows two decimals — '$0.20–$0.99' instead of '$0.2–$0.99' — so it reads as money everywhere, matching the rest of the app. No change to any rule, pick or number's meaning; the low end was always $0.20, it just displayed the trailing zero inconsistently.",
   "date": "2026-08-16"
 }

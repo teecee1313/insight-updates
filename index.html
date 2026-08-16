@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-799-open';
+const APP_VERSION='2026.08.16-800-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3183,6 +3183,7 @@ async function showDailyPicks(mode){
     })); }catch(_ce){}
     const trail=(j.mode==='trail');
     const mine=(j.mode==='mine');
+    const _pp=v=>{const n=+v; return isFinite(n)?(n<1?n.toFixed(2):(''+n)):v;}; // v800: price band shows 2dp under $1 ($0.2 -> $0.20)
     const noRules=mine && !!R.note;   // the worker says 'no saved rules on the server yet'
     const ruleLine = noRules
       ? 'No rules saved on the server yet.'
@@ -3190,10 +3191,10 @@ async function showDailyPicks(mode){
       ? ((+R.targetPct>0)
           ? R.targetPct+'% target \u00b7 '+R.stopPct+'% stop'
           : (R.trailPct||20)+'% trailing stop \u00b7 no take-profit')
-        +' \u00b7 '+(R.dipPct>0?(R.dipPct+'% dip entry'):'buys the open')+' \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+(R.minPrice)+'\u2013$'+(R.maxPrice)+' \u00b7 top '+(R.topN||4)+'/day'
+        +' \u00b7 '+(R.dipPct>0?(R.dipPct+'% dip entry'):'buys the open')+' \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+_pp(R.minPrice)+'\u2013$'+_pp(R.maxPrice)+' \u00b7 top '+(R.topN||4)+'/day'
       : trail
-      ? (R.trailPct||20)+'% trailing stop \u00b7 no take-profit \u00b7 '+(R.dipPct||5)+'% dip entry \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+(R.minPrice)+'\u2013$'+(R.maxPrice)
-      : (R.targetPct||15)+'% target \u00b7 '+(R.stopPct||15)+'% stop \u00b7 '+(R.dipPct||5)+'% dip entry \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+(R.minPrice)+'\u2013$'+(R.maxPrice);
+      ? (R.trailPct||20)+'% trailing stop \u00b7 no take-profit \u00b7 '+(R.dipPct||5)+'% dip entry \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+_pp(R.minPrice)+'\u2013$'+_pp(R.maxPrice)
+      : (R.targetPct||15)+'% target \u00b7 '+(R.stopPct||15)+'% stop \u00b7 '+(R.dipPct||5)+'% dip entry \u00b7 score '+(R.minScore||7)+'+ \u00b7 $'+_pp(R.minPrice)+'\u2013$'+_pp(R.maxPrice);
 
     // freshness, stated rather than assumed — a pick from last week looks
     // identical to one from this morning unless the page says otherwise
