@@ -108,6 +108,28 @@ body:not(.simple-mode) #simplePanel{display:none;}
 .simple-load-btn.done{border-color:var(--green);background:var(--bg2);color:var(--green);}
 .simple-load-hint{font-size:10.5px;color:var(--muted);text-align:center;margin-top:5px;}
 .simple-fresh-btn{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:12px;font-family:var(--sans);cursor:pointer;}
+/* v798 — Today page: same design grammar as .simple-card (radius, padding, emoji scale, title weight), non-clickable */
+#todayPage{font-family:var(--sans);}
+.today-card{border:1px solid var(--border);border-radius:14px;background:var(--bg2);padding:14px 16px;margin-bottom:10px;}
+.tc-head{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+.tc-head .tc-emoji{font-size:22px;line-height:1;}
+.tc-head .tc-title{font-weight:800;font-size:15px;color:var(--gold);flex:1;}
+.tc-head .tc-chip{font-size:9px;font-weight:800;letter-spacing:.6px;border-radius:5px;padding:2px 8px;}
+.tc-chip.on{color:var(--green);border:1px solid var(--green);background:rgba(63,185,80,.10);}
+.tc-chip.off{color:var(--dim);border:1px solid var(--border2);background:var(--bg3);}
+.tc-body{font-size:12px;color:var(--text);line-height:1.6;}
+.tc-body .dim{color:var(--dim);}
+.tc-stats{display:flex;gap:16px;flex-wrap:wrap;margin:7px 0 4px;}
+.tc-stat span{display:block;font-size:9px;color:var(--dim);letter-spacing:.5px;text-transform:uppercase;font-weight:700;}
+.tc-stat b{font-size:15px;font-weight:800;color:var(--text);}
+.tc-trade{font-size:11px;color:var(--muted);padding:4px 0;border-top:1px dashed var(--border);line-height:1.5;}
+.tc-trade:first-of-type{border-top:none;}
+.tc-btnrow{display:flex;gap:7px;margin-top:9px;}
+.tc-btn{flex:1;padding:8px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;}
+.tc-btn.gold{border-color:var(--gold);background:rgba(217,164,65,.10);color:var(--gold);}
+.tc-style{flex:1;min-width:88px;padding:9px 4px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11.5px;font-family:var(--sans);cursor:pointer;}
+.tc-style.on{border-color:var(--gold);background:rgba(255,210,0,.12);color:var(--gold);}
+.tc-setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px;color:var(--text);}
 .simple-fresh-btn:hover{border-color:var(--gold);color:var(--gold);}
 .simple-grid{display:flex;flex-direction:column;gap:10px;}
 .simple-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:15px 16px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;transition:transform .1s,box-shadow .15s;position:relative;}
@@ -1745,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-797-open';
+const APP_VERSION='2026.08.16-798-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19116,17 +19138,18 @@ function _todayRender(){
   const host=document.getElementById('todayPage'); if(!host)return;
   const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const money=v=>'$'+(+v).toLocaleString(undefined,{maximumFractionDigits:0});
-  const px=v=>(v==null||!isFinite(v))?'—':('$'+(+v).toFixed(+v<1?3:2));
-  const card=(inner,extra)=>'<div style="border:1px solid var(--border);border-radius:11px;background:var(--bg2);padding:11px 13px;margin-bottom:9px;line-height:1.6;font-size:12.5px;color:var(--text);'+(extra||'')+'">'+inner+'</div>';
-  let out='';
-  // ── ☀ the morning brief ──────────────────────────────────────────────────
+  const px=v=>(v==null||!isFinite(v))?'\u2014':('$'+(+v).toFixed(+v<1?3:2));
+  const label=t=>'<div class="simple-section-label">'+t+'</div>';
+  const card=(emoji,title,chip,body,tcol)=>'<div class="today-card"><div class="tc-head"><span class="tc-emoji">'+emoji+'</span><span class="tc-title"'+(tcol?(' style="color:'+tcol+'"'):'')+'>'+title+'</span>'+(chip||'')+'</div><div class="tc-body">'+body+'</div></div>';
+  let out=label('TODAY');
+  // ── \u2600\ufe0f the morning brief ──────────────────────────────────────
   try{
     const bits=[];
     let up=0,n=0;
     (Array.isArray(allData)?allData:[]).forEach(s=>{ if(s&&isFinite(s.chgPct)){ n++; if(s.chgPct>0)up++; } });
     if(n>=50){ const pu=Math.round(up/n*100);
-      bits.push('The market is leaning '+(pu>50?'<b style="color:var(--green)">up</b>':'<b style="color:#ff9caa">down</b>')+' today — '+pu+' of every 100 shares are '+(pu>50?'higher':'higher, the rest lower')+'.');
-    } else { bits.push('Prices are loading in the background — this page fills itself in.'); }
+      bits.push('The market is leaning '+(pu>50?'<b style="color:var(--green)">up</b>':'<b style="color:#ff9caa">down</b>')+' \u2014 '+pu+' of every 100 shares are higher.');
+    } else { bits.push('Prices are loading in the background \u2014 this page fills itself in.'); }
     const mk=String(new Date().getMonth()+1).padStart(2,'0'); const mc=_TODAY_MONTH[mk];
     if(mc) bits.push('This month is '+mc[0]+'.');
     try{ const r=_rules(); const p=_paper('auto'); const today=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
@@ -19134,12 +19157,12 @@ function _todayRender(){
       const soldToday=(p.history||[]).filter(t=>t&&t.sellDate===today).length;
       if(r.apOn){ bits.push(boughtToday||soldToday
         ? ('Overnight the practice robot '+(boughtToday?('bought '+boughtToday):'')+(boughtToday&&soldToday?' and ':'')+(soldToday?('sold '+soldToday):'')+'.')
-        : 'The practice robot is on watch — nothing met its rules yet today.'); }
+        : 'The practice robot is on watch \u2014 nothing met its rules yet today.'); }
     }catch(e){}
-    bits.push('<span style="color:var(--dim)">Nothing needs your attention.</span>');
-    out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">☀ Today</div>'+bits.join(' '));
+    bits.push('<span class="dim">Nothing needs your attention.</span>');
+    out+=card('\u2600\ufe0f','Good '+(new Date().getHours()<12?'morning':'afternoon'),'',bits.join(' '));
   }catch(e){}
-  // ── 🤖 the robot's money ─────────────────────────────────────────────────
+  // ── 🤖 the robot's practice money ───────────────────────────────────────
   try{
     const r=_rules();
     try{ updatePaperPrices('auto'); }catch(e){}
@@ -19150,17 +19173,21 @@ function _todayRender(){
     const dcol=dpct>=0?'var(--green)':'#ff9caa';
     const why={target:'hit its target',stop:'hit its safety stop','target-scale':'took part-profit at its target',trail:'its trailing stop locked in the move',time:'its time was up'};
     const acts=(p.history||[]).slice(0,3).map(t=>{ const plc=(+t.plPct>=0)?'var(--green)':'#ff9caa';
-      return '<div style="font-size:11px;color:var(--muted);padding:2px 0;">Sold <b style="color:var(--text)">'+esc(t.ticker)+'</b> for <b style="color:'+plc+'">'+((+t.plPct>=0?'+':'')+(+t.plPct).toFixed(1))+'%</b> — '+(why[t.trigger]||'closed by its rules')+'</div>'; }).join('');
+      return '<div class="tc-trade">Sold <b style="color:var(--text)">'+esc(t.ticker)+'</b> for <b style="color:'+plc+'">'+((+t.plPct>=0?'+':'')+(+t.plPct).toFixed(1))+'%</b> \u2014 '+(why[t.trigger]||'closed by its rules')+'</div>'; }).join('');
     const holds=(p.holdings||[]).length;
-    out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">🤖 The robot\u2019s practice money '+(r.apOn?'<span style="font-size:9px;color:var(--green);border:1px solid var(--green);border-radius:4px;padding:1px 5px;vertical-align:2px;">ON</span>':'<span style="font-size:9px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;vertical-align:2px;">OFF</span>')+'</div>'
-      +'<div>'+money(start)+' → <b style="color:'+dcol+'">'+money(eq)+'</b> <span style="color:'+dcol+'">('+(dpct>=0?'+':'')+dpct.toFixed(1)+'%)</span>'
-      +' · holding '+holds+' share'+(holds===1?'':'s')+'</div>'
-      +(acts||'<div style="font-size:11px;color:var(--dim);padding:2px 0;">No completed trades yet — it buys only when its rules are met, entirely with practice money.</div>')
-      +'<button onclick="simpleRun(\'portfolio\')" style="margin-top:6px;padding:6px 12px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-size:10.5px;font-family:var(--sans);cursor:pointer;">See every trade →</button>');
+    out+=card('\ud83e\udd16','The robot\u2019s practice money',
+      '<span class="tc-chip '+(r.apOn?'on">ON':'off">OFF')+'</span>',
+      '<div class="tc-stats">'
+      +'<div class="tc-stat"><span>Started with</span><b>'+money(start)+'</b></div>'
+      +'<div class="tc-stat"><span>Worth now</span><b style="color:'+dcol+'">'+money(eq)+'</b></div>'
+      +'<div class="tc-stat"><span>Change</span><b style="color:'+dcol+'">'+(dpct>=0?'+':'')+dpct.toFixed(1)+'%</b></div>'
+      +'<div class="tc-stat"><span>Holding</span><b>'+holds+' share'+(holds===1?'':'s')+'</b></div></div>'
+      +(acts||'<div class="tc-trade">No completed trades yet \u2014 it buys only when its rules are met, entirely with practice money.</div>')
+      +'<div class="tc-btnrow"><button class="tc-btn" onclick="simpleRun(\'portfolio\')">See every trade \u2192</button></div>');
   }catch(e){}
-  // ── 💡 one idea today ────────────────────────────────────────────────────
+  // ── 💡 one idea today (fills itself in) ─────────────────────────────────
   out+='<div id="todayIdea"></div>';
-  // ── ⭐ your shares (only when relevant) ──────────────────────────────────
+  // ── ⭐ your shares (only when relevant) ─────────────────────────────────
   try{
     const w=Object.values(curWL()||{});
     if(w.length){
@@ -19168,24 +19195,24 @@ function _todayRender(){
       const movers=w.map(x=>adm.get(x.exchange+':'+x.ticker)).filter(s=>s&&isFinite(s.chgPct)&&Math.abs(s.chgPct)>=2)
         .sort((a,b)=>Math.abs(b.chgPct)-Math.abs(a.chgPct)).slice(0,4);
       if(movers.length){
-        out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">⭐ Your shares</div>'
-          +movers.map(s=>'<div style="font-size:11.5px;padding:1px 0;"><b>'+esc(s.ticker)+'</b> moved <b style="color:'+(s.chgPct>0?'var(--green)':'#ff9caa')+'">'+(s.chgPct>0?'+':'')+(+s.chgPct).toFixed(1)+'%</b> today</div>').join('')
-          +'<button onclick="simpleRun(\'watchlist\')" style="margin-top:6px;padding:6px 12px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-size:10.5px;font-family:var(--sans);cursor:pointer;">Open watchlist →</button>');
+        out+=card('\u2b50','Your shares','',
+          movers.map(s=>'<div class="tc-trade"><b style="color:var(--text)">'+esc(s.ticker)+'</b> moved <b style="color:'+(s.chgPct>0?'var(--green)':'#ff9caa')+'">'+(s.chgPct>0?'+':'')+(+s.chgPct).toFixed(1)+'%</b> today</div>').join('')
+          +'<div class="tc-btnrow"><button class="tc-btn" onclick="simpleRun(\'watchlist\')">Open watchlist \u2192</button></div>');
       }
     }
   }catch(e){}
-  // ── ⚙ automation ─────────────────────────────────────────────────────────
+  // ── ⚙️ automation ────────────────────────────────────────────────────────
   try{
     const r=_rules(); const sk=_todayStyleKey(r);
-    const chip=(k)=>{ const on=sk===k; const s=_TODAY_STYLES[k];
-      return '<button onclick="_autoRobotStyle(\''+k+'\')" title="'+esc(s.why)+'" style="flex:1;min-width:86px;padding:7px 4px;border-radius:8px;border:1px solid '+(on?'var(--gold)':'var(--border2)')+';background:'+(on?'rgba(255,210,0,.12)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">'+s.name+'</button>'; };
-    out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:5px;">⚙ Automation</div>'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;">'
-      +'<span title="The robot practises buying and selling by tested rules, entirely with pretend money. It never touches real money — the app has no way to.">Practice robot</span>'
-      +'<button onclick="_autoRobotToggle()" style="padding:5px 16px;border-radius:16px;border:1px solid '+(r.apOn?'var(--gold)':'var(--border2)')+';background:'+(r.apOn?'rgba(255,210,0,.16)':'var(--bg4)')+';color:'+(r.apOn?'var(--gold)':'var(--muted)')+';font-weight:800;font-size:11px;font-family:var(--sans);cursor:pointer;min-width:54px;">'+(r.apOn?'ON':'OFF')+'</button></div>'
-      +'<div style="display:flex;gap:6px;margin:6px 0 2px;flex-wrap:wrap;">'+chip('def')+chip('all')+chip('hun')+'</div>'
-      +'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+(sk?esc(_TODAY_STYLES[sk].why):'Custom rules are set — pick a style above to use a tested one, or fine-tune in Advanced.')+'</div>'
-      +'<div style="font-size:10px;color:var(--dim);margin-top:5px;">Fresh prices: <b style="color:var(--muted)">automatic</b> — the app loads itself when you open it. Every study and full report lives in <a href="#" onclick="setAppMode(\'advanced\');return false;" style="color:var(--muted)">Advanced →</a></div>');
+    const chip=(k)=>{ const s=_TODAY_STYLES[k];
+      return '<button class="tc-style'+(sk===k?' on':'')+'" onclick="_autoRobotStyle(\''+k+'\')" title="'+esc(s.why)+'">'+s.name+'</button>'; };
+    out+=label('AUTOMATION')
+      +card('\u2699\ufe0f','Runs by itself','',
+      '<div class="tc-setrow"><span title="The robot practises buying and selling by tested rules, entirely with pretend money. It never touches real money \u2014 the app has no way to.">Practice robot</span>'
+      +'<button class="tc-btn'+(r.apOn?' gold':'')+'" style="flex:0 0 auto;min-width:60px;" onclick="_autoRobotToggle()">'+(r.apOn?'ON':'OFF')+'</button></div>'
+      +'<div class="tc-btnrow" style="margin-top:6px;">'+chip('def')+chip('all')+chip('hun')+'</div>'
+      +'<div style="font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.5;">'+(sk?esc(_TODAY_STYLES[sk].why):'Custom rules are set \u2014 pick a style above to use a tested one, or fine-tune in Advanced.')+'</div>'
+      +'<div style="font-size:10.5px;color:var(--dim);margin-top:6px;">Fresh prices load themselves when you open the app. Every study and full report lives in <a href="#" onclick="setAppMode(\'advanced\');return false;" style="color:var(--muted)">Advanced \u2192</a></div>');
   }catch(e){}
   host.innerHTML=out;
   // one idea fills itself in without blocking anything above
@@ -19195,12 +19222,11 @@ function _todayRender(){
     const nm=(typeof _sigPlainName==='function')?_sigPlainName(r.evidence_key):String(r.evidence_key||'a signal');
     const proven=(String(r.tier||'').toLowerCase()==='solid')?'a signal proven over ten years of history':(String(r.tier||'').toLowerCase()==='promising')?'a signal with a promising record':'a signal the app tracks';
     const ed=(r.edge!=null&&isFinite(+r.edge)&&+r.edge>0)?(' It has typically made about <b>$'+(+r.edge).toFixed(2)+' extra per $100</b> in the days after firing.'):'';
-    el.innerHTML=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">💡 One idea today</div>'
-      +'<div><b>'+esc(r.ticker)+'</b> at '+px(r.limit_price)+' — <b>'+esc(nm)+'</b> fired, '+proven+'.'+ed
-      +' The robot considers exactly this kind of trade with its practice money.</div>'
-      +'<div style="display:flex;gap:6px;margin-top:7px;">'
-      +'<button onclick="_picksOpen&&_picksOpen(\''+esc(r.ticker)+'\')" style="flex:1;padding:6px;border-radius:7px;border:1px solid var(--gold);background:rgba(217,164,65,.12);color:var(--gold);font-weight:700;font-size:10.5px;font-family:var(--sans);cursor:pointer;">Look closer</button>'
-      +'<button onclick="showDailyPicks&&showDailyPicks()" style="flex:1;padding:6px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10.5px;font-family:var(--sans);cursor:pointer;">All of today\u2019s picks →</button></div>');
+    el.innerHTML='<div class="today-card"><div class="tc-head"><span class="tc-emoji">\ud83d\udca1</span><span class="tc-title">One idea today</span></div><div class="tc-body">'
+      +'<b style="color:var(--text)">'+esc(r.ticker)+'</b> at '+px(r.limit_price)+' \u2014 <b>'+esc(nm)+'</b> fired, '+proven+'.'+ed
+      +' The robot considers exactly this kind of trade with its practice money.'
+      +'<div class="tc-btnrow"><button class="tc-btn gold" onclick="_picksOpen&&_picksOpen(\''+esc(r.ticker)+'\')">Look closer</button>'
+      +'<button class="tc-btn" onclick="showDailyPicks&&showDailyPicks()">All of today\u2019s picks \u2192</button></div></div></div>';
   }catch(e){} });
 }
 async function _refreshSimpleLoad(){
