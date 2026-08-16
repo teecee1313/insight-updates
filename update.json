@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-784-open",
+  "version": "2026.08.16-785-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "💬 The evidence badges now explain themselves in plain English. Everywhere the app used to lean on “2.5× its margin of error”, it now leads with the question that phrase answers: could this just be luck? SOLID = strong and steady across so many firings that luck is practically ruled out. PROMISING = looks real, but thinner evidence. NOT PROVEN = luck could still explain it — no badge, and the robot may not buy it. The precise statistics stay in brackets for those who want them. The written guides under 🎓 Lessons carry the same plain language (think restaurant reviews: five stars from three reviews, or 4.5 from two thousand?).",
+  "notes": "⚡ PN EDGE now shows in the compact radar too. The compact evidence line listed solid / promising / not proven but not the one that matters most — it now ends with “⚡ N with edge”, tappable like the rest, filtering the table to shares whose strongest firing line holds a proven positive edge. The flagship is visible in both radar modes.",
   "date": "2026-08-16"
 }
