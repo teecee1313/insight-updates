@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-804-open",
+  "version": "2026.08.16-805-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🌱 Clarified the ranking on Climbers Today. The list is ranked by how close each share's strongest CLIMBING LINE is to becoming proven — but each row also shows a score chip (e.g. 43/100) that measures a different thing (the share's accumulation strength). That made the order look wrong: a share scored 43 sitting above shares scored 58 and 59. Nothing was mis-sorted — the 43 share's climbing line was genuinely the closest to the bar — but the intro now says plainly that the rank is by climbing-proximity, not by the score chip, so a lower-scored share can correctly rank higher. Wording only; the ranking maths is unchanged and was already correct.",
+  "notes": "📊 Fixed a cut-off column in the 'Does the grading work?' report. Its comparison table has four columns, and on a phone the last one ('still positive' — the share of lines that stayed up) was running off the right edge: the header read 'still posit' and the values showed as bare '9' and '6' instead of 91% and 63%. The table now uses a fixed column layout with shorter headers ('next edge', 'still +') so all four columns fit the screen, and the full percentages show. Numbers and logic unchanged — the column just wasn't fitting.",
   "date": "2026-08-16"
 }

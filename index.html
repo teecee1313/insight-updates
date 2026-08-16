@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-804-open';
+const APP_VERSION='2026.08.16-805-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -22790,10 +22790,10 @@ function gradingCheckReport(){
     var decayTxt=(decay===null)?'':('<div style="margin-top:8px;font-size:11px;">Proven lines averaged <b>'+f1(pThen)+'</b> in the window they earned their badge, and <b>'+f1(pMean)+'</b> in the window after \u2014 '+((decay>0)?('a <b style="color:'+(decay>50?'#ff9caa':'var(--gold)')+'">'+decay+'% fade</b>'):('an <b style="color:var(--green)">increase</b>'))+'. Some fade is normal and expected; a total collapse would mean the edge only ever existed in the window that measured it.</div>');
     var tbl=function(list,label){
       if(!list.length)return '';
-      return '<tr><td style="padding:5px 6px;color:var(--text);">'+label+'</td>'
-        +'<td style="padding:5px 6px;text-align:right;font-family:var(--mono);">'+list.length+'</td>'
-        +'<td style="padding:5px 6px;text-align:right;font-family:var(--mono);color:'+(mean(list,function(x){return x.next;})>0?'var(--green)':'#ff9caa')+';">'+f1(mean(list,function(x){return x.next;}))+'</td>'
-        +'<td style="padding:5px 6px;text-align:right;font-family:var(--mono);">'+share(list,function(x){return x.next>0;})+'%</td></tr>';
+      return '<tr><td style="padding:5px 4px;color:var(--text);overflow:hidden;text-overflow:ellipsis;">'+label+'</td>'
+        +'<td style="padding:5px 4px;text-align:right;font-family:var(--mono);">'+list.length+'</td>'
+        +'<td style="padding:5px 4px;text-align:right;font-family:var(--mono);color:'+(mean(list,function(x){return x.next;})>0?'var(--green)':'#ff9caa')+';">'+f1(mean(list,function(x){return x.next;}))+'</td>'
+        +'<td style="padding:5px 4px;text-align:right;font-family:var(--mono);">'+share(list,function(x){return x.next>0;})+'%</td></tr>';
     };
     var worst=proven.slice().sort(function(a,b){return a.next-b.next;}).slice(0,4);
     var best=proven.slice().sort(function(a,b){return b.next-a.next;}).slice(0,4);
@@ -22806,10 +22806,10 @@ function gradingCheckReport(){
       +'<div style="font-weight:800;color:'+vcol+';font-size:13.5px;margin-bottom:5px;">'+verdict+'</div>'
       +'<div style="font-size:11.5px;margin-bottom:9px;">'+vwhy+'</div>'
       +'<div style="font-size:11px;margin-bottom:6px;">The test: take every line\u2019s verdict in one window, then look at what that line actually did in the window that <b>followed</b> \u2014 never the window it was judged on. '+rows.length+' before\u2192after pairs from '+Object.keys(A.M).length+' lines across two transitions.</div>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:11px;margin:6px 0 2px;">'
-      +'<tr style="color:var(--dim);font-size:10px;"><td style="padding:3px 6px;">Verdict at the time</td><td style="padding:3px 6px;text-align:right;">lines</td><td style="padding:3px 6px;text-align:right;">avg edge NEXT window</td><td style="padding:3px 6px;text-align:right;">still positive</td></tr>'
+      +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0 2px;"><table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">'
+      +'<tr style="color:var(--dim);font-size:9.5px;"><td style="padding:3px 4px;">Verdict at the time</td><td style="padding:3px 4px;text-align:right;width:34px;">lines</td><td style="padding:3px 4px;text-align:right;width:62px;">next edge</td><td style="padding:3px 4px;text-align:right;width:46px;">still +</td></tr>'
       +tbl(proven,'\u2705 had earned a badge')+tbl(unprov,'\u2014 had not (TOO EARLY)')
-      +'</table>'
+      +'</table></div>'
       +decayTxt
       +(best.length?'<div style="margin-top:10px;font-weight:700;color:var(--text);font-size:11.5px;">Strongest in the NEXT window</div>'+lst(best):'')
       +(worst.length?'<div style="margin-top:8px;font-weight:700;color:var(--text);font-size:11.5px;">Weakest in the NEXT window <span style="font-weight:400;color:var(--dim);font-size:10px;">(weakest \u2260 negative \u2014 a badge can fade and still be up)</span></div>'+lst(worst):'')
