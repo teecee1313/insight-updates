@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-802-open';
+const APP_VERSION='2026.08.16-803-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19902,7 +19902,12 @@ function myChangesData(){
   window._pfCtx='main'; // v312: the briefing's holdings checks read YOUR account; bot activity is added separately below
   const out={items:[],lists:[],dataDate:null,holdN:0,watchN:0};
   if(!Array.isArray(allData)||!allData.length) return out;
-  try{ out.dataDate=_pfMktDate(currentExch||'ASX'); }catch(e){}
+  // v803: use the REAL latest market-bar date only. _pfMktDate falls back to
+  // today's wall-clock when data hasn't loaded yet — that produced a header
+  // dated 2026-08-16 (a Sunday, no trading) while every other screen correctly
+  // said 2026-08-14. Read the loaded bar date directly; if absent, leave null
+  // so the template says "the latest data" rather than inventing a date.
+  try{ out.dataDate=(window._exchDataDate||{})[currentExch||'ASX']||null; }catch(e){ out.dataDate=null; }
   const by={}; allData.forEach(s=>{by[s.ticker]=s;});
   const seen={};
   let p=null; try{ p=_paper(); }catch(e){ p={holdings:[]}; }
