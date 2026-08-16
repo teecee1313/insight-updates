@@ -1466,6 +1466,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 
   <!-- SIMPLE MODE PANEL -->
   <div id="simplePanel">
+    <div id="todayPage"></div>
     <div class="simple-load" id="simpleLoadWrap">
       <button id="simpleLoadBtn" class="simple-load-btn" onclick="simpleLoad()">⚡ Load today's shares</button>
       <button id="simpleSavedBtn" class="simple-fresh-btn" style="display:none;" onclick="simpleLoad()">📂 Load saved data (instant)</button>
@@ -1744,7 +1745,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-796-open';
+const APP_VERSION='2026.08.16-797-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6518,7 +6519,7 @@ function _rules(){
     maxPositions:Math.round(num(r.maxPositions,fresh?10:8)), minLiq:num(r.minLiq,0),
     trailPct:num(r.trailPct,fresh?8:0), bePct:num(r.bePct,fresh?5:0), maxHoldDays:Math.round(num(r.maxHoldDays,fresh?10:0)),
     lockLadderOn:(r.lockLadderOn===true), lockStep:Math.min(25,Math.max(1,num(r.lockStep,5))), lockMargin:Math.min(15,Math.max(0,num(r.lockMargin,3))), // v514: 🔒 profit ladder
-    apOn:(r.apOn===true), apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'best'; }catch(e){ return (v==='top20')?'top20':'best'; } })(r.apSource), apProvenOnly:(fresh?true:(r.apProvenOnly===true)),
+    apOn:(fresh?true:(r.apOn===true)), /* v797: the robot defaults ON for brand-new accounts — Tony's decision 16 Aug. Practice money only; a clear OFF switch sits on the Starter Automation card and in bot settings. Saved accounts keep their exact state. */ apSource:(function(v){ if(v==='best')return 'best'; try{ return (_AP_SRC_KEYS.indexOf(v)>=0)?v:'best'; }catch(e){ return (v==='top20')?'top20':'best'; } })(r.apSource), apProvenOnly:(fresh?true:(r.apProvenOnly===true)),
     apMinScore:num(r.apMinScore,fresh?7:0), apMinPrice:num(r.apMinPrice,fresh?0.20:0), apMaxPrice:num(r.apMaxPrice,fresh?1.99:0), apQuietOnly:(r.apQuietOnly===true), /* v747: fresh installs carry the All-rounder band ($0.20-$1.99 — ten-year decomposition: dropping sub-20c and raising the ceiling to $1.99 each helped independently) + the score-7 harness every preset was measured under */
     apMaxBuys:Math.max(1,Math.min(6,Math.round(num(r.apMaxBuys,fresh?4:1)))),
     apAmt:num(r.apAmt,0), apGreenOnly:(fresh||r.apGreenOnly===true), apNoChaseRsi:(fresh||r.apNoChaseRsi===true), apMaxChasePct:num(r.apMaxChasePct,fresh?8:0), apCombo:(typeof r.apCombo==='string'&&r.apCombo?r.apCombo:(fresh?'card-good':'')), apEntry:(r.apEntry==='dip'?'dip':(fresh?'dip':'open')), apDipPct:Math.min(50,num(r.apDipPct,fresh?2:0)), /* v744: 2% dip entry — the ten-year ladder showed 5% starves the entry (lesson 55's method applied to the dip) */
@@ -18921,6 +18922,7 @@ const APP_MODE_KEY='asxScreener.appMode.v1';
 function setAppMode(mode){
   const simple = mode==='simple';
   document.body.classList.toggle('simple-mode', simple);
+  try{ if(simple&&typeof _todayRender==='function')_todayRender(); }catch(_){}
   const sb=document.getElementById('modeSimpleBtn'), ab=document.getElementById('modeAdvBtn');
   if(sb)sb.classList.toggle('on',simple);
   if(ab)ab.classList.toggle('on',!simple);
@@ -19066,7 +19068,143 @@ function initAppMode(){
   setTimeout(()=>{try{_refreshSimpleLoad();}catch(_){}},800);
   setTimeout(()=>{try{_refreshSimpleLoad();}catch(_){}},2200);
 }
+// ═══ v797 — STARTER = the Today page. The server and the robot already did the work
+// overnight; Starter's job is to SHOW results, never to cause work. Four auto cards
+// (☀ brief · 🤖 robot's money · 💡 one idea · ⭐ your shares) plus a plain-English
+// Automation section. No jargon: tiers, edges, PN, friction stay in Advanced.
+// Month climate words come from the 16-Aug decade study (v794 carries the full table).
+const _TODAY_MONTH={ '01':['usually a decent month for small shares','g'],'02':['often a soft patch for small shares','r'],
+  '03':['often a soft patch for small shares','r'],'04':['usually a decent month','g'],'05':['no strong lean either way','n'],
+  '06':['usually the toughest month — end-of-financial-year selling','r'],'07':['historically the strongest month of the year','g'],
+  '08':['usually a decent month for small shares','g'],'09':['no strong lean either way','n'],'10':['no strong lean either way','n'],
+  '11':['no strong lean either way','n'],'12':['no strong lean either way','n'] };
+const _TODAY_STYLES={ def:{name:'🛡 Steady', why:'won 64% of its practice trades over ten years, with the smallest bad stretches — the gentlest to live with.'},
+  all:{name:'⚖ Balanced', why:'the middle road — solid ten-year returns with manageable swings. New accounts start here.'},
+  hun:{name:'⚡ Bold', why:'the biggest ten-year returns, but only about half its trades win and winners give back ground before selling — takes patience.'} };
+function _todayStyleKey(r){ /* which style the saved rules currently match (subset match on the numbers that define each) */
+  try{ const P={def:[15,15,0,0.20,0.99],all:[20,15,0,0.20,1.99],hun:[0,0,20,0.20,0.99]};
+    for(const k in P){ const p=P[k];
+      if(+r.targetPct===p[0]&&+r.stopPct===p[1]&&+r.trailPct===p[2]&&+r.apMinPrice===p[3]&&+r.apMaxPrice===p[4]) return k; }
+  }catch(e){} return ''; }
+function _autoRobotToggle(){
+  try{ const cur=_rules();
+    _rulesSave(Object.assign({},cur,{enabled:true,apOn:!cur.apOn}));
+  }catch(e){}
+  try{ _todayRender(); }catch(e){}
+}
+function _autoRobotStyle(k){
+  try{ const S={ def:{targetPct:15,stopPct:15,maxPosPct:8, maxPositions:20,trailPct:0, bePct:0,maxHoldDays:0,apGreenOnly:true,apNoChaseRsi:true, apMaxChasePct:5, apEntry:'dip',apDipPct:2,apMinPrice:0.20,apMaxPrice:0.99},
+      all:{targetPct:20,stopPct:15,maxPosPct:10,maxPositions:20,trailPct:0, bePct:0,maxHoldDays:0,apGreenOnly:true,apNoChaseRsi:true, apMaxChasePct:8, apEntry:'dip',apDipPct:2,apMinPrice:0.20,apMaxPrice:1.99},
+      hun:{targetPct:0, stopPct:0, maxPosPct:10,maxPositions:20,trailPct:20,bePct:0,maxHoldDays:0,apGreenOnly:true,apNoChaseRsi:false,apMaxChasePct:10,apEntry:'dip',apDipPct:2,apMinPrice:0.20,apMaxPrice:0.99} }[k];
+    if(!S)return; const cur=_rules();
+    _rulesSave(Object.assign({},cur,S));
+  }catch(e){}
+  try{ _todayRender(); }catch(e){}
+}
+async function _todayPickFetch(){ /* one fetch per day, cached; never blocks the page */
+  try{
+    const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||new Date().toISOString().slice(0,10);
+    if(window._todayPick&&window._todayPick.d===dd) return window._todayPick.r;
+    const resp=await fetch(DATA_PROXY+'/picks?exch='+encodeURIComponent(currentExch||'ASX'));
+    const j=await resp.json(); if(!resp.ok||!j||j.error) throw 0;
+    const rows=(j.rows||[]).filter(x=>x&&x.ticker&&(+x.limit_price>0)&&x.status!=='skipped');
+    const r=rows.length?rows[0]:null;
+    window._todayPick={d:dd,r}; return r;
+  }catch(e){ window._todayPick={d:'err',r:null}; return null; }
+}
+function _todayRender(){
+  const host=document.getElementById('todayPage'); if(!host)return;
+  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const money=v=>'$'+(+v).toLocaleString(undefined,{maximumFractionDigits:0});
+  const px=v=>(v==null||!isFinite(v))?'—':('$'+(+v).toFixed(+v<1?3:2));
+  const card=(inner,extra)=>'<div style="border:1px solid var(--border);border-radius:11px;background:var(--bg2);padding:11px 13px;margin-bottom:9px;line-height:1.6;font-size:12.5px;color:var(--text);'+(extra||'')+'">'+inner+'</div>';
+  let out='';
+  // ── ☀ the morning brief ──────────────────────────────────────────────────
+  try{
+    const bits=[];
+    let up=0,n=0;
+    (Array.isArray(allData)?allData:[]).forEach(s=>{ if(s&&isFinite(s.chgPct)){ n++; if(s.chgPct>0)up++; } });
+    if(n>=50){ const pu=Math.round(up/n*100);
+      bits.push('The market is leaning '+(pu>50?'<b style="color:var(--green)">up</b>':'<b style="color:#ff9caa">down</b>')+' today — '+pu+' of every 100 shares are '+(pu>50?'higher':'higher, the rest lower')+'.');
+    } else { bits.push('Prices are loading in the background — this page fills itself in.'); }
+    const mk=String(new Date().getMonth()+1).padStart(2,'0'); const mc=_TODAY_MONTH[mk];
+    if(mc) bits.push('This month is '+mc[0]+'.');
+    try{ const r=_rules(); const p=_paper('auto'); const today=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+      const boughtToday=(p.holdings||[]).filter(h=>h&&h.buyDate===today).length;
+      const soldToday=(p.history||[]).filter(t=>t&&t.sellDate===today).length;
+      if(r.apOn){ bits.push(boughtToday||soldToday
+        ? ('Overnight the practice robot '+(boughtToday?('bought '+boughtToday):'')+(boughtToday&&soldToday?' and ':'')+(soldToday?('sold '+soldToday):'')+'.')
+        : 'The practice robot is on watch — nothing met its rules yet today.'); }
+    }catch(e){}
+    bits.push('<span style="color:var(--dim)">Nothing needs your attention.</span>');
+    out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">☀ Today</div>'+bits.join(' '));
+  }catch(e){}
+  // ── 🤖 the robot's money ─────────────────────────────────────────────────
+  try{
+    const r=_rules();
+    try{ updatePaperPrices('auto'); }catch(e){}
+    const p=_paper('auto');
+    const hv=(p.holdings||[]).reduce((a,h)=>{ const q=+h.qty||0, lp=+h.lastPrice||+h.buyPrice||0; const v=q*lp; return a+(isFinite(v)&&v>0?v:(+h.invested||0)); },0);
+    const eq=(+p.cash||0)+hv, start=+p.startCap||50000;
+    const dpct=start>0?((eq-start)/start*100):0;
+    const dcol=dpct>=0?'var(--green)':'#ff9caa';
+    const why={target:'hit its target',stop:'hit its safety stop','target-scale':'took part-profit at its target',trail:'its trailing stop locked in the move',time:'its time was up'};
+    const acts=(p.history||[]).slice(0,3).map(t=>{ const plc=(+t.plPct>=0)?'var(--green)':'#ff9caa';
+      return '<div style="font-size:11px;color:var(--muted);padding:2px 0;">Sold <b style="color:var(--text)">'+esc(t.ticker)+'</b> for <b style="color:'+plc+'">'+((+t.plPct>=0?'+':'')+(+t.plPct).toFixed(1))+'%</b> — '+(why[t.trigger]||'closed by its rules')+'</div>'; }).join('');
+    const holds=(p.holdings||[]).length;
+    out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">🤖 The robot\u2019s practice money '+(r.apOn?'<span style="font-size:9px;color:var(--green);border:1px solid var(--green);border-radius:4px;padding:1px 5px;vertical-align:2px;">ON</span>':'<span style="font-size:9px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;vertical-align:2px;">OFF</span>')+'</div>'
+      +'<div>'+money(start)+' → <b style="color:'+dcol+'">'+money(eq)+'</b> <span style="color:'+dcol+'">('+(dpct>=0?'+':'')+dpct.toFixed(1)+'%)</span>'
+      +' · holding '+holds+' share'+(holds===1?'':'s')+'</div>'
+      +(acts||'<div style="font-size:11px;color:var(--dim);padding:2px 0;">No completed trades yet — it buys only when its rules are met, entirely with practice money.</div>')
+      +'<button onclick="simpleRun(\'portfolio\')" style="margin-top:6px;padding:6px 12px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-size:10.5px;font-family:var(--sans);cursor:pointer;">See every trade →</button>');
+  }catch(e){}
+  // ── 💡 one idea today ────────────────────────────────────────────────────
+  out+='<div id="todayIdea"></div>';
+  // ── ⭐ your shares (only when relevant) ──────────────────────────────────
+  try{
+    const w=Object.values(curWL()||{});
+    if(w.length){
+      const adm=new Map(); (Array.isArray(allData)?allData:[]).forEach(s=>adm.set(s.exchange+':'+s.ticker,s));
+      const movers=w.map(x=>adm.get(x.exchange+':'+x.ticker)).filter(s=>s&&isFinite(s.chgPct)&&Math.abs(s.chgPct)>=2)
+        .sort((a,b)=>Math.abs(b.chgPct)-Math.abs(a.chgPct)).slice(0,4);
+      if(movers.length){
+        out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">⭐ Your shares</div>'
+          +movers.map(s=>'<div style="font-size:11.5px;padding:1px 0;"><b>'+esc(s.ticker)+'</b> moved <b style="color:'+(s.chgPct>0?'var(--green)':'#ff9caa')+'">'+(s.chgPct>0?'+':'')+(+s.chgPct).toFixed(1)+'%</b> today</div>').join('')
+          +'<button onclick="simpleRun(\'watchlist\')" style="margin-top:6px;padding:6px 12px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-size:10.5px;font-family:var(--sans);cursor:pointer;">Open watchlist →</button>');
+      }
+    }
+  }catch(e){}
+  // ── ⚙ automation ─────────────────────────────────────────────────────────
+  try{
+    const r=_rules(); const sk=_todayStyleKey(r);
+    const chip=(k)=>{ const on=sk===k; const s=_TODAY_STYLES[k];
+      return '<button onclick="_autoRobotStyle(\''+k+'\')" title="'+esc(s.why)+'" style="flex:1;min-width:86px;padding:7px 4px;border-radius:8px;border:1px solid '+(on?'var(--gold)':'var(--border2)')+';background:'+(on?'rgba(255,210,0,.12)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">'+s.name+'</button>'; };
+    out+=card('<div style="font-weight:800;font-size:13px;margin-bottom:5px;">⚙ Automation</div>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;">'
+      +'<span title="The robot practises buying and selling by tested rules, entirely with pretend money. It never touches real money — the app has no way to.">Practice robot</span>'
+      +'<button onclick="_autoRobotToggle()" style="padding:5px 16px;border-radius:16px;border:1px solid '+(r.apOn?'var(--gold)':'var(--border2)')+';background:'+(r.apOn?'rgba(255,210,0,.16)':'var(--bg4)')+';color:'+(r.apOn?'var(--gold)':'var(--muted)')+';font-weight:800;font-size:11px;font-family:var(--sans);cursor:pointer;min-width:54px;">'+(r.apOn?'ON':'OFF')+'</button></div>'
+      +'<div style="display:flex;gap:6px;margin:6px 0 2px;flex-wrap:wrap;">'+chip('def')+chip('all')+chip('hun')+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+(sk?esc(_TODAY_STYLES[sk].why):'Custom rules are set — pick a style above to use a tested one, or fine-tune in Advanced.')+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);margin-top:5px;">Fresh prices: <b style="color:var(--muted)">automatic</b> — the app loads itself when you open it. Every study and full report lives in <a href="#" onclick="setAppMode(\'advanced\');return false;" style="color:var(--muted)">Advanced →</a></div>');
+  }catch(e){}
+  host.innerHTML=out;
+  // one idea fills itself in without blocking anything above
+  _todayPickFetch().then(r=>{ try{
+    const el=document.getElementById('todayIdea'); if(!el)return;
+    if(!r){ el.innerHTML=''; return; }
+    const nm=(typeof _sigPlainName==='function')?_sigPlainName(r.evidence_key):String(r.evidence_key||'a signal');
+    const proven=(String(r.tier||'').toLowerCase()==='solid')?'a signal proven over ten years of history':(String(r.tier||'').toLowerCase()==='promising')?'a signal with a promising record':'a signal the app tracks';
+    const ed=(r.edge!=null&&isFinite(+r.edge)&&+r.edge>0)?(' It has typically made about <b>$'+(+r.edge).toFixed(2)+' extra per $100</b> in the days after firing.'):'';
+    el.innerHTML=card('<div style="font-weight:800;font-size:13px;margin-bottom:3px;">💡 One idea today</div>'
+      +'<div><b>'+esc(r.ticker)+'</b> at '+px(r.limit_price)+' — <b>'+esc(nm)+'</b> fired, '+proven+'.'+ed
+      +' The robot considers exactly this kind of trade with its practice money.</div>'
+      +'<div style="display:flex;gap:6px;margin-top:7px;">'
+      +'<button onclick="_picksOpen&&_picksOpen(\''+esc(r.ticker)+'\')" style="flex:1;padding:6px;border-radius:7px;border:1px solid var(--gold);background:rgba(217,164,65,.12);color:var(--gold);font-weight:700;font-size:10.5px;font-family:var(--sans);cursor:pointer;">Look closer</button>'
+      +'<button onclick="showDailyPicks&&showDailyPicks()" style="flex:1;padding:6px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10.5px;font-family:var(--sans);cursor:pointer;">All of today\u2019s picks →</button></div>');
+  }catch(e){} });
+}
 async function _refreshSimpleLoad(){
+  try{ if(document.body.classList.contains('simple-mode')) _todayRender(); }catch(_){}
   const btn=document.getElementById('simpleLoadBtn');
   const fresh=document.getElementById('simpleFreshBtn');
   const saved2=document.getElementById('simpleSavedBtn');
