@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-803-open';
+const APP_VERSION='2026.08.16-804-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -22963,7 +22963,7 @@ function climbersScan(){
     showModal('<div style="padding:14px;font-size:12px;line-height:1.6;color:var(--muted);">'
       +'<div style="font-weight:800;color:var(--text);font-size:13px;margin-bottom:4px;">🌱 Climbers Today — '+top.length+' share'+(top.length===1?'':'s')+' now in the table'+(items.length>top.length?(' <span style="font-weight:400;color:var(--dim);font-size:11px;">(closest '+top.length+' of '+items.length+' firing today)</span>'):'')+'</div>'
       +'<div style="color:var(--gold);font-size:11px;margin-bottom:8px;"><b>A nursery, not a menu.</b> Every line behind this list is UNPROVEN — the whole point is scepticism with a shortlist. Watch, don\u2019t lean. The 🤖 auto-pilot never reads it.</div>'
-      +'<div style="font-size:11px;margin-bottom:4px;">These shares fired at least one <b style="color:var(--text)">climbing</b> signal today \u2014 a line moving toward SOLID but not there. Ranked by how close its strongest climber is. They are also in the table behind this box.</div>'
+      +'<div style="font-size:11px;margin-bottom:4px;">These shares fired at least one <b style="color:var(--text)">climbing</b> signal today \u2014 a line moving toward SOLID but not there. Ranked by how close its strongest climbing LINE is to the bar \u2014 not by the share\u2019s score chip, which measures something else (its accumulation strength), so a share with a lower score can rank higher here. They are also in the table behind this box.</div>'
       +shares
       +'<div style="font-weight:700;color:var(--text);font-size:11.5px;margin:12px 0 2px;">The climbing lines behind them \u2014 and what each still needs</div>'
       +lines

@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-803-open",
+  "version": "2026.08.16-804-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📅 Fixed a wrong date on the 'What's changed for YOU' report. Its header read 'checked against the data of 2026-08-16' — today's calendar date, a Sunday when the market doesn't trade — while every other screen correctly showed the latest actual trading day (2026-08-14). It happened when the report drew before fresh prices had finished loading: it fell back to today's clock instead of the newest market bar. It now always uses the real latest market-day date, and if that genuinely isn't loaded yet it simply says 'the latest data' rather than showing a date that never traded. No change to any of the checks themselves — holdings, stops, position sizes and watchlist moves were all correct; only the date stamp was wrong.",
+  "notes": "🌱 Clarified the ranking on Climbers Today. The list is ranked by how close each share's strongest CLIMBING LINE is to becoming proven — but each row also shows a score chip (e.g. 43/100) that measures a different thing (the share's accumulation strength). That made the order look wrong: a share scored 43 sitting above shares scored 58 and 59. Nothing was mis-sorted — the 43 share's climbing line was genuinely the closest to the bar — but the intro now says plainly that the rank is by climbing-proximity, not by the score chip, so a lower-scored share can correctly rank higher. Wording only; the ranking maths is unchanged and was already correct.",
   "date": "2026-08-16"
 }
