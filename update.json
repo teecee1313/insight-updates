@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-786-open",
+  "version": "2026.08.16-787-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🗣 One language everywhere. Three flags spoke trader shorthand while the rest of the app spoke plainly — they now say what they mean: 📉 Dist? is 📉 Quiet selling?, 🏦 Inst? is 🏦 Big money?, and Accum? is Quiet buying? — on the radar, the row chips, My Rules, the report cards and all the lessons (quiz questions included). The trader terms aren't hidden: each tooltip teaches them (“traders call this distribution”), so you learn both languages. Nothing about how any flag WORKS changed — only the names now match the plain-English promise the rest of the app makes.",
+  "notes": "⚠ New warning chip: Bounced gap-down — the first signal born from a published backtest instead of a hunch. Yesterday's ten-year gap study (247,775 gap days) found one steady result: a share that opened 3%+ below yesterday's close and bounced back during the day was the WEAKEST group of all afterwards — −0.44% over the next week, lowest win rate. It feels like strength; the data says caution. The chip appears beside the other warnings, carries its own verdict in the tooltip, and — like every warning — is never a buy trigger. This is how signals get born here now: pass the ten-year test first, get a chip second.",
   "date": "2026-08-16"
 }
