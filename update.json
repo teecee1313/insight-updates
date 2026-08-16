@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-783-open",
+  "version": "2026.08.16-784-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📖 Written guides, one tap from Lessons. The 🎓 Lessons panel now links the new Beginner Setup & How-To guide — a 4-page PDF covering setup, the four-tap daily routine, the three rule sets with their honest ten-year numbers, how to read a PN Edge, and the losing-streaks chapter every beginner needs — plus the same guide as a PowerPoint deck for anyone who prefers slides. Both open from the top of the Lessons panel and always match the app version they shipped with.",
+  "notes": "💬 The evidence badges now explain themselves in plain English. Everywhere the app used to lean on “2.5× its margin of error”, it now leads with the question that phrase answers: could this just be luck? SOLID = strong and steady across so many firings that luck is practically ruled out. PROMISING = looks real, but thinner evidence. NOT PROVEN = luck could still explain it — no badge, and the robot may not buy it. The precise statistics stay in brackets for those who want them. The written guides under 🎓 Lessons carry the same plain language (think restaurant reviews: five stars from three reviews, or 4.5 from two thousand?).",
   "date": "2026-08-16"
 }
