@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-785-open",
+  "version": "2026.08.16-786-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "⚡ PN EDGE now shows in the compact radar too. The compact evidence line listed solid / promising / not proven but not the one that matters most — it now ends with “⚡ N with edge”, tappable like the rest, filtering the table to shares whose strongest firing line holds a proven positive edge. The flagship is visible in both radar modes.",
+  "notes": "🗣 One language everywhere. Three flags spoke trader shorthand while the rest of the app spoke plainly — they now say what they mean: 📉 Dist? is 📉 Quiet selling?, 🏦 Inst? is 🏦 Big money?, and Accum? is Quiet buying? — on the radar, the row chips, My Rules, the report cards and all the lessons (quiz questions included). The trader terms aren't hidden: each tooltip teaches them (“traders call this distribution”), so you learn both languages. Nothing about how any flag WORKS changed — only the names now match the plain-English promise the rest of the app makes.",
   "date": "2026-08-16"
 }
