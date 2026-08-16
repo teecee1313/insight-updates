@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-795-open';
+const APP_VERSION='2026.08.16-796-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -24334,6 +24334,24 @@ function _renderReportCard(A){
     const _tapeNow=(()=>{ /* v792: today's breadth, computed once for the whole card — read by tape() below and the 🌡 banner in head */
       try{ let up=0,n=0; for(const sh of (Array.isArray(allData)?allData:[])){ if(sh&&typeof sh.chgPct==='number'&&isFinite(sh.chgPct)&&sh.price>0){ n++; if(sh.chgPct>0)up++; } }
         if(n<50)return null; const pctUp=Math.round(up/n*100); return {on:pctUp>50,pctUp,n}; }catch(e){ return null; } })();
+    const _decayPool=(()=>{ /* v796: the pooled badge-year → next-year haircut, hoisted to card scope so the ⏳ header line (v795) and each row's after-haircut figure use ONE number. Same maths and dirNeg flips as gradingCheckReport. Null when era study absent, windows differ, <6 proven transitions, or badge-year mean ≤0. */
+      try{
+        if(!ERAS||_eraWinOff)return null;
+        const p2=ERAS['2']&&ERAS['2'].perKey, p3=ERAS['3']&&ERAS['3'].perKey;
+        if(!p2||!p3||typeof _gcTier!=='function')return null;
+        const rows=[];
+        Object.keys(A.M).forEach(k=>{ const m=A.M[k]; if(!m)return; const d=x=>m.dirNeg?-x:x;
+          const a3=p3[k], a2=p2[k];
+          if(a3&&a3.n>=10&&a2&&a2.n>=10) rows.push({n:a3.n,t:d(a3.t),e:d(a3.e),next:d(a2.e)});
+          if(a2&&a2.n>=10&&m.n>=10)      rows.push({n:a2.n,t:d(a2.t),e:d(a2.e),next:d(m.edge)});
+        });
+        const proven=rows.filter(r=>_gcTier(r.n,r.t)!=='early');
+        if(proven.length<6)return null;
+        const mean=(a,f)=>a.reduce((s,x)=>s+f(x),0)/a.length;
+        const pThen=mean(proven,x=>x.e), pNext=mean(proven,x=>x.next);
+        if(!(pThen>0))return null;
+        return {keep:pNext/pThen, pThen, pNext, pos:Math.round(100*proven.filter(x=>x.next>0).length/proven.length), n:proven.length};
+      }catch(e){ return null; } })();
     const tape=m=>{ if(!(m.ron.n||m.roff.n))return ''; const _hasT=!!_tapeNow, _t=_hasT?_tapeNow.on:null; /* v792: bold+underline the side that matches TODAY's tape; pure display */
       const seg=(g,ico,live)=>`${live?'<b style="text-decoration:underline;text-underline-offset:2px;">':''}${ico} ${g.n?f1(g.sum/g.n):'—'} (${g.n})${live?'</b>':''}`;
       return ` · <span title="How the edge did on risk-ON days (🟩 = most shares up that day) vs risk-OFF days (🟥 = most down). Shows whether the flag needs a friendly market to work.${_hasT?' The underlined side matches TODAY\u2019s tape (see the 🌡 banner up top).':''}" style="cursor:help;">tape: ${seg(m.ron,'🟩',_hasT&&_t===true)} / ${seg(m.roff,'🟥',_hasT&&_t===false)}</span>`; };
@@ -24422,7 +24440,13 @@ function _renderReportCard(A){
       }
       return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">seen <b title="How many times this signal appeared across every share, on every day, in the graded year." style="cursor:help;color:var(--text)">${m.n.toLocaleString()}</b> times · <b title="${m.dirNeg?('How often price was LOWER '+_h+' trading days later — for a warning, lower is the whole point.'):('How often price was HIGHER '+_h+' trading days later.')}" style="cursor:help;color:var(--text)">${hitTxt}</b> after ${_h}d · <span title="EDGE = the average move AFTER this flag fired, minus the average move of ALL shares that same day, averaged over every fire. Shown in the flag’s OWN direction: a positive number means it worked — for a buy flag the price beat the market, for a warning the price fell as warned. Subtracting the day’s market strips out lucky good-market weeks." style="cursor:help;">edge <b style="color:${(m.dirNeg?m.edge<0:m.edge>0)?'var(--green)':'#ff9caa'}">${f1(m.dirNeg?-m.edge:m.edge)}</b></span> ${beatTxt} ${chip(m)} · <span title="Median = the MIDDLE outcome (half of fires did better, half worse). Unlike the average, one giant winner can’t inflate it.">median ${f1(m.median)}</span> · <span title="The average size of the winning fires vs the losing fires — the shape of the payoff, not just how often it wins.">wins ${f1(m.avgWin)} / losses ${f1(m.avgLoss)}</span></div>
       <div style="font-size:9.5px;color:var(--dim);margin-top:1px;">${halves(m)||' '}${tape(m)}${track(k)}${_eraRow(k,m)}
-      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${(()=>{const g=_edgeGauge(m.dirNeg?-m.edge:m.edge,m.n);return `<span title="The Paula–Niño Edge — this app’s money measure. Named in memory of Paula and Niño." style="cursor:help;">PN Edge</span> — about <b style="color:${g.col}">${g.money} extra per $100 invested</b> ${g.bar} <span style="color:${g.col}">${g.word}</span> — on average, measured ${_winWords(A.hold)} after each signal, beyond the market, before costs${(m.median===0&&m.n>=200)?` <span title="Half of these ${m.n.toLocaleString()} sightings finished EXACTLY level — the fingerprint of shares too thin to trade, where any average edge is really the buy–sell spread. Raise the 💧 tradeable-shares floor to $250k or $1m and re-run before trusting this line." style="cursor:help;color:#ff6b6b;font-weight:700;">· half these sightings never moved — check the 💧 floor</span>`:''}`;})()}</div></div>`;
+      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${(()=>{const g=_edgeGauge(m.dirNeg?-m.edge:m.edge,m.n);return `<span title="The Paula–Niño Edge — this app’s money measure. Named in memory of Paula and Niño." style="cursor:help;">PN Edge</span> — about <b style="color:${g.col}">${g.money} extra per $100 invested</b> ${g.bar} <span style="color:${g.col}">${g.word}</span> — on average, measured ${_winWords(A.hold)} after each signal, beyond the market, before costs${(m.median===0&&m.n>=200)?` <span title="Half of these ${m.n.toLocaleString()} sightings finished EXACTLY level — the fingerprint of shares too thin to trade, where any average edge is really the buy–sell spread. Raise the 💧 tradeable-shares floor to $250k or $1m and re-run before trusting this line." style="cursor:help;color:#ff6b6b;font-weight:700;">· half these sightings never moved — check the 💧 floor</span>`:''}${(()=>{ /* v796: the after-haircut figure, per line. edge × the pooled keep-ratio from _decayPool — one consistent, clearly-labelled rule, NOT a per-line forecast (two era points per line are too noisy to model individually; the line's own ↘/↗ chip is the better per-line read). Shown only on badge-holding lines whose direction-adjusted edge is positive. */
+              try{ const P=_decayPool; if(!P)return '';
+                if(!(m.tier==='solid'||m.tier==='promising'))return '';
+                const eAdj=m.dirNeg?-m.edge:m.edge; if(!(eAdj>0))return '';
+                const after=eAdj*P.keep;
+                return ` <span title="This line's edge (${f1(eAdj)}) multiplied by the pooled keep-ratio from the ⏳ header — the fraction of themselves badge-earning edges kept, on average, in the year that followed (${Math.round(100*P.keep)}%, from ${P.n} transitions in this card's own three-year history). A rule of thumb applied uniformly, NOT a forecast for this line — its own ↘ fading / ↗ strengthening chip below is the better per-line read. If it fades like the average badge-holder, expect about ${f1(after)}." style="cursor:help;color:var(--dim);">· ⏳ ≈${f1(after)} after the typical fade</span>`;
+              }catch(_de){ return ''; } })()}`;})()}</div></div>`;
     };
     const _flagTip={
       bo:'🚀 Breakout — the share closed at its highest price of the stored year, on above-average volume: buyers pushed it into fresh territory (an estimate from price & volume).',
@@ -24496,35 +24520,17 @@ function _renderReportCard(A){
           const rows=Object.keys(S).map(k=>{const x=S[k];return MN[+k].slice(0,3)+': band '+fb(x.b)+'bp/day ('+x.y+' yrs up, eras '+fb(x.e1)+'/'+fb(x.e2)+') · rest of market '+fb(x.o);}).join('&#10;');
           const tip='A ten-year seasonality check (21.5 million day-changes, every ordinary ASX share, 2016–2026; band = $0.20–$1.99). Average daily move by calendar month:&#10;&#10;'+rows+'&#10;&#10;Only July (up in 10 of 11 years in the band and 11 of 11 outside it, unchanged across eras) and its mirror June — the end-of-financial-year tax-loss-selling straddle — passed every consistency test; August, February and March carry softer era-stable leans; the rest is noise-grade. Caveats: only ~10 years exist per month, and the store carries survivorship bias (every share in it is still listed), so month-vs-month comparisons stand but absolute levels are best-case. This is CLIMATE, never a signal: it colours how you read the card and gates nothing — no grade, score or bot decision uses it.';
           return `<div title="${tip}" style="font-size:11px;margin-bottom:8px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);line-height:1.5;cursor:help;"><span style="color:${col}">${line}</span> <span style="color:var(--dim)">Climate, not a signal — hover for the full decade table.</span></div>`;
-        }catch(e){ return ''; } })()+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on${(A.flatSkipped||A.staleSkipped)?(', and '+((A.flatSkipped||0)+(A.staleSkipped||0)).toLocaleString()+' more are set aside as <span title="'+(A.flatSkipped||0).toLocaleString()+' shares sit at exactly the same price on more than 40% of days — they mostly do not move, then jump a whole tick, contributing a mass of zeros plus rare huge outliers. '+(A.staleSkipped||0).toLocaleString()+' have stopped trading (last bar more than 10 days behind the market). Both add variance without information and drown real edges, so they are measured out — the same principle as the turnover floor." style="cursor:help;text-decoration:underline dotted;">barely-trading or stalled</span>'):''}. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`+(()=>{ /* v795: ⏳ the expected haircut, on the card itself (roadmap #6).
-      The ⚖ sidebar test already pools every line's era3→era2 and era2→live transition — but the one number a reader needs
-      while looking at TODAY's edges (how much of a graded edge typically survives into the next year) was buried in that
-      modal. This computes the same pooled decay live from A.eras and states it where edges are read. Display only; says
-      it whichever way it falls (fade, hold, or grow), and says nothing when the era study or sample is missing/thin. */
+        }catch(e){ return ''; } })()+`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">The app re-ran every flag formula over your <b style="color:var(--text)">saved history</b> for up to ~${A.days} trading days${A.from?` (${A.from} → ${A.to})`:''}, giving each firing ${A.hold} trading days to play out. Universe: <b style="color:var(--text)">${A.covered.toLocaleString()}</b> tradeable shares — the 💧 $${Math.round(A.liqFloor/1000)}k/day floor excludes ${A.liqSkipped.toLocaleString()} thin shares an edge couldn't actually be traded on${(A.flatSkipped||A.staleSkipped)?(', and '+((A.flatSkipped||0)+(A.staleSkipped||0)).toLocaleString()+' more are set aside as <span title="'+(A.flatSkipped||0).toLocaleString()+' shares sit at exactly the same price on more than 40% of days — they mostly do not move, then jump a whole tick, contributing a mass of zeros plus rare huge outliers. '+(A.staleSkipped||0).toLocaleString()+' have stopped trading (last bar more than 10 days behind the market). Both add variance without information and drown real edges, so they are measured out — the same principle as the turnover floor." style="cursor:help;text-decoration:underline dotted;">barely-trading or stalled</span>'):''}. <b style="color:var(--text)">EDGE</b> = each fire measured against <b style="color:var(--text)">its own day's</b> all-share average, so a strong market week can't flatter a flag. Period baseline for context: ${baseUp}% higher · average ${f1(baseAvg)}.</div>`+(()=>{ /* v795: ⏳ the expected haircut, on the card itself (roadmap #6). v796: pooled maths hoisted to _decayPool (card scope) so this header line and every row's after-haircut figure state ONE number. Display only; says it whichever way it falls, and says nothing when the study/sample is missing or thin. */
       try{
-        if(!ERAS||_eraWinOff)return '';
-        const p2=ERAS['2']&&ERAS['2'].perKey, p3=ERAS['3']&&ERAS['3'].perKey;
-        if(!p2||!p3||typeof _gcTier!=='function')return '';
-        const rows=[];
-        Object.keys(A.M).forEach(k=>{ const m=A.M[k]; if(!m)return; const d=x=>m.dirNeg?-x:x;
-          const a3=p3[k], a2=p2[k];
-          if(a3&&a3.n>=10&&a2&&a2.n>=10) rows.push({n:a3.n,t:d(a3.t),e:d(a3.e),next:d(a2.e)});
-          if(a2&&a2.n>=10&&m.n>=10)      rows.push({n:a2.n,t:d(a2.t),e:d(a2.e),next:d(m.edge)});
-        });
-        const proven=rows.filter(r=>_gcTier(r.n,r.t)!=='early');
-        if(proven.length<6)return '';
-        const mean=(a,f)=>a.reduce((s,x)=>s+f(x),0)/a.length;
-        const pThen=mean(proven,x=>x.e), pNext=mean(proven,x=>x.next);
-        const pos=Math.round(100*proven.filter(x=>x.next>0).length/proven.length);
-        if(!(pThen>0))return '';
-        const keep=Math.round(100*pNext/pThen);
+        const P=_decayPool; if(!P)return '';
+        const pThen=P.pThen, pNext=P.pNext, pos=P.pos, keep=Math.round(100*P.keep);
         let word,col;
         if(pNext<=0){ word='did NOT survive on average'; col='#ff9caa'; }
         else if(keep>=90){ word='held almost fully'; col='var(--green)'; }
         else if(keep>=50){ word='kept roughly '+keep+'% of themselves'; col='var(--gold)'; }
         else { word='kept only ~'+keep+'% of themselves'; col='#ff9caa'; }
-        const tip='Measured on this card\u2019s own three-year history: every line that had earned a badge (SOLID or PROMISING) in one stored year is followed into the year after. '+proven.length+' such transitions exist. Badge-year edge averaged '+f1(pThen)+'; the following year those same lines averaged '+f1(pNext)+' ('+pos+'% stayed positive). Some fade is normal \u2014 a graded edge is a ceiling estimate of its own future \u2014 so read every edge on this card with this haircut in mind, and lean on the \u2198 fading / \u2197 strengthening chips on each line. Full breakdown, including which lines held and which collapsed: the \u2696 \u201cDoes the grading work?\u201d report in the sidebar. Lines overlap (a triple contains its pairs), so treat this as one honest pooled read, not '+proven.length+' independent experiments.';
-        return `<div title="${tip}" style="font-size:11px;margin-bottom:10px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);line-height:1.5;cursor:help;">⏳ <b style="color:${col}">Expect decay:</b> on this card's own history, badge-earning edges ${word} in the year that followed (${f1(pThen)} → ${f1(pNext)}, ${pos}% stayed positive). <span style="color:var(--dim)">Read today's edges with that haircut — hover for the maths.</span></div>`;
+        const tip='Measured on this card\u2019s own three-year history: every line that had earned a badge (SOLID or PROMISING) in one stored year is followed into the year after. '+P.n+' such transitions exist. Badge-year edge averaged '+f1(pThen)+'; the following year those same lines averaged '+f1(pNext)+' ('+pos+'% stayed positive). Some fade is normal \u2014 a graded edge is a ceiling estimate of its own future \u2014 so read every edge on this card with this haircut in mind, and lean on the \u2198 fading / \u2197 strengthening chips on each line. Full breakdown, including which lines held and which collapsed: the \u2696 \u201cDoes the grading work?\u201d report in the sidebar. Lines overlap (a triple contains its pairs), so treat this as one honest pooled read, not '+P.n+' independent experiments.';
+        return `<div title="${tip}" style="font-size:11px;margin-bottom:10px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);line-height:1.5;cursor:help;">⏳ <b style="color:${col}">Expect decay:</b> on this card's own history, badge-earning edges ${word} in the year that followed (${f1(pThen)} → ${f1(pNext)}, ${pos}% stayed positive). <span style="color:var(--dim)">Each graded line below now shows its own after-haircut figure — hover for the maths.</span></div>`;
       }catch(e){ return ''; } })();
     // rank helper for combo/sequence sections
     const tierRank={solid:2,promising:1,early:0};
