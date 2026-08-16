@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-789-open';
+const APP_VERSION='2026.08.16-790-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -24449,15 +24449,16 @@ function _renderReportCard(A){
           return `<div style="font-size:9px;color:var(--dim);margin-top:1px;">each flag alone (edge): ${solo}</div>`;})()}
         ${statLine(k,m)}
       </div>`; };
+    const _imp=m=>((m.dirNeg?-m.edge:m.edge)>3.5)?1:0; /* v790: the SAME implausibility test as _cardScore10's v563 cap */
     const pick=(pred,cap)=>lines.filter(it=>pred(it.k)&&it.m.n>=MINC&&it.m.tier!=='early')
-      .sort((a,b)=>b.m.edge-a.m.edge).slice(0,cap); // w-scoreband: unproven 'early' lines excluded entirely, then ranked by edge alone within the proven set — a thin SOLID no longer auto-beats a strong PROMISING
+      .sort((a,b)=>(_imp(a.m)-_imp(b.m))||(b.m.edge-a.m.edge)).slice(0,cap); // w-scoreband: unproven 'early' lines excluded entirely, then ranked by edge alone within the proven set — a thin SOLID no longer auto-beats a strong PROMISING. v790: EXCEPT lines whose money is past the plausible ceiling — the v563 cap already refuses to crown them (4.9/10, red gauge), so ranking them FIRST had the headline crowning what the score would not. Plausible lines by edge first; capped lines follow, by edge, each carrying its red 'check this' gauge.
     const pairs=pick(k=>k.indexOf('+')>0&&k.indexOf('>')<0&&k.split('+').length===2&&!/[+-]$/.test(k),8);
     const triples=pick(k=>k.indexOf('+')>0&&k.indexOf('>')<0&&k.split('+').length===3,4);
     const seqs=pick(k=>k.indexOf('>')>0,8);
     const hiddenC=lines.filter(it=>(it.k.indexOf('+')>0&&!/[+-]$/.test(it.k)&&it.k.indexOf('>')<0)&&it.m.n<MINC).length;
     let comboSec='';
     if(pairs.length||triples.length){
-      const best=pairs.concat(triples).sort((a,b)=>b.m.edge-a.m.edge)[0]; // w-scoreband: pairs/triples are already 'early'-filtered by pick() above
+      const best=pairs.concat(triples).sort((a,b)=>(_imp(a.m)-_imp(b.m))||(b.m.edge-a.m.edge))[0]; // v790: same plausible-first grouping as pick() — 'Strongest' can only land on a line the app itself trusts
       comboSec=`<div style="margin-top:14px;">
         <div title="Combinations = two or three flags firing on the SAME share, the SAME day — does agreement beat any one flag alone? Counted only at ≥10 fires." style="cursor:help;font-size:12.5px;font-weight:700;color:var(--text);">🧩 Combinations — do flags agreeing beat flags alone?</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 6px;line-height:1.5;">Counted only when the flags fired on the <b>same share, the same day</b>. Unproven combos are excluded first, then the rest are ranked by the actual size of their edge — a barely-SOLID line no longer outranks a stronger PROMISING one. Shown at ≥${MINC} fires${hiddenC>0?` (${hiddenC} rarer combos hidden)`:''}. 📉 Quiet selling? excluded. A strong combo is a lead to keep watching across cards — the 📜 track record is the real test.</div>
