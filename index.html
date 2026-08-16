@@ -1767,7 +1767,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-798-open';
+const APP_VERSION='2026.08.16-799-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -19123,6 +19123,16 @@ function _autoRobotStyle(k){
   }catch(e){}
   try{ _todayRender(); }catch(e){}
 }
+async function _todayBriefFetch(){ /* v799 phase 2: the server composes the brief once (w531 /brief); the app consumes it when present and quietly falls back to client-side composition on older workers. Cached per day; a 404/error caches negatively so we never hammer a route that isn't there yet. */
+  try{
+    const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||new Date().toISOString().slice(0,10);
+    if(window._srvBrief&&window._srvBrief.d===dd) return window._srvBrief.b;
+    const resp=await fetch(DATA_PROXY+'/brief?exch='+encodeURIComponent(currentExch||'ASX'));
+    if(!resp.ok) throw 0;
+    const j=await resp.json(); if(!j||j.ok!==true) throw 0;
+    window._srvBrief={d:dd,b:j}; return j;
+  }catch(e){ window._srvBrief={d:'err',b:null}; return null; }
+}
 async function _todayPickFetch(){ /* one fetch per day, cached; never blocks the page */
   try{
     const dd=(window._exchDataDate&&window._exchDataDate[currentExch])||new Date().toISOString().slice(0,10);
@@ -19136,6 +19146,7 @@ async function _todayPickFetch(){ /* one fetch per day, cached; never blocks the
 }
 function _todayRender(){
   const host=document.getElementById('todayPage'); if(!host)return;
+  const B=(window._srvBrief&&window._srvBrief.b)||null; /* v799: server-composed brief when the worker serves one */
   const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const money=v=>'$'+(+v).toLocaleString(undefined,{maximumFractionDigits:0});
   const px=v=>(v==null||!isFinite(v))?'\u2014':('$'+(+v).toFixed(+v<1?3:2));
@@ -19147,7 +19158,8 @@ function _todayRender(){
     const bits=[];
     let up=0,n=0;
     (Array.isArray(allData)?allData:[]).forEach(s=>{ if(s&&isFinite(s.chgPct)){ n++; if(s.chgPct>0)up++; } });
-    if(n>=50){ const pu=Math.round(up/n*100);
+    const puSrv=(B&&B.tape&&isFinite(B.tape.pctUp))?B.tape.pctUp:null;
+    if(n>=50||puSrv!=null){ const pu=(n>=50)?Math.round(up/n*100):puSrv;
       bits.push('The market is leaning '+(pu>50?'<b style="color:var(--green)">up</b>':'<b style="color:#ff9caa">down</b>')+' \u2014 '+pu+' of every 100 shares are higher.');
     } else { bits.push('Prices are loading in the background \u2014 this page fills itself in.'); }
     const mk=String(new Date().getMonth()+1).padStart(2,'0'); const mc=_TODAY_MONTH[mk];
@@ -19168,18 +19180,32 @@ function _todayRender(){
     try{ updatePaperPrices('auto'); }catch(e){}
     const p=_paper('auto');
     const hv=(p.holdings||[]).reduce((a,h)=>{ const q=+h.qty||0, lp=+h.lastPrice||+h.buyPrice||0; const v=q*lp; return a+(isFinite(v)&&v>0?v:(+h.invested||0)); },0);
-    const eq=(+p.cash||0)+hv, start=+p.startCap||50000;
-    const dpct=start>0?((eq-start)/start*100):0;
+    // v799 fix: match the app's ONE canonical profit formula (portfolio modal line ~10220):
+    //   profit = acct + withdrawn-profit − starting-capital ;  % = profit / starting-capital.
+    // acct comes from _acctValue (cash + reserved + holdings). The card previously used its own
+    // basis and ignored both reserved cash and withdrawn profit, so a profitable account that had
+    // taken money out read as a heavy loss. Never diverge from _startCap / wdProfit.
+    const eq=(typeof _acctValue==='function')?_acctValue(p):((+p.cash||0)+hv);
+    const start=(typeof _startCap==='function')?_startCap(p):((+p.startCap>0)?+p.startCap:((+p.cash||0)+hv));
+    const wd=(+p.wdProfit||0);
+    const profit=eq+wd-start;
+    const dpct=start>0?(profit/start*100):0;
     const dcol=dpct>=0?'var(--green)':'#ff9caa';
     const why={target:'hit its target',stop:'hit its safety stop','target-scale':'took part-profit at its target',trail:'its trailing stop locked in the move',time:'its time was up'};
-    const acts=(p.history||[]).slice(0,3).map(t=>{ const plc=(+t.plPct>=0)?'var(--green)':'#ff9caa';
+    const whyOf=nt=>{ try{ const m=String(nt||'').split('\u00b7'); return (m.length>1&&m[1].trim())?(' \u2014 '+m[1].trim()+' fired'):''; }catch(e){ return ''; } };
+    const today2=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    const buys=[]
+      .concat((p.orders||[]).slice(-2).map(o=>'<div class="tc-trade">Buying <b style="color:var(--text)">'+esc(o.ticker)+'</b> at $'+(+o.limit).toFixed(+o.limit<1?3:2)+whyOf(o.note)+' <span class="dim">(waiting for its price)</span></div>'))
+      .concat((p.holdings||[]).filter(h=>h&&h.buyDate===today2).slice(0,2).map(h=>'<div class="tc-trade">Bought <b style="color:var(--text)">'+esc(h.ticker)+'</b> at $'+(+h.buyPrice).toFixed(+h.buyPrice<1?3:2)+whyOf(h.note)+'</div>'))
+      .slice(0,2).join('');
+    const acts=buys+(p.history||[]).slice(0,3).map(t=>{ const plc=(+t.plPct>=0)?'var(--green)':'#ff9caa';
       return '<div class="tc-trade">Sold <b style="color:var(--text)">'+esc(t.ticker)+'</b> for <b style="color:'+plc+'">'+((+t.plPct>=0?'+':'')+(+t.plPct).toFixed(1))+'%</b> \u2014 '+(why[t.trigger]||'closed by its rules')+'</div>'; }).join('');
     const holds=(p.holdings||[]).length;
     out+=card('\ud83e\udd16','The robot\u2019s practice money',
       '<span class="tc-chip '+(r.apOn?'on">ON':'off">OFF')+'</span>',
       '<div class="tc-stats">'
       +'<div class="tc-stat"><span>Started with</span><b>'+money(start)+'</b></div>'
-      +'<div class="tc-stat"><span>Worth now</span><b style="color:'+dcol+'">'+money(eq)+'</b></div>'
+      +'<div class="tc-stat"><span>Worth now</span><b style="color:'+dcol+'">'+money(eq+wd)+'</b>'+(wd>0?'<span style="font-size:8.5px;color:var(--dim);display:block;">incl. '+money(wd)+' taken out</span>':'')+'</div>'
       +'<div class="tc-stat"><span>Change</span><b style="color:'+dcol+'">'+(dpct>=0?'+':'')+dpct.toFixed(1)+'%</b></div>'
       +'<div class="tc-stat"><span>Holding</span><b>'+holds+' share'+(holds===1?'':'s')+'</b></div></div>'
       +(acts||'<div class="tc-trade">No completed trades yet \u2014 it buys only when its rules are met, entirely with practice money.</div>')
@@ -19215,8 +19241,9 @@ function _todayRender(){
       +'<div style="font-size:10.5px;color:var(--dim);margin-top:6px;">Fresh prices load themselves when you open the app. Every study and full report lives in <a href="#" onclick="setAppMode(\'advanced\');return false;" style="color:var(--muted)">Advanced \u2192</a></div>');
   }catch(e){}
   host.innerHTML=out;
+  try{ localStorage.setItem('asxScreener.today.cache.v1',JSON.stringify({t:Date.now(),html:out})); }catch(e){}
   // one idea fills itself in without blocking anything above
-  _todayPickFetch().then(r=>{ try{
+  (B&&B.pick?Promise.resolve(B.pick):_todayPickFetch()).then(r=>{ try{
     const el=document.getElementById('todayIdea'); if(!el)return;
     if(!r){ el.innerHTML=''; return; }
     const nm=(typeof _sigPlainName==='function')?_sigPlainName(r.evidence_key):String(r.evidence_key||'a signal');
@@ -19229,6 +19256,17 @@ function _todayRender(){
       +'<button class="tc-btn" onclick="showDailyPicks&&showDailyPicks()">All of today\u2019s picks \u2192</button></div></div></div>';
   }catch(e){} });
 }
+try{ /* v799: instant paint — yesterday's Today page shows the moment the app opens (max 3 days old), then the live render replaces it in place. And the server brief is asked for once, early, so it's ready when the cards draw. */
+  setTimeout(function(){ try{
+    if(!document.body.classList.contains('simple-mode'))return;
+    const host=document.getElementById('todayPage');
+    if(host&&!host.innerHTML){
+      const c=JSON.parse(localStorage.getItem('asxScreener.today.cache.v1')||'null');
+      if(c&&c.html&&(Date.now()-c.t)<3*864e5) host.innerHTML=c.html;
+    }
+    _todayBriefFetch().then(function(){ try{ _todayRender(); }catch(e){} });
+  }catch(e){} },250);
+}catch(e){}
 async function _refreshSimpleLoad(){
   try{ if(document.body.classList.contains('simple-mode')) _todayRender(); }catch(_){}
   const btn=document.getElementById('simpleLoadBtn');
