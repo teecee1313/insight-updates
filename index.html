@@ -1744,7 +1744,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-787-open';
+const APP_VERSION='2026.08.16-788-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3212,6 +3212,18 @@ async function showDailyPicks(mode){
             : '<div><span style="color:var(--muted);font-size:10px;display:block;">Target</span><b>'+money(r.target_price)+'</b></div>'
               +'<div><span style="color:var(--muted);font-size:10px;display:block;">Stop</span><b>'+money(sv)+'</b></div>')
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Last close</span><b>'+money(r.ref_close)+'</b></div>'
+          +(function(){ /* v788: lever #1 — friction, visible. Round trip = $6 brokerage on the parcel
+             + one ASX tick crossed on exit. The 13-Aug study priced entries; nothing prices EXITS
+             until the trade is over — this line does it before the buy. Visibility only for now:
+             the behavioural gate waits for Monday's clean-maths baseline. */
+            try{ var _px=+r.limit_price||+r.ref_close||0; if(!(_px>0))return '';
+              var _amt=+(r.amount_dollars||r.parcel||0)||1000;
+              var _tick=_px<0.10?0.001:(_px<2?0.005:0.01);
+              var _fr=((6/_amt)+(_tick/_px))*100;
+              var _ed=(r.edge!=null&&isFinite(+r.edge))?+r.edge:null;
+              var _ok=(_ed!=null)?(_ed>=2*_fr):null;
+              return '<div style="flex-basis:100%;font-size:10px;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:2px;">\ud83d\udcb8 friction \u2248 '+_fr.toFixed(2)+'% round trip ($6 + one tick)'+(_ed!=null?(' \u00b7 line edge '+_ed.toFixed(2)+'% \u2014 '+(_ok?'clears 2\u00d7 friction \u2713':'does NOT clear 2\u00d7 friction')):'')+'</div>';
+            }catch(_fe){ return ''; } })()
           +'</div>'
           +'<div style="display:flex;gap:6px;margin-top:8px;">'
           +'<button onclick="_picksBuy(\''+esc(r.ticker)+'\','+(+r.limit_price||0)+','+(tr?0:(+r.target_price||0))+','+(+sv||0)+','+(tr?(+r.trail_pct||20):0)+')" style="flex:2;padding:7px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.15);color:var(--green);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\ud83d\uded2 Practice buy</button>'
