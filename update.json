@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-805-open",
+  "version": "2026.08.16-806-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📊 Fixed a cut-off column in the 'Does the grading work?' report. Its comparison table has four columns, and on a phone the last one ('still positive' — the share of lines that stayed up) was running off the right edge: the header read 'still posit' and the values showed as bare '9' and '6' instead of 91% and 63%. The table now uses a fixed column layout with shorter headers ('next edge', 'still +') so all four columns fit the screen, and the full percentages show. Numbers and logic unchanged — the column just wasn't fitting.",
+  "notes": "ℹ️ Clarified the radar's 'Score 7+' tile. It counts shares whose Watch Score (how strongly a share is accumulating TODAY) is 7 or higher — a different measure from the 🧪 Evidence tiles just below it (🟢 SOLID / ⚡ PN Edge), which grade whether a share's signal has a proven track record. That's why the radar can honestly show '1 Score 7+' and '7 SOLID' at the same time: seven shares carry a proven signal, but only one of them is also accumulating strongly enough today to score 7+. The two tooltips now spell this out so the counts don't read as a contradiction. No numbers changed — both counts were already correct.",
   "date": "2026-08-16"
 }
