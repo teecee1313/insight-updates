@@ -10,7 +10,7 @@
      it, one piece of injected script reads the access key out of storage and
      posts it anywhere it likes. connect-src is deliberately narrow: our worker,
      EODData, and the relays that only ever carry public data. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://insight-data.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://insight-data.tonycotton13.workers.dev https://insight-test12.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Insight Trading — Multi-Exchange Share Screener</title>
 <!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-809-open';
+const APP_VERSION='2026.08.17-810-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
