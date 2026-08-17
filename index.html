@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-807-open';
+const APP_VERSION='2026.08.17-808-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6477,6 +6477,49 @@ function _pfKey(acct,exch){
   return ex==='ASX'?base:base+'.'+ex;
 }
 window._pfSwitch=function(k){ window._pfCtx=(k==='auto')?'auto':'main'; try{updatePaperPrices();}catch(e){} try{showPortfolio(window._pfExSel||'ALL');}catch(e){} };
+// v808 — 12-track test viewer. READ-ONLY: reads a separate research worker and
+// renders it. Touches no paper account, no localStorage, no existing context.
+// Each track is its own $100,000 rule set, started the same day, so they can be
+// compared against the Control track (which buys with no signal at all).
+window._show12Tracks=function(){
+  try{ showModal('<div style="padding:26px;text-align:center;color:var(--muted);font-size:13px;">Loading the 12 tracks\u2026</div>','\ud83e\uddea 12-track test'); }catch(e){}
+  fetch('https://insight-test12.tonycotton13.workers.dev/status',{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('the tracker returned '+r.status); return r.json(); })
+    .then(function(d){
+      var a=(d&&d.accounts)||[]; if(!a.length) throw new Error('no tracks came back');
+      var RULES={1:'no signal \u00b7 $1\u2013$5 \u00b7 20 days',2:'volume record \u00b7 $1\u2013$5 \u00b7 20 days \u00b7 up markets',3:'volume record \u00b7 $1\u2013$5 \u00b7 20 days \u00b7 any market',4:'volume record \u00b7 $1\u2013$5 \u00b7 5 days',5:'volume record \u00b7 $1\u2013$5 \u00b7 10 days',6:'volume record \u00b7 under 20c \u00b7 20 days',7:'volume record, calm spikes only \u00b7 $1\u2013$5',8:'volume record \u00b7 $5\u2013$10 \u00b7 20 days',9:'existing Hunter preset',10:'existing Defender preset',11:'existing All-rounder preset',12:'breakout \u00b7 $1\u2013$5 \u00b7 20 days'};
+      var NOTE={1:'The benchmark. A rule that cannot beat this is adding nothing.',6:'Expected to lose \u2014 testing said this price range does not work. Still losing means the method is measuring something real.',9:'Mirrors the live app, not simulated here yet.',10:'Mirrors the live app, not simulated here yet.',11:'Mirrors the live app, not simulated here yet.'};
+      var money=function(n){ return (n<0?'\u2212':'')+'$'+Math.abs(Math.round(n)).toLocaleString(); };
+      var live=a.filter(function(x){ return x.open_positions>0||x.closed_positions>0; });
+      var tot=0,cl=0,op=0,win=0;
+      live.forEach(function(x){ tot+=(x.realized_pnl||0); cl+=x.closed_positions; op+=x.open_positions; if((x.realized_pnl||0)>0)win++; });
+      var h='<div style="padding:4px 2px 2px;">';
+      h+='<div style="font-size:11.5px;color:var(--dim);line-height:1.55;margin-bottom:12px;">Twelve rule sets, each with its own <b style="color:var(--text)">$100,000</b> practice account, all started the same day. Each buys up to three new positions a day, sized at 10% of what that account is currently worth. Practice money \u2014 not advice. This is a research view: nothing here can be traded or edited.</div>';
+      h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
+      h+='<div style="flex:1;min-width:96px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;">Tracks running</div><div style="font-size:17px;font-weight:700;">'+live.length+'</div></div>';
+      h+='<div style="flex:1;min-width:96px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;">Trades finished</div><div style="font-size:17px;font-weight:700;">'+cl+'</div></div>';
+      h+='<div style="flex:1;min-width:96px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;">Still holding</div><div style="font-size:17px;font-weight:700;">'+op+'</div></div>';
+      h+='<div style="flex:1;min-width:96px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;">In profit</div><div style="font-size:17px;font-weight:700;">'+win+' / '+live.length+'</div></div>';
+      h+='</div>';
+      a.forEach(function(x){
+        var p=x.realized_pnl||0, idle=(x.open_positions===0&&x.closed_positions===0);
+        var col= idle?'var(--muted)':(p>0?'#4ade80':(p<0?'#f87171':'var(--muted)'));
+        var edge= idle?'var(--border)':(p>0?'#4ade80':(p<0?'#f87171':'var(--border)'));
+        var dep=(x.starting_capital||100000)-x.cash;
+        h+='<div style="border:1px solid var(--border);border-left:3px solid '+edge+';border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--bg2);">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><div style="font-weight:700;font-size:13px;">'+x.name+'</div><div style="font-family:var(--mono,monospace);font-size:15px;font-weight:700;color:'+col+';">'+(idle?'\u2014':money(p))+'</div></div>';
+        h+='<div style="font-size:10px;color:var(--dim);margin:2px 0 7px;">'+(RULES[x.track_id]||'')+'</div>';
+        h+='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);"><span>cash <b style="color:var(--text)">'+money(x.cash)+'</b></span><span>in shares <b style="color:var(--text)">'+money(dep)+'</b></span><span>finished <b style="color:var(--text)">'+x.closed_positions+'</b></span><span>holding <b style="color:var(--text)">'+x.open_positions+'</b></span><span>checked <b style="color:var(--text)">'+(x.last_run_d||'never')+'</b></span></div>';
+        if(NOTE[x.track_id]) h+='<div style="font-size:10px;color:'+(x.track_id===6?'#f5c84c':'var(--dim)')+';margin-top:7px;padding-top:6px;border-top:1px solid var(--border);line-height:1.45;">'+NOTE[x.track_id]+'</div>';
+        h+='</div>';
+      });
+      h+='<div style="font-size:10px;color:var(--dim);line-height:1.5;margin-top:10px;">The dollar figure is money banked from trades that have already finished. Capital still sitting in shares is not counted as profit or loss until those positions close. Each track checks the market once a day, after the close.</div></div>';
+      try{ showModal(h,'\ud83e\uddea 12-track test'); }catch(e){}
+    })
+    .catch(function(e){
+      try{ showModal('<div style="padding:22px;color:var(--muted);font-size:12.5px;line-height:1.6;">Could not reach the 12-track tracker.<br><br>'+(e&&e.message?e.message:'unknown error')+'<br><br>Check you are online and try again.</div>','\ud83e\uddea 12-track test'); }catch(_){}
+    });
+};
 // Run an account-aware engine for BOTH accounts, sequentially, without ever
 // flipping the global view context (async-safe: a user click mid-engine can
 // never land in the wrong account).
@@ -10821,6 +10864,7 @@ function showPortfolio(exSel){
   const _isAuto=(window._pfCtx==='auto');
   const acctTabs=`<div style="display:flex;gap:6px;margin:0 0 10px;align-items:center;flex-wrap:wrap;">
     <button onclick="_pfSwitch('main')" style="padding:6px 12px;border-radius:6px;border:1px solid ${!_isAuto?'var(--gold)':'var(--border)'};background:${!_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${!_isAuto?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">👤 My trading</button>
+    <button onclick="_show12Tracks()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;" title="12 rule sets, each with its own $100,000 practice account, all started the same day. Read-only research view.">\ud83e\uddea 12-track test</button>
     <button onclick="_pfSwitch('auto')" style="padding:6px 12px;border-radius:6px;border:1px solid ${_isAuto?'var(--gold)':'var(--border)'};background:${_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${_isAuto?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🤖 Auto-pilot · $50k test</button>
     ${_isAuto?`<span style="font-size:9px;color:var(--dim);line-height:1.4;">the bot trades THIS account — sells/undo here act on it; buys from the table still go to 👤. The 📊 Scoreboard grades this account.</span>`:''}
   </div>`;
