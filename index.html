@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-815-open';
+const APP_VERSION='2026.08.17-816-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6588,7 +6588,7 @@ window._t12render=function(){
     if(!open.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing open right now.</div>'; }
     else{
       h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;">QTY</th><th style="padding:4px 6px;">BUY</th><th style="padding:4px 6px;">NOW</th><th style="padding:4px 6px;">VALUE</th><th style="padding:4px 6px;">P/L</th></tr>';
+      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;text-align:right;">QTY</th><th style="padding:4px 6px;text-align:right;">BUY</th><th style="padding:4px 6px;text-align:right;">NOW</th><th style="padding:4px 6px;text-align:right;">VALUE</th><th style="padding:4px 6px;text-align:right;">P/L</th></tr>';
       open.sort(function(a,b){ var pa=((a.now_px||a.entry_px)-a.entry_px)/a.entry_px, pb=((b.now_px||b.entry_px)-b.entry_px)/b.entry_px; return pb-pa; }).forEach(function(p){
         var px=(p.now_px!=null?p.now_px:p.entry_px), val=p.shares*px, pl=val-p.cost_basis, plp=(pl/p.cost_basis)*100, col=pl>=0?'#4ade80':'#f87171';
         h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
@@ -6613,7 +6613,7 @@ window._t12render=function(){
     if(!closed.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">None closed yet.</div>'; }
     else{
       h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;">QTY</th><th style="padding:4px 6px;">BUY</th><th style="padding:4px 6px;">SOLD</th><th style="padding:4px 6px;">RESULT</th></tr>';
+      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;text-align:right;">QTY</th><th style="padding:4px 6px;text-align:right;">BUY</th><th style="padding:4px 6px;text-align:right;">SOLD</th><th style="padding:4px 6px;text-align:right;">RESULT</th></tr>';
       closed.sort(function(a,b){ return (b.ret_pct||0)-(a.ret_pct||0); }).forEach(function(p){
         var col=(p.pnl||0)>=0?'#4ade80':'#f87171';
         h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
@@ -6678,7 +6678,7 @@ window._t12render=function(){
       });
       var keys=Object.keys(byW).sort();
       h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-      h+=TH+'<th style="text-align:left;padding:4px 6px;">WEEK BEGINNING</th><th style="padding:4px 6px;">CLOSED</th><th style="padding:4px 6px;">UP</th><th style="padding:4px 6px;">RESULT</th></tr>';
+      h+=TH+'<th style="text-align:left;padding:4px 6px;">WEEK BEGINNING</th><th style="padding:4px 6px;text-align:right;">CLOSED</th><th style="padding:4px 6px;text-align:right;">UP</th><th style="padding:4px 6px;text-align:right;">RESULT</th></tr>';
       keys.forEach(function(k){
         var w=byW[k], col=w.pnl>=0?'#4ade80':'#f87171';
         h+='<tr style="border-top:1px solid var(--border);text-align:right;"><td style="text-align:left;padding:6px;"><b>'+k+'</b></td><td style="padding:6px;font-family:var(--mono,monospace);">'+w.n+'</td><td style="padding:6px;font-family:var(--mono,monospace);">'+w.w+'</td><td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+(w.pnl>=0?'+':'')+w.pnl.toFixed(2)+'</td></tr>';
