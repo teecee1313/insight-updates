@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-808-open';
+const APP_VERSION='2026.08.17-809-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6476,6 +6476,13 @@ function _pfKey(acct,exch){
   const ex=_pfExch(exch);
   return ex==='ASX'?base:base+'.'+ex;
 }
+// v809 — private unlock for the 12-track research view. The button only renders
+// on a device where this flag is set, so it never appears for customers and
+// never appears in beta (generated builds carry the code, not the flag).
+try{ var _t12q=new URLSearchParams(location.search).get('t12');
+  if(_t12q==='on'){ localStorage.setItem('_t12','1'); }
+  else if(_t12q==='off'){ localStorage.removeItem('_t12'); }
+}catch(e){}
 window._pfSwitch=function(k){ window._pfCtx=(k==='auto')?'auto':'main'; try{updatePaperPrices();}catch(e){} try{showPortfolio(window._pfExSel||'ALL');}catch(e){} };
 // v808 — 12-track test viewer. READ-ONLY: reads a separate research worker and
 // renders it. Touches no paper account, no localStorage, no existing context.
@@ -10864,7 +10871,7 @@ function showPortfolio(exSel){
   const _isAuto=(window._pfCtx==='auto');
   const acctTabs=`<div style="display:flex;gap:6px;margin:0 0 10px;align-items:center;flex-wrap:wrap;">
     <button onclick="_pfSwitch('main')" style="padding:6px 12px;border-radius:6px;border:1px solid ${!_isAuto?'var(--gold)':'var(--border)'};background:${!_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${!_isAuto?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">👤 My trading</button>
-    <button onclick="_show12Tracks()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;" title="12 rule sets, each with its own $100,000 practice account, all started the same day. Read-only research view.">\ud83e\uddea 12-track test</button>
+    ${(function(){try{return localStorage.getItem('_t12')==='1';}catch(e){return false;}})()?`<button onclick="_show12Tracks()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;" title="12 rule sets, each with its own $100,000 practice account, all started the same day. Read-only research view.">\ud83e\uddea 12-track test</button>`:''}
     <button onclick="_pfSwitch('auto')" style="padding:6px 12px;border-radius:6px;border:1px solid ${_isAuto?'var(--gold)':'var(--border)'};background:${_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${_isAuto?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🤖 Auto-pilot · $50k test</button>
     ${_isAuto?`<span style="font-size:9px;color:var(--dim);line-height:1.4;">the bot trades THIS account — sells/undo here act on it; buys from the table still go to 👤. The 📊 Scoreboard grades this account.</span>`:''}
   </div>`;
