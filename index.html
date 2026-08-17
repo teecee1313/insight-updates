@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-812-open';
+const APP_VERSION='2026.08.18-813-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3280,7 +3280,7 @@ async function showDailyPicks(mode){
               var _fr=(6/_amt)*100+_cross;
               var _lbl=_sprBinds?('est. spread '+_cs.toFixed(2)+'%'):'one tick';
               var _amtLbl=(_sized>0?'$'+Math.round(_sized).toLocaleString():'an assumed $'+Math.round(_amt).toLocaleString());
-              var _tip='Two numbers, compared. WHAT IT COSTS: $6 brokerage to buy plus $6 to sell, on the parcel size the server sized this suggestion at, plus the gap between the buying and selling price in the market (the bigger of one ASX price step and this share\u2019s own typical gap, worked out from about 100 days of its highs and lows). WHAT IT HAS MADE: what this signal has averaged per trade in testing. We want the gain to be at least DOUBLE the cost before calling it worth doing \u2014 a single margin is too thin to survive one bad fill. Brokerage is a flat $6 either way, so it hurts a small parcel far more than a large one, which is why the parcel size is named. Both figures are estimates from past data, never a promise about this trade.';
+              var _tip='Two numbers, compared. WHAT IT COSTS: $3 brokerage to buy plus $3 to sell ($6 the round trip), on the parcel size the server sized this suggestion at, plus the gap between the buying and selling price in the market (the bigger of one ASX price step and this share\u2019s own typical gap, worked out from about 100 days of its highs and lows). WHAT IT HAS MADE: what this signal has averaged per trade in testing. We want the gain to be at least DOUBLE the cost before calling it worth doing \u2014 a single margin is too thin to survive one bad fill. Brokerage is a flat $6 either way, so it hurts a small parcel far more than a large one, which is why the parcel size is named. Both figures are estimates from past data, never a promise about this trade.';
               var _ed=(r.edge!=null&&isFinite(+r.edge))?+r.edge:null;
               var _ok=(_ed!=null)?(_ed>=2*_fr):null;
               var _costD=_amt*_fr/100, _edD=(_ed!=null)?(_amt*_ed/100):null;

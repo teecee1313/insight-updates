@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-807-open",
+  "version": "2026.08.18-813-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🧮 New: Trade Calculator. A 🧮 Tools button now sits in the top toolbar (next to Portfolio). Tap it and enter your own numbers — entry price, how much you're putting in, your exit as a % gain or a sell price, and your brokerage — and it shows your real net profit, the full cost breakdown, and your break-even move (the % rise needed just to cover costs). Pure arithmetic on the numbers you type: it makes no prediction about whether a trade will win. Nothing is assumed — change any field and it all updates. Opens as an overlay; tap again, the ✕, or outside it to close.",
-  "date": "2026-08-16"
+  "notes": "The costs tooltip on Today's picks now states brokerage correctly: $3 to buy plus $3 to sell \u2014 $6 for the round trip. The maths on screen was always right; the explanation now matches it. (Server-side this same test now also gates the picks themselves \u2014 a suggestion whose past gains don't cover at least twice its costs is refused before it reaches you, and old uneconomic suggestions are cleared.)",
+  "date": "2026-08-18"
 }
