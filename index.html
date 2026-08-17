@@ -10,7 +10,7 @@
      it, one piece of injected script reads the access key out of storage and
      posts it anywhere it likes. connect-src is deliberately narrow: our worker,
      EODData, and the relays that only ever carry public data. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://insight-data.tonycotton13.workers.dev https://insight-test12.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://insight-data.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Insight Trading — Multi-Exchange Share Screener</title>
 <!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-816-open';
+const APP_VERSION='2026.08.17-817-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6476,220 +6476,12 @@ function _pfKey(acct,exch){
   const ex=_pfExch(exch);
   return ex==='ASX'?base:base+'.'+ex;
 }
-// v809 — private unlock for the 12-track research view. The button only renders
-// on a device where this flag is set, so it never appears for customers and
-// never appears in beta (generated builds carry the code, not the flag).
-try{ var _t12q=new URLSearchParams(location.search).get('t12');
-  if(_t12q==='on'){ localStorage.setItem('_t12','1'); }
-  else if(_t12q==='off'){ localStorage.removeItem('_t12'); }
-}catch(e){}
 window._pfSwitch=function(k){ window._pfCtx=(k==='auto')?'auto':'main'; try{updatePaperPrices();}catch(e){} try{showPortfolio(window._pfExSel||'ALL');}catch(e){} };
 // v808 — 12-track test viewer. READ-ONLY: reads a separate research worker and
 // renders it. Touches no paper account, no localStorage, no existing context.
 // Each track is its own $100,000 rule set, started the same day, so they can be
 // compared against the Control track (which buys with no signal at all).
-window._t12cache=null;
-window._t12sel=1;
-window._t12tab='holdings';
-window._show12Tracks=function(){
-  try{ showModal('<div style="padding:26px;text-align:center;color:var(--muted);font-size:13px;">Loading the 12 accounts\u2026</div>','\ud83e\uddea 12-track test'); }catch(e){}
-  if(window._t12cache){ _t12render(); return; }
-  Promise.all([
-    fetch('https://insight-test12.tonycotton13.workers.dev/status',{cache:'no-store'}).then(function(r){return r.json();}),
-    fetch('https://insight-test12.tonycotton13.workers.dev/positions',{cache:'no-store'}).then(function(r){return r.json();})
-  ]).then(function(res){
-    window._t12cache={accounts:res[0].accounts||[], positions:res[1].positions||[]};
-    _t12render();
-  }).catch(function(e){
-    try{ showModal('<div style="padding:22px;color:var(--muted);font-size:12.5px;line-height:1.6;">Could not reach the 12-track tracker.<br><br>'+(e&&e.message?e.message:'unknown error')+'</div>','\ud83e\uddea 12-track test'); }catch(_){}
-  });
-};
-window._t12pick=function(n){ window._t12sel=n; _t12render(); };
-window._t12tabTo=function(t){ window._t12tab=t; _t12render(); };
-window._t12render=function(){
-  var C=window._t12cache; if(!C) return;
-  var RULES={1:'no signal \u00b7 $1\u2013$5 \u00b7 20 days',2:'volume record \u00b7 $1\u2013$5 \u00b7 20 days \u00b7 up markets',3:'volume record \u00b7 $1\u2013$5 \u00b7 20 days \u00b7 any market',4:'volume record \u00b7 $1\u2013$5 \u00b7 5 days',5:'volume record \u00b7 $1\u2013$5 \u00b7 10 days',6:'volume record \u00b7 under 20c \u00b7 20 days',7:'volume record, calm spikes only \u00b7 $1\u2013$5',8:'volume record \u00b7 $5\u2013$10 \u00b7 20 days',9:'existing Hunter preset',10:'existing Defender preset',11:'existing All-rounder preset',12:'breakout \u00b7 $1\u2013$5 \u00b7 20 days'};
-  var sel=window._t12sel, tab=window._t12tab;
-  var acct=null; for(var i=0;i<C.accounts.length;i++){ if(C.accounts[i].track_id===sel) acct=C.accounts[i]; }
-  if(!acct) return;
-  var mine=C.positions.filter(function(p){ return p.track_id===sel; });
-  var open=mine.filter(function(p){ return p.status==='open'; });
-  var closed=mine.filter(function(p){ return p.status==='closed'; });
-  var money=function(n){ return (n<0?'\u2212':'')+'$'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); };
-  var m0=function(n){ return (n<0?'\u2212':'')+'$'+Math.abs(Math.round(n)).toLocaleString(); };
-  var openVal=0, openPnl=0;
-  open.forEach(function(p){ var px=(p.now_px!=null?p.now_px:p.entry_px); var v=p.shares*px; openVal+=v; openPnl+=(v-p.cost_basis); });
-  var realised=0; closed.forEach(function(p){ realised+=(p.pnl||0); });
 
-  // A track whose rebuild did not finish leaves cash untouched while positions
-  // exist — the account then appears to hold shares it never paid for. That is
-  // arithmetically impossible, so refuse to show a number rather than print a
-  // fantasy balance.
-  var spent = 0; mine.forEach(function(p){ spent += (p.cost_basis||0); });
-  var brokenAcct = (mine.length > 0 && acct.cash >= (acct.starting_capital||100000) - 1 && spent > 0);
-  var h='<div style="padding:2px;">';
-  if(brokenAcct){
-    h+='<div style="border:1px solid #f5c84c;border-radius:8px;padding:12px 14px;margin-bottom:12px;background:rgba(245,200,76,.08);">'
-      +'<div style="font-weight:700;font-size:12.5px;color:#f5c84c;margin-bottom:5px;">This account did not finish rebuilding</div>'
-      +'<div style="font-size:11.5px;color:var(--muted);line-height:1.6;">It is holding '+mine.length+' positions costing '
-      +'$'+Math.round(spent).toLocaleString()+', but its cash still shows the full starting balance \u2014 the money was never taken out. '
-      +'The figures below are wrong and should be ignored.<br><br>'
-      +'To repair it, load <b style="color:var(--text);">/backfill?track='+sel+'</b> on the tracker, then reopen this.</div></div>';
-  }
-  h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">';
-  C.accounts.forEach(function(a){
-    var on=(a.track_id===sel), p=a.realized_pnl||0;
-    var dot=(a.open_positions===0&&a.closed_positions===0)?'var(--dim)':(p>0?'#4ade80':(p<0?'#f87171':'var(--dim)'));
-    h+='<button onclick="_t12pick('+a.track_id+')" style="padding:5px 9px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:10.5px;font-weight:700;border:1px solid '+(on?'var(--gold)':'var(--border)')+';background:'+(on?'rgba(255,210,0,.15)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';"><span style="color:'+dot+';">\u25cf</span> '+a.track_id+'. '+a.name+'</button>';
-  });
-  h+='</div>';
-  var chip=function(lab,val,hi){ return '<span style="display:inline-block;margin:0 6px 6px 0;padding:4px 9px;border-radius:6px;font-size:10.5px;border:1px solid '+(hi?'var(--gold)':'var(--border)')+';background:'+(hi?'rgba(255,210,0,.10)':'var(--bg3)')+';"><span style="color:var(--dim);">'+lab+'</span> <b style="color:'+(hi?'var(--gold)':'var(--text)')+';">'+val+'</b></span>'; };
-  var SIGNAME={none:'buys anything eligible \u2014 no signal',vol_record:'busiest volume day on record',breakout:'price broke its old high',deployed_hunter:'Hunter preset',deployed_defender:'Defender preset',deployed_allrounder:'All-rounder preset'};
-  h+='<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;background:var(--bg2);">';
-  h+='<div style="font-size:10px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;">The rule this account follows</div>';
-  if(acct.is_existing_preset){
-    h+='<div style="font-size:11.5px;color:var(--muted);line-height:1.55;">'+(SIGNAME[acct.signal]||acct.signal)+' \u2014 this one mirrors a preset already running in your live app, so it is not re-simulated here. Its real results live in your own Auto-pilot account.</div>';
-  } else {
-    h+=chip('Buys when', (SIGNAME[acct.signal]||acct.signal), true);
-    h+=chip('Price band', '$'+Number(acct.price_lo).toFixed(2)+' \u2013 $'+Number(acct.price_hi).toFixed(2));
-    h+=chip('Holds for', acct.hold_days+' trading days');
-    h+=chip('Market gate', acct.regime_gate? 'up markets only' : 'any market');
-    if(acct.ratio_filter_lo!=null||acct.ratio_filter_hi!=null){
-      h+=chip('Volume spike', (acct.ratio_filter_lo!=null?Number(acct.ratio_filter_lo).toFixed(2):'0')+'\u2013'+(acct.ratio_filter_hi!=null?Number(acct.ratio_filter_hi).toFixed(2):'\u221e')+'\u00d7 normal');
-    }
-    h+=chip('Buys per day','up to 3');
-    h+=chip('Size per buy','10% of balance');
-    h+=chip('Brokerage','$6 round trip');
-    if(acct.notes){ h+='<div style="font-size:10.5px;color:var(--dim);line-height:1.55;margin-top:5px;border-top:1px solid var(--border);padding-top:7px;">'+acct.notes+'</div>'; }
-  }
-  h+='</div>';
-  h+='<div style="font-size:10.5px;color:var(--dim);margin-bottom:10px;">Started with $100,000 \u00b7 practice money, not advice</div>';
-  h+='<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;">';
-  h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">ACCOUNT</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;">'+m0(acct.cash+openVal)+'</div></div>';
-  h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">CASH</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;">'+m0(acct.cash)+'</div></div>';
-  h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">IN SHARES</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;">'+m0(openVal)+'</div></div>';
-  h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">OPEN P/L</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;color:'+(openPnl>=0?'#4ade80':'#f87171')+';">'+(openPnl>=0?'+':'')+openPnl.toFixed(2)+'</div></div>';
-  h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">BANKED</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;color:'+(realised>=0?'#4ade80':'#f87171')+';">'+(realised>=0?'+':'')+realised.toFixed(2)+'</div></div>';
-  h+='</div>';
-
-  // ---- tab bar -------------------------------------------------------------
-  var TABS=[['holdings','\ud83d\udcca Holdings ('+open.length+')'],['pending','\u23f3 Pending (0)'],['history','\ud83d\udcdc History ('+closed.length+')'],['perf','\ud83d\udcc8 Performance'],['weekly','\ud83d\uddd3 Weekly']];
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
-  TABS.forEach(function(t){
-    var on=(tab===t[0]);
-    h+='<button onclick="_t12tabTo(\''+t[0]+'\')" style="flex:1;min-width:110px;padding:8px 10px;border-radius:7px;cursor:pointer;font-family:var(--sans);font-size:11.5px;font-weight:700;border:1px solid '+(on?'var(--gold)':'var(--border)')+';background:'+(on?'rgba(255,210,0,.12)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';">'+t[1]+'</button>';
-  });
-  h+='</div>';
-
-  var TH='<tr style="color:var(--dim);font-size:9.5px;letter-spacing:.05em;text-align:right;">';
-
-  if(tab==='holdings'){
-    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Current holdings \u00b7 ASX ('+open.length+')</div>';
-    if(!open.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing open right now.</div>'; }
-    else{
-      h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;text-align:right;">QTY</th><th style="padding:4px 6px;text-align:right;">BUY</th><th style="padding:4px 6px;text-align:right;">NOW</th><th style="padding:4px 6px;text-align:right;">VALUE</th><th style="padding:4px 6px;text-align:right;">P/L</th></tr>';
-      open.sort(function(a,b){ var pa=((a.now_px||a.entry_px)-a.entry_px)/a.entry_px, pb=((b.now_px||b.entry_px)-b.entry_px)/b.entry_px; return pb-pa; }).forEach(function(p){
-        var px=(p.now_px!=null?p.now_px:p.entry_px), val=p.shares*px, pl=val-p.cost_basis, plp=(pl/p.cost_basis)*100, col=pl>=0?'#4ade80':'#f87171';
-        h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
-        h+='<td style="text-align:left;padding:6px;"><b style="color:var(--gold);">'+p.ticker+'</b><div style="font-size:9.5px;color:var(--dim);">bought '+p.entry_d+' \u00b7 exit due '+(p.planned_exit_d||'\u2014')+'</div></td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+Math.round(p.shares).toLocaleString()+'</td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+p.entry_px.toFixed(3)+'</td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+px.toFixed(3)+'<div style="font-size:9px;color:var(--dim);">'+(p.now_d||'')+'</div></td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+money(val)+'</td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+(pl>=0?'+':'')+pl.toFixed(2)+'<div style="font-size:10px;">'+(plp>=0?'+':'')+plp.toFixed(2)+'%</div></td></tr>';
-      });
-      h+='</table></div>';
-    }
-  }
-
-  else if(tab==='pending'){
-    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Pending orders (0)</div>';
-    h+='<div style="color:var(--dim);font-size:11.5px;line-height:1.6;padding:8px 0;">These tracks never have pending orders. Each one decides after the close and its buy fills at the very next close, so an order is never left waiting overnight. The tab is here to match the layout of your own portfolio, not because anything is missing.</div>';
-  }
-
-  else if(tab==='history'){
-    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Finished trades ('+closed.length+')</div>';
-    if(!closed.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">None closed yet.</div>'; }
-    else{
-      h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;text-align:right;">QTY</th><th style="padding:4px 6px;text-align:right;">BUY</th><th style="padding:4px 6px;text-align:right;">SOLD</th><th style="padding:4px 6px;text-align:right;">RESULT</th></tr>';
-      closed.sort(function(a,b){ return (b.ret_pct||0)-(a.ret_pct||0); }).forEach(function(p){
-        var col=(p.pnl||0)>=0?'#4ade80':'#f87171';
-        h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
-        h+='<td style="text-align:left;padding:6px;"><b style="color:var(--gold);">'+p.ticker+'</b><div style="font-size:9.5px;color:var(--dim);">'+p.entry_d+' \u2192 '+(p.actual_exit_d||'')+'</div></td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+Math.round(p.shares).toLocaleString()+'</td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+p.entry_px.toFixed(3)+'</td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+(p.exit_px!=null?p.exit_px.toFixed(3):'\u2014')+'</td>';
-        h+='<td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+((p.pnl||0)>=0?'+':'')+(p.pnl||0).toFixed(2)+'<div style="font-size:10px;">'+((p.ret_pct||0)>=0?'+':'')+(p.ret_pct||0).toFixed(2)+'%</div></td></tr>';
-      });
-      h+='</table></div>';
-    }
-  }
-
-  else if(tab==='perf'){
-    // Winners are held past the deadline and only losers are force-closed, so
-    // "finished trades" is a deliberately losing sample. Showing its win rate
-    // as the rule's performance is misleading — lead with the account instead.
-    var acctResult = acct.cash + openVal - (acct.starting_capital || 100000);
-    h+='<div style="border:1px solid '+(acctResult>=0?'#4ade80':'#f87171')+';border-radius:8px;padding:11px 13px;margin-bottom:12px;background:'+(acctResult>=0?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)')+';">';
-    h+='<div style="font-size:10px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;">Whole account, including what it still holds</div>';
-    h+='<div style="font-family:var(--mono,monospace);font-size:21px;font-weight:700;color:'+(acctResult>=0?'#4ade80':'#f87171')+';">'+(acctResult>=0?'+':'\u2212')+'$'+Math.abs(Math.round(acctResult)).toLocaleString()+'</div>';
-    h+='<div style="font-size:10.5px;color:var(--muted);line-height:1.55;margin-top:5px;">This is the number that says whether the rule is working. The figures below cover <b>finished trades only</b> \u2014 and because a winner is left to run past its 20-day limit while a loser is sold, the finished pile is mostly losers on purpose. A 0% win rate here does not mean the rule never wins; it means its winners have not finished yet.</div>';
-    h+='</div>';
-    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 8px;">Finished trades only \u00b7 a deliberately losing sample</div>';
-    if(closed.length<1){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing has closed yet, so there is nothing honest to measure.</div>'; }
-    else{
-      var wins=closed.filter(function(p){return (p.pnl||0)>0;}), losses=closed.filter(function(p){return (p.pnl||0)<=0;});
-      var aw=wins.length?wins.reduce(function(a,p){return a+(p.ret_pct||0);},0)/wins.length:0;
-      var al=losses.length?losses.reduce(function(a,p){return a+(p.ret_pct||0);},0)/losses.length:0;
-      var gw=wins.reduce(function(a,p){return a+(p.pnl||0);},0), gl=Math.abs(losses.reduce(function(a,p){return a+(p.pnl||0);},0));
-      var pf=gl>0?(gw/gl):null, wr=(wins.length/closed.length)*100;
-      var exp=closed.reduce(function(a,p){return a+(p.ret_pct||0);},0)/closed.length;
-      var best=closed.slice().sort(function(a,b){return (b.ret_pct||0)-(a.ret_pct||0);})[0];
-      var worst=closed.slice().sort(function(a,b){return (a.ret_pct||0)-(b.ret_pct||0);})[0];
-      var cell=function(lab,val,col,sub){ return '<div style="flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin:0 6px 6px 0;"><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;">'+lab+'</div><div style="font-family:var(--mono,monospace);font-size:15px;font-weight:700;'+(col?'color:'+col+';':'')+'">'+val+'</div>'+(sub?'<div style="font-size:9px;color:var(--dim);">'+sub+'</div>':'')+'</div>'; };
-      h+='<div style="display:flex;flex-wrap:wrap;">';
-      h+=cell('Trades finished', closed.length);
-      h+=cell('Win rate', wr.toFixed(0)+'%', wr>=50?'#4ade80':'#f87171', wins.length+' up \u00b7 '+losses.length+' down');
-      h+=cell('Average win', '+'+aw.toFixed(2)+'%', '#4ade80');
-      h+=cell('Average loss', al.toFixed(2)+'%', '#f87171');
-      h+=cell('Profit factor', pf===null?'\u2014':pf.toFixed(2), pf!==null&&pf>1?'#4ade80':'#f87171', 'won per $1 lost');
-      h+=cell('Per-trade average', (exp>=0?'+':'')+exp.toFixed(2)+'%', exp>=0?'#4ade80':'#f87171', 'the number that must be positive');
-      h+=cell('Best trade', (best.ret_pct>=0?'+':'')+best.ret_pct.toFixed(1)+'%','#4ade80',best.ticker);
-      h+=cell('Worst trade', worst.ret_pct.toFixed(1)+'%','#f87171',worst.ticker);
-      h+=cell('Banked', (realised>=0?'+':'')+money(realised), realised>=0?'#4ade80':'#f87171');
-      h+='</div>';
-      h+='<div style="font-size:10px;color:var(--dim);line-height:1.55;margin-top:6px;">Win rate on its own can mislead \u2014 a rule can win most of its trades and still lose money if the losses are bigger. Read it next to average win, average loss and profit factor. The per-trade average is the one that decides whether the rule makes money at all.</div>';
-    }
-  }
-
-  else if(tab==='weekly'){
-    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Week by week \u00b7 finished trades</div>';
-    if(!closed.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing has closed yet.</div>'; }
-    else{
-      var byW={};
-      closed.forEach(function(p){
-        var d=new Date((p.actual_exit_d||p.entry_d)+'T00:00:00');
-        var mon=new Date(d); mon.setDate(d.getDate()-((d.getDay()+6)%7));
-        var k=mon.toISOString().slice(0,10);
-        if(!byW[k]) byW[k]={n:0,pnl:0,w:0};
-        byW[k].n++; byW[k].pnl+=(p.pnl||0); if((p.pnl||0)>0) byW[k].w++;
-      });
-      var keys=Object.keys(byW).sort();
-      h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-      h+=TH+'<th style="text-align:left;padding:4px 6px;">WEEK BEGINNING</th><th style="padding:4px 6px;text-align:right;">CLOSED</th><th style="padding:4px 6px;text-align:right;">UP</th><th style="padding:4px 6px;text-align:right;">RESULT</th></tr>';
-      keys.forEach(function(k){
-        var w=byW[k], col=w.pnl>=0?'#4ade80':'#f87171';
-        h+='<tr style="border-top:1px solid var(--border);text-align:right;"><td style="text-align:left;padding:6px;"><b>'+k+'</b></td><td style="padding:6px;font-family:var(--mono,monospace);">'+w.n+'</td><td style="padding:6px;font-family:var(--mono,monospace);">'+w.w+'</td><td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+(w.pnl>=0?'+':'')+w.pnl.toFixed(2)+'</td></tr>';
-      });
-      h+='</table></div>';
-    }
-  }
-
-  h+='<div style="font-size:10px;color:var(--dim);line-height:1.5;margin-top:12px;">Prices are the latest close held by the tracker. "Banked" counts finished trades only \u2014 money still in shares is not profit until it is sold. Read-only: nothing here can be traded or edited.</div></div>';
-  try{ showModal(h,'\ud83e\uddea 12-track test \u00b7 '+acct.name); }catch(e){}
-};
 // Run an account-aware engine for BOTH accounts, sequentially, without ever
 // flipping the global view context (async-safe: a user click mid-engine can
 // never land in the wrong account).
@@ -11034,7 +10826,7 @@ function showPortfolio(exSel){
   const _isAuto=(window._pfCtx==='auto');
   const acctTabs=`<div style="display:flex;gap:6px;margin:0 0 10px;align-items:center;flex-wrap:wrap;">
     <button onclick="_pfSwitch('main')" style="padding:6px 12px;border-radius:6px;border:1px solid ${!_isAuto?'var(--gold)':'var(--border)'};background:${!_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${!_isAuto?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">👤 My trading</button>
-    ${(function(){try{return localStorage.getItem('_t12')==='1';}catch(e){return false;}})()?`<button onclick="_show12Tracks()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;" title="12 rule sets, each with its own $100,000 practice account, all started the same day. Read-only research view.">\ud83e\uddea 12-track test</button>`:''}
+    
     <button onclick="_pfSwitch('auto')" style="padding:6px 12px;border-radius:6px;border:1px solid ${_isAuto?'var(--gold)':'var(--border)'};background:${_isAuto?'rgba(255,210,0,.15)':'var(--bg3)'};color:${_isAuto?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🤖 Auto-pilot · $50k test</button>
     ${_isAuto?`<span style="font-size:9px;color:var(--dim);line-height:1.4;">the bot trades THIS account — sells/undo here act on it; buys from the table still go to 👤. The 📊 Scoreboard grades this account.</span>`:''}
   </div>`;
