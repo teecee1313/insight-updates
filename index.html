@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-811-open';
+const APP_VERSION='2026.08.17-812-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6490,6 +6490,7 @@ window._pfSwitch=function(k){ window._pfCtx=(k==='auto')?'auto':'main'; try{upda
 // compared against the Control track (which buys with no signal at all).
 window._t12cache=null;
 window._t12sel=1;
+window._t12tab='holdings';
 window._show12Tracks=function(){
   try{ showModal('<div style="padding:26px;text-align:center;color:var(--muted);font-size:13px;">Loading the 12 accounts\u2026</div>','\ud83e\uddea 12-track test'); }catch(e){}
   if(window._t12cache){ _t12render(); return; }
@@ -6504,10 +6505,11 @@ window._show12Tracks=function(){
   });
 };
 window._t12pick=function(n){ window._t12sel=n; _t12render(); };
+window._t12tabTo=function(t){ window._t12tab=t; _t12render(); };
 window._t12render=function(){
   var C=window._t12cache; if(!C) return;
   var RULES={1:'no signal \u00b7 $1\u2013$5 \u00b7 20 days',2:'volume record \u00b7 $1\u2013$5 \u00b7 20 days \u00b7 up markets',3:'volume record \u00b7 $1\u2013$5 \u00b7 20 days \u00b7 any market',4:'volume record \u00b7 $1\u2013$5 \u00b7 5 days',5:'volume record \u00b7 $1\u2013$5 \u00b7 10 days',6:'volume record \u00b7 under 20c \u00b7 20 days',7:'volume record, calm spikes only \u00b7 $1\u2013$5',8:'volume record \u00b7 $5\u2013$10 \u00b7 20 days',9:'existing Hunter preset',10:'existing Defender preset',11:'existing All-rounder preset',12:'breakout \u00b7 $1\u2013$5 \u00b7 20 days'};
-  var sel=window._t12sel;
+  var sel=window._t12sel, tab=window._t12tab;
   var acct=null; for(var i=0;i<C.accounts.length;i++){ if(C.accounts[i].track_id===sel) acct=C.accounts[i]; }
   if(!acct) return;
   var mine=C.positions.filter(function(p){ return p.track_id===sel; });
@@ -6515,28 +6517,18 @@ window._t12render=function(){
   var closed=mine.filter(function(p){ return p.status==='closed'; });
   var money=function(n){ return (n<0?'\u2212':'')+'$'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var m0=function(n){ return (n<0?'\u2212':'')+'$'+Math.abs(Math.round(n)).toLocaleString(); };
-
-  // account header maths — open value and unrealised P/L from live prices
   var openVal=0, openPnl=0;
-  open.forEach(function(p){
-    var px=(p.now_px!=null?p.now_px:p.entry_px);
-    var v=p.shares*px; openVal+=v; openPnl+=(v-p.cost_basis);
-  });
+  open.forEach(function(p){ var px=(p.now_px!=null?p.now_px:p.entry_px); var v=p.shares*px; openVal+=v; openPnl+=(v-p.cost_basis); });
   var realised=0; closed.forEach(function(p){ realised+=(p.pnl||0); });
 
   var h='<div style="padding:2px;">';
-  // ---- the 12 account tabs -------------------------------------------------
   h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">';
   C.accounts.forEach(function(a){
-    var on=(a.track_id===sel);
-    var p=a.realized_pnl||0;
-    var dot= (a.open_positions===0&&a.closed_positions===0)?'var(--dim)':(p>0?'#4ade80':(p<0?'#f87171':'var(--dim)'));
-    h+='<button onclick="_t12pick('+a.track_id+')" style="padding:5px 9px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:10.5px;font-weight:700;border:1px solid '+(on?'var(--gold)':'var(--border)')+';background:'+(on?'rgba(255,210,0,.15)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';">'
-      +'<span style="color:'+dot+';">\u25cf</span> '+a.track_id+'. '+a.name+'</button>';
+    var on=(a.track_id===sel), p=a.realized_pnl||0;
+    var dot=(a.open_positions===0&&a.closed_positions===0)?'var(--dim)':(p>0?'#4ade80':(p<0?'#f87171':'var(--dim)'));
+    h+='<button onclick="_t12pick('+a.track_id+')" style="padding:5px 9px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:10.5px;font-weight:700;border:1px solid '+(on?'var(--gold)':'var(--border)')+';background:'+(on?'rgba(255,210,0,.15)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';"><span style="color:'+dot+';">\u25cf</span> '+a.track_id+'. '+a.name+'</button>';
   });
   h+='</div>';
-
-  // ---- selected account header --------------------------------------------
   h+='<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">Rule: <b style="color:var(--text)">'+(RULES[sel]||'')+'</b> \u00b7 started with $100,000 \u00b7 practice money, not advice</div>';
   h+='<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;">';
   h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">ACCOUNT</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;">'+m0(acct.cash+openVal)+'</div></div>';
@@ -6546,48 +6538,112 @@ window._t12render=function(){
   h+='<div><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;">BANKED</div><div style="font-family:var(--mono,monospace);font-size:16px;font-weight:700;color:'+(realised>=0?'#4ade80':'#f87171')+';">'+(realised>=0?'+':'')+realised.toFixed(2)+'</div></div>';
   h+='</div>';
 
-  // ---- holdings table ------------------------------------------------------
-  h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Current holdings \u00b7 ASX ('+open.length+')</div>';
-  if(!open.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing open right now.</div>'; }
-  else{
-    h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-    h+='<tr style="color:var(--dim);font-size:9.5px;letter-spacing:.05em;text-align:right;"><th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;">QTY</th><th style="padding:4px 6px;">BUY</th><th style="padding:4px 6px;">NOW</th><th style="padding:4px 6px;">VALUE</th><th style="padding:4px 6px;">P/L</th></tr>';
-    open.sort(function(a,b){
-      var pa=((a.now_px||a.entry_px)-a.entry_px)/a.entry_px, pb=((b.now_px||b.entry_px)-b.entry_px)/b.entry_px;
-      return pb-pa;
-    }).forEach(function(p){
-      var px=(p.now_px!=null?p.now_px:p.entry_px);
-      var val=p.shares*px, pl=val-p.cost_basis, plp=(pl/p.cost_basis)*100;
-      var col=pl>=0?'#4ade80':'#f87171';
-      h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
-      h+='<td style="text-align:left;padding:6px;"><b style="color:var(--gold);">'+p.ticker+'</b><div style="font-size:9.5px;color:var(--dim);">bought '+p.entry_d+' \u00b7 exit due '+(p.planned_exit_d||'\u2014')+'</div></td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+Math.round(p.shares).toLocaleString()+'</td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+p.entry_px.toFixed(3)+'</td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+px.toFixed(3)+'<div style="font-size:9px;color:var(--dim);">'+(p.now_d||'')+'</div></td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+money(val)+'</td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+(pl>=0?'+':'')+pl.toFixed(2)+'<div style="font-size:10px;">'+(plp>=0?'+':'')+plp.toFixed(2)+'%</div></td>';
-      h+='</tr>';
-    });
-    h+='</table></div>';
+  // ---- tab bar -------------------------------------------------------------
+  var TABS=[['holdings','\ud83d\udcca Holdings ('+open.length+')'],['pending','\u23f3 Pending (0)'],['history','\ud83d\udcdc History ('+closed.length+')'],['perf','\ud83d\udcc8 Performance'],['weekly','\ud83d\uddd3 Weekly']];
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
+  TABS.forEach(function(t){
+    var on=(tab===t[0]);
+    h+='<button onclick="_t12tabTo(\''+t[0]+'\')" style="flex:1;min-width:110px;padding:8px 10px;border-radius:7px;cursor:pointer;font-family:var(--sans);font-size:11.5px;font-weight:700;border:1px solid '+(on?'var(--gold)':'var(--border)')+';background:'+(on?'rgba(255,210,0,.12)':'var(--bg3)')+';color:'+(on?'var(--gold)':'var(--muted)')+';">'+t[1]+'</button>';
+  });
+  h+='</div>';
+
+  var TH='<tr style="color:var(--dim);font-size:9.5px;letter-spacing:.05em;text-align:right;">';
+
+  if(tab==='holdings'){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Current holdings \u00b7 ASX ('+open.length+')</div>';
+    if(!open.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing open right now.</div>'; }
+    else{
+      h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;">QTY</th><th style="padding:4px 6px;">BUY</th><th style="padding:4px 6px;">NOW</th><th style="padding:4px 6px;">VALUE</th><th style="padding:4px 6px;">P/L</th></tr>';
+      open.sort(function(a,b){ var pa=((a.now_px||a.entry_px)-a.entry_px)/a.entry_px, pb=((b.now_px||b.entry_px)-b.entry_px)/b.entry_px; return pb-pa; }).forEach(function(p){
+        var px=(p.now_px!=null?p.now_px:p.entry_px), val=p.shares*px, pl=val-p.cost_basis, plp=(pl/p.cost_basis)*100, col=pl>=0?'#4ade80':'#f87171';
+        h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
+        h+='<td style="text-align:left;padding:6px;"><b style="color:var(--gold);">'+p.ticker+'</b><div style="font-size:9.5px;color:var(--dim);">bought '+p.entry_d+' \u00b7 exit due '+(p.planned_exit_d||'\u2014')+'</div></td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+Math.round(p.shares).toLocaleString()+'</td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+p.entry_px.toFixed(3)+'</td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+px.toFixed(3)+'<div style="font-size:9px;color:var(--dim);">'+(p.now_d||'')+'</div></td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+money(val)+'</td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+(pl>=0?'+':'')+pl.toFixed(2)+'<div style="font-size:10px;">'+(plp>=0?'+':'')+plp.toFixed(2)+'%</div></td></tr>';
+      });
+      h+='</table></div>';
+    }
   }
 
-  // ---- finished trades -----------------------------------------------------
-  h+='<div style="font-weight:700;font-size:12.5px;margin:16px 0 6px;">Finished trades ('+closed.length+')</div>';
-  if(!closed.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:6px 0;">None closed yet.</div>'; }
-  else{
-    h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-    h+='<tr style="color:var(--dim);font-size:9.5px;letter-spacing:.05em;text-align:right;"><th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;">BUY</th><th style="padding:4px 6px;">SOLD</th><th style="padding:4px 6px;">RESULT</th></tr>';
-    closed.sort(function(a,b){ return (b.ret_pct||0)-(a.ret_pct||0); }).forEach(function(p){
-      var col=(p.pnl||0)>=0?'#4ade80':'#f87171';
-      h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
-      h+='<td style="text-align:left;padding:6px;"><b style="color:var(--gold);">'+p.ticker+'</b><div style="font-size:9.5px;color:var(--dim);">'+p.entry_d+' \u2192 '+(p.actual_exit_d||'')+'</div></td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+p.entry_px.toFixed(3)+'</td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+(p.exit_px!=null?p.exit_px.toFixed(3):'\u2014')+'</td>';
-      h+='<td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+((p.pnl||0)>=0?'+':'')+(p.pnl||0).toFixed(2)+'<div style="font-size:10px;">'+((p.ret_pct||0)>=0?'+':'')+(p.ret_pct||0).toFixed(2)+'%</div></td>';
-      h+='</tr>';
-    });
-    h+='</table></div>';
+  else if(tab==='pending'){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Pending orders (0)</div>';
+    h+='<div style="color:var(--dim);font-size:11.5px;line-height:1.6;padding:8px 0;">These tracks never have pending orders. Each one decides after the close and its buy fills at the very next close, so an order is never left waiting overnight. The tab is here to match the layout of your own portfolio, not because anything is missing.</div>';
   }
+
+  else if(tab==='history'){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Finished trades ('+closed.length+')</div>';
+    if(!closed.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">None closed yet.</div>'; }
+    else{
+      h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+      h+=TH+'<th style="text-align:left;padding:4px 6px;">SHARE</th><th style="padding:4px 6px;">QTY</th><th style="padding:4px 6px;">BUY</th><th style="padding:4px 6px;">SOLD</th><th style="padding:4px 6px;">RESULT</th></tr>';
+      closed.sort(function(a,b){ return (b.ret_pct||0)-(a.ret_pct||0); }).forEach(function(p){
+        var col=(p.pnl||0)>=0?'#4ade80':'#f87171';
+        h+='<tr style="border-top:1px solid var(--border);text-align:right;">';
+        h+='<td style="text-align:left;padding:6px;"><b style="color:var(--gold);">'+p.ticker+'</b><div style="font-size:9.5px;color:var(--dim);">'+p.entry_d+' \u2192 '+(p.actual_exit_d||'')+'</div></td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">'+Math.round(p.shares).toLocaleString()+'</td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+p.entry_px.toFixed(3)+'</td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);">$'+(p.exit_px!=null?p.exit_px.toFixed(3):'\u2014')+'</td>';
+        h+='<td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+((p.pnl||0)>=0?'+':'')+(p.pnl||0).toFixed(2)+'<div style="font-size:10px;">'+((p.ret_pct||0)>=0?'+':'')+(p.ret_pct||0).toFixed(2)+'%</div></td></tr>';
+      });
+      h+='</table></div>';
+    }
+  }
+
+  else if(tab==='perf'){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 8px;">Performance \u00b7 finished trades only</div>';
+    if(closed.length<1){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing has closed yet, so there is nothing honest to measure.</div>'; }
+    else{
+      var wins=closed.filter(function(p){return (p.pnl||0)>0;}), losses=closed.filter(function(p){return (p.pnl||0)<=0;});
+      var aw=wins.length?wins.reduce(function(a,p){return a+(p.ret_pct||0);},0)/wins.length:0;
+      var al=losses.length?losses.reduce(function(a,p){return a+(p.ret_pct||0);},0)/losses.length:0;
+      var gw=wins.reduce(function(a,p){return a+(p.pnl||0);},0), gl=Math.abs(losses.reduce(function(a,p){return a+(p.pnl||0);},0));
+      var pf=gl>0?(gw/gl):null, wr=(wins.length/closed.length)*100;
+      var exp=closed.reduce(function(a,p){return a+(p.ret_pct||0);},0)/closed.length;
+      var best=closed.slice().sort(function(a,b){return (b.ret_pct||0)-(a.ret_pct||0);})[0];
+      var worst=closed.slice().sort(function(a,b){return (a.ret_pct||0)-(b.ret_pct||0);})[0];
+      var cell=function(lab,val,col,sub){ return '<div style="flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin:0 6px 6px 0;"><div style="font-size:9px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;">'+lab+'</div><div style="font-family:var(--mono,monospace);font-size:15px;font-weight:700;'+(col?'color:'+col+';':'')+'">'+val+'</div>'+(sub?'<div style="font-size:9px;color:var(--dim);">'+sub+'</div>':'')+'</div>'; };
+      h+='<div style="display:flex;flex-wrap:wrap;">';
+      h+=cell('Trades finished', closed.length);
+      h+=cell('Win rate', wr.toFixed(0)+'%', wr>=50?'#4ade80':'#f87171', wins.length+' up \u00b7 '+losses.length+' down');
+      h+=cell('Average win', '+'+aw.toFixed(2)+'%', '#4ade80');
+      h+=cell('Average loss', al.toFixed(2)+'%', '#f87171');
+      h+=cell('Profit factor', pf===null?'\u2014':pf.toFixed(2), pf!==null&&pf>1?'#4ade80':'#f87171', 'won per $1 lost');
+      h+=cell('Per-trade average', (exp>=0?'+':'')+exp.toFixed(2)+'%', exp>=0?'#4ade80':'#f87171', 'the number that must be positive');
+      h+=cell('Best trade', (best.ret_pct>=0?'+':'')+best.ret_pct.toFixed(1)+'%','#4ade80',best.ticker);
+      h+=cell('Worst trade', worst.ret_pct.toFixed(1)+'%','#f87171',worst.ticker);
+      h+=cell('Banked', (realised>=0?'+':'')+money(realised), realised>=0?'#4ade80':'#f87171');
+      h+='</div>';
+      h+='<div style="font-size:10px;color:var(--dim);line-height:1.55;margin-top:6px;">Win rate on its own can mislead \u2014 a rule can win most of its trades and still lose money if the losses are bigger. Read it next to average win, average loss and profit factor. The per-trade average is the one that decides whether the rule makes money at all.</div>';
+    }
+  }
+
+  else if(tab==='weekly'){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 6px;">Week by week \u00b7 finished trades</div>';
+    if(!closed.length){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing has closed yet.</div>'; }
+    else{
+      var byW={};
+      closed.forEach(function(p){
+        var d=new Date((p.actual_exit_d||p.entry_d)+'T00:00:00');
+        var mon=new Date(d); mon.setDate(d.getDate()-((d.getDay()+6)%7));
+        var k=mon.toISOString().slice(0,10);
+        if(!byW[k]) byW[k]={n:0,pnl:0,w:0};
+        byW[k].n++; byW[k].pnl+=(p.pnl||0); if((p.pnl||0)>0) byW[k].w++;
+      });
+      var keys=Object.keys(byW).sort();
+      h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+      h+=TH+'<th style="text-align:left;padding:4px 6px;">WEEK BEGINNING</th><th style="padding:4px 6px;">CLOSED</th><th style="padding:4px 6px;">UP</th><th style="padding:4px 6px;">RESULT</th></tr>';
+      keys.forEach(function(k){
+        var w=byW[k], col=w.pnl>=0?'#4ade80':'#f87171';
+        h+='<tr style="border-top:1px solid var(--border);text-align:right;"><td style="text-align:left;padding:6px;"><b>'+k+'</b></td><td style="padding:6px;font-family:var(--mono,monospace);">'+w.n+'</td><td style="padding:6px;font-family:var(--mono,monospace);">'+w.w+'</td><td style="padding:6px;font-family:var(--mono,monospace);color:'+col+';">'+(w.pnl>=0?'+':'')+w.pnl.toFixed(2)+'</td></tr>';
+      });
+      h+='</table></div>';
+    }
+  }
+
   h+='<div style="font-size:10px;color:var(--dim);line-height:1.5;margin-top:12px;">Prices are the latest close held by the tracker. "Banked" counts finished trades only \u2014 money still in shares is not profit until it is sold. Read-only: nothing here can be traded or edited.</div></div>';
   try{ showModal(h,'\ud83e\uddea 12-track test \u00b7 '+acct.name); }catch(e){}
 };
