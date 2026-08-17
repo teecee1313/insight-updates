@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-810-open';
+const APP_VERSION='2026.08.17-811-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -16912,10 +16912,34 @@ async function prepareAllSignals(auto){
     // and disk reads cost nothing. (This was why only ~590 shares kept getting
     // signals no matter what the depth setting said.) Shares missing from the
     // store are fetched live once and saved, so the store grows to the full market.
-    let _pool=window._preferOffline?allData.slice():allData.filter(_typeOk);
+    // ── v811 · DON'T PREPARE WHAT YOU'LL NEVER TRADE ────────────────────────
+    // 17 Aug: the Cloudflare log showed the app fetching 200 days of history
+    // for DYLKOB — a knock-out warrant. Every share the pantry lacks falls
+    // through to a LIVE per-share fetch (two requests, with a retry), and the
+    // warrant book alone is ~1,650 codes in the pantry and more in the live
+    // list. That is the crawl, and none of it buys anything: the radar, the
+    // picks and the bot all exclude derivatives already, so the work was
+    // discarded the moment it finished.
+    // The 6-character rule is census-proven: all 4,455 pantry tickers were
+    // checked and EVERY 6-char ASX code is a warrant series, a GSB government
+    // bond or an ETPM metal ETC. No 6-char ordinary exists.
+    // Deep dive still fetches any of these ON DEMAND — this only stops the
+    // bulk prepare-all sweep spending live requests on them.
+    const _skipPrep=(s)=>{
+      if(!s||!s.ticker)return false;
+      const t=s.type;
+      if(t==='Option'||t==='Bond'||t==='Preference')return true;          // warrants, rights, notes, hybrids
+      if(s.exchange==='ASX'&&String(s.ticker).length===6)return true;      // census: no 6-char ordinary exists
+      return false;
+    };
+    const _poolPre=window._preferOffline?allData.slice():allData.filter(_typeOk);
+    let _pool=_poolPre.filter(s=>!_skipPrep(s));
+    try{ window._prepSkippedDeriv=_poolPre.length-_pool.length; }catch(e){}
+    if(!_pool.length)_pool=_poolPre.slice();   // safety: never prepare nothing
     if(!window._preferOffline && _recipe && _recipe.gainers){ const gg=_pool.filter(s=>s.chgPct>0); if(gg.length)_pool=gg; }
     if(!window._preferOffline && _recipe && _recipe.minVol>0){ const mv=_pool.filter(s=>(s.volume||0)>=_recipe.minVol); if(mv.length)_pool=mv; }
-    if(!_pool.length)_pool=allData.slice(); // safety: never prepare nothing
+    if(!_pool.length)_pool=allData.filter(s=>!_skipPrep(s)); // safety: never prepare nothing — but never fall back INTO the derivatives we just excluded
+    if(!_pool.length)_pool=allData.slice();                  // last resort: a list of nothing but derivatives is still better than a blank screen
     // Rank by volume so the most active shares (most likely to matter) are done first.
     let ranked=_pool.slice().sort((a,b)=>(b.volume||0)-(a.volume||0)).slice(0,depth);
     // ALWAYS include every watchlist ticker, even if it falls outside the depth —
@@ -17031,7 +17055,7 @@ async function prepareAllSignals(auto){
       const pct=Math.round(doneN/ranked.length*100);
       if(_pf)_pf.style.width=pct+'%';
       let _etaTxt=''; try{ if(doneN>8){const _rem=(Date.now()-_t0)/doneN*(ranked.length-doneN); _etaTxt=_rem>90000?` · ~${Math.ceil(_rem/60000)} min left`:(_rem>15000?' · under 2 min left':' · nearly done');} }catch(e){}
-      if(ls)ls.innerHTML=`⚡ Loading everything… <strong>${doneN.toLocaleString()}/${ranked.length.toLocaleString()}</strong> shares · ${pct}%${_etaTxt} <span style="font-size:9px;color:var(--dim)">(you can keep using the app — progress is saved as it goes)</span>`;
+      if(ls)ls.innerHTML=`⚡ Loading everything… <strong>${doneN.toLocaleString()}/${ranked.length.toLocaleString()}</strong> shares · ${pct}%${_etaTxt} <span style="font-size:9px;color:var(--dim)">(you can keep using the app — progress is saved as it goes${(window._prepSkippedDeriv>0)?(' · skipping '+window._prepSkippedDeriv.toLocaleString()+' warrants, notes &amp; hybrids — nothing here trades them'):''})</span>`;
       const _forceNet=!!window._forceLiveRefresh; // set by "Refresh live from API"
       // Fetch with a light retry so a momentarily slow/failed proxy doesn't leave
       // the share stuck on "?" — the main cause of partial data on slow days.
