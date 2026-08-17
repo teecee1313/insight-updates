@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-814-open';
+const APP_VERSION='2026.08.17-815-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6628,7 +6628,16 @@ window._t12render=function(){
   }
 
   else if(tab==='perf'){
-    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 8px;">Performance \u00b7 finished trades only</div>';
+    // Winners are held past the deadline and only losers are force-closed, so
+    // "finished trades" is a deliberately losing sample. Showing its win rate
+    // as the rule's performance is misleading — lead with the account instead.
+    var acctResult = acct.cash + openVal - (acct.starting_capital || 100000);
+    h+='<div style="border:1px solid '+(acctResult>=0?'#4ade80':'#f87171')+';border-radius:8px;padding:11px 13px;margin-bottom:12px;background:'+(acctResult>=0?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)')+';">';
+    h+='<div style="font-size:10px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;">Whole account, including what it still holds</div>';
+    h+='<div style="font-family:var(--mono,monospace);font-size:21px;font-weight:700;color:'+(acctResult>=0?'#4ade80':'#f87171')+';">'+(acctResult>=0?'+':'\u2212')+'$'+Math.abs(Math.round(acctResult)).toLocaleString()+'</div>';
+    h+='<div style="font-size:10.5px;color:var(--muted);line-height:1.55;margin-top:5px;">This is the number that says whether the rule is working. The figures below cover <b>finished trades only</b> \u2014 and because a winner is left to run past its 20-day limit while a loser is sold, the finished pile is mostly losers on purpose. A 0% win rate here does not mean the rule never wins; it means its winners have not finished yet.</div>';
+    h+='</div>';
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 8px;">Finished trades only \u00b7 a deliberately losing sample</div>';
     if(closed.length<1){ h+='<div style="color:var(--dim);font-size:11.5px;padding:10px 0;">Nothing has closed yet, so there is nothing honest to measure.</div>'; }
     else{
       var wins=closed.filter(function(p){return (p.pnl||0)>0;}), losses=closed.filter(function(p){return (p.pnl||0)<=0;});
