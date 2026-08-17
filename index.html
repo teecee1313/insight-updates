@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-813-open';
+const APP_VERSION='2026.08.17-814-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -6521,7 +6521,21 @@ window._t12render=function(){
   open.forEach(function(p){ var px=(p.now_px!=null?p.now_px:p.entry_px); var v=p.shares*px; openVal+=v; openPnl+=(v-p.cost_basis); });
   var realised=0; closed.forEach(function(p){ realised+=(p.pnl||0); });
 
+  // A track whose rebuild did not finish leaves cash untouched while positions
+  // exist — the account then appears to hold shares it never paid for. That is
+  // arithmetically impossible, so refuse to show a number rather than print a
+  // fantasy balance.
+  var spent = 0; mine.forEach(function(p){ spent += (p.cost_basis||0); });
+  var brokenAcct = (mine.length > 0 && acct.cash >= (acct.starting_capital||100000) - 1 && spent > 0);
   var h='<div style="padding:2px;">';
+  if(brokenAcct){
+    h+='<div style="border:1px solid #f5c84c;border-radius:8px;padding:12px 14px;margin-bottom:12px;background:rgba(245,200,76,.08);">'
+      +'<div style="font-weight:700;font-size:12.5px;color:#f5c84c;margin-bottom:5px;">This account did not finish rebuilding</div>'
+      +'<div style="font-size:11.5px;color:var(--muted);line-height:1.6;">It is holding '+mine.length+' positions costing '
+      +'$'+Math.round(spent).toLocaleString()+', but its cash still shows the full starting balance \u2014 the money was never taken out. '
+      +'The figures below are wrong and should be ignored.<br><br>'
+      +'To repair it, load <b style="color:var(--text);">/backfill?track='+sel+'</b> on the tracker, then reopen this.</div></div>';
+  }
   h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">';
   C.accounts.forEach(function(a){
     var on=(a.track_id===sel), p=a.realized_pnl||0;
