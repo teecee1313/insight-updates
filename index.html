@@ -868,6 +868,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 
     <button id="wlNavBtn" onclick="_wlNavOpen()" title="⭐ Watchlist — the shares you've starred. In Starter it opens as a list; in Advanced it filters the table to your stars." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--gold);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">⭐ Watchlist</button>
     <button id="pfBtn" onclick="showPortfolio()" title="Paper trading portfolio — simulated buys/sells at end-of-day closes. Practice only, not advice." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">💼 Portfolio</button>
+    <button id="calcToolsBtn" onclick="_calcTools()" title="🧮 Trade Calculator — work out your real costs, profit and break-even on any trade using your own numbers. Pure arithmetic, no predictions." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">🧮 Tools</button>
     <!-- v482 — the 49 lessons used to be reachable only after unlocking
          training mode with a secret code, which made one of the better reasons
          to own this product invisible to the people who own it. -->
@@ -1767,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-806-open';
+const APP_VERSION='2026.08.16-807-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4210,6 +4211,106 @@ function _wizExch(){
   const sel=document.getElementById('exchSel');
   if(!sel)return '<option value="ASX">ASX — Australian Securities Exchange</option>';
   return sel.innerHTML; // reuse the app's full exchange list
+}
+function _calcTools(){
+  var ov=document.getElementById('calcToolsOv');
+  if(ov){ ov.remove(); return; } // toggle: tapping the button again closes it
+  ov=document.createElement('div'); ov.id='calcToolsOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(3,10,22,.82);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;';
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); }); // tap backdrop to close
+  var C={bg2:'var(--bg2)',bd:'var(--border)',bd2:'var(--border2)',tx:'var(--text)',dim:'var(--dim)',grn:'var(--green,#1f9d57)',red:'var(--red,#d64550)',acc:'var(--purple,#6a4bd0)'};
+  ov.innerHTML=''
+   +'<div style="background:'+C.bg2+';border:1px solid '+C.bd+';border-radius:16px;max-width:440px;width:100%;padding:18px 16px 20px;font-family:var(--sans);box-shadow:0 10px 40px rgba(0,0,0,.4);margin:auto;">'
+   +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+   +'<div style="font-size:17px;font-weight:700;color:'+C.tx+';">🧮 Trade Calculator</div>'
+   +'<button onclick="document.getElementById(\'calcToolsOv\').remove()" style="border:none;background:none;font-size:20px;color:'+C.dim+';cursor:pointer;line-height:1;padding:2px 6px;">✕</button>'
+   +'</div>'
+   +'<div style="font-size:12.5px;color:'+C.dim+';margin-bottom:14px;">Your numbers, your costs, your profit. Nothing is assumed.</div>'
+   +'<div style="display:grid;gap:10px;">'
+   +_calcField('Entry price','$','_cEntry','1.00')
+   +_calcField('How much are you putting in?','$','_cParcel','2000')
+   +'<div><div style="font-size:12.5px;font-weight:600;color:'+C.tx+';margin-bottom:5px;">Exit</div>'
+   +'<div style="display:flex;gap:6px;margin-bottom:6px;"><button id="_cMp" onclick="_calcMode(\'pct\')" style="flex:1;border:1.5px solid '+C.acc+';background:var(--purplebg,#efeafc);color:'+C.acc+';border-radius:9px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);">% gain</button>'
+   +'<button id="_cMs" onclick="_calcMode(\'price\')" style="flex:1;border:1.5px solid '+C.bd2+';background:'+C.bg2+';color:'+C.dim+';border-radius:9px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);">Sell price</button></div>'
+   +'<div id="_cPctRow">'+_calcInputBare('+','_cExitPct','10','%')+'</div>'
+   +'<div id="_cPriceRow" style="display:none;">'+_calcInputBare('$','_cExitPrice','1.10','')+'</div>'
+   +'</div>'
+   +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+   +_calcField('Brokerage (per side)','$','_cBrok','3')
+   +_calcField('Slippage (optional)','','_cSlip','0','%')
+   +'</div>'
+   +'</div>'
+   +'<div id="_cOut" style="margin-top:14px;"></div>'
+   +'<div style="text-align:center;color:var(--faint,#97a1b2);font-size:11px;margin-top:14px;line-height:1.55;">Just arithmetic on the numbers you entered — it makes no prediction about whether a trade will win.<br>Practice-money research tool. Not advice.</div>'
+   +'</div>';
+  document.body.appendChild(ov);
+  ['_cEntry','_cParcel','_cExitPct','_cExitPrice','_cBrok','_cSlip'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('input',_calcRun); });
+  window._calcModeV='pct'; _calcRun();
+}
+function _calcField(label,pre,id,val,post){
+  return '<div><div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px;">'+label+'</div>'+_calcInputBare(pre,id,val,post||'')+'</div>';
+}
+function _calcInputBare(pre,id,val,post){
+  return '<div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--bg2);">'
+    +(pre?'<span style="padding:0 4px 0 12px;color:var(--dim);font-family:var(--mono,monospace);font-size:15px;">'+pre+'</span>':'')
+    +'<input id="'+id+'" type="text" inputmode="decimal" value="'+val+'" style="flex:1;border:0;outline:0;padding:11px 12px 11px '+(pre?'4px':'12px')+';font-size:16px;font-family:var(--mono,monospace);background:transparent;color:var(--text);width:100%;min-width:0;">'
+    +(post?'<span style="padding:0 12px;color:var(--dim);font-size:13px;">'+post+'</span>':'')
+    +'</div>';
+}
+function _calcMode(m){
+  window._calcModeV=m;
+  var mp=document.getElementById('_cMp'), ms=document.getElementById('_cMs');
+  var on='1.5px solid var(--purple,#6a4bd0)',onbg='var(--purplebg,#efeafc)',onc='var(--purple,#6a4bd0)';
+  var off='1.5px solid var(--border2)',offbg='var(--bg2)',offc='var(--dim)';
+  if(mp&&ms){ mp.style.border=(m==='pct'?on:off);mp.style.background=(m==='pct'?onbg:offbg);mp.style.color=(m==='pct'?onc:offc);
+    ms.style.border=(m==='price'?on:off);ms.style.background=(m==='price'?onbg:offbg);ms.style.color=(m==='price'?onc:offc); }
+  var pr=document.getElementById('_cPctRow'), ps=document.getElementById('_cPriceRow');
+  if(pr&&ps){ pr.style.display=(m==='pct'?'block':'none'); ps.style.display=(m==='price'?'block':'none'); }
+  _calcRun();
+}
+function _calcNum(id){ var el=document.getElementById(id); if(!el)return 0; var v=parseFloat((el.value||'').replace(/[^0-9.\-]/g,'')); return isFinite(v)?v:0; }
+function _calcMoney(n){ var s=Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}); return (n<0?'\u2212$':'$')+s; }
+function _calcRun(){
+  var out=document.getElementById('_cOut'); if(!out)return;
+  var entry=_calcNum('_cEntry'), parcel=_calcNum('_cParcel'), brok=_calcNum('_cBrok'), slip=_calcNum('_cSlip');
+  if(entry<=0||parcel<=0){ out.innerHTML='<div style="text-align:center;color:var(--dim);font-size:13px;padding:12px;">Enter an entry price and parcel.</div>'; return; }
+  var shares=Math.floor(parcel/entry);
+  if(shares<=0){ out.innerHTML='<div style="text-align:center;color:var(--dim);font-size:13px;padding:12px;">Parcel too small for one share at this price.</div>'; return; }
+  var spent=shares*entry;
+  var exitPrice=(window._calcModeV==='price')?_calcNum('_cExitPrice'):entry*(1+_calcNum('_cExitPct')/100);
+  var grossOut=shares*exitPrice;
+  var brokRound=brok*2;
+  var slipCost=(slip/100)*(spent+grossOut);
+  var net=grossOut-spent-brokRound-slipCost;
+  var netPct=net/parcel*100;
+  var be=((brokRound+(slip/100)*2*spent)/spent)*100;
+  var col=net>=0?'var(--green,#1f9d57)':'var(--red,#d64550)';
+  var sign=function(n){return (n>=0?'+':'\u2212')+Math.abs(n).toFixed(2)+'%';};
+  out.innerHTML=''
+   +'<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;">'
+   +'<div style="padding:16px;text-align:center;border-bottom:1px solid var(--border);">'
+   +'<div style="font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:6px;">Net profit in your pocket</div>'
+   +'<div style="font-family:var(--mono,monospace);font-size:32px;font-weight:600;color:'+col+';line-height:1;">'+_calcMoney(net)+'</div>'
+   +'<div style="font-size:14px;color:var(--dim);margin-top:7px;font-family:var(--mono,monospace);">'+sign(netPct)+' on your $'+parcel.toLocaleString('en-AU')+'</div>'
+   +'</div>'
+   +'<div style="padding:8px 0;font-size:13.5px;">'
+   +_calcRow('Shares bought',shares.toLocaleString('en-AU'))
+   +_calcRow('Cash into shares',_calcMoney(spent))
+   +_calcRow('Sold for',_calcMoney(grossOut))
+   +_calcRow('Brokerage (2 sides)','\u2212'+_calcMoney(brokRound).replace('\u2212',''),true)
+   +(slip>0?_calcRow('Slippage','\u2212'+_calcMoney(slipCost).replace('\u2212','')):'')
+   +_calcRow('Net profit',_calcMoney(net),true,col)
+   +'</div></div>'
+   +'<div style="margin-top:12px;background:var(--purplebg,#efeafc);border:1px solid #ddd3f7;border-radius:12px;padding:13px 15px;">'
+   +'<div style="font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--purple,#6a4bd0);font-weight:700;margin-bottom:5px;">Break-even move</div>'
+   +'<div style="font-family:var(--mono,monospace);font-size:21px;font-weight:600;color:var(--text);">+'+be.toFixed(2)+'%</div>'
+   +'<div style="font-size:12px;color:var(--dim);margin-top:6px;line-height:1.45;">The shares need to rise <b>'+be.toFixed(2)+'%</b> just to cover your costs at this parcel size. Anything above that is profit; below it, a loss. Put in more per trade and this number shrinks.</div>'
+   +'</div>';
+}
+function _calcRow(lbl,val,rule,col){
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 16px;'+(rule?'border-top:1px solid var(--border);margin-top:2px;':'')+'">'
+    +'<span style="color:'+(col?'var(--text);font-weight:600':'var(--dim)')+';">'+lbl+'</span>'
+    +'<span style="font-family:var(--mono,monospace);font-size:14px;color:'+(col||'var(--text)')+';'+(col?'font-weight:700;':'')+'">'+val+'</span></div>';
 }
 function _showWizard(step){
   if(step===2 && _serverData()){ return _showWizard(3); } // v382: no data-key step when the server provides data

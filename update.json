@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.16-806-open",
+  "version": "2026.08.16-807-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "ℹ️ Clarified the radar's 'Score 7+' tile. It counts shares whose Watch Score (how strongly a share is accumulating TODAY) is 7 or higher — a different measure from the 🧪 Evidence tiles just below it (🟢 SOLID / ⚡ PN Edge), which grade whether a share's signal has a proven track record. That's why the radar can honestly show '1 Score 7+' and '7 SOLID' at the same time: seven shares carry a proven signal, but only one of them is also accumulating strongly enough today to score 7+. The two tooltips now spell this out so the counts don't read as a contradiction. No numbers changed — both counts were already correct.",
+  "notes": "🧮 New: Trade Calculator. A 🧮 Tools button now sits in the top toolbar (next to Portfolio). Tap it and enter your own numbers — entry price, how much you're putting in, your exit as a % gain or a sell price, and your brokerage — and it shows your real net profit, the full cost breakdown, and your break-even move (the % rise needed just to cover costs). Pure arithmetic on the numbers you type: it makes no prediction about whether a trade will win. Nothing is assumed — change any field and it all updates. Opens as an overlay; tap again, the ✕, or outside it to close.",
   "date": "2026-08-16"
 }
