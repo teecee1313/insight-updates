@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.16-807-open';
+const APP_VERSION='2026.08.17-809-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -3269,7 +3269,9 @@ async function showDailyPicks(mode){
              2–9× above $1 — this line now says which cost is binding, per share. Visibility only:
              the behavioural gate still waits for Monday's clean-maths baseline. */
             try{ var _px=+r.limit_price||+r.ref_close||0; if(!(_px>0))return '';
-              var _amt=+(r.amount_dollars||r.parcel||0)||1000;
+              var _qtyN=+r.qty||0;
+              var _sized=(_qtyN>0&&_px>0)?(_qtyN*_px):0;
+              var _amt=_sized>0?_sized:(+(r.amount_dollars||r.parcel||0)||1000);
               var _tick=_px<0.10?0.001:(_px<2?0.005:0.01);
               var _tickPct=_tick/_px*100;
               var _cs=(_csMap[r.ticker]!=null)?_csMap[r.ticker]*100:null;
@@ -3277,10 +3279,11 @@ async function showDailyPicks(mode){
               var _cross=_sprBinds?_cs:_tickPct;
               var _fr=(6/_amt)*100+_cross;
               var _lbl=_sprBinds?('est. spread '+_cs.toFixed(2)+'%'):'one tick';
-              var _tip='Round trip = $6 brokerage on the parcel + the larger of one ASX tick and this share\u2019s own estimated spread (from ~100 days of its stored daily highs and lows). A 16-Aug check across 1,946 ordinaries: below 50c the exchange\u2019s minimum tick is almost always the larger cost, so the old one-tick line was already right there \u2014 but above $1 the real spread usually exceeds one tick, so the line now uses whichever is binding for THIS share. An estimate, not a quote \u2014 the live spread on the day can differ.';
+              var _amtLbl=(_sized>0?'$'+Math.round(_sized).toLocaleString():'an assumed $'+Math.round(_amt).toLocaleString());
+              var _tip='Round trip = $6 brokerage on the parcel the server actually sized this suggestion at (its share count times the buy-under price). Brokerage is a FIXED $6, so it bites harder on a small parcel, which is why the parcel is named here rather than assumed. Then plus the larger of one ASX tick and this share\u2019s own estimated spread (from ~100 days of its stored daily highs and lows). A 16-Aug check across 1,946 ordinaries: below 50c the exchange\u2019s minimum tick is almost always the larger cost, so the old one-tick line was already right there \u2014 but above $1 the real spread usually exceeds one tick, so the line now uses whichever is binding for THIS share. An estimate, not a quote \u2014 the live spread on the day can differ.';
               var _ed=(r.edge!=null&&isFinite(+r.edge))?+r.edge:null;
               var _ok=(_ed!=null)?(_ed>=2*_fr):null;
-              return '<div title="'+_tip+'" style="flex-basis:100%;font-size:10px;cursor:help;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:2px;">\ud83d\udcb8 friction \u2248 '+_fr.toFixed(2)+'% round trip ($6 + '+_lbl+')'+(_ed!=null?(' \u00b7 line edge '+_ed.toFixed(2)+'% \u2014 '+(_ok?'clears 2\u00d7 friction \u2713':'does NOT clear 2\u00d7 friction')):'')+'</div>';
+              return '<div title="'+_tip+'" style="flex-basis:100%;font-size:10px;cursor:help;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:2px;">\ud83d\udcb8 friction \u2248 '+_fr.toFixed(2)+'% round trip on '+_amtLbl+' ($6 + '+_lbl+')'+(_ed!=null?(' \u00b7 line edge '+_ed.toFixed(2)+'% \u2014 '+(_ok?'clears 2\u00d7 friction \u2713':'does NOT clear 2\u00d7 friction')):'')+'</div>';
             }catch(_fe){ return ''; } })()
           +'</div>'
           +'<div style="display:flex;gap:6px;margin-top:8px;">'
@@ -10901,11 +10904,39 @@ function showPortfolio(exSel){
   const _pfPc=x=>x>0.005?'var(--green)':x<-0.005?'var(--red)':'var(--muted)';
   const _fmtN=x=>'$'+Number(x).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   const _ordN=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex).length;
+  // v808 — day change across the holdings shown: shares × (latest close − previous close), summed.
+  // Two honesty rules from the spec: a holding bought ON the latest bar's day counts as 0 (it
+  // hasn't held through a close-to-close change yet — showing its full gain would be wrong);
+  // and if the latest bar is NOT today, the label carries that date instead of saying "today".
+  let _dcSum=0,_dcKnown=0;const _dcDates={};
+  try{
+    const _dcMap=new Map();
+    (allData||[]).forEach(function(s){
+      if(!s||!s.ticker)return;
+      const chg=(typeof s.change==='number'&&isFinite(s.change))?s.change:((s.price>0&&s.prevClose>0)?(s.price-s.prevClose):null);
+      const d=(Array.isArray(s.series)&&s.series.length)?(s.series[s.series.length-1].d||null):null;
+      _dcMap.set(s.ticker+'|'+(s.exchange||''),{chg:chg,d:d});
+    });
+    hold.forEach(function(h){
+      const m=_dcMap.get(h.ticker+'|'+(h.exchange||''));
+      if(!m||m.chg==null||!(h.qty>0))return;
+      _dcKnown++;
+      if(m.d)_dcDates[m.d]=1;
+      if(m.d&&h.buyDate&&String(h.buyDate)>=String(m.d))return;   // bought at the latest close — 0, not its full gain
+      _dcSum+=h.qty*m.chg;
+    });
+  }catch(e){}
+  let _dcDate=null;try{const _dk=Object.keys(_dcDates);if(_dk.length)_dcDate=_dk.sort().pop();}catch(e){}
+  const _dcIsToday=(_dcDate&&typeof _todayLocal==='function'&&_dcDate===_todayLocal());
+  const _dcLabel=_dcKnown?(_dcIsToday?'Today&#8217;s change':('Change &#183; '+(_dcDate||'last close'))):'Day change';
+  const _dcPrev=totVal-_dcSum;
+  const _dcPct=(_dcKnown&&_dcPrev>0)?(_dcSum/_dcPrev*100):null;
   const keyStrip=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 13px;margin-bottom:10px;">
     <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Account</div><div style="font-family:var(--mono);font-weight:800;font-size:15px;color:var(--text);">${_fmtN(_pfAcctNow)}</div></div>
     <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">💵 Cash</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfCashNow)}</div></div>
     ${_pfResvNow>0.005?`<div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">⏳ Reserved</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfResvNow)}</div></div>`:''}
     <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Open P/L</div><div class="pf-pl" style="font-family:var(--mono);font-weight:800;font-size:15px;color:${_pfPc(totPl)};">${totPl>=0?'+':''}${totPl.toFixed(2)}</div></div>
+    <div title="Each holding&#8217;s shares × (its latest close − the close before), added up across these holdings. A share bought at the latest close counts as 0 until it has held through a full day. Needs the day&#8217;s market data loaded to calculate."><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">${_dcLabel}</div><div class="pf-pl" style="font-family:var(--mono);font-weight:800;font-size:15px;color:${_dcKnown?_pfPc(_dcSum):'var(--dim)'};">${_dcKnown?((_dcSum>=0?'+':'-')+_fmtN(Math.abs(_dcSum))):'&#8212;'}${(_dcKnown&&_dcPct!=null&&isFinite(_dcPct))?`<span style="font-size:10px;font-weight:600;"> (${_dcPct>=0?'+':''}${_dcPct.toFixed(2)}%)</span>`:''}</div></div>
     <button id="pfHideBtn" onclick="_pfToggleProfit()" title="Hide or show your profit/loss figures in the portfolio" style="margin-left:auto;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">${_pfHideProfit()?'🙈 Show P/L':'👁 Hide P/L'}</button>
   </div>`;
   // v364: Map lookup instead of a full allData scan per history row — with a
