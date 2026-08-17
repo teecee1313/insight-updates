@@ -1768,7 +1768,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.17-809-open';
+const APP_VERSION='2026.08.17-810-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -10913,8 +10913,13 @@ function showPortfolio(exSel){
     const _dcMap=new Map();
     (allData||[]).forEach(function(s){
       if(!s||!s.ticker)return;
-      const chg=(typeof s.change==='number'&&isFinite(s.change))?s.change:((s.price>0&&s.prevClose>0)?(s.price-s.prevClose):null);
-      const d=(Array.isArray(s.series)&&s.series.length)?(s.series[s.series.length-1].d||null):null;
+      // chgAbs is the field these objects actually carry. A finite 0 is a REAL
+      // answer (a share that closed unchanged), not a missing one — so only a
+      // non-numeric chgAbs falls through to the derived alternatives.
+      const chg=(typeof s.chgAbs==='number'&&isFinite(s.chgAbs))?s.chgAbs
+               :((typeof s.chgPct==='number'&&isFinite(s.chgPct)&&s.price>0&&s.chgPct!==-100)?(s.price-(s.price/(1+s.chgPct/100)))
+               :((s.price>0&&s.prevClose>0)?(s.price-s.prevClose):null));
+      const d=s.lastDate||((Array.isArray(s.series)&&s.series.length)?(s.series[s.series.length-1].d||null):null);
       _dcMap.set(s.ticker+'|'+(s.exchange||''),{chg:chg,d:d});
     });
     hold.forEach(function(h){
