@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.18-818-open",
+  "version": "2026.08.18-819-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Faster loading. The app was asking for company announcements one share at a time \u2014 up to 25 shares per load, each falling through three different routes when the first didn't answer, which added dozens of failed requests and a lot of waiting to every open. It now asks the server once for all of them, and the server answers from the announcements it already collects across the whole market each evening. The two public relay services, which had started refusing every request, have been removed.",
+  "notes": "Much faster loading. Measured on a real machine, every load was spending about 11 seconds calling the old data provider directly \u2014 requests that could never succeed, because the data comes from your server now and the key lives there, not in the app. Those calls are simply no longer made. (If you have typed your own provider key into Setup, the direct route still works exactly as before.)",
   "date": "2026-08-18"
 }

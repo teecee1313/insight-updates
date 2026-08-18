@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.18-818-open';
+const APP_VERSION='2026.08.18-819-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -926,10 +926,25 @@ function _gateLock(){
 // are free, unauthenticated services run by strangers. Non-secret URLs may
 // still use them, so nothing that worked stops working.
 function _isKeyed(u){ try{ return /[?&]apikey=/i.test(String(u)); }catch(e){ return true; } }
+/* v819 — THE DEAD-ROUTE GUARD. Measured on Tony's PC, 18 Aug: one load spent
+   7,898ms on api.eoddata.com/quote and 3,586ms on /symbol — 11.5 SECONDS waiting
+   for a provider the app no longer has an account with, on every single open.
+   The data comes from our own worker now (the key lives there), so a direct call
+   carries an EMPTY apiKey and can only ever 404. A request that cannot succeed
+   should not be made, let alone waited on for twenty seconds. The direct route
+   survives ONLY for someone who has actually typed their own key in Setup. */
+function _hasOwnKey(u){
+  try{
+    var m=String(u).match(/[?&]apikey=([^&]*)/i);
+    if(m&&m[1]&&m[1].length>3)return true;                 // a real key rides on this URL
+    var el=document.getElementById('apiKey');
+    return !!(el&&String(el.value||'').trim().length>3);   // or one is saved in Setup
+  }catch(e){ return false; }
+}
 function _keyedRoutes(u){
   var safe=[];
   try{ if(typeof DATA_PROXY==='string'&&DATA_PROXY&&_eodProxy(u)!==u)safe.push(function(x){return _eodProxy(x);}); }catch(e){}
-  safe.push(function(x){return x;});   // direct: the key reaches EODData, and nobody else
+  if(_hasOwnKey(u))safe.push(function(x){return x;});   // direct: the key reaches EODData, and nobody else
   return safe;
 }
 // Filter any route list down to the safe ones when the URL carries a key.
@@ -17046,8 +17061,11 @@ async function _loadDataInner(userClick){
 
   // ---- Attempt 1: direct browser fetch ----
   // Your key works in-browser, so this often succeeds outright.
+  // v819: skipped entirely when there is no key of your own to send — see
+  // _keyedRoutes. Without a key this call is a guaranteed 404 that used to cost
+  // ~8 seconds of every load while the app waited out its own timeout.
   let confirmed401=false;
-  if(!rows){
+  if(!rows && _hasOwnKey(symbolListUrl)){
     statusEl.textContent=`Calling /symbol/list/${exch}…`;
     progFill.style.width='20%';
     try{
@@ -17095,7 +17113,7 @@ async function _loadDataInner(userClick){
     };
     try{ return await Promise.any(_relays.map(fn=>tryOne(fn))); }catch(e){ return null; }
   }
-  if(!rows){
+  if(!rows && _hasOwnKey(symbolListUrl)){   /* v819: no key → nothing to relay */
     progFill.style.width='38%';
     const got=await _raceList(symbolListUrl,'the share list');
     if(got){rows=got;via='proxy';}
@@ -17103,7 +17121,7 @@ async function _loadDataInner(userClick){
   // ---- Attempt 2.5 (v238): the QUOTE list as a fallback share list — smaller
   // payload, same endpoint family the day-history builder already relays fine.
   // Quote rows carry code + OHLCV; names/types fill in as data arrives. ----
-  if(!rows){
+  if(!rows && _hasOwnKey(quoteListUrl)){   /* v819 */
     progFill.style.width='52%';
     const got=await _raceList(quoteListUrl,'the quote list');
     if(got){rows=got;via='quote-list';}
