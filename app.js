@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-822-open';
+const APP_VERSION='2026.08.19-823-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -5477,8 +5477,16 @@ function _apStatusBanner(){
           +' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
       else if(le.err)
         decision='<span style="color:#ff9caa">error: '+esc(String(le.err))+'</span> <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
-      else if(Array.isArray(le.skips)&&le.skips.length)
-        decision='nothing qualified — '+esc(String(le.skips[0]).slice(0,150))+' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+      else if(Array.isArray(le.skips)&&le.skips.length){
+        // v823 — Tony's screenshot, 19 Aug: slice(0,150) chopped the evidence
+        // note mid-word ('so the bot is fo') and cut off the half of the
+        // sentence that resolved it — the banner read as self-contradicting.
+        // Truncate at a word boundary, at a cap that fits the whole standard
+        // note, and only show an ellipsis when something was really cut.
+        var _sk=String(le.skips[0]);
+        if(_sk.length>230){ var _c=_sk.slice(0,230); var _sp=_c.lastIndexOf(' '); if(_sp>140)_c=_c.slice(0,_sp); _sk=_c.replace(/[\s\u2014\u00b7,;:.-]+$/,'')+'\u2026'; }
+        decision='nothing qualified — '+esc(_sk)+' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
+      }
       else decision='nothing to do <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
     }
     let bg,bd,icon,head;

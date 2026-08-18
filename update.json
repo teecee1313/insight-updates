@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-822-open",
+  "version": "2026.08.19-823-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Today's picks retire sooner. A suggested pick now expires after 5 trading days instead of 14 \u2014 a dip-limit priced off a week-old close was never a live recommendation, and now it can't linger as one. The app's 'Still open' strip and the server's retirement rule use the same 5-trading-day line, so what you see and what the server does always tell one story.",
+  "notes": "Fixed a chopped sentence in the Auto-pilot banner. The bot's 'last decision' line was being cut at a fixed length, sometimes mid-word \u2014 and in one case it cut away exactly the half of the sentence that explained the first half, so the banner appeared to contradict itself. The line now breaks at a word, fits the whole standard message, and only shows '\u2026' when something really was shortened.",
   "date": "2026-08-19"
 }
