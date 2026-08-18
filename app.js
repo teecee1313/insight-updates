@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-821-open';
+const APP_VERSION='2026.08.19-822-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1585,7 +1585,7 @@ async function showDailyPicks(mode){
       const _freshRows=rows.filter(r=>_ageD(r)<=_OLD_AFTER), _oldRows=rows.filter(r=>_ageD(r)>_OLD_AFTER);
       body=_freshRows.map(_pickCard).join('');
       if(!_freshRows.length&&_oldRows.length){ body+='<div style="text-align:center;padding:10px 6px;color:var(--muted);font-size:12px;line-height:1.5;">Nothing picked on the latest sessions \u2014 the older picks below are still open on the server.</div>'; }
-      if(_oldRows.length){ body+='<div style="margin:14px 0 8px;padding-top:10px;border-top:1px dashed var(--border2);font-size:11px;color:var(--muted);line-height:1.5;"><b style="color:var(--gold);">\u23f3 Still open \u2014 picked on earlier days.</b> The prices shown are from the day each was picked, not from today. The server retires these on its own: outside the price band, failing the costs test on their stored sizing, or 14 days old.</div>'+_oldRows.map(_pickCard).join(''); }
+      if(_oldRows.length){ body+='<div style="margin:14px 0 8px;padding-top:10px;border-top:1px dashed var(--border2);font-size:11px;color:var(--muted);line-height:1.5;"><b style="color:var(--gold);">\u23f3 Still open \u2014 picked on earlier days.</b> The prices shown are from the day each was picked, not from today. The server retires suggested picks after 5 trading days \u2014 sooner if they leave the price band or fail the costs test \u2014 so anything here is due for review at the next close.</div>'+_oldRows.map(_pickCard).join(''); }
     }
 
     html='<div style="font-size:12px;color:var(--muted);line-height:1.55;">'+esc(ruleLine)+'</div>'

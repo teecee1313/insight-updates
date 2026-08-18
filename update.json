@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-821-open",
+  "version": "2026.08.19-822-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Faster opening. Every start-up was waiting on a round trip to the server \u2014 the door check \u2014 before it would even show the data already saved on your device, and on a slow connection that wait could reach seven seconds of blank screen. The door check now runs alongside the disk load instead of in front of it: your saved shares appear straight away, and the server's answer is only waited for at the moment it's actually needed (before anything is fetched live). If a start is ever still slow, the status line now says exactly where the seconds went, so it can be fixed rather than guessed at.",
+  "notes": "Today's picks retire sooner. A suggested pick now expires after 5 trading days instead of 14 \u2014 a dip-limit priced off a week-old close was never a live recommendation, and now it can't linger as one. The app's 'Still open' strip and the server's retirement rule use the same 5-trading-day line, so what you see and what the server does always tell one story.",
   "date": "2026-08-19"
 }
