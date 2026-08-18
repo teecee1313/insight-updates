@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.18-819-open",
+  "version": "2026.08.19-820-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Much faster loading. Measured on a real machine, every load was spending about 11 seconds calling the old data provider directly \u2014 requests that could never succeed, because the data comes from your server now and the key lives there, not in the app. Those calls are simply no longer made. (If you have typed your own provider key into Setup, the direct route still works exactly as before.)",
-  "date": "2026-08-18"
+  "notes": "Today's picks now tells you how old each pick is. A pick made two weeks ago was shown exactly like one made last night, at a price from its own day \u2014 which made a stale suggestion look current. Every pick now says when it was picked ('picked 13 days ago'), and anything older than about a trading week drops below a 'Still open' divider, slightly dimmed, so the freshest decisions always sit on top. Nothing is hidden: the older picks remain fully usable, and the server still retires them on its own rules.",
+  "date": "2026-08-19"
 }
