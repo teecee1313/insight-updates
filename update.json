@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-825-open",
+  "version": "2026.08.19-826-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Clearer Auto-pilot banner when the server has acted. When your saved rules decide picks on the server overnight, the app places them as dated practice orders the moment it opens \u2014 and the banner used to say 'bought 3 shares' while also saying the bot 'hasn't run yet today', which read as a contradiction. It now says exactly what happened: 'placed 3 server-decided practice orders \ud83c\udf10 your rules decided these at the market close; the app placed them on opening'. 'Last completed run' is now labelled 'Last completed local scan' for the same reason.",
+  "notes": "The bot can no longer fall silent about server decisions it has already handled. If your rules' server picks were placed on this copy on an earlier day, later opens used to log nothing at all \u2014 the bot looked asleep. It now writes one clear diary line: which picks, which day they went in, and that each copy places each decision exactly once. Nothing about the decisions themselves changed \u2014 only the silence.",
   "date": "2026-08-19"
 }

@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-825-open';
+const APP_VERSION='2026.08.19-826-open';
 // v824 — stop-distance text for the holdings chip. The old template hardcoded
 // the minus sign, so a stop AT the buy price printed '(-0.0%)' (Tony's PNN
 // screenshot, 19 Aug) and a break-even stop lifted ABOVE buy would read as
@@ -6571,8 +6571,26 @@ window._apSrvConsume=function(){
       window._apSrvBusy=false; window._apSrvDone=true;
       if(!j||j.ok!==true||!Array.isArray(j.rows))return;
       const seen=_apSrvSeen(); const seenSet=new Set(seen);
-      const rows=j.rows.filter(function(x){ return x&&x.status==='suggested'&&String(x.exch||'').toUpperCase()===ex&&x.ticker&&(+x.limit_price>0)&&(Math.floor(+x.qty)>0)&&x.first_seen_day&&String(x.first_seen_day)<=String(dd)&&!seenSet.has(ex+'|'+x.ticker+'|'+x.first_seen_day); });
-      if(!rows.length)return;
+      const candAll=j.rows.filter(function(x){ return x&&x.status==='suggested'&&String(x.exch||'').toUpperCase()===ex&&x.ticker&&(+x.limit_price>0)&&(Math.floor(+x.qty)>0)&&x.first_seen_day&&String(x.first_seen_day)<=String(dd); });
+      const rows=candAll.filter(function(x){ return !seenSet.has(ex+'|'+x.ticker+'|'+x.first_seen_day); });
+      if(!rows.length){
+        // v826 — Tony, 19 Aug: with two copies (customer + beta) sharing one
+        // server decision stream, the copy that consumed a decision first showed
+        // NOTHING on later days — every row filtered out as already-seen BEFORE
+        // any diary entry existed, so the bot looked asleep rather than done.
+        // Silence must be impossible: when the server HAS decisions but this
+        // copy has already placed them all, say so, once per day, in the diary.
+        if(candAll.length){
+          try{
+            const _k='_apSrvAllSeenNoted';
+            if(window[_k]!==dd){ window[_k]=dd;
+              const names=candAll.map(function(x){ return x.ticker+' ('+x.first_seen_day+')'; }).join(', ');
+              _apLogAdd({d:dd,ts:Date.now(),srv:true,buys:[],skips:['\ud83c\udf10 server decisions already placed on this copy \u2014 '+names+'. Each copy of the app places each server decision exactly once; these went in on an earlier open here. Nothing new to do.']});
+            }
+          }catch(e){}
+        }
+        return;
+      }
       const _pfc=window._pfCtx; window._pfCtx='auto';
       try{
         const p=_paper(); const fee=brokerageFee();
