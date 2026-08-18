@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.18-814-open",
+  "version": "2026.08.18-815-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The app now opens noticeably faster. Its code moved into a companion file (app.js) that your browser can properly cache and pre-compile \u2014 in testing this roughly halved the time from tap to usable, and repeat opens get faster still. Nothing else changed: same screens, same data, same everything. The built-in Version history & rollback still archives complete single-file copies, so downloads from there work exactly as before. Hard-refresh (Ctrl+F5) once after updating.",
+  "notes": "The costs verdict on Today's picks now judges each share by the costs these picks actually pay: $6 round-trip brokerage \u2014 because the picks buy with a limit order (you never pay the buy\u2013sell gap) and sell at the next morning's opening auction. That's the same cost model the decade backtest was proven under. The market spread still shows, but as context: it's what buying at market WOULD add, and the limit entry exists to avoid it. Each share is judged on its own numbers \u2014 a real edge on a proper parcel now reads green, and only genuinely uneconomic trades are called out. The server applies the identical test, so the app and the picks it receives can never disagree.",
   "date": "2026-08-18"
 }

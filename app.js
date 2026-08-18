@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.18-814-open';
+const APP_VERSION='2026.08.18-815-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -1528,21 +1528,30 @@ async function showDailyPicks(mode){
               var _cs=(_csMap[r.ticker]!=null)?_csMap[r.ticker]*100:null;
               var _sprBinds=(_cs!=null&&_cs>_tickPct);
               var _cross=_sprBinds?_cs:_tickPct;
-              var _fr=(6/_amt)*100+_cross;
+              /* v815 \u2014 judge each pick by the costs THIS strategy actually pays. These
+                 orders enter on a dip LIMIT (the market comes to the order \u2014 no spread is
+                 crossed) and exit at the NEXT OPEN's auction (one price \u2014 no spread). The
+                 decade backtest that proved these rules charged exactly $6 round-trip
+                 brokerage on those fills, and the server's gate (w534) now uses the same
+                 model \u2014 so this verdict and the server's refusals can never disagree.
+                 The spread stays on screen as CONTEXT: it is what a market order would add. */
+              var _fr=(6/_amt)*100;
               var _lbl=_sprBinds?('est. spread '+_cs.toFixed(2)+'%'):'one tick';
               var _amtLbl=(_sized>0?'$'+Math.round(_sized).toLocaleString():'an assumed $'+Math.round(_amt).toLocaleString());
-              var _tip='Two numbers, compared. WHAT IT COSTS: $3 brokerage to buy plus $3 to sell ($6 the round trip), on the parcel size the server sized this suggestion at, plus the gap between the buying and selling price in the market (the bigger of one ASX price step and this share\u2019s own typical gap, worked out from about 100 days of its highs and lows). WHAT IT HAS MADE: what this signal has averaged per trade in testing. We want the gain to be at least DOUBLE the cost before calling it worth doing \u2014 a single margin is too thin to survive one bad fill. Brokerage is a flat $6 either way, so it hurts a small parcel far more than a large one, which is why the parcel size is named. Both figures are estimates from past data, never a promise about this trade.';
+              var _tip='Two numbers, compared. WHAT IT COSTS: $3 brokerage to buy plus $3 to sell \u2014 $6 for the round trip on the parcel size the server sized this suggestion at. That is the whole cost of trading it the way these picks trade: a limit order in (the market comes to you \u2014 you never pay the buy\u2013sell gap) and the next morning\u2019s opening auction out (one price for everyone). WHAT IT HAS MADE: what this signal has averaged per trade in testing. We want the gain to be at least DOUBLE the cost before calling it worth doing. Brokerage is a flat $6 either way, so it hurts a small parcel far more than a large one \u2014 which is why the parcel size is named. The separate spread figure shows what buying AT MARKET instead would add \u2014 the limit entry exists precisely to avoid it. All figures are estimates from past data, never a promise about this trade.';
               var _ed=(r.edge!=null&&isFinite(+r.edge))?+r.edge:null;
               var _ok=(_ed!=null)?(_ed>=2*_fr):null;
               var _costD=_amt*_fr/100, _edD=(_ed!=null)?(_amt*_ed/100):null;
+              var _mktD=_amt*_cross/100;
               var _money=function(x){ return '$'+(x>=100?Math.round(x).toLocaleString():x.toFixed(2)); };
               var _verdict=(_ed==null)?''
-                :(_ok?('<br><b style="color:var(--green)">Worth the costs</b> \u2014 the average gain is more than twice what buying and selling costs.')
-                     :('<br><b style="color:#ff9caa">Costs eat it</b> \u2014 on past form this one does not pay for itself.'));
+                :(_ok?('<br><b style="color:var(--green)">Worth the costs</b> \u2014 the average gain is more than twice what this trade costs.')
+                     :('<br><b style="color:#ff9caa">Costs eat it</b> \u2014 even at just $6 brokerage, on past form this one does not pay for itself.'));
               return '<div title="'+_tip+'" style="flex-basis:100%;font-size:10px;cursor:help;line-height:1.55;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:4px;">'
-                +'\ud83d\udcb8 Buying and selling this costs about <b>'+_money(_costD)+'</b> on a '+_amtLbl+' parcel ('+_fr.toFixed(2)+'%).'
+                +'\ud83d\udcb8 Trading this the way these picks trade \u2014 limit in, next open out \u2014 costs <b>'+_money(_costD)+'</b> on a '+_amtLbl+' parcel ('+_fr.toFixed(2)+'%).'
                 +(_edD!=null?(' This signal has averaged <b>'+_money(_edD)+'</b> a trade at that size ('+_ed.toFixed(2)+'%).'):'')
-                +_verdict+'</div>';
+                +_verdict
+                +'<br><span style="color:var(--dim)">Buying at market instead would add about '+_money(_mktD)+' in spread ('+_lbl+') \u2014 the limit entry avoids it.</span></div>';
             }catch(_fe){ return ''; } })()
           +'</div>'
           +'<div style="display:flex;gap:6px;margin-top:8px;">'
