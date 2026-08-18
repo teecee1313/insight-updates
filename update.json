@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.18-815-open",
+  "version": "2026.08.18-816-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The costs verdict on Today's picks now judges each share by the costs these picks actually pay: $6 round-trip brokerage \u2014 because the picks buy with a limit order (you never pay the buy\u2013sell gap) and sell at the next morning's opening auction. That's the same cost model the decade backtest was proven under. The market spread still shows, but as context: it's what buying at market WOULD add, and the limit entry exists to avoid it. Each share is judged on its own numbers \u2014 a real edge on a proper parcel now reads green, and only genuinely uneconomic trades are called out. The server applies the identical test, so the app and the picks it receives can never disagree.",
+  "notes": "Minimum parcel is now $2,000 for the bot and Today's picks. Brokerage is a flat $6 whatever the size, so a small parcel pays a far bigger share of itself in costs \u2014 at $500 that's 1.2% gone before the share moves, which no honest edge can reliably clear. At $2,000 costs stay under 0.3%, the level the tested rules were actually proven at. Old small-parcel suggestions are cleared automatically; the $ per buy box in My Rules now starts at $2,000 and says why.",
   "date": "2026-08-18"
 }

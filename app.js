@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.18-815-open';
+const APP_VERSION='2026.08.18-816-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -4964,7 +4964,7 @@ function _botRulesMirror(r){
         minScore:Math.min(10,num(r.apMinScore)), topN:Math.max(1,Math.min(6,Math.round(num(r.apMaxBuys)||1))),
         minPrice:(num(r.apMinPrice)>=0.01?num(r.apMinPrice):0.01),
         maxPrice:(num(r.apMaxPrice)>0.01?Math.min(50,num(r.apMaxPrice)):50),
-        amount:(amt>=100?Math.min(5000,amt):500)
+        amount:(amt>=2000?Math.min(5000,amt):2000)   /* v816: $2,000 floor \u2014 $6 flat brokerage makes smaller parcels uneconomic by construction; matches the server validator (w534), which rejects below it */
       };
     } else body={clear:true};
     fetch(b+'/bot/rules',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -5230,7 +5230,7 @@ function showRules(){
         <label style="font-size:10px;color:var(--muted);">Min Watch Score<input type="number" id="rApScore" min="0" max="10" step="1" value="${r.apMinScore||''}" placeholder="0 = off" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"></label>
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:flex-end;gap:6px;padding-bottom:8px;"><input type="checkbox" id="rApQuiet" ${r.apQuietOnly?'checked':''} style="width:15px;height:15px;">🔇 quiet only (no news 5d)</label>
         <label title="Before buying, check the 🧪 All scans report card: if the scan the bot is using has NOT been beating the market lately (or has not fired enough times to judge), it buys nothing that day and says so in its diary. Standing aside is a decision too." style="cursor:help;grid-column:1 / -1;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px;"><input type="checkbox" id="rApProven" ${r.apProvenOnly?'checked':''} style="width:15px;height:15px;">🧪 only buy while the scan is proving itself <span style="color:var(--dim);font-size:9px;">(evidence gate — no buys on a losing scan)</span></label>
-        <label style="font-size:10px;color:var(--muted);">💵 $ per buy<input type="number" id="rApAmt" min="0" step="any" value="${r.apAmt||''}" placeholder="blank = 📦 % rule" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)">min $500 · capped by 📦</span></label>
+        <label style="font-size:10px;color:var(--muted);">💵 $ per buy<input type="number" id="rApAmt" min="2000" step="any" value="${r.apAmt||''}" placeholder="blank = 📦 % rule" style="width:100%;margin-top:3px;padding:7px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);box-sizing:border-box;"><span style="font-size:9px;color:var(--dim)" title="Brokerage is a flat $6 whatever the size, so a small parcel pays a far bigger share of itself in costs \u2014 at $500 that's 1.2% before the share moves. $2,000 keeps costs under 0.3%, the level the tested rules were proven at.">min $2,000 \u2014 below this, $6 brokerage eats the edge \u00b7 capped by 📦</span></label>
       </div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 10px;font-size:9.5px;color:var(--muted);align-items:center;">
         <span style="color:var(--dim)">💲 Only buy shares priced between</span>
