@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-820-open';
+const APP_VERSION='2026.08.19-821-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -18929,12 +18929,24 @@ function setAutoLoad(on){
   document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _wakeLoad('visible'); });
   (async function autoStartup(){
     // v380 — access gate: don't run automated data loads while the preview is locked.
-    try{ const _g=await _gateCheck(); if(_g&&_g.locked){ _gateLock(); return; } }catch(e){}
+    // v821 — the gate answer is only needed before LIVE work spends API calls;
+    // showing saved data from disk costs nothing. The old serial await put a
+    // full worker round-trip (7s timeout on a cold edge) in front of first
+    // paint on every open, on both channels. Probe now, await later.
+    const _gp=(function(){ try{ return _gateCheck(); }catch(e){ return Promise.resolve({locked:false}); } })();
+    // v821 — boot timing marks. performance.now() counts from navigation start,
+    // so t0 itself is the download+parse cost of the page. _bootReport() prints
+    // the trail; a slow start (>9s to saved data) states its own breakdown.
+    try{ window._bootT={t0:Math.round(performance.now()),m:[]}; }catch(e){ window._bootT={t0:0,m:[]}; }
+    const _bt=(k)=>{ try{ window._bootT.m.push([k,Math.round(performance.now())]); }catch(_){} };
+    window._bootReport=function(){ try{ var T=window._bootT; var out='page ready '+(T.t0/1000).toFixed(1)+'s'; for(var i=0;i<T.m.length;i++){ out+=' \u00b7 '+T.m[i][0]+' '+(T.m[i][1]/1000).toFixed(1)+'s'; } return out; }catch(e){ return ''; } };
+    try{ _gp.then(function(){ _bt('gate answered'); }); }catch(e){}
     const ls=document.getElementById('loadStatus');
     const phase=document.getElementById('loadPhase');
     const setPhase=(t)=>{ if(phase){phase.style.display='block';phase.textContent=t;} try{ const sst=document.getElementById('simpleStatus'); if(sst&&document.body.classList.contains('simple-mode')) sst.textContent=t; }catch(_){} }; // v686: Starter hides the load panel, so mirror startup phases into the Starter status line
     let cached=0;
     try{ cached=await histCount(); }catch(e){}
+    _bt('saved-data check');
     let key=(document.getElementById('apiKey')||{}).value||'';
     if(!key){ try{ key=localStorage.getItem('asxScreener.apiKey')||''; }catch(e){} } // v249: input may not be populated yet at this point
 
@@ -18955,6 +18967,11 @@ function setAutoLoad(on){
       setPhase('Step 1 of 2 — showing your saved data');
       try{ await _alignExchToSaved(); }catch(_){}
       try{ await loadOfflineNow(); }catch(e){}
+      _bt('saved data shown');
+      try{ console.log('[boot] '+window._bootReport()); }catch(e){}
+      try{ if(performance.now()>9000&&ls){ ls.innerHTML+=' <span style="color:var(--muted);font-size:10px;" title="Where the start-up time went, in seconds from opening the app.">('+window._bootReport()+')</span>'; } }catch(e){}
+      // v821 — the gate verdict is needed from here on (live work spends API calls).
+      try{ const _g=await _gp; if(_g&&_g.locked){ _gateLock(); return; } }catch(e){}
       if((key || _serverData()) && navigator.onLine!==false){
         setPhase('Step 2 of 2 — fetching today\'s fresh prices in the background');
         const _ls2=document.getElementById('loadStatus');
@@ -18972,6 +18989,8 @@ function setAutoLoad(on){
     }
 
     // ── No offline data yet. Download everything to disk (one time), then prepare. ──
+    // v821 — everything below is live work, so the gate verdict is required first.
+    try{ const _g=await _gp; if(_g&&_g.locked){ _gateLock(); return; } }catch(e){}
     if(key.trim() || _serverData()){
       // v362: the saved key lives in localStorage but the key BOX may not be
       // populated yet (init restores it asynchronously) — and loadData() /
