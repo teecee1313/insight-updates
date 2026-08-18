@@ -1762,7 +1762,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 </div>
 </div>
 
-<script src="app.js?v=2026.08.18-817-open"></script>
+<script src="app.js?v=2026.08.18-818-open"></script>
 
 
 
@@ -3213,10 +3213,12 @@ body.tbl-tighter .tick-name{max-width:80px;}
       return DATA_PROXY.replace(/\/+$/,'')+'/asxann/'+encodeURIComponent(code);
     return '';
   }
+  // v818 \u2014 the public relays are gone. They answered 401 to every single
+  // call (Tony's console, 18 Aug), so all they ever added was two more failed
+  // requests and up to 10s of timeout per ticker. Our own worker is the only
+  // route that can succeed, so it is the only route we try.
   async function fetchOne(code){
-    var routes=[function(u){return u;},
-      function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},
-      function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);}];
+    var routes=[function(u){return u;}];
     for(var i=0;i<routes.length;i++){
       try{
         var ctrl=new AbortController(); var tm=setTimeout(function(){ctrl.abort();},5000);
@@ -3233,6 +3235,33 @@ body.tbl-tighter .tick-name{max-width:80px;}
     }
     return null;
   }
+  // v818 \u2014 ONE request for the whole sweep. The server now keeps every
+  // listed company's announcements (it collects them market-wide each close),
+  // so asking it once for 25 tickers replaces 25 per-ticker calls that were
+  // each falling through three routes. Returns true when it answered.
+  async function bulkSweep(cand){
+    try{
+      if(!cand.length)return false;
+      if(!(typeof DATA_PROXY==='string'&&DATA_PROXY))return false;
+      var ctrl=new AbortController(); var tm=setTimeout(function(){ctrl.abort();},8000);
+      var r;
+      try{ r=await fetch(DATA_PROXY.replace(/\/+$/,'')+'/annbulk',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({tickers:cand.map(function(s){return s.ticker;})}),signal:ctrl.signal}); }
+      finally{ clearTimeout(tm); }
+      if(!r||!r.ok)return false;
+      var j=await r.json();
+      if(!j||!j.ok||!j.by)return false;
+      var changed=false;
+      cand.forEach(function(s){
+        var list=j.by[s.ticker]; if(!Array.isArray(list))return;
+        attempted[s.ticker]=1;
+        var rec={n:list.length,d:false,h:'',ps:list.filter(function(a){return a.ps;}).map(function(a){return a.d;}),
+                 list:list.map(function(a){return {d:a.d,t:a.t,ps:a.ps?1:0};}),ok:true,src:'store'};
+        cache.by[s.ticker]=rec; apply(s,rec); changed=true;
+      });
+      if(changed){ save(); try{ if(typeof render==='function')render(); }catch(e){} }
+      return true;
+    }catch(e){ return false; }
+  }
   async function sweep(){
     try{
       if(typeof allData==='undefined'||!Array.isArray(allData)||!allData.length)return;
@@ -3245,6 +3274,7 @@ body.tbl-tighter .tick-name{max-width:80px;}
       try{ Object.values(watchlists||{}).forEach(function(l){ Object.keys(l||{}).forEach(function(tk){ take(allData.find(function(x){return x.ticker===tk;})); }); }); }catch(e){}
       cand=cand.slice(0,25);
       if(!cand.length)return;
+      if(await bulkSweep(cand))return;        // v818: one call answered for all of them
       var idx=0, changed=false;
       async function worker(){
         while(idx<cand.length && fails<8){

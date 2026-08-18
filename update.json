@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.18-817-open",
+  "version": "2026.08.18-818-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed: the day-change figure in the portfolio header showed $0.00 all day even when your shares had moved. The app was comparing dates written two different ways (\"18 Aug 2026\" against \"2026-08-18\"), which made it treat every holding as if it had been bought at today's close \u2014 and those count as zero by design. Dates are now compared as dates. The heading also correctly says \"Today's change\" again when the latest market day is today.",
+  "notes": "Faster loading. The app was asking for company announcements one share at a time \u2014 up to 25 shares per load, each falling through three different routes when the first didn't answer, which added dozens of failed requests and a lot of waiting to every open. It now asks the server once for all of them, and the server answers from the announcements it already collects across the whole market each evening. The two public relay services, which had started refusing every request, have been removed.",
   "date": "2026-08-18"
 }
