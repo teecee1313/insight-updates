@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-824-open",
+  "version": "2026.08.19-825-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Two small honesty fixes in the portfolio. A stop-loss sitting exactly at your buy price used to print '(-0.0%)' \u2014 it now says '(at buy price)', and a stop lifted above your buy by the break-even rule now says '+X% above buy \u2014 profit locked' instead of wearing a minus sign. And the Auto-pilot's 'last decision' line now shows its full sentence, wrapping onto a second line when needed, rather than being shortened.",
+  "notes": "Clearer Auto-pilot banner when the server has acted. When your saved rules decide picks on the server overnight, the app places them as dated practice orders the moment it opens \u2014 and the banner used to say 'bought 3 shares' while also saying the bot 'hasn't run yet today', which read as a contradiction. It now says exactly what happened: 'placed 3 server-decided practice orders \ud83c\udf10 your rules decided these at the market close; the app placed them on opening'. 'Last completed run' is now labelled 'Last completed local scan' for the same reason.",
   "date": "2026-08-19"
 }

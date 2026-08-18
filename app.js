@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-824-open';
+const APP_VERSION='2026.08.19-825-open';
 // v824 — stop-distance text for the holdings chip. The old template hardcoded
 // the minus sign, so a stop AT the buy price printed '(-0.0%)' (Tony's PNN
 // screenshot, 19 Aug) and a break-even stop lifted ABOVE buy would read as
@@ -5480,7 +5480,13 @@ function _apStatusBanner(){
     let decision='';
     if(le){
       if(Array.isArray(le.buys)&&le.buys.length)
-        decision='<b style="color:var(--green)">bought '+le.buys.length+' share'+(le.buys.length>1?'s':'')+'</b> — '
+        // v825 — Tony's screenshot, 19 Aug: 'bought 3 shares (2026-08-19)' sat
+        // beside 'Hasn't run yet today' and 'Last completed run: 2026-08-17' —
+        // three true statements reading as a contradiction. The three buys were
+        // SERVER decisions (the 🌐 lane, srv:true on the diary entry) placed as
+        // dated orders at app open; the local scan genuinely hadn't run. Name
+        // the lane, and the three lines agree on sight.
+        decision='<b style="color:var(--green)">'+(le.srv===true?('placed '+le.buys.length+' server-decided practice order'+(le.buys.length>1?'s':'')+'</b> <span style="color:var(--dim)">\ud83c\udf10 your rules decided these at the market close; the app placed them on opening</span> — '):('bought '+le.buys.length+' share'+(le.buys.length>1?'s':'')+'</b> — '))
           +le.buys.map(function(x){ var ex=_apBuyExch(x); return esc(String(x.tk||''))+(ex?' <span style="color:var(--dim)">· '+esc(ex)+'</span>':''); }).join(', ')
           +' <span style="color:var(--dim)">('+esc(String(le.d||''))+')</span>';
       else if(le.err)
@@ -5513,7 +5519,7 @@ function _apStatusBanner(){
     }
     const decisionLine=decision?'<div style="margin-top:5px;font-size:9.5px;color:var(--muted);">Its last decision: '+decision+'</div>'+_apExchNote(le):'';
     const lastRunLine=(s.state!=='ran'&&s.state!=='off')
-      ? '<div style="margin-top:3px;font-size:9px;color:var(--dim);">Last completed run: '+(s.lastRun?'<b style="color:var(--muted)">'+esc(String(s.lastRun))+'</b>':'none recorded yet')+'.</div>'
+      ? '<div style="margin-top:3px;font-size:9px;color:var(--dim);">Last completed local scan: '+(s.lastRun?'<b style="color:var(--muted)">'+esc(String(s.lastRun))+'</b>':'none recorded yet')+'.</div>'
       : '';
     return '<div style="border:1px solid '+bd+';background:'+bg+';border-radius:9px;padding:9px 12px;margin-bottom:10px;">'
       +'<div style="font-size:11px;color:var(--text);line-height:1.55;">'+icon+' '+head+'</div>'
