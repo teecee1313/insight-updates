@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-823-open",
+  "version": "2026.08.19-824-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixed a chopped sentence in the Auto-pilot banner. The bot's 'last decision' line was being cut at a fixed length, sometimes mid-word \u2014 and in one case it cut away exactly the half of the sentence that explained the first half, so the banner appeared to contradict itself. The line now breaks at a word, fits the whole standard message, and only shows '\u2026' when something really was shortened.",
+  "notes": "Two small honesty fixes in the portfolio. A stop-loss sitting exactly at your buy price used to print '(-0.0%)' \u2014 it now says '(at buy price)', and a stop lifted above your buy by the break-even rule now says '+X% above buy \u2014 profit locked' instead of wearing a minus sign. And the Auto-pilot's 'last decision' line now shows its full sentence, wrapping onto a second line when needed, rather than being shortened.",
   "date": "2026-08-19"
 }
