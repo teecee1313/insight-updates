@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.18-816-open';
+const APP_VERSION='2026.08.18-817-open';
 // ── Make the app installable (PWA) without needing a separate manifest file ──
 // We build the manifest in-memory and attach it as a Blob URL, so the whole app
 // stays a single HTML file you can upload as-is. Phones/desktops then offer
@@ -9176,6 +9176,31 @@ function showPortfolio(exSel){
   // Two honesty rules from the spec: a holding bought ON the latest bar's day counts as 0 (it
   // hasn't held through a close-to-close change yet — showing its full gain would be wrong);
   // and if the latest bar is NOT today, the label carries that date instead of saying "today".
+  /* v817 \u2014 the day-change figure read $0.00 all day with real change data
+     present. Share objects carry lastDate as a HUMAN string ("18 Aug 2026")
+     while the app's own today and every stored buyDate are ISO ("2026-08-18").
+     Two consequences, both silent: the "is this today?" test could never match
+     (so the label said "Change \u00b7 18 AUG 2026" instead of "Today's change"),
+     and the bought-at-the-latest-close guard compared "2026-08-14" >= "18 Aug
+     2026", which is TRUE in string order because "2" sorts after "1" \u2014 so
+     EVERY holding was skipped as if bought today and the sum stayed exactly
+     zero. Dates are compared as dates now, never as whatever shape they arrive
+     in. Anything unparseable returns null and is treated as unknown, not as a
+     reason to skip. */
+  const _dcISO=function(v){
+    if(v==null)return null;
+    var t=String(v).trim(); if(!t)return null;
+    var m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m)return m[1]+'-'+m[2]+'-'+m[3];   // already ISO (or ISO timestamp)
+    var MO={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+    m=t.match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})$/);                        // 18 Aug 2026
+    if(m&&MO[m[2].toLowerCase()])return m[3]+'-'+MO[m[2].toLowerCase()]+'-'+('0'+m[1]).slice(-2);
+    m=t.match(/^([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s+(\d{4})$/);                      // Aug 18, 2026
+    if(m&&MO[m[1].toLowerCase()])return m[3]+'-'+MO[m[1].toLowerCase()]+'-'+('0'+m[2]).slice(-2);
+    m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);                                    // 18/08/2026 (AU order)
+    if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+    try{ var d=new Date(t); if(!isNaN(d.getTime()))return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney'}).format(d); }catch(e){}
+    return null;
+  };
   let _dcSum=0,_dcKnown=0;const _dcDates={};
   try{
     const _dcMap=new Map();
@@ -9187,7 +9212,7 @@ function showPortfolio(exSel){
       const chg=(typeof s.chgAbs==='number'&&isFinite(s.chgAbs))?s.chgAbs
                :((typeof s.chgPct==='number'&&isFinite(s.chgPct)&&s.price>0&&s.chgPct!==-100)?(s.price-(s.price/(1+s.chgPct/100)))
                :((s.price>0&&s.prevClose>0)?(s.price-s.prevClose):null));
-      const d=s.lastDate||((Array.isArray(s.series)&&s.series.length)?(s.series[s.series.length-1].d||null):null);
+      const d=_dcISO(s.lastDate)||((Array.isArray(s.series)&&s.series.length)?_dcISO(s.series[s.series.length-1].d):null);   /* v817: as a date, not as a string shape */
       _dcMap.set(s.ticker+'|'+(s.exchange||''),{chg:chg,d:d});
     });
     hold.forEach(function(h){
@@ -9195,7 +9220,8 @@ function showPortfolio(exSel){
       if(!m||m.chg==null||!(h.qty>0))return;
       _dcKnown++;
       if(m.d)_dcDates[m.d]=1;
-      if(m.d&&h.buyDate&&String(h.buyDate)>=String(m.d))return;   // bought at the latest close — 0, not its full gain
+      const _bd=_dcISO(h.buyDate);                                  /* v817 */
+      if(m.d&&_bd&&_bd>=m.d)return;   // bought at the latest close — 0, not its full gain
       _dcSum+=h.qty*m.chg;
     });
   }catch(e){}

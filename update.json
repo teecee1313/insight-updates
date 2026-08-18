@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.18-816-open",
+  "version": "2026.08.18-817-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Minimum parcel is now $2,000 for the bot and Today's picks. Brokerage is a flat $6 whatever the size, so a small parcel pays a far bigger share of itself in costs \u2014 at $500 that's 1.2% gone before the share moves, which no honest edge can reliably clear. At $2,000 costs stay under 0.3%, the level the tested rules were actually proven at. Old small-parcel suggestions are cleared automatically; the $ per buy box in My Rules now starts at $2,000 and says why.",
+  "notes": "Fixed: the day-change figure in the portfolio header showed $0.00 all day even when your shares had moved. The app was comparing dates written two different ways (\"18 Aug 2026\" against \"2026-08-18\"), which made it treat every holding as if it had been bought at today's close \u2014 and those count as zero by design. Dates are now compared as dates. The heading also correctly says \"Today's change\" again when the latest market day is today.",
   "date": "2026-08-18"
 }
