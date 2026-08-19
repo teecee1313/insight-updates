@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-835-open';
+const APP_VERSION='2026.08.20-836-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -17150,8 +17150,13 @@ async function _loadDataInner(userClick){
       const arr=Array.isArray(p)?p:((p&&(p.symbols||p.quotes||p.data||p.Quotes||p.result||p.results))||[]);
       return arr.length?arr:null;
     }catch(e){ return null; } };
-    let g=await _wtry(symbolListUrl); if(g){ rows=g; via='server'; }
-    if(!rows){ g=await _wtry(quoteListUrl); if(g){ rows=g; via='server-q'; } }
+    // v836: quote/list FIRST. The server pantry-serves quote/list; symbol/list has no
+    // pantry form, so leading with it spent a doomed round-trip (a 4s upstream abort
+    // per load until w549, a 20s browser timeout at worst) before every single load
+    // fell through to the route that actually answers. The order now matches reality;
+    // symbol/list stays only as the fallback for a future server that serves it.
+    let g=await _wtry(quoteListUrl); if(g){ rows=g; via='server-q'; }
+    if(!rows){ g=await _wtry(symbolListUrl); if(g){ rows=g; via='server'; } }
   }
 
   // ---- Attempt 1: direct browser fetch ----

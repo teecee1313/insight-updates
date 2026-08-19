@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.20-835-open",
+  "version": "2026.08.20-836-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "⚡ Lists from YOUR OWN server are now accepted instantly. The “came back smaller than expected — seen N times” ceremony was protection against flaky third-party providers that could truncate a response; it made no sense aimed at our own pantry, and it was the last thing demanding button-presses in an automatic system. Third-party and relay routes keep the full safety valve; the app simply believes its own backend.",
+  "notes": "⚡ The share list now asks the route that actually answers, first. Loads were spending their opening seconds on a list route the server no longer serves before falling through to your own pantry — the order now matches reality, so the list arrives immediately.",
   "date": "2026-08-20"
 }
