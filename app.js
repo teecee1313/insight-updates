@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-834-open';
+const APP_VERSION='2026.08.20-835-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -17378,7 +17378,13 @@ Output the complete array. Start with [`;
         }
       } else { localStorage.removeItem(_ck+'.n'); localStorage.removeItem(_ck+'.c'); }
     }catch(e){}
-    if(_kn>0 && results.length<_kn*0.85 && Array.isArray(allData) && allData.length>results.length){
+    /* v835: the size-distrust valve exists for THIRD-PARTY sources that can
+       truncate randomly. When the list comes from OUR OWN worker's pantry
+       (via 'server'/'server-q'), the answer is authoritative by definition —
+       demanding three matching ceremonies before believing our own backend
+       was the last manual press left in an automatic system (Tony, 20 Aug:
+       'we are not living in the 1980s'). Server lists are accepted at once. */
+    if(!(via&&String(via).indexOf('server')===0) && _kn>0 && results.length<_kn*0.85 && Array.isArray(allData) && allData.length>results.length){
       const _lsq=document.getElementById('loadStatus');
       if(_lsq)_lsq.innerHTML='<span style="color:var(--gold)">⚠ The live list came back smaller than expected ('+results.length.toLocaleString()+' shares, against '+_kn.toLocaleString()+' last time) — kept your saved view for now. '+(_agree>0?('Seen '+_agree+' time'+(_agree===1?'':'s')+'; after 3 matching counts the app will accept it as the new size. '):'')+'If you have just changed which TYPES you download, the smaller number is probably correct.</span>';
       window._listRetryN=(window._listRetryN||0)+1;

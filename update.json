@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.20-834-open",
+  "version": "2026.08.20-835-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📡 The radar now unfolds only when signals are genuinely ready (~60% prepared, the bot's own bar) instead of sprawling half-empty at 30%.",
+  "notes": "⚡ Lists from YOUR OWN server are now accepted instantly. The “came back smaller than expected — seen N times” ceremony was protection against flaky third-party providers that could truncate a response; it made no sense aimed at our own pantry, and it was the last thing demanding button-presses in an automatic system. Third-party and relay routes keep the full safety valve; the app simply believes its own backend.",
   "date": "2026-08-20"
 }
