@@ -1762,7 +1762,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
 </div>
 </div>
 
-<script src="app.js?v=2026.08.19-827-open"></script>
+<script src="app.js?v=2026.08.19-828-open"></script>
 
 
 
@@ -2076,6 +2076,7 @@ body.training-on #tblwrap tr,body.training-on #tblwrap tr *{outline:none!importa
 /* the header Training button lights up while training mode is on */
 body.training-on #trainBtn{background:rgba(147,51,234,.18);border-color:#9333ea;color:#c88bff;}
 #lessonNav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+#lessonNav>#lessonBody{flex:0 0 100%;width:100%;order:0;}   /* v828: the lesson body sits inside the wrapping list, on its own full-width line, directly under the button pressed */
 #lessonProg{margin:0 0 10px;}
 .lsn-prog-bar{height:7px;border-radius:5px;background:#152647;overflow:hidden;margin:5px 0 4px;}
 .lsn-prog-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#f6c915,#3fb950);transition:width .4s;}
@@ -2562,6 +2563,11 @@ document.addEventListener('fullscreenchange',function(){ // Esc out of native fu
 window.renderLesson=function(i){
   _curLesson=i;
   const nav=document.getElementById('lessonNav');
+  /* v828 \u2014 the body now lives INSIDE this list (so it can sit under the button
+     pressed), and the next line rewrites the list's innerHTML \u2014 which would
+     destroy it. Lift it out to the panel first; the move below puts it back. */
+  try{ var _lbPrev=document.getElementById('lessonBody');
+       if(_lbPrev&&_lbPrev.parentNode===nav){ var _pnl=document.getElementById('lessonPanel'); if(_pnl)_pnl.appendChild(_lbPrev); } }catch(e){}
   var _dn=_quizDone();
   nav.innerHTML=LESSONS.map(function(l,k){var dd=!!_dn[l.id];return '<button class="lsn-tab'+(k===i?' on':'')+(dd?' done':'')+'" onclick="renderLesson('+k+')" title="'+(dd?'Completed — quiz passed':'Not completed yet — pass the quick quiz at the end of the lesson')+'">'+(dd?'✓ ':'')+l.title+'</button>';}).join('');
   var _pg=document.getElementById('lessonProg'); if(_pg)_pg.innerHTML=_lsnProgressHtml();
@@ -2573,9 +2579,26 @@ window.renderLesson=function(i){
   if(i>0) body+='<button class="lsn-nav" onclick="renderLesson('+(i-1)+')">← '+LESSONS[i-1].title+'</button>'; else body+='<span></span>';
   if(i<LESSONS.length-1) body+='<button class="lsn-nav" onclick="renderLesson('+(i+1)+')">'+LESSONS[i+1].title+' →</button>'; else { var _st=_lsnStats(); body+=(_st.done>=_st.total)?'<button class="lsn-nav" style="border-color:#FFD200;color:#FFD200;" onclick="showCertificate()">🏅 View your certificate</button>':'<button class="lsn-nav" onclick="toggleLessons()">✓ Finish</button>'; }
   body+='</div>';
-  document.getElementById('lessonBody').innerHTML=body;
-  document.getElementById('lessonBody').scrollTop=0;
-  try{ var _pp=document.getElementById('lessonPanel'); if(_pp)_pp.scrollTop=0; _lsnPinSync&&_lsnPinSync(); }catch(e){} // v411: new lesson starts at the top with pinned buttons
+  var _lb=document.getElementById('lessonBody');
+  if(!_lb){ _lb=document.createElement('div'); _lb.id='lessonBody'; var _pnl2=document.getElementById('lessonPanel'); if(_pnl2)_pnl2.appendChild(_lb); }   /* v828: never render into nothing */
+  _lb.innerHTML=body;
+  _lb.scrollTop=0;
+  /* v828 \u2014 the lesson opens DIRECTLY BELOW the button you pressed. It used to
+     sit after the whole 55-button list, so tapping lesson 13 put its text below
+     buttons 14\u201355 and you had to hunt for it (Tony, 19 Aug). The list is a
+     wrapping flex row, so the body goes after the LAST button on the chosen
+     button's row \u2014 dropping it mid-row would tear the row in half. */
+  try{
+    var _tabs=document.querySelectorAll('#lessonNav .lsn-tab');
+    var _me=_tabs[i];
+    if(_me&&_me.parentNode){
+      var _top=_me.offsetTop, _last=_me;
+      for(var _k=i+1;_k<_tabs.length;_k++){ if(_tabs[_k].offsetTop>_top+2)break; _last=_tabs[_k]; }
+      if(_last.nextSibling!==_lb) _last.parentNode.insertBefore(_lb,_last.nextSibling);
+    }
+  }catch(e){ try{ var _p=document.getElementById('lessonPanel'); if(_p&&_lb.parentNode!==_p)_p.appendChild(_lb); }catch(_){} }
+  try{ if(_lb.scrollIntoView) _lb.scrollIntoView({block:'nearest'}); }catch(e){}
+  try{ _lsnPinSync&&_lsnPinSync(); }catch(e){}
 };
 
 window.toggleTrainTips=function(){

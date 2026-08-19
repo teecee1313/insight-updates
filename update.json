@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-827-open",
+  "version": "2026.08.19-828-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "An honest explanation for slow 5pm loads. Around 5:00pm and 6:30pm Sydney time the server takes in the day's closing prices for the whole market, and loading the app during those few minutes could time out with a vague 'the data proxy was slow'. The server now paces that take-in so app loads keep flowing through it, and if a load is still slow inside those windows the app says what's actually happening: today's prices are arriving, retrying shortly.",
+  "notes": "Lessons now open directly below the lesson you pressed, instead of underneath the whole list. Tapping lesson 13 used to put its text below buttons 14 to 55, so you had to scroll to find what you'd just opened. The lesson opens on its own line right under the button, and the rest of the list stays where it is.",
   "date": "2026-08-19"
 }
