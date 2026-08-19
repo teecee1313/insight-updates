@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-826-open",
+  "version": "2026.08.19-827-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The bot can no longer fall silent about server decisions it has already handled. If your rules' server picks were placed on this copy on an earlier day, later opens used to log nothing at all \u2014 the bot looked asleep. It now writes one clear diary line: which picks, which day they went in, and that each copy places each decision exactly once. Nothing about the decisions themselves changed \u2014 only the silence.",
+  "notes": "An honest explanation for slow 5pm loads. Around 5:00pm and 6:30pm Sydney time the server takes in the day's closing prices for the whole market, and loading the app during those few minutes could time out with a vague 'the data proxy was slow'. The server now paces that take-in so app loads keep flowing through it, and if a load is still slow inside those windows the app says what's actually happening: today's prices are arriving, retrying shortly.",
   "date": "2026-08-19"
 }

@@ -4,7 +4,19 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-826-open';
+const APP_VERSION='2026.08.19-827-open';
+// v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
+// 18:15–18:45 final, weekdays.) During those minutes the server is writing the
+// whole market's closing prices into its database, and reads genuinely slow
+// down — the honest explanation for a bad load at 5pm is 'today's prices are
+// arriving', not 'the proxy was slow'. w543 paces the writes so this window
+// should rarely bite; the message covers the residue truthfully.
+function _inIngestWindow(){ try{
+  var p={}; new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});
+  var dow={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[p.weekday]; if(dow===0||dow===6)return false;
+  var h=parseInt(p.hour,10), m=parseInt(p.minute,10);
+  return (h===17&&m<15)||(h===18&&m>=15&&m<45);
+}catch(e){ return false; } }
 // v824 — stop-distance text for the holdings chip. The old template hardcoded
 // the minus sign, so a stop AT the buy price printed '(-0.0%)' (Tony's PNN
 // screenshot, 19 Aug) and a break-even stop lifted ABOVE buy would read as
@@ -15531,7 +15543,7 @@ async function prepareAllSignals(auto){
       if(_poolMissing>0){
         window._prepAutoRetryN=(window._prepAutoRetryN||0)+1;
         if(window._prepAutoRetryN<=3){ setTimeout(()=>{ try{ if(!window._prepRunning && Array.isArray(allData) && allData.length){ window._prepFreshUntil=0; prepareAllSignals(true); } }catch(e){} }, 120000); }
-        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${Math.max(0,ranked.length-_poolMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_poolMissing.toLocaleString()} still need data</span> — the data proxy was slow for those; the app will retry them automatically in a couple of minutes. <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest now</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data. <span style="font-size:9px;color:var(--dim)">Symbols that fail every route today (often delisted or suspended) are skipped until tomorrow so they can't slow you down.</span>${_presetNote}`;
+        ls.innerHTML=`<span style="color:var(--gold)">✓ Loaded ${Math.max(0,ranked.length-_poolMissing).toLocaleString()} shares.</span> <span style="color:#f0b849">${_poolMissing.toLocaleString()} still need data</span> — ${_inIngestWindow()?'today\'s closing prices are arriving on the server right now (the ~5:00pm and ~6:30pm Sydney take-in); loading is slower for a few minutes while they land, and the app will retry automatically.':'the data proxy was slow for those; the app will retry them automatically in a couple of minutes.'} <a href="#" onclick="prepareAllSignals(true);return false;" style="color:#58a6ff;">Finish the rest now</a> · or <a href="#" onclick="downloadEverything();return false;" style="color:#58a6ff;">Download all</a> for instant offline data. <span style="font-size:9px;color:var(--dim)">Symbols that fail every route today (often delisted or suspended) are skipped until tomorrow so they can't slow you down.</span>${_presetNote}`;
       } else {
         window._prepAutoRetryN=0;
         ls.innerHTML=`<span style="color:var(--green)">✓ Everything loaded</span> — ${ranked.length.toLocaleString()} shares with full signals, range &amp; charts ready. <span style="font-size:9px;color:var(--dim)">Sort any column or run a scan.</span>${_presetNote}`;
