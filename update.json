@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.20-836-open",
+  "version": "2026.08.20-837-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "⚡ The share list now asks the route that actually answers, first. Loads were spending their opening seconds on a list route the server no longer serves before falling through to your own pantry — the order now matches reality, so the list arrives immediately.",
+  "notes": "🌅 The app now notices a newer trading session by itself. If you leave it open overnight or reopen it in the morning, it checks whether the session on screen is older than the newest one available and quietly fetches the new day in the background — the bot then re-runs on its own. No more \"done for yesterday\" until you pressed Load.",
   "date": "2026-08-20"
 }

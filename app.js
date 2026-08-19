@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-836-open';
+const APP_VERSION='2026.08.20-837-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -19012,7 +19012,47 @@ function setAutoLoad(on){
       window._wakeLoading=false;
     }catch(_){ window._wakeLoading=false; }
   }
-  window.addEventListener('pageshow', function(e){ if(e&&e.persisted) _wakeLoad('pageshow'); });
+  // v837 — STALE-RESUME FRESHNESS. The open item since v832: on phones the
+  // installed app RESUMES instead of re-booting, and _wakeLoad (a) only reads
+  // the disk and (b) bails when data is already in memory — so an app left
+  // open, or reopened next morning, showed yesterday forever and the bot line
+  // read "done for <yesterday>" with nothing ever fetching the newer session
+  // (Tony's screenshot, 20 Aug 09:49: saved data 18 Aug, server holding 19 Aug).
+  // _wakeFresh answers one question on every resume and every few minutes:
+  // "is the session on screen older than the newest session that should exist?"
+  // - and if so, kicks the SAME background loadData() the cold boot already
+  // uses (v356: a same-exchange refresh keeps the screen, no flicker).
+  function _expectedSessionDay(){
+    try{
+      var p={}; new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hour12:false,weekday:'short'}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});
+      var d=p.year+'-'+p.month+'-'+p.day;
+      var dow={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[p.weekday];
+      var hour=parseInt(p.hour,10)||0;
+      if(dow>=1&&dow<=5&&hour>=18) return d;   // today's close is published (final pass lands 18:15-18:45)
+      var dt=new Date(d+'T12:00:00Z');
+      do{ dt=new Date(dt.getTime()-86400000); }while(dt.getUTCDay()===0||dt.getUTCDay()===6);
+      return dt.toISOString().slice(0,10);
+    }catch(e){ return ''; }
+  }
+  function _wakeFresh(why){
+    try{
+      if(!autoLoadOn()) return;
+      if(navigator.onLine===false) return;
+      if(currentExch && currentExch!=='ASX') return;                      // sessions are Sydney-defined
+      if(window._liveBusy||window._wakeLoading||window._bulkRunning) return;
+      if(!(Array.isArray(allData)&&allData.length)) return;               // empty memory is _wakeLoad's job
+      var now=Date.now();
+      if(window._lastFreshKick && (now-window._lastFreshKick)<10*60*1000) return; // 10-min throttle
+      var want=_expectedSessionDay(); if(!want) return;
+      var have=(window._exchDataDate&&window._exchDataDate[currentExch||'ASX'])||'';
+      if(have && have>=want) return;                                      // already showing the newest session
+      window._lastFreshKick=now;
+      try{ var ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--muted)">A newer session is available ('+want+') \u2014 fetching it in the background\u2026</span>'; }catch(e){}
+      try{ loadData(); }catch(e){}
+    }catch(e){}
+  }
+  setInterval(function(){ _wakeFresh('interval'); }, 5*60*1000);
+  window.addEventListener('pageshow', function(e){ if(e&&e.persisted){ _wakeLoad('pageshow'); setTimeout(function(){_wakeFresh('pageshow');},4000); } });
   // v687 — startup watchdog: whatever branch boot took, if the market is still
   // empty after 12s, run the same path as the Load button (which self-reports
   // into the Starter status) exactly once.
@@ -19022,7 +19062,7 @@ function setAutoLoad(on){
     if(window._wakeLoading||window._bulkRunning) return;
     if(typeof simpleLoad==='function') simpleLoad();
   }catch(_){}} ,12000);
-  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _wakeLoad('visible'); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible'){ _wakeLoad('visible'); setTimeout(function(){_wakeFresh('visible');},4000); } });
   (async function autoStartup(){
     // v380 — access gate: don't run automated data loads while the preview is locked.
     // v821 — the gate answer is only needed before LIVE work spends API calls;
