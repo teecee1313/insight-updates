@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-833-open';
+const APP_VERSION='2026.08.20-834-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -6673,7 +6673,9 @@ window._apSrvConsume=function(){
     /* v833: collapse whenever signals simply are not ready — regardless of WHY.
        v830 tied this to _prepRunning, so a tab whose load was stuck (prep never
        started, 0 ready) sprawled the empty grid anyway (Tony, 20 Aug 06:44). */
-    var _collapse=_u2>0 && _p2 < Math.max(150,Math.floor(_u2*0.3));
+    /* v834: unfold only when signals are genuinely ready (the bot's own 60% bar),
+       not at 30% — Tony circled a half-empty sprawl at 59% prepped (20 Aug 07:35). */
+    var _collapse=_u2>0 && _p2 < Math.max(200,Math.floor(_u2*0.6));
     document.body.classList.toggle('radar-preparing',_collapse);
     var _ct=document.getElementById('radarPrepCt'); if(_ct&&_collapse)_ct.textContent=_p2.toLocaleString()+' of '+_u2.toLocaleString()+' shares';
   }catch(_re){}
