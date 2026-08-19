@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-828-open",
+  "version": "2026.08.19-829-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Lessons now open directly below the lesson you pressed, instead of underneath the whole list. Tapping lesson 13 used to put its text below buttons 14 to 55, so you had to scroll to find what you'd just opened. The lesson opens on its own line right under the button, and the rest of the list stays where it is.",
+  "notes": "🤖 The robot now says what it's doing on the MAIN screen, not just inside its panel. We audited every step of auto-buy after a report that it was slow and found no faults — the two honest reasons it can look idle: after a data load it deliberately waits until ~60% of shares have signals prepared (minutes on a phone), and it acts once per data day, so once it has run it sits quietly until the next close. A small always-visible line under the data box now shows exactly that: “bot: today's signals are still preparing (1,204 of ~1,329 shares ready)”, “bot: done for 2026-08-18 — runs again when new data loads (nothing to press)”. Same truth the robot panel always told — now where your eyes are.",
   "date": "2026-08-19"
 }

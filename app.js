@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-828-open';
+const APP_VERSION='2026.08.19-829-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -6646,6 +6646,21 @@ window._apSrvConsume=function(){
 // v679 - the auto ticker now gives the server one 11-second beat per data day:
 // fetch decisions first, then let the local funnel run with whatever remains.
 (function _apAuto(){ setInterval(function(){ try{
+  /* v829: the bot's state, visible on the MAIN screen. The robot panel has
+     always explained itself (v395 mirror, v823-826 decision lines) - but only
+     inside the panel, so a correctly-waiting bot looked broken from the main
+     screen (Tony, 19 Aug: 'autobuy taking long time to action'). _apStatus()
+     already builds the honest sentence; this just puts it where eyes are. */
+  try{ var _el=document.getElementById('apMainLine');
+    if(_el){ var _st=(typeof _apStatus==='function')?_apStatus():null; var _tx='';
+      if(_st){
+        if(_st.state==='preparing'){ _tx='\ud83e\udd16 bot: '+(_st.why||'signals still preparing')+' \u2014 it runs the moment they\'re ready'; }
+        else if(_st.state==='ran'){ _tx='\ud83e\udd16 bot: done for '+(_st.dd||'today')+' \u2014 runs again when new data loads (nothing to press)'; }
+        else if(_st.state==='waiting'){ _tx='\ud83e\udd16 bot: '+(_st.why||'waiting'); }
+        else if(_st.state==='armed'){ _tx='\ud83e\udd16 bot: armed \u2014 scanning within seconds'; }
+      }
+      if(_tx){ _el.textContent=_tx; _el.style.display='block'; } else { _el.style.display='none'; }
+    } }catch(_ve){}
   var dd=''; try{ dd=_pfMktDate(currentExch); }catch(e){}
   if(window._apSrvFetchedFor!==dd){ window._apSrvFetchedFor=dd; window._apSrvDone=false; _apSrvConsume(); return; }
   if(!window._apSrvDone)return;
