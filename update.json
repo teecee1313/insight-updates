@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-830-open",
+  "version": "2026.08.19-831-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📡 The Market Radar no longer takes half the screen while loading. During signal preparation the empty signal, volume, trend and evidence rows collapse to one honest line (“fill in as preparation completes — 1,204 of 4,459 shares ready”) while the market row stays live from your saved data. The grid unfolds by itself once ~30% of shares are prepared. Third time this half-screen-of-zeros was photographed; now it can't be.",
+  "notes": "📡 The radar's preparing note now spans the full width instead of rendering one word per line inside a grid cell.",
   "date": "2026-08-19"
 }
