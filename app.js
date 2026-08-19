@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-829-open';
+const APP_VERSION='2026.08.19-830-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -6661,6 +6661,15 @@ window._apSrvConsume=function(){
       }
       if(_tx){ _el.textContent=_tx; _el.style.display='block'; } else { _el.style.display='none'; }
     } }catch(_ve){}
+  try{ /* v830: collapse the radar grid during early preparation (Tony's third
+     screenshot of the half-screen-of-zeros: 15 Aug, 19 Aug x2). MARKET row stays
+     (real counts from saved data); the signal groups return as they fill. */
+    var _u2=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.length:0;
+    var _p2=0; if(_u2){ for(var _i2=0;_i2<allData.length;_i2++){ var _s2=allData[_i2]; if(_s2&&_s2.streakCalced&&_s2.volCalced)_p2++; } }
+    var _collapse=!!window._prepRunning && _u2>0 && _p2 < Math.max(150,Math.floor(_u2*0.3));
+    document.body.classList.toggle('radar-preparing',_collapse);
+    var _ct=document.getElementById('radarPrepCt'); if(_ct&&_collapse)_ct.textContent=_p2.toLocaleString()+' of '+_u2.toLocaleString()+' shares';
+  }catch(_re){}
   var dd=''; try{ dd=_pfMktDate(currentExch); }catch(e){}
   if(window._apSrvFetchedFor!==dd){ window._apSrvFetchedFor=dd; window._apSrvDone=false; _apSrvConsume(); return; }
   if(!window._apSrvDone)return;

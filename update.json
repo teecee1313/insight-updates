@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-829-open",
+  "version": "2026.08.19-830-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🤖 The robot now says what it's doing on the MAIN screen, not just inside its panel. We audited every step of auto-buy after a report that it was slow and found no faults — the two honest reasons it can look idle: after a data load it deliberately waits until ~60% of shares have signals prepared (minutes on a phone), and it acts once per data day, so once it has run it sits quietly until the next close. A small always-visible line under the data box now shows exactly that: “bot: today's signals are still preparing (1,204 of ~1,329 shares ready)”, “bot: done for 2026-08-18 — runs again when new data loads (nothing to press)”. Same truth the robot panel always told — now where your eyes are.",
+  "notes": "📡 The Market Radar no longer takes half the screen while loading. During signal preparation the empty signal, volume, trend and evidence rows collapse to one honest line (“fill in as preparation completes — 1,204 of 4,459 shares ready”) while the market row stays live from your saved data. The grid unfolds by itself once ~30% of shares are prepared. Third time this half-screen-of-zeros was photographed; now it can't be.",
   "date": "2026-08-19"
 }
