@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.19-831-open';
+const APP_VERSION='2026.08.19-832-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -5436,8 +5436,8 @@ function _apStatus(){
     const _uni=(allData||[]).length||1;
     const _prepped=(allData||[]).reduce((a,s)=>a+((s&&s.streakCalced&&s.volCalced)?1:0),0);
     const _need=Math.min(_uni,Math.max(200,Math.floor(_uni*0.6)));
-    if(window._prepRunning||_prepped<_need)
-      return {state:'preparing', why:'today\'s signals are still preparing ('+_prepped.toLocaleString()+' of ~'+_need.toLocaleString()+' shares ready)', pct:Math.max(0,Math.min(100,Math.round(_prepped/_need*100))), dd:dd, lastRun:lr, last:last};
+    if(_prepped<_need || (window._prepRunning && _prepped<Math.floor(_uni*0.85)))
+      return {state:'preparing', why:(_prepped>=_need?('finishing the last preparation pass ('+_prepped.toLocaleString()+' shares ready)'):('today\'s signals are still preparing ('+_prepped.toLocaleString()+' of ~'+_need.toLocaleString()+' shares ready)')), pct:Math.max(0,Math.min(100,Math.round(_prepped/_need*100))), dd:dd, lastRun:lr, last:last};
     return {state:'armed', why:'armed — it scans and buys within seconds', dd:dd, lastRun:lr, last:last};
   }catch(e){ return {state:'err', why:String(e).slice(0,60)}; }
 }
@@ -6438,7 +6438,11 @@ function _autoPilotRun(manual){
       const _uni=(allData||[]).length||1;
       const _prepped=(allData||[]).reduce((a,s)=>a+((s&&s.streakCalced&&s.volCalced)?1:0),0);
       const _need=Math.min(_uni,Math.max(200,Math.floor(_uni*0.6)));
-      if(window._prepRunning||_prepped<_need)
+      /* v832: v368 required prep FINISHED on top of the 60% bar — on big stores the
+         tail runs for many minutes and the bot sat waiting with 97% ready (Tony's
+         screenshot: "2,144 of ~1,329"). The bar stays; the finished-flag only holds
+         the bot below 85% prepared, so a running tail can't block a ready pool. */
+      if(_prepped<_need || (window._prepRunning && _prepped<Math.floor(_uni*0.85)))
         return {ran:false,why:'signals still preparing'};
     }
     // v368: do NOT mark the day done here. We set AP_RUN_KEY AFTER the scan (below), and only

@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.19-831-open",
+  "version": "2026.08.19-832-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "📡 The radar's preparing note now spans the full width instead of rendering one word per line inside a grid cell.",
+  "notes": "🤖 The bot no longer waits on a technicality. It required signal preparation to be completely FINISHED even when far more shares were ready than its own 60% bar — tonight a phone sat at “2,144 of ~1,329 ready” and still waited while the last pass ran. The bar stays; the finished-requirement now only applies below 85% prepared, and the status line says “finishing the last preparation pass” instead of an impossible fraction. Combined with tonight's server fix (w544), the whole pipeline is unblocked.",
   "date": "2026-08-19"
 }
