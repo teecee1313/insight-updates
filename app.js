@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-838-open';
+const APP_VERSION='2026.08.20-839-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -19065,7 +19065,18 @@ function setAutoLoad(on){
       if(have && have>=want) return;                                      // already showing the newest session
       window._lastFreshKick=now;
       try{ var ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--muted)">A newer session is available ('+want+') \u2014 fetching it in the background\u2026</span>'; }catch(e){}
-      try{ loadData(); }catch(e){}
+      // v839: THE MISSING WIRE. The auto path refreshed the day's PRICES but never
+      // extended the saved HISTORY - the day-sync (up to 14 missing days, one
+      // request per day, gap-safe) was wired only into the manual Refresh flow.
+      // So a device opened after a week away auto-loaded, showed fresh prices,
+      // and the bot still said "done for <a week ago>" because its histories
+      // ended there (Tony's device: stuck on 12 Aug with 20 Aug on the server,
+      // 20 Aug 2026). Now the auto path pulls the missing days FIRST, then
+      // loads - and the bot re-runs on its own, exactly as the label promises.
+      (async function(){
+        try{ if(typeof _srvDaySync==='function') await _srvDaySync(currentExch||'ASX',null); }catch(e){}
+        try{ loadData(); }catch(e){}
+      })();
     }catch(e){}
   }
   setInterval(function(){ _wakeFresh('interval'); }, 5*60*1000);

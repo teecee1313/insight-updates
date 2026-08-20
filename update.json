@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.20-838-open",
+  "version": "2026.08.20-839-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "⏳→⚡ \"Fill from my server store\" is now ~5× faster (five days fetched at once instead of one), shows its progress on the button itself, and tapping the button again stops it cleanly — everything already saved is kept. No more ten-minute mystery.",
+  "notes": "🔌 The last missing wire in automatic catch-up. When the app notices you are behind, it now pulls the missing days of history itself (up to 14, one request per day) before refreshing — so a device that has been away for a week comes fully current and the bot re-runs, with nothing to press. Previously auto-refresh updated prices but left history behind, which is why the bot could stay stuck on an old date.",
   "date": "2026-08-20"
 }
