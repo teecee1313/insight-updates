@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.20-839-open",
+  "version": "2026.08.20-840-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🔌 The last missing wire in automatic catch-up. When the app notices you are behind, it now pulls the missing days of history itself (up to 14, one request per day) before refreshing — so a device that has been away for a week comes fully current and the bot re-runs, with nothing to press. Previously auto-refresh updated prices but left history behind, which is why the bot could stay stuck on an old date.",
+  "notes": "🧹 The last dead pathway is gone. Devices that saved a data key years ago were silently trying the retired provider one share at a time — which could stall signal preparation for the whole market. The legacy key is now cleaned up automatically and every request goes through your own server only. Signal prep runs straight through.",
   "date": "2026-08-20"
 }

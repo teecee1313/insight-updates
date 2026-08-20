@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-839-open';
+const APP_VERSION='2026.08.20-840-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -962,9 +962,15 @@ function _hasOwnKey(u){
   }catch(e){ return false; }
 }
 function _keyedRoutes(u){
+  // v840: THE DIRECT ROUTE IS GONE. api.eoddata.com is dead; the only thing the
+  // "direct with your own key" route did in 2026 was hang a browser for the full
+  // timeout, one request at a time. On 20 Aug a device carrying a legacy saved
+  // key stalled its whole signal-prepare pass at 48 of ~2,710 shares because
+  // every store-missing ticker fell through to a direct fetch that could never
+  // answer. Removed, not guarded - the worker (pantry) is the only route left,
+  // and a miss there now answers instantly.
   var safe=[];
   try{ if(typeof DATA_PROXY==='string'&&DATA_PROXY&&_eodProxy(u)!==u)safe.push(function(x){return _eodProxy(x);}); }catch(e){}
-  if(_hasOwnKey(u))safe.push(function(x){return x;});   // direct: the key reaches EODData, and nobody else
   return safe;
 }
 // Filter any route list down to the safe ones when the URL carries a key.
@@ -2483,7 +2489,13 @@ async function restoreFromBackup(){
 
 function initKeyLock(){
   try{
-    const saved=localStorage.getItem('asxScreener.apiKey');
+    // v840: purge the legacy EODData key. The provider is dead and the UI to
+    // remove the key left in v382, so devices that saved one years ago were
+    // stuck carrying it forever - and _hasOwnKey kept arming direct fetches to
+    // a corpse. One-time cleanup: the key is deleted from storage and never
+    // loaded into the (hidden) field again.
+    try{ localStorage.removeItem('asxScreener.apiKey'); }catch(e){}
+    const saved=null;
     if(saved){const el=document.getElementById('apiKey');if(el)el.value=saved;}
     const nk=localStorage.getItem(NEWSAPI_KEY_STORE);
     if(nk){const el=document.getElementById('newsApiKey');if(el)el.value=nk;}
