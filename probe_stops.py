@@ -37,9 +37,10 @@ def read_env(path=".env"):
 
 ENV = read_env()
 def need(k):
-    v = ENV.get(k) or os.environ.get(k)
+    # this bridge's .env prefixes SnapTrade keys - accept both spellings
+    v = ENV.get("SNAPTRADE_" + k) or ENV.get(k) or os.environ.get("SNAPTRADE_" + k) or os.environ.get(k)
     if not v:
-        print(f"MISSING {k} in .env - run this from the bridge folder.")
+        print(f"MISSING {k} (or SNAPTRADE_{k}) in .env - run this from the bridge folder.")
         sys.exit(1)
     return v
 
