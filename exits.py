@@ -86,12 +86,22 @@ def load_overrides(path: str = "exits_overrides.json") -> dict:
 # ---------------------------------------------------------------------------
 def fetch_closes(queue_url: str, timeout: int = 20) -> tuple[dict, str]:
     """Today's closes for every ASX ticker, from the app's own pantry.
-    Returns ({TICKER: close}, source_note). Never raises."""
+    Returns ({TICKER: close}, source_note). Never raises.
+
+    v2 (22 Aug): the worker's /eod routes sit behind the app's access lock, so
+    v1's plain request came back locked and every pass fell back to SnapTrade
+    prices. The bridge now sends X-Insight-Access from INSIGHT_ACCESS_KEY in
+    .env (the same access password the app uses). Without it, the graceful
+    fallback remains - the note just tells you what to set."""
     if not queue_url:
         return {}, "no BRIDGE_QUEUE_URL - using SnapTrade position prices"
     url = queue_url.rstrip("/") + "/eod/quote/list/ASX"
+    headers = {"Accept": "application/json"}
+    akey = os.environ.get("INSIGHT_ACCESS_KEY", "").strip()
+    if akey:
+        headers["X-Insight-Access"] = akey
     try:
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=timeout) as r:
             data = json.loads(r.read().decode("utf-8", "replace"))
         rows = data.get("quotes") or []
@@ -108,7 +118,12 @@ def fetch_closes(queue_url: str, timeout: int = 20) -> tuple[dict, str]:
         if out:
             return out, f"pantry closes for {day or 'latest session'} ({len(out)} tickers)"
         return {}, "pantry answered without rows - using SnapTrade position prices"
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError) as e:
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403) and not akey:
+            return {}, ("pantry is access-locked - add INSIGHT_ACCESS_KEY=<your app access password> "
+                        "to .env to pull real closes; using SnapTrade position prices tonight")
+        return {}, f"pantry unreachable (HTTP {e.code}) - using SnapTrade position prices"
+    except (urllib.error.URLError, OSError, ValueError) as e:
         return {}, f"pantry unreachable ({e.__class__.__name__}) - using SnapTrade position prices"
 
 
