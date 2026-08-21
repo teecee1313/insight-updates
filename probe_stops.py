@@ -99,7 +99,7 @@ except (TypeError, ValueError):
 if stop_px <= 0:
     stop_px = 0.01
 
-print(f"Validating: SELL {max(1, int(min(units, 1)))} {ticker} as a STOP order, stop={stop_px} (impact check only)")
+print(f"Validating: SELL 1 {ticker} as a STOP order, stop={stop_px} (impact check only)")
 try:
     resp = st.trading.get_order_impact(
         user_id=USER_ID, user_secret=USER_SECRET,
@@ -107,7 +107,7 @@ try:
         action="SELL",
         order_type="Stop",
         time_in_force="Day",
-        units=max(1, int(min(units, 1))),
+        units=1.0,  # SDK v11 requires Decimal, not int
         universal_symbol_id=sym_id,
         stop=stop_px,
     )
