@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.20-840-open';
+const APP_VERSION='2026.08.24-841-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -9237,6 +9237,45 @@ function showPortfolio(exSel){
   // shared by both the table rows and the mobile cards below.
   const _fadeMap=new Map();
   try{ (allData||[]).forEach(function(sh){ if(sh&&typeof _evFires==='function'&&_evFires(sh,'streakfade')) _fadeMap.set(sh.ticker+'|'+sh.exchange,true); }); }catch(e){}
+  // v841 — per-share day change everywhere it helps: each holding row/card and
+  // each pending order now carries the share's own latest close-vs-close move.
+  // Same map v808 sums for the key-strip total (hoisted so both use ONE truth);
+  // the v817 date-shape lessons carry over unchanged. Deliberately NOT behind
+  // the Hide-P/L toggle: the share's day is market data, not your profit.
+  const _dcISO=function(v){
+    if(v==null)return null;
+    var t=String(v).trim(); if(!t)return null;
+    var m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m)return m[1]+'-'+m[2]+'-'+m[3];
+    var MO={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+    m=t.match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})$/);
+    if(m&&MO[m[2].toLowerCase()])return m[3]+'-'+MO[m[2].toLowerCase()]+'-'+('0'+m[1]).slice(-2);
+    m=t.match(/^([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s+(\d{4})$/);
+    if(m&&MO[m[1].toLowerCase()])return m[3]+'-'+MO[m[1].toLowerCase()]+'-'+('0'+m[2]).slice(-2);
+    m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+    try{ var d=new Date(t); if(!isNaN(d.getTime()))return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney'}).format(d); }catch(e){}
+    return null;
+  };
+  const _dcMap=new Map();
+  try{
+    (allData||[]).forEach(function(s){
+      if(!s||!s.ticker)return;
+      const chg=(typeof s.chgAbs==='number'&&isFinite(s.chgAbs))?s.chgAbs
+               :((typeof s.chgPct==='number'&&isFinite(s.chgPct)&&s.price>0&&s.chgPct!==-100)?(s.price-(s.price/(1+s.chgPct/100)))
+               :((s.price>0&&s.prevClose>0)?(s.price-s.prevClose):null));
+      const d=_dcISO(s.lastDate)||((Array.isArray(s.series)&&s.series.length)?_dcISO(s.series[s.series.length-1].d):null);
+      _dcMap.set(s.ticker+'|'+(s.exchange||''),{chg:chg,d:d,p:(s.price>0?s.price:null)});
+    });
+  }catch(e){}
+  const _dcChip=function(tk,ex,fs){
+    const m=_dcMap.get(tk+'|'+(ex||'')); if(!m||m.chg==null||!isFinite(m.chg))return '';
+    const prev=(m.p>0)?(m.p-m.chg):null;
+    const pct=(prev&&prev>0)?(m.chg/prev*100):null;
+    const c=m.chg>0.0005?'var(--green)':m.chg<-0.0005?'var(--red)':'var(--muted)';
+    const a=m.chg>0.0005?'\u25b2':m.chg<-0.0005?'\u25bc':'\u2022';
+    const abs=Math.abs(m.chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'');
+    return '<span style="font-family:var(--mono);font-size:'+(fs||9)+'px;font-weight:700;color:'+c+';white-space:nowrap;" title="This share\u2019s move over its latest stored session (close vs the close before) \u2014 the share\u2019s day, not your position\u2019s P/L.">'+a+' '+(m.chg>=0?'+':'\u2212')+'$'+abs+((pct!=null&&isFinite(pct))?' ('+(pct>=0?'+':'')+pct.toFixed(2)+'%)':'')+'</span>';
+  };
   const rows=hold.map(h=>{
     const px=h.lastPrice||h.buyPrice, val=h.qty*px, pl=val-h.invested, plp=h.invested>0?(pl/h.invested)*100:0;
     totInv+=h.invested;totVal+=val;
@@ -9245,7 +9284,7 @@ function showPortfolio(exSel){
       <td style="padding:5px 6px;"><strong><a href="#" onclick="printShareReport('${h.ticker}');return false;" title="Open the printable report for ${h.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${h.ticker} 🖨</a></strong>${(typeof _laChipT==='function'&&_laChipT(h.ticker,h.exchange,'pf'))||''}${h.grouped?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:0 5px;vertical-align:middle;" title="${h.lotCount} separate purchases combined into one line at the average buy price">${h.lotCount} lots · avg</span>`:''}<br><span style="font-size:9px;color:var(--muted)">${h.exchange} · 📅 ${h.grouped?'bought <strong style="color:var(--text)">'+h.buyDate+'</strong>':'bought <strong style="color:var(--text)">'+h.buyDate+'</strong> · held '+tradingDaysHeld(h.buyDate,_todayLocal())+' trading days'}</span>${h.mixedTargets?'<br><span style="font-size:9px;color:var(--dim)">🎯 mixed across lots — set one to unify</span>':h.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(h.target,h.currency)} <span style="color:var(--dim)">(+${(((h.target-h.buyPrice)/h.buyPrice)*100).toFixed(1)}%)</span></span>`:''}${h.mixedStops?'<br><span style="font-size:9px;color:var(--dim)">🛑 mixed across lots — set one to unify</span>':h.stop?`${h.target?' ':'<br>'}<span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(h.stop,h.currency)} <span style="color:var(--dim)">${_stopPctTxt(h.buyPrice,h.stop)}</span>${h.stopManual?' <span style="color:var(--gold);font-weight:700;" title="You set this stop by hand — it overrides your auto-sell rules (the trailing / break-even / time rules won\u2019t change it). Clear the stop to hand this holding back to the rules.">🔒 fixed</span>':''}</span>`:''}${(+h.trail>0)?`<br><span style="font-size:9px;color:var(--green)">🪤 trailing ${h.trail}% <span style="color:var(--dim)">(only this share)</span></span>`:''}${(h.ladderOn===true&&+h.ladStep>0)?`<br><span style="font-size:9px;color:var(--gold)">🪜 ladder ${h.ladStep}% steps <span style="color:var(--dim)">(only this share${(+h.trail>0)?'':' — dormant: needs 🪤 trailing'})</span></span>`:''}${(+h.ladderLock>0)?`<br><span style="font-size:9px;color:var(--gold)" title="🔒 profit ladder — this floor was welded when a close cleared the rung + your margin. It can only ever step UP; a brutal overnight gap still fills at the open.">🔒 +${h.ladderLock}% profit locked</span>`:''}${h.sellOrd?`<br><span style="font-size:9px;color:#ff9caa" title="⏳ a market sell is queued — it fills at the NEXT trading day's open. Your stops/targets are paused for these shares; cancel from ⏳ Pending orders to release them.">⏳ market sell queued — fills at the next open</span>`:''}${_fadeMap.get(h.ticker+'|'+h.exchange)?`<br><span style="font-size:9px;color:var(--orange)" title="📉 A real backtest (250 trading days, ASX) found a 2+ day up-streak predicts a WORSE next-5-day return, not a better one — clearing this app's own SOLID bar. Not a sell order, just an evidence-backed prompt: worth considering taking profit here.">📉 Fading Strength — consider taking profit</span>`:''}${h.note?`<br><span style="font-size:9px;color:#8fa6c9;font-style:italic" title="${String(h.note).replace(/"/g,'&quot;')}">📝 ${String(h.note).slice(0,44)}${h.note.length>44?'…':''}</span>`:''}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${h.qty.toLocaleString()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(h.buyPrice,h.currency)}</td>
-      <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:9px;color:var(--dim)">${h.lastDate||''}</span></td>
+      <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(px,h.currency)}<br><span style="font-size:9px;color:var(--dim)">${h.lastDate||''}</span>${(function(){const _c=_dcChip(h.ticker,h.exchange);return _c?'<br>'+_c:'';})()}</td>
       <td style="text-align:right;padding:5px 6px;font-family:var(--mono);">${fmtP(val,h.currency)}</td>
       <td class="pf-pl" style="text-align:right;padding:5px 6px;font-family:var(--mono);color:${c};">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-size:9px;">${plp>=0?'+':''}${plp.toFixed(2)}%</span></td>
       <td style="text-align:center;padding:4px 6px;white-space:nowrap;"><button onclick="_pfRowMenu('${h.id}',event,'${h.exchange}')" title="Actions — target, stop, trailing stop, note, sell" style="padding:3px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:800;font-size:15px;font-family:var(--sans);cursor:pointer;line-height:1;">⋯</button></td>
@@ -9276,6 +9315,7 @@ function showPortfolio(exSel){
         <div><span>Buy</span> <b>${fmtP(h.buyPrice,h.currency)}</b></div>
         <div><span>Now</span> <b>${fmtP(px,h.currency)}</b></div>
         <div><span>Value</span> <b>${fmtP(val,h.currency)}</b></div>
+        <div><span>Day</span> ${_dcChip(h.ticker,h.exchange,10)||'<b style="color:var(--dim)">\u2014</b>'}</div>
       </div>${fadeNudge}${note}${room}
       <div class="pf-card-actions">
         ${btn('paperSetTarget',h.id,'Set / change auto-sell price target','🎯 Target',`padding:5px;border-radius:5px;border:1px solid ${h.target?'var(--gold)':'var(--border)'};background:${h.target?'rgba(255,210,0,.12)':'var(--bg3)'};color:${h.target?'var(--gold)':'var(--muted)'};font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;`)}
@@ -9309,34 +9349,13 @@ function showPortfolio(exSel){
      zero. Dates are compared as dates now, never as whatever shape they arrive
      in. Anything unparseable returns null and is treated as unknown, not as a
      reason to skip. */
-  const _dcISO=function(v){
-    if(v==null)return null;
-    var t=String(v).trim(); if(!t)return null;
-    var m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m)return m[1]+'-'+m[2]+'-'+m[3];   // already ISO (or ISO timestamp)
-    var MO={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
-    m=t.match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})$/);                        // 18 Aug 2026
-    if(m&&MO[m[2].toLowerCase()])return m[3]+'-'+MO[m[2].toLowerCase()]+'-'+('0'+m[1]).slice(-2);
-    m=t.match(/^([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s+(\d{4})$/);                      // Aug 18, 2026
-    if(m&&MO[m[1].toLowerCase()])return m[3]+'-'+MO[m[1].toLowerCase()]+'-'+('0'+m[2]).slice(-2);
-    m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);                                    // 18/08/2026 (AU order)
-    if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
-    try{ var d=new Date(t); if(!isNaN(d.getTime()))return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney'}).format(d); }catch(e){}
-    return null;
-  };
+  /* v841: _dcISO hoisted above the holdings rows - one definition */
   let _dcSum=0,_dcKnown=0;const _dcDates={};
   try{
-    const _dcMap=new Map();
-    (allData||[]).forEach(function(s){
-      if(!s||!s.ticker)return;
-      // chgAbs is the field these objects actually carry. A finite 0 is a REAL
-      // answer (a share that closed unchanged), not a missing one — so only a
-      // non-numeric chgAbs falls through to the derived alternatives.
-      const chg=(typeof s.chgAbs==='number'&&isFinite(s.chgAbs))?s.chgAbs
-               :((typeof s.chgPct==='number'&&isFinite(s.chgPct)&&s.price>0&&s.chgPct!==-100)?(s.price-(s.price/(1+s.chgPct/100)))
-               :((s.price>0&&s.prevClose>0)?(s.price-s.prevClose):null));
-      const d=_dcISO(s.lastDate)||((Array.isArray(s.series)&&s.series.length)?_dcISO(s.series[s.series.length-1].d):null);   /* v817: as a date, not as a string shape */
-      _dcMap.set(s.ticker+'|'+(s.exchange||''),{chg:chg,d:d});
-    });
+    /* v841: reuses the hoisted _dcMap - the per-row chips and this total can never disagree */
+    (function(){})();
+    0;
+
     hold.forEach(function(h){
       const m=_dcMap.get(h.ticker+'|'+(h.exchange||''));
       if(!m||m.chg==null||!(h.qty>0))return;
@@ -9444,7 +9463,7 @@ ${_undoOn()?`<div class="pf-card-actions">
       const ords=(p.orders||[]).filter(o=>ex==='ALL'||o.exchange===ex);
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
-        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}<div id="met_${o.id}" style="font-size:9.5px;margin-top:3px;line-height:1.4;"></div></div>
+        <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> ${_dcChip(o.ticker,o.exchange)} <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}<div id="met_${o.id}" style="font-size:9.5px;margin-top:3px;line-height:1.4;"></div></div>
         <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperWhyPending('${o.id}')" title="Why has this not filled yet? Shows exactly what the app has seen." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">? why</button>${o.side!=='sell'?`<button onclick="paperEditOrderExits('${o.id}')" title="Set or repair this order's take-profit and stop-loss" style="padding:5px 10px;border-radius:6px;border:1px solid ${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'var(--red)':'var(--border)'};background:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'rgba(226,25,55,.12)':'var(--bg3)'};color:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'#ff9caa':'var(--text)'};font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">◎ exits</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">✕ cancel</button></div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market buys AND sells fill at the next day's open. Reserved cash (buys) returns — and queued shares (sells) unlock — on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;

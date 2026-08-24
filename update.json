@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.20-840-open",
+  "version": "2026.08.24-841-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🧹 The last dead pathway is gone. Devices that saved a data key years ago were silently trying the retired provider one share at a time — which could stall signal preparation for the whole market. The legacy key is now cleaned up automatically and every request goes through your own server only. Signal prep runs straight through.",
-  "date": "2026-08-20"
+  "notes": "\ud83d\udcc8 Each holding now shows its own day move \u2014 the share\u2019s latest close-vs-close change in dollars and percent, on the desktop table and the phone cards. Pending orders carry the same figure beside the ticker, so you can see how a share moved while your order waits. The watchlist already had it (the Change column next to Price). One source of truth: the per-share figures and the portfolio\u2019s day-change total come from the same calculation and can never disagree.",
+  "date": "2026-08-24"
 }
