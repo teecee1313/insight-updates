@@ -1,6 +1,6 @@
 {
   "version": "2026.08.25-843-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83e\uddf9 Small-parcel review. Your own statement showed brokerage eating half of one account\u2019s realised profit \u2014 driven by parcels bought before the \\,000 minimum existed, each paying the same flat fee as a \\,000 one. The portfolio now flags those pre-floor parcels with their true fee drag (\\ round trip = 0.6\u20131.2% of a small parcel before the share moves) and gives you a per-line choice: Sell frees the cash for properly-sized entries, Keep records your decision and stops the nagging. Nothing sells by itself. Honest-minimum parcels a few cents under \\,000 are never flagged.",
+  "notes": "\ud83e\uddf9 Small-parcel review. Your own statement showed brokerage eating half of one account\u2019s realised profit \u2014 driven by parcels bought before the $2,000 minimum existed, each paying the same flat fee as a $5,000 one. The portfolio now flags those pre-floor parcels with their true fee drag ($6 round trip = 0.6\u20131.2% of a small parcel before the share moves) and gives you a per-line choice: Sell frees the cash for properly-sized entries, Keep records your decision and stops the nagging. Nothing sells by itself. Honest-minimum parcels a few cents under $2,000 are never flagged.",
   "date": "2026-08-25"
 }
