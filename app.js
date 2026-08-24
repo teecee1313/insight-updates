@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.25-842-open';
+const APP_VERSION='2026.08.25-843-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -8313,6 +8313,60 @@ function _pfSellFromModal(id,qty,instant){
   if(instant) _executeMarketSellNow(_fs,p,lots,qty);
   else _queueMarketSell(_fs,p,lots,qty);
 }
+// ── v843: RELIC CLEAN-UP ─────────────────────────────────────────────────────
+// The 25 Aug statements showed brokerage eating 49% of one account's realised
+// profit — driven by sub-$2,000 parcels bought BEFORE the w534 minimum-parcel
+// floor existed. Each pays the same flat fee as a $5,000 parcel, so fees are
+// 0.6–1.2% before the share moves. This tool LISTS them with their true fee
+// drag and lets Tony decide keep/sell per line — it never sells anything
+// itself. Threshold $1,900, matching the worker's w536 heal: an honest
+// minimum-sized parcel floors a few cents under $2,000 and must never nag.
+const _RELIC_MAX=1900;
+function _relicScan(p,ex){
+  try{
+    return (p.holdings||[]).filter(function(l){
+      if(!l||l.relicKeep||l.sellOrd)return false;
+      if(ex&&ex!=='ALL'&&l.exchange!==ex)return false;
+      var inv=(l.invested!=null?l.invested:(l.qty||0)*(l.buyPrice||0));
+      return inv>0&&inv<_RELIC_MAX;
+    });
+  }catch(e){return [];}
+}
+function _relicReview(){
+  const {p,ex}=_paperFiltered();
+  const relics=_relicScan(p,ex);
+  window._modalLabel='🧹 Small-parcel review'; window._modalType='relics';
+  if(!relics.length){ showModal('<div style="font-size:12px;color:var(--muted);padding:14px;text-align:center;">Nothing left to review — every remaining holding meets the $2,000 minimum or you\u2019ve chosen to keep it. 🎉</div>','🧹 Small-parcel review'); return; }
+  const fee=brokerageFee();
+  let totInv=0,totFees=0;
+  const rows=relics.map(function(l){
+    var inv=(l.invested!=null?l.invested:(l.qty||0)*(l.buyPrice||0));
+    var px=l.lastPrice||l.buyPrice, val=(l.qty||0)*px, pl=val-inv;
+    var rt=((l.buyFee||fee)||0)+fee;                       // fees this parcel pays round-trip
+    var drag=inv>0?(rt/inv*100):0;
+    totInv+=inv; totFees+=rt;
+    var c=pl>0.005?'var(--green)':pl<-0.005?'var(--red)':'var(--muted)';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border2);border-radius:7px;margin-bottom:6px;background:var(--bg3);flex-wrap:wrap;">'
+      +'<div style="flex:1;min-width:150px;"><strong style="color:var(--text);font-size:12px;">'+l.ticker+'</strong> <span style="font-size:9px;color:var(--muted)">'+(l.exchange||'')+' \u00b7 bought '+(l.buyDate||'?')+'</span>'
+      +'<br><span style="font-size:10px;color:var(--muted);">'+(l.qty||0).toLocaleString()+' sh \u00b7 parcel '+fmtP(inv,l.currency)+' \u00b7 now '+fmtP(val,l.currency)+' \u00b7 <span style="color:'+c+';font-weight:700;">'+(pl>=0?'+':'')+pl.toFixed(2)+'</span></span>'
+      +'<br><span style="font-size:10px;color:var(--orange);font-weight:700;" title="Brokerage this parcel pays over its life: the buy fee already paid plus the sell fee to come. On a parcel this small that is a material handicap before the share moves at all.">\ud83d\udcb8 fees '+rt.toFixed(2)+' = '+drag.toFixed(1)+'% of the parcel</span></div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button onclick="paperSellMarket(\''+l.id+'\')" style="padding:6px 12px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\ud83d\udcb5 Sell\u2026</button>'
+      +'<button onclick="_relicKeep(\''+l.id+'\')" title="Keep this parcel and stop flagging it — your call, on the record." style="padding:6px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">\u270b Keep</button>'
+      +'</div></div>';
+  }).join('');
+  showModal('<div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px;">\ud83e\uddf9 '+relics.length+' parcel'+(relics.length>1?'s':'')+' under the $2,000 minimum</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">Bought before the minimum-parcel rule existed. Together: '+fmtP(totInv,'')+' invested, paying \u2248'+totFees.toFixed(2)+' in round-trip brokerage \u2014 the flat fee doesn\u2019t care how small the parcel is. Selling frees the cash for properly-sized entries; keeping is fine too if you believe in the share \u2014 \u270b Keep records the decision and stops the nagging. Nothing here sells anything by itself.</div>'
+    +rows
+    +'<div style="font-size:9px;color:var(--dim);margin-top:8px;">Threshold $'+_RELIC_MAX.toLocaleString()+' \u2014 a few cents under $2,000 is honest minimum-parcel flooring, never flagged. Fee figures use your configured brokerage ('+fee.toFixed(2)+'/side'+(fee?'':' \u2014 currently 0, so drag shows the recorded buy fee only')+').</div>'
+    ,'\ud83e\uddf9 Small-parcel review');
+}
+function _relicKeep(id){
+  const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;
+  _lotsFor(_fs.p,id).forEach(function(l){l.relicKeep=1;});
+  _paperSave(_fs.p,_fs.acct,_fs.exch);
+  _relicReview();
+}
 function paperSellMarket(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
   const lots=_lotsFor(p,id);
@@ -9490,6 +9544,13 @@ ${_undoOn()?`<div class="pf-card-actions">
       <button onclick="_setPfView('diary')" id="pfTab_diary" style="flex:1;min-width:110px;padding:8px;border-radius:7px;border:1px solid ${pv==='diary'?'var(--gold)':'var(--border)'};background:${pv==='diary'?'rgba(255,210,0,.14)':'var(--bg3)'};color:${pv==='diary'?'var(--gold)':'var(--muted)'};font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">🗓 Weekly</button>
     </div>
     <div id="pfHoldingsView" style="display:${pv==='holdings'?'block':'none'};">
+    ${(function(){ /* v843: relic banner — only when pre-floor small parcels exist */
+      try{ const r=_relicScan(p,ex); if(!r.length)return '';
+        const fee=brokerageFee(); const rt=r.reduce((a,l)=>a+(((l.buyFee||fee)||0)+fee),0);
+        return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--orange);background:rgba(255,145,66,.08);border-radius:8px;padding:7px 11px;margin-bottom:8px;">'
+          +'<span style="font-size:11px;color:var(--orange);font-weight:700;">\ud83e\uddf9 '+r.length+' small parcel'+(r.length>1?'s':'')+' from before the $2,000 minimum \u2014 \u2248'+rt.toFixed(2)+' of round-trip brokerage on parcels that small.</span>'
+          +'<button onclick="_relicReview()" style="margin-left:auto;padding:5px 12px;border-radius:6px;border:1px solid var(--orange);background:rgba(255,145,66,.14);color:var(--orange);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">Review</button></div>';
+      }catch(e){return '';} })()}
     ${hold.length?_pfSortControl:''}
     <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Current holdings${ex==='ALL'?'':' · '+ex} (${hold.length})</div>
     ${hold.length?`<div class="pf-tablewrap" style="max-height:46vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
