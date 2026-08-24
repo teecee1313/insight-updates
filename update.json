@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.24-841-open",
+  "version": "2026.08.25-842-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udcc8 Each holding now shows its own day move \u2014 the share\u2019s latest close-vs-close change in dollars and percent, on the desktop table and the phone cards. Pending orders carry the same figure beside the ticker, so you can see how a share moved while your order waits. The watchlist already had it (the Change column next to Price). One source of truth: the per-share figures and the portfolio\u2019s day-change total come from the same calculation and can never disagree.",
-  "date": "2026-08-24"
+  "notes": "\ud83d\udda8 The portfolio now prints like a real statement. Both print buttons produce it: an account summary up top (value, cash, reserved, open P/L, day change, fees paid, starting balance, total return), holdings with each share\u2019s day move, exit plan and note, pending orders with their reserved cash and expiry, then the 12-month trade history \u2014 landscape, page-break aware, no app buttons on paper. Previously the top print button copied the interactive cards, buttons and all, and the statement skipped the account summary and pending orders entirely.",
+  "date": "2026-08-25"
 }

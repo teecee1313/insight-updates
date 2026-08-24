@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.24-841-open';
+const APP_VERSION='2026.08.25-842-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -8628,54 +8628,101 @@ function savePortfolioToWatch(){
 
 // Printable branded portfolio report (holdings + value history + trades).
 function printPortfolio(){
-  const {ex,hold,hist,vh}=_paperFiltered();
-  if(!hold.length&&!hist.length){alert('Nothing to print yet — make a paper trade first.');return;}
+  // v842 — prints like a STATEMENT (Tony, 25 Aug): account summary up top
+  // (value, cash, reserved, open P/L, day change, fees, starting balance,
+  // total return), holdings WITH each share's day move and its exit plan,
+  // pending orders, then the 12-month trade history. Reads the same account
+  // object the panel reads, so the two can never disagree.
+  const {p,ex,hold,hist,vh}=_paperFiltered();
+  if(!hold.length&&!hist.length&&!(p.orders||[]).length){alert('Nothing to print yet — make a paper trade first.');return;}
   const when=new Date().toLocaleString('en-AU');
-  let totInv=0,totVal=0;
+  // per-share day change — chgAbs first, the v841/v817 rules
+  const dc=new Map();
+  try{(allData||[]).forEach(function(x){ if(!x||!x.ticker)return;
+    const chg=(typeof x.chgAbs==='number'&&isFinite(x.chgAbs))?x.chgAbs
+             :((typeof x.chgPct==='number'&&isFinite(x.chgPct)&&x.price>0&&x.chgPct!==-100)?(x.price-(x.price/(1+x.chgPct/100)))
+             :((x.price>0&&x.prevClose>0)?(x.price-x.prevClose):null));
+    dc.set(x.ticker+'|'+(x.exchange||''),{chg:chg,p:(x.price>0?x.price:null)});});}catch(e){}
+  const dcCell=function(tk,exch){ const m=dc.get(tk+'|'+(exch||'')); if(!m||m.chg==null||!isFinite(m.chg))return '<td class="r" style="color:#999">—</td>';
+    const prev=(m.p>0)?(m.p-m.chg):null, pct=(prev&&prev>0)?(m.chg/prev*100):null;
+    const c=m.chg>0.0005?'#0a0':m.chg<-0.0005?'#c00':'#666';
+    return '<td class="r" style="color:'+c+';font-weight:700;">'+(m.chg>=0?'+':'\u2212')+'$'+Math.abs(m.chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'')+((pct!=null&&isFinite(pct))?'<br><span style="font-weight:400;font-size:9px;">('+(pct>=0?'+':'')+pct.toFixed(2)+'%)</span>':'')+'</td>'; };
+  let totInv=0,totVal=0,dcSum=0,dcKnown=0;
   const holdRows=hold.map(h=>{
     const px=h.lastPrice||h.buyPrice,val=h.qty*px,pl=val-h.invested,plp=h.invested>0?(pl/h.invested)*100:0;
     totInv+=h.invested;totVal+=val;
+    const m=dc.get(h.ticker+'|'+(h.exchange||'')); if(m&&m.chg!=null&&isFinite(m.chg)&&h.qty>0){dcSum+=h.qty*m.chg;dcKnown++;}
     const c=pl>=0?'#0a0':'#c00';
-    return `<tr><td><strong>${h.ticker}</strong> <span style="color:#888;font-size:9px">${h.exchange}</span></td><td>${h.name||''}</td>
+    const exits=[h.target?('\ud83c\udfaf '+fmtP(h.target,h.currency)):'',h.stop?('\ud83d\uded1 '+fmtP(h.stop,h.currency)+(h.stopManual?' \ud83d\udd12':'')):'',(+h.trail>0)?('\ud83e\udea4 '+h.trail+'%'):'',(h.ladderOn===true&&+h.ladStep>0)?('\ud83e\ude9c '+h.ladStep+'%'):'',(+h.ladderLock>0)?('\ud83d\udd12 +'+h.ladderLock+'%'):''].filter(Boolean).join('<br>')||'<span style="color:#999">—</span>';
+    return `<tr><td><strong>${h.ticker}</strong> <span style="color:#888;font-size:9px">${h.exchange}</span>${h.grouped?' <span style="color:#888;font-size:9px">('+h.lotCount+' lots avg)</span>':''}</td><td>${h.name||''}</td>
       <td class="r">${h.buyDate}</td><td class="r">${h.qty.toLocaleString()}</td>
-      <td class="r">${fmtP(h.buyPrice,h.currency)}</td><td class="r">${fmtP(px,h.currency)}</td>
-      <td class="r">${fmtP(val,h.currency)}</td><td class="r" style="color:${c};font-weight:700;">${pl>=0?'+':''}${pl.toFixed(2)} (${plp>=0?'+':''}${plp.toFixed(2)}%)</td></tr>`;
+      <td class="r">${fmtP(h.buyPrice,h.currency)}</td><td class="r">${fmtP(px,h.currency)}</td>${dcCell(h.ticker,h.exchange)}
+      <td class="r">${fmtP(val,h.currency)}</td><td class="r" style="color:${c};font-weight:700;">${pl>=0?'+':''}${pl.toFixed(2)}<br><span style="font-weight:400;font-size:9px;">(${plp>=0?'+':''}${plp.toFixed(2)}%)</span></td>
+      <td style="font-size:9.5px;line-height:1.6;">${exits}</td>${h.note?'<td style="font-size:9px;color:#555;font-style:italic;">'+String(h.note).replace(/</g,'&lt;').slice(0,60)+'</td>':'<td style="color:#999;font-size:9px;">—</td>'}</tr>`;
   }).join('');
   const totPl=totVal-totInv;
+  const ords=(p.orders||[]);
+  const reserved=ords.reduce((a,o)=>a+(o.reserved||0),0);
+  const acctVal=(p.cash||0)+reserved+totVal;
+  const startCap=_startCap(p);
+  const totRet=startCap>0?(((acctVal+(p.wdProfit||0))-startCap)/startCap*100):null;
+  const ordRows=ords.map(o=>{
+    const kind=o.side==='sell'?('MARKET SELL '+(o.qty||0).toLocaleString()+' at next open'):(o.market?('market buy ~'+fmtP(o.amount||o.reserved,o.currency)+' at next open'):('limit buy '+(o.qty||0).toLocaleString()+' @ '+fmtP(o.limit,o.currency)));
+    const exits=[o.target?('\ud83c\udfaf '+fmtP(o.target,o.currency)):'',o.stop?('\ud83d\uded1 '+fmtP(o.stop,o.currency)):''].filter(Boolean).join(' · ')||'—';
+    return `<tr><td><strong>${o.ticker}</strong> <span style="color:#888;font-size:9px">${o.exchange||''}</span></td><td>${kind}</td>${dcCell(o.ticker,o.exchange)}<td class="r">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</td><td class="r">${o.expiry||'—'}</td><td style="font-size:9.5px;">${exits}</td></tr>`;
+  }).join('');
   const histRows=hist.map(t=>{
     const c=t.plAbs>=0?'#0a0':'#c00';
-    return `<tr><td><strong>${t.ticker}</strong>${t.auto?' <span style="font-size:9px;color:#C9A100">🎯 auto</span>':''}${t.partial?' <span style="font-size:9px;color:#888">(partial)</span>':''}</td>
-      <td class="r">${t.buyDate} → ${t.sellDate} (${tradingDaysHeld(t.buyDate,t.sellDate)} trading days)</td><td class="r">${t.qty.toLocaleString()}</td>
-      <td class="r">${fmtP(t.buyPrice,t.currency)} → ${fmtP(t.sellPrice,t.currency)}</td>
+    return `<tr><td><strong>${t.ticker}</strong>${t.auto?' <span style="font-size:9px;color:#C9A100">\ud83c\udfaf auto</span>':''}${t.partial?' <span style="font-size:9px;color:#888">(partial)</span>':''}</td>
+      <td class="r">${t.buyDate} \u2192 ${t.sellDate} (${tradingDaysHeld(t.buyDate,t.sellDate)} trading days)</td><td class="r">${t.qty.toLocaleString()}</td>
+      <td class="r">${fmtP(t.buyPrice,t.currency)} \u2192 ${fmtP(t.sellPrice,t.currency)}</td>
       <td class="r" style="color:${c};font-weight:700;">${t.plAbs>=0?'+':''}${t.plAbs.toFixed(2)} (${t.plPct>=0?'+':''}${t.plPct.toFixed(2)}%)</td></tr>`;
   }).join('');
   const closedPl=hist.reduce((a,t)=>a+(t.plAbs||0),0);
-  const vhLine=vh.length>=2?`Portfolio value tracked ${vh.length} days: ${vh[0].val.toFixed(2)} (${vh[0].d}) → ${vh[vh.length-1].val.toFixed(2)} (${vh[vh.length-1].d}), change ${(vh[vh.length-1].val-vh[0].val>=0?'+':'')+(vh[vh.length-1].val-vh[0].val).toFixed(2)}.`:'';
+  const vhLine=vh.length>=2?`Portfolio value tracked ${vh.length} days: ${vh[0].val.toFixed(2)} (${vh[0].d}) \u2192 ${vh[vh.length-1].val.toFixed(2)} (${vh[vh.length-1].d}), change ${(vh[vh.length-1].val-vh[0].val>=0?'+':'')+(vh[vh.length-1].val-vh[0].val).toFixed(2)}.`:'';
+  const money=x=>'$'+Number(x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const kv=(l,v,c)=>`<div style="min-width:118px;"><div style="font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.5px;">${l}</div><div style="font-family:'Courier New',monospace;font-weight:800;font-size:14px;${c?('color:'+c+';'):''}">${v}</div></div>`;
+  const pc=x=>x>0.005?'#0a0':x<-0.005?'#c00':'#444';
+  const summary=`<div style="display:flex;gap:20px;flex-wrap:wrap;border:1px solid #ddd;border-radius:8px;background:#fafafa;padding:10px 14px;margin:10px 0 4px;">
+    ${kv('Account value',money(acctVal))}
+    ${kv('Cash',money(p.cash||0))}
+    ${reserved>0.005?kv('Reserved (orders)',money(reserved)):''}
+    ${kv('Holdings value',money(totVal))}
+    ${kv('Open P/L',(totPl>=0?'+':'')+totPl.toFixed(2),pc(totPl))}
+    ${dcKnown?kv('Day change',(dcSum>=0?'+':'\u2212')+'$'+Math.abs(dcSum).toFixed(2),pc(dcSum)):''}
+    ${kv('Closed P/L (12 mo)',(closedPl>=0?'+':'')+closedPl.toFixed(2),pc(closedPl))}
+    ${(p.feesPaid>0)?kv('Fees paid',money(p.feesPaid)):''}
+    ${kv('Starting balance',money(startCap))}
+    ${(totRet!=null&&isFinite(totRet))?kv('Total return',(totRet>=0?'+':'')+totRet.toFixed(2)+'%'+((p.wdProfit>0)?' *':''),pc(totRet)):''}
+  </div>${(p.wdProfit>0)?'<div style="font-size:9px;color:#777;margin:0 0 6px;">* includes '+money(p.wdProfit)+' of profit previously withdrawn from the account.</div>':''}`;
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="224" fill="%230d1b33"/><rect x="150" y="618" width="125" height="174" rx="19" fill="%23FFD200"/><rect x="300" y="232" width="125" height="560" rx="19" fill="%23FFD200"/><rect x="449" y="338" width="125" height="454" rx="19" fill="%23FFD200"/><rect x="599" y="499" width="125" height="293" rx="19" fill="%23FFD200"/><rect x="749" y="338" width="125" height="454" rx="19" fill="%23FFD200"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="%23FFD200"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="%23E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="%23FFD200"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="%23E21937" text-anchor="middle">N</text></svg>">
-<meta name="copyright" content="© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293"><title>Paper Trading Portfolio — Insight Trading</title>
+<meta name="copyright" content="\u00a9 2026 Insight Trading\u2122. All rights reserved. \u00b7 ABN 49 691 811 293"><title>Paper Trading Statement \u2014 Insight Trading</title>
   <style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;}h1{font-size:18px;margin:0 0 2px;}h2{font-size:13px;margin:16px 0 6px;color:#002B5C;}
-  .sub{color:#666;font-size:12px;margin-bottom:12px;}table{border-collapse:collapse;width:100%;font-size:11px;}
+  .sub{color:#666;font-size:12px;margin-bottom:6px;}table{border-collapse:collapse;width:100%;font-size:11px;}
   th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top;}th{background:#f0f0f0;}td.r{text-align:right;font-family:'Courier New',monospace;}
-  tr:nth-child(even){background:#fafafa;}.note{background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;font-size:10px;color:#7a5c00;margin:12px 0;}
-  @media print{button{display:none;}}</style></head><body>
+  tr:nth-child(even){background:#fafafa;}.note{background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;font-size:10px;color:#7a5c00;margin:10px 0;}
+  h2{page-break-after:avoid;}table{page-break-inside:auto;}tr{page-break-inside:avoid;}
+  @media print{button{display:none;}@page{size:landscape;margin:11mm;}}</style></head><body>
   <div style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#002B5C;">
-    <svg viewBox="0 0 1024 1024" width="20" height="20" xmlns="http://www.w3.org/2000/svg" ><rect x="150" y="618" width="125" height="174" rx="19" fill="#C9A100"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#C9A100"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#C9A100"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#C9A100"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#C9A100"/><polygon points="652,156 675.52,188.48 708,212 675.52,235.52 652,268 628.48,235.52 596,212 628.48,188.48" fill="#C9A100"/><text x="652" y="226" font-family="Arial,sans-serif" font-weight="800" font-size="39" fill="#E21937" text-anchor="middle">P</text><polygon points="806,94 832.04,129.96 868,156 832.04,182.04 806,218 779.96,182.04 744,156 779.96,129.96" fill="#C9A100"/><text x="806" y="170" font-family="Arial,sans-serif" font-weight="800" font-size="43" fill="#E21937" text-anchor="middle">N</text></svg>
+    <svg viewBox="0 0 1024 1024" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect x="150" y="618" width="125" height="174" rx="19" fill="#C9A100"/><rect x="300" y="232" width="125" height="560" rx="19" fill="#C9A100"/><rect x="449" y="338" width="125" height="454" rx="19" fill="#C9A100"/><rect x="599" y="499" width="125" height="293" rx="19" fill="#C9A100"/><rect x="749" y="338" width="125" height="454" rx="19" fill="#C9A100"/></svg>
     Insight <span style="color:#C9A100">Trading</span></div>
-  <h1>Paper Trading Portfolio</h1>
-  <div class="sub">${ex==='ALL'?'All exchanges':ex} · generated ${when}</div>
-  <div class="note"><strong>Practice tool, not real trading and not financial advice.</strong> All fills are simulated at end-of-day closes and ignore brokerage, spread and slippage. Real results would differ.</div>
-  <button onclick="window.print()" style="margin-bottom:14px;padding:8px 16px;font-size:13px;cursor:pointer;">🖨 Print / Save as PDF</button>
+  <h1>Paper Trading Statement</h1>
+  <div class="sub">${ex==='ALL'?'All exchanges (currencies mixed in totals)':ex} \u00b7 generated ${when}</div>
+  ${summary}
+  <div class="note"><strong>Practice tool, not real trading and not financial advice.</strong> All fills are simulated at end-of-day prices. Day change is each share\u2019s latest close vs the close before.</div>
+  <button onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;font-size:13px;cursor:pointer;">\ud83d\udda8 Print / Save as PDF</button>
   <h2>Current holdings (${hold.length})</h2>
-  ${hold.length?`<table><thead><tr><th>Ticker</th><th>Name</th><th>Bought</th><th>Qty</th><th>Buy</th><th>Now</th><th>Value</th><th>P/L</th></tr></thead><tbody>${holdRows}</tbody></table>
-  <p style="font-size:11px;"><strong>Invested:</strong> ${totInv.toFixed(2)} · <strong>Value:</strong> ${totVal.toFixed(2)} · <strong>Open P/L:</strong> <span style="color:${totPl>=0?'#0a0':'#c00'};font-weight:700;">${totPl>=0?'+':''}${totPl.toFixed(2)}</span></p>`:'<p style="font-size:11px;color:#666;">None.</p>'}
+  ${hold.length?`<table><thead><tr><th>Ticker</th><th>Name</th><th>Bought</th><th>Qty</th><th>Buy</th><th>Now</th><th>Day</th><th>Value</th><th>P/L</th><th>Exit plan</th><th>Note</th></tr></thead><tbody>${holdRows}</tbody></table>
+  <p style="font-size:11px;"><strong>Invested:</strong> ${totInv.toFixed(2)} \u00b7 <strong>Value:</strong> ${totVal.toFixed(2)} \u00b7 <strong>Open P/L:</strong> <span style="color:${totPl>=0?'#0a0':'#c00'};font-weight:700;">${totPl>=0?'+':''}${totPl.toFixed(2)}</span></p>`:'<p style="font-size:11px;color:#666;">None.</p>'}
+  <h2>Pending orders (${ords.length})</h2>
+  ${ords.length?`<table><thead><tr><th>Ticker</th><th>Order</th><th>Day</th><th>Cash / shares</th><th>Expires</th><th>Exits</th></tr></thead><tbody>${ordRows}</tbody></table>`:'<p style="font-size:11px;color:#666;">None.</p>'}
   ${vhLine?`<p style="font-size:10px;color:#555;">${vhLine}</p>`:''}
-  <h2>Trade history · last 12 months (${hist.length})</h2>
-  ${hist.length?`<table><thead><tr><th>Ticker</th><th>Held</th><th>Qty</th><th>Buy → Sell</th><th>P/L</th></tr></thead><tbody>${histRows}</tbody></table>
+  <h2>Trade history \u00b7 last 12 months (${hist.length})</h2>
+  ${hist.length?`<table><thead><tr><th>Ticker</th><th>Held</th><th>Qty</th><th>Buy \u2192 Sell</th><th>P/L</th></tr></thead><tbody>${histRows}</tbody></table>
   <p style="font-size:11px;"><strong>Closed P/L (12 mo):</strong> <span style="color:${closedPl>=0?'#0a0':'#c00'};font-weight:700;">${closedPl>=0?'+':''}${closedPl.toFixed(2)}</span></p>`:'<p style="font-size:11px;color:#666;">No closed trades yet.</p>'}
-  <p style="color:#888;font-size:10px;margin-top:16px;">Totals mix currencies if holdings span exchanges. Generated by Insight Trading — research & practice tool, not advice.<br>© 2026 Insight Trading™. All rights reserved. · ABN 49 691 811 293</p>
-  </html>`;
-  _openPrintable(html, '💼 Portfolio report');
+  <p style="color:#888;font-size:10px;margin-top:16px;">Totals mix currencies if holdings span exchanges. Generated by Insight Trading \u2014 research &amp; practice tool, not advice.<br>\u00a9 2026 Insight Trading\u2122. All rights reserved. \u00b7 ABN 49 691 811 293</p>
+  </body></html>`;
+  _openPrintable(html, '\ud83d\udcbc Portfolio statement');
 }
 // CSV export: holdings, trade history and daily value history in one file.
 function exportPortfolioCSV(){
@@ -9428,6 +9475,7 @@ ${_undoOn()?`<div class="pf-card-actions">
   const pv=window._pfView||'holdings';       // v263: which portfolio page is showing
   window._modalBig=true;                    // portfolio opens large by default
   window._modalLabel='💼 Portfolio (paper trading)';
+  window._modalType='portfolio';  /* v842: the titlebar print routes to the statement */
   showModal(`
     <div style="font-weight:700;font-size:15px;color:var(--text);"><span onclick="_pfVaultTap()" style="cursor:default;user-select:none;">💼 Paper Trading Portfolio</span>${window._pfUnlock?` <span style="font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 5px;" title="Maintenance tools visible — undo and delete buttons are shown. They lock again when you close the portfolio.">🔓 maintenance</span>`:``} <span style="font-size:9px;font-weight:600;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin-left:4px;">${APP_VERSION}</span></div>
     <div style="font-size:9px;color:var(--orange);margin:4px 0 10px;">Simulated trades at end-of-day closes · practice only, not real money, not advice. Prices update each time the day's data loads.</div>
@@ -10235,6 +10283,9 @@ window.addEventListener('afterprint',function(){ try{document.body.classList.rem
 function _modalPrint(){
   try{
     if(window._modalType==='top20'){ if(typeof printTop10==='function')printTop10(); return; }
+    /* v842: the portfolio prints as a STATEMENT — the generic path copied the
+       interactive cards, action buttons and all (Tony's screenshot, 25 Aug). */
+    if(window._modalType==='portfolio'){ if(typeof printPortfolio==='function'){printPortfolio(); return;} }
     _genericModalPrint();
   }catch(e){ try{ alert('Could not open the printable version: '+e.message); }catch(_){} }
 }
