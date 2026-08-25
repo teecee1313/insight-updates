@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.26-847-open';
+const APP_VERSION='2026.08.26-848-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -139,7 +139,7 @@ async function downloadVersion(v){
 // ═══════════════════════════════════
 const I18N={
   en:{
-    tagline:"Multi-Exchange Screener",
+    tagline:"ASX End-of-Day Screener",
     setup:"Setup", apiKey:"EODData API Key", keyLocked:"🔒 locked", keyEditable:"🔓 editable",
     unlockEdit:"🔓 Unlock to edit key", lockEdit:"🔒 Lock key editing",
     exchange:"Exchange", loadData:"⚡ Load Exchange Data", loadPrompt:"Select exchange and press Load",
@@ -436,7 +436,7 @@ const I18N={
     estimate:"stima"
   },
   fil:{
-    tagline:"Multi-Exchange na Screener",
+    tagline:"ASX End-of-Day na Screener",
     setup:"Setup", apiKey:"EODData API Key", keyLocked:"🔒 naka-lock", keyEditable:"🔓 mae-edit",
     unlockEdit:"🔓 I-unlock para i-edit", lockEdit:"🔒 I-lock ang pag-edit",
     exchange:"Palitan", loadData:"⚡ I-load ang Datos ng Palitan", loadPrompt:"Pumili ng palitan at pindutin ang Load",
