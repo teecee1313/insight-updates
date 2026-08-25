@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.25-843-open';
+const APP_VERSION='2026.08.25-844-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -6597,6 +6597,19 @@ window._apSrvConsume=function(){
     .then(function(res){ clearTimeout(t); return (res&&res.ok)?res.json():null; })
     .then(function(j){
       window._apSrvBusy=false; window._apSrvDone=true;
+      // v844 — the ghost-window lesson (25 Aug: 5 candidates decided at 6:25pm,
+      // bot latched 'nothing' at 5pm and slept). 'No rows' is ambiguous: it can
+      // mean 'decided nothing' OR 'not decided YET'. The response has carried
+      // the lane's run stamp since w510 — use it: while the server's last run
+      // is for an OLDER day than this one, keep asking every 5 minutes until
+      // tonight's decisions actually exist. The moment they do, they're placed.
+      try{
+        var _lrd=(j&&j.lastRun&&j.lastRun.day)?String(j.lastRun.day):null;
+        if(_lrd!==null){
+          if(_lrd<String(dd)){ window._apSrvRetryAt=Date.now()+5*60*1000; window._apSrvWaitingSrv=true; }
+          else { window._apSrvRetryAt=0; window._apSrvWaitingSrv=false; }
+        }
+      }catch(e){}
       if(!j||j.ok!==true||!Array.isArray(j.rows))return;
       const seen=_apSrvSeen(); const seenSet=new Set(seen);
       const candAll=j.rows.filter(function(x){ return x&&x.status==='suggested'&&String(x.exch||'').toUpperCase()===ex&&x.ticker&&(+x.limit_price>0)&&(Math.floor(+x.qty)>0)&&x.first_seen_day&&String(x.first_seen_day)<=String(dd); });
@@ -6671,7 +6684,7 @@ window._apSrvConsume=function(){
     if(_el){ var _st=(typeof _apStatus==='function')?_apStatus():null; var _tx='';
       if(_st){
         if(_st.state==='preparing'){ _tx='\ud83e\udd16 bot: '+(_st.why||'signals still preparing')+' \u2014 it runs the moment they\'re ready'; }
-        else if(_st.state==='ran'){ _tx='\ud83e\udd16 bot: done for '+(_st.dd||'today')+' \u2014 runs again when new data loads (nothing to press)'; }
+        else if(_st.state==='ran'){ _tx='\ud83e\udd16 bot: done for '+(_st.dd||'today')+' \u2014 runs again when new data loads (nothing to press)'; if(window._apSrvWaitingSrv){ _tx='\ud83e\udd16 bot: the server hasn\u2019t decided today\u2019s picks yet \u2014 checking again every few minutes; any decisions will be placed the moment they exist'; } }
         else if(_st.state==='waiting'){ _tx='\ud83e\udd16 bot: '+(_st.why||'waiting'); }
         else if(_st.state==='armed'){ _tx='\ud83e\udd16 bot: armed \u2014 scanning within seconds'; }
       }
@@ -6692,7 +6705,8 @@ window._apSrvConsume=function(){
     var _ct=document.getElementById('radarPrepCt'); if(_ct&&_collapse)_ct.textContent=_p2.toLocaleString()+' of '+_u2.toLocaleString()+' shares';
   }catch(_re){}
   var dd=''; try{ dd=_pfMktDate(currentExch); }catch(e){}
-  if(window._apSrvFetchedFor!==dd){ window._apSrvFetchedFor=dd; window._apSrvDone=false; _apSrvConsume(); return; }
+  if(window._apSrvFetchedFor!==dd){ window._apSrvFetchedFor=dd; window._apSrvDone=false; window._apSrvRetryAt=0; _apSrvConsume(); return; }
+  if(window._apSrvRetryAt&&Date.now()>=window._apSrvRetryAt){ window._apSrvRetryAt=0; window._apSrvDone=false; _apSrvConsume(); return; }  /* v844 */
   if(!window._apSrvDone)return;
   _autoPilotRun(false);
 }catch(e){} },11000); })();

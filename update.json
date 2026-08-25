@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.25-843-open",
+  "version": "2026.08.25-844-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83e\uddf9 Small-parcel review. Your own statement showed brokerage eating half of one account\u2019s realised profit \u2014 driven by parcels bought before the $2,000 minimum existed, each paying the same flat fee as a $5,000 one. The portfolio now flags those pre-floor parcels with their true fee drag ($6 round trip = 0.6\u20131.2% of a small parcel before the share moves) and gives you a per-line choice: Sell frees the cash for properly-sized entries, Keep records your decision and stops the nagging. Nothing sells by itself. Honest-minimum parcels a few cents under $2,000 are never flagged.",
+  "notes": "\ud83e\udd16 The bot no longer sleeps through late server decisions. The server\u2019s pick lanes decide after the full market data lands and grades \u2014 but the bot asked only once per day, so if it asked before the lanes had run it heard \u201cnothing\u201d and clocked off, missing decisions made later that evening. It now reads the lane\u2019s run stamp in the reply: while the server hasn\u2019t decided TODAY yet, the bot keeps checking every few minutes and places the decisions the moment they exist \u2014 and the main screen says exactly that instead of \u201cdone for today\u201d. Decisions a closed app misses are still placed as dated orders on the next open, filling honestly from their decision day, as always.",
   "date": "2026-08-25"
 }
