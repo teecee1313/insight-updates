@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.26-848-open';
+const APP_VERSION='2026.08.26-849-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -9280,8 +9280,10 @@ function _pfRowMenu(id,ev,hex){
     const m0=document.createElement('div');
     m0.id='pfRowMenu';
     m0.style.cssText='position:fixed;z-index:100000;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.55);overflow:hidden;min-width:210px;';
-    m0.innerHTML='<div style="padding:10px 14px;font-size:10.5px;color:var(--muted);line-height:1.5;max-width:230px;">This share lives in your <b style="color:var(--text)">'+hex+'</b> account. Load '+hex+' to manage or sell it.</div>'+
-      '<button onclick="_pfCloseMenu();try{var s=document.getElementById(\'exchSel\');if(s){s.value=\''+hex+'\';onExchChange();}}catch(e){}" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--gold);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">🌐 Switch to '+hex+' now</button>';
+    /* v849: the app loads only the ASX now (v846) - the old switch button set a
+       picker value that no longer exists and silently did nothing. A retired-market
+       holding gets the honest truth instead of a dead button. */
+    m0.innerHTML='<div style="padding:10px 14px;font-size:10.5px;color:var(--muted);line-height:1.5;max-width:240px;">This share is from your <b style="color:var(--text)">'+hex+'</b> practice account \u2014 a market this app no longer loads. Its record stays in your history; prices for it no longer update and there is nothing to manage here.</div>';
     document.body.appendChild(m0);
     try{ const r=m0.getBoundingClientRect(); const x=ev?ev.clientX:80, y=ev?ev.clientY:80;
       m0.style.left=Math.max(6,Math.min(x, window.innerWidth-r.width-8))+'px';

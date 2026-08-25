@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.26-848-open",
+  "version": "2026.08.26-849-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83c\udde6\ud83c\uddfa Says what it is. The app\u2019s title and header badge still read \u201cMulti-Exchange Screener\u201d \u2014 a promise from an earlier design. Insight Trading is an ASX end-of-day screener, built and proven on a decade of ASX history, and the branding now says exactly that. Other markets return only when they\u2019ve earned their own evidence.",
+  "notes": "\ud83e\uddfe Retired markets, honest portfolio. If a practice account still holds a share from a market the app no longer loads, its row menu used to offer \u201cSwitch to that exchange now\u201d \u2014 a button that quietly did nothing since the picker went ASX-only. It now tells the truth instead: the market is retired, the record stays in your history, prices no longer update, nothing to press. Plus one orphaned styling rule for the old NYSE badge removed.",
   "date": "2026-08-26"
 }
