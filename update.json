@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.25-844-open",
+  "version": "2026.08.25-845-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83e\udd16 The bot no longer sleeps through late server decisions. The server\u2019s pick lanes decide after the full market data lands and grades \u2014 but the bot asked only once per day, so if it asked before the lanes had run it heard \u201cnothing\u201d and clocked off, missing decisions made later that evening. It now reads the lane\u2019s run stamp in the reply: while the server hasn\u2019t decided TODAY yet, the bot keeps checking every few minutes and places the decisions the moment they exist \u2014 and the main screen says exactly that instead of \u201cdone for today\u201d. Decisions a closed app misses are still placed as dated orders on the next open, filling honestly from their decision day, as always.",
+  "notes": "\ud83d\udcb0 The bot now tells you when money, not the market, is the reason. \u201cScanned and bought nothing \u2014 nothing met your rules\u201d and \u201cfound decisions but couldn\u2019t pay for them\u201d are different truths, and the banner used to collapse both into the first. Now, when decisions exist but free practice cash is reserved by pending orders \u2014 or the position cap is full \u2014 the banner and the main-screen bot line both say so, name the reason, count the waiting decisions, and confirm they place themselves as orders fill or expire. Discipline still gets called discipline; an empty wallet gets called an empty wallet.",
   "date": "2026-08-25"
 }

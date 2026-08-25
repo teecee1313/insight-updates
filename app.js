@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.25-844-open';
+const APP_VERSION='2026.08.25-845-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -5439,7 +5439,27 @@ function _apStatus(){
     if(dd&&lr===dd){
       const e=log.find(x=>x&&x.d===dd)||last;
       const nb=(e&&Array.isArray(e.buys))?e.buys.length:0;
-      return {state:'ran', dd:dd, buys:nb, last:e};
+      // v845 — Tony, 25 Aug: the banner said 'nothing met your rules' while the
+      // truth was 'found decisions but couldn\u2019t pay for them' ($0.04 free,
+      // $35.5k reserved). Different truths, different sentences. Count every
+      // will-retry skip across today\u2019s diary entries (deduped by ticker) and
+      // say WHY: cash, position cap, or both.
+      let blocked=0, bCash=false, bSlots=false;
+      try{
+        const bt={};
+        log.forEach(function(en){
+          if(!en||en.d!==dd||!Array.isArray(en.skips))return;
+          en.skips.forEach(function(sk){
+            sk=String(sk||'');
+            if(!/will retry/.test(sk))return;
+            var tk=sk.split(':')[0].trim(); if(!tk||bt[tk])return; bt[tk]=1;
+            if(/practice cash/.test(sk))bCash=true;
+            if(/open positions/.test(sk))bSlots=true;
+          });
+        });
+        blocked=Object.keys(bt).length;
+      }catch(e2){}
+      return {state:'ran', dd:dd, buys:nb, blocked:blocked, bCash:bCash, bSlots:bSlots, last:e};
     }
     if(!Array.isArray(allData)||!allData.length) return {state:'waiting', why:'no market data is loaded yet', dd:dd, lastRun:lr, last:last};
     if(window._bulkRunning) return {state:'waiting', why:'a full data download is running — it scans right after', dd:dd, lastRun:lr, last:last};
@@ -5530,7 +5550,11 @@ function _apStatusBanner(){
     let bg,bd,icon,head;
     if(s.state==='ran'){
       bg='rgba(63,185,80,.09)'; bd='var(--green)'; icon='✅';
-      head='<b>Ran today ('+esc(String(s.dd||''))+') ✓</b> — it '+(s.buys>0?('bought <b>'+s.buys+'</b> share'+(s.buys>1?'s':'')):'scanned and bought nothing (nothing met your rules — that is discipline, not a fault)')+'. It runs itself again when tomorrow\'s data loads. <b>Nothing to press.</b>';
+      var _why=(s.bCash&&s.bSlots)?'out of practice cash and at the position cap':(s.bCash?'not enough free practice cash — it is reserved by pending orders':'at your maximum open positions');
+      head='<b>Ran today ('+esc(String(s.dd||''))+') ✓</b> — it '
+        +(s.buys>0?('bought <b>'+s.buys+'</b> share'+(s.buys>1?'s':'')):(s.blocked>0?'bought nothing':'scanned and bought nothing (nothing met your rules — that is discipline, not a fault)'))
+        +(s.blocked>0?(' — but <b style="color:var(--gold)">'+s.blocked+' decision'+(s.blocked>1?'s are':' is')+' waiting</b>: '+_why+'. '+(s.bCash?'They place themselves as pending orders fill or expire and cash frees.':'They place themselves when a slot frees.')):'')
+        +'. It runs itself again when tomorrow\'s data loads. <b>Nothing to press.</b>';
     } else if(s.state==='off'){
       bg='var(--bg4)'; bd='var(--border2)'; icon='🤖';
       head='<b>Auto-pilot is off</b> — '+esc(String(s.why||''))+'.';
@@ -6684,7 +6708,7 @@ window._apSrvConsume=function(){
     if(_el){ var _st=(typeof _apStatus==='function')?_apStatus():null; var _tx='';
       if(_st){
         if(_st.state==='preparing'){ _tx='\ud83e\udd16 bot: '+(_st.why||'signals still preparing')+' \u2014 it runs the moment they\'re ready'; }
-        else if(_st.state==='ran'){ _tx='\ud83e\udd16 bot: done for '+(_st.dd||'today')+' \u2014 runs again when new data loads (nothing to press)'; if(window._apSrvWaitingSrv){ _tx='\ud83e\udd16 bot: the server hasn\u2019t decided today\u2019s picks yet \u2014 checking again every few minutes; any decisions will be placed the moment they exist'; } }
+        else if(_st.state==='ran'){ _tx='\ud83e\udd16 bot: done for '+(_st.dd||'today')+' \u2014 runs again when new data loads (nothing to press)'; if(_st.blocked>0){ _tx='\ud83e\udd16 bot: '+_st.blocked+' decision'+(_st.blocked>1?'s':'')+' waiting \u2014 '+(_st.bCash?'practice cash is fully reserved by pending orders; they place themselves as cash frees':'at the position cap; they place themselves when a slot frees'); } if(window._apSrvWaitingSrv){ _tx='\ud83e\udd16 bot: the server hasn\u2019t decided today\u2019s picks yet \u2014 checking again every few minutes; any decisions will be placed the moment they exist'; } }
         else if(_st.state==='waiting'){ _tx='\ud83e\udd16 bot: '+(_st.why||'waiting'); }
         else if(_st.state==='armed'){ _tx='\ud83e\udd16 bot: armed \u2014 scanning within seconds'; }
       }
