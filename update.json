@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.25-846-open",
+  "version": "2026.08.26-847-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83c\udf0f One market, honestly. The exchange picker offered 19 other markets that were all dead ends \u2014 no server data behind them, no grading, no evidence \u2014 and choosing one just led to empty screens. The picker now offers exactly what the platform actually delivers: the ASX, where every number was measured on a decade of real history. Other markets come back when they have earned their own evidence, not before.",
-  "date": "2026-08-25"
+  "notes": "\ud83c\udf93 The study content caught up with the platform. The quiz and the lookalike tooltip still said evidence was graded on \u201c~3 years\u201d of history \u2014 the pantry has held up to a decade since the rebuild, so the claims now match the data. Three leftover citations of retired numbered lessons were removed (the deck they pointed at no longer exists \u2014 the explanations stand on their own). Everything else audited clean: all 24 flashcards, the tier definitions, the PN Edge scale, the methodology page and the one-tap presets are current.",
+  "date": "2026-08-26"
 }
