@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.25-845-open",
+  "version": "2026.08.25-846-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udcb0 The bot now tells you when money, not the market, is the reason. \u201cScanned and bought nothing \u2014 nothing met your rules\u201d and \u201cfound decisions but couldn\u2019t pay for them\u201d are different truths, and the banner used to collapse both into the first. Now, when decisions exist but free practice cash is reserved by pending orders \u2014 or the position cap is full \u2014 the banner and the main-screen bot line both say so, name the reason, count the waiting decisions, and confirm they place themselves as orders fill or expire. Discipline still gets called discipline; an empty wallet gets called an empty wallet.",
+  "notes": "\ud83c\udf0f One market, honestly. The exchange picker offered 19 other markets that were all dead ends \u2014 no server data behind them, no grading, no evidence \u2014 and choosing one just led to empty screens. The picker now offers exactly what the platform actually delivers: the ASX, where every number was measured on a decade of real history. Other markets come back when they have earned their own evidence, not before.",
   "date": "2026-08-25"
 }

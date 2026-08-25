@@ -912,38 +912,13 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     </div>
     <div class="field">
       <label data-i18n="exchange">Exchange</label>
-      <select id="exchSel" onchange="onExchChange()">
-        <optgroup label="Asia Pacific">
-          <option value="ASX">🇦🇺 ASX — Australian Securities Exchange</option>
-          <option value="NSE">🇮🇳 NSE — National Stock Exchange India</option>
-          <option value="SGX">🇸🇬 SGX — Singapore Exchange</option>
-          <option value="SHG">🇨🇳 SHG — Shanghai Exchange</option>
-          <option value="SHE">🇨🇳 SHE — Shenzhen Exchange</option>
-        </optgroup>
-        <optgroup label="North America">
-          <option value="NYSE">🇺🇸 NYSE — New York Stock Exchange</option>
-          <option value="NASDAQ">🇺🇸 NASDAQ</option>
-          <option value="AMEX">🇺🇸 AMEX — American Stock Exchange</option>
-          <option value="OTCBB">🇺🇸 OTCBB — OTC Bulletin Board</option>
-          <option value="USMF">🇺🇸 USMF — US Mutual Funds</option>
-          <option value="TSX">🇨🇦 TSX — Toronto Stock Exchange</option>
-          <option value="TSXV">🇨🇦 TSXV — TSX Venture Exchange</option>
-        </optgroup>
-        <optgroup label="Europe">
-          <option value="LSE">🇬🇧 LSE — London Stock Exchange</option>
-          <option value="FRA">🇩🇪 FRA — Frankfurt Exchange</option>
-          <option value="AMS">🇳🇱 AMS — Amsterdam (Euronext)</option>
-          <option value="PAR">🇫🇷 PAR — Paris (Euronext)</option>
-          <option value="BRU">🇧🇪 BRU — Brussels (Euronext)</option>
-          <option value="OSL">🇳🇴 OSL — Oslo (Euronext)</option>
-          <option value="MSE">🇪🇸 MSE — Madrid Stock Exchange</option>
-        </optgroup>
-        <optgroup label="Other">
-          <option value="FOREX">💱 FOREX — Foreign Exchange</option>
-          <option value="CC">₿ CC — Crypto Currencies</option>
-          <option value="INDEX">📊 INDEX — Global Indices</option>
-        </optgroup>
+      <select id="exchSel" onchange="onExchChange()" title="Insight Trading is built and proven on the ASX — every number in it was measured on a decade of ASX history. Other markets return only when they have earned their own evidence.">
+        <option value="ASX">🇦🇺 ASX — Australian Securities Exchange</option>
       </select>
+      <!-- v846: the 19 other exchanges were removed from this picker — every one was a
+           dead end (no server data, no grading, no evidence) and selecting one only
+           poked retired code paths. The full list lives in git history; a market
+           returns here only WITH its own nightly ingest, close chain and backtest. -->
     </div>
     <div style="font-size:10.5px;color:var(--muted);background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.25);border-radius:7px;padding:7px 9px;margin:8px 0 2px;line-height:1.5;">💡 <strong>Normal day = just press ⚡.</strong> Today's prices come from the internet, history comes instantly from this device, and anything missing is fetched once and saved automatically. ⬇ Download all is only for the FIRST setup (or a full rebuild). 📂 is for when you have no internet.</div>
     <div class="step-sub2" style="margin-top:10px;">🌐 FROM THE INTERNET — the latest end-of-day prices <span style="text-transform:none;font-weight:500;">(from your server)</span></div>
@@ -1766,7 +1741,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.08.25-845-open"></script>
+<script src="app.js?v=2026.08.25-846-open"></script>
 
 
 
