@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.30-852-open",
+  "version": "2026.08.30-853-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udcdc Starter\u2019s market table now scrolls \u2014 all fifty rows reachable. The main column clips its children by design (scrolling normally lives inside the full table, which Starter hides), so the new table is now its own scroll area. Also ensured it steps aside completely when you switch to Advanced.",
+  "notes": "\ud83c\udff7 The Starter table\u2019s edge column now carries the product\u2019s own name: PN Edge (extra per $100). Same measured number, now wearing its badge \u2014 with the full plain-English story on hover.",
   "date": "2026-08-30"
 }

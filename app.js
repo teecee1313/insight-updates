@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-852-open';
+const APP_VERSION='2026.08.30-853-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3688,7 +3688,7 @@ function _starterMarket(){
       +'<th style="padding:4px 6px;text-align:right;" title="Pattern score out of 10 \u2014 how many of today\u2019s studied patterns line up on this share.">Score</th>'
       +'<th style="padding:4px 6px;" title="The evidence badge. SOLID = this share\u2019s firing pattern made money consistently across up to a decade of history and passed the luck test, including in earlier years. PROMISING = positive so far, still earning its stripes.">Evidence</th>'
       +'<th style="padding:4px 6px;" title="The last five days of company news. \ud83d\udcf0 = confirmed ASX announcements (from the official feed) \u2014 the number is how many. \ud83d\udd07 quiet = no announcements: any move is happening WITHOUT a news reason, which is exactly where quiet accumulation hides. Where the feed hasn\u2019t confirmed this share yet, the flag is an estimate from price and volume.">News (5d)</th>'
-      +'<th style="padding:4px 6px;text-align:right;" title="PN Edge \u2014 measured, not predicted: the extra dollars per $100 this share\u2019s strongest proven pattern has historically made in the days after firing, beyond the market, before costs.">Extra per $100</th></tr></thead><tbody>';
+      +'<th style="padding:4px 6px;text-align:right;" title="PN Edge \u2014 our measured edge, the number this product is named for. Not a prediction: the extra dollars per $100 this share\u2019s strongest proven pattern has historically made in the days after firing, beyond the market, before costs. +$2.41 means every $100 on this pattern came out $2.41 ahead of the market on average, across up to a decade of replays.">PN Edge <span style="font-weight:400;text-transform:none;letter-spacing:0;">(extra per $100)</span></th></tr></thead><tbody>';
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
       var chg=(typeof r.chgAbs==='number'&&isFinite(r.chgAbs))?r.chgAbs:((typeof r.chgPct==='number'&&isFinite(r.chgPct)&&r.price>0&&r.chgPct!==-100)?(r.price-(r.price/(1+r.chgPct/100))):null);
