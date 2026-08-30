@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.30-850-open",
+  "version": "2026.08.30-851-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83c\udfc6 Starter now shows the market \u2014 because the graded market IS the product. Since v711 the Starter view hid the share table entirely to protect beginners from thirty columns of jargon, leaving a big empty space that could read as broken. The space now carries the fifty strongest shares of the day \u2014 proven evidence first, then score \u2014 in six plain-language columns: price, the day\u2019s move, score, the evidence badge, and the measured extra-dollars-per-$100. Every column explains itself on hover, every row opens the share\u2019s full story, and the complete table with every column is one tap away in Advanced, unchanged.",
+  "notes": "\ud83d\udcf0 Starter\u2019s market table gains a News (5d) column. \ud83d\udcf0 \u00d7N means N confirmed ASX announcements in the last five days, straight from the official feed. \ud83d\udd07 quiet means none \u2014 any move is happening WITHOUT a news reason, which is exactly where quiet accumulation hides. Where the feed hasn\u2019t confirmed a share yet, the flag falls back to an honest price-and-volume estimate and says so on hover.",
   "date": "2026-08-30"
 }

@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-850-open';
+const APP_VERSION='2026.08.30-851-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3680,6 +3680,7 @@ function _starterMarket(){
       +'<th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
       +'<th style="padding:4px 6px;text-align:right;" title="Pattern score out of 10 \u2014 how many of today\u2019s studied patterns line up on this share.">Score</th>'
       +'<th style="padding:4px 6px;" title="The evidence badge. SOLID = this share\u2019s firing pattern made money consistently across up to a decade of history and passed the luck test, including in earlier years. PROMISING = positive so far, still earning its stripes.">Evidence</th>'
+      +'<th style="padding:4px 6px;" title="The last five days of company news. \ud83d\udcf0 = confirmed ASX announcements (from the official feed) \u2014 the number is how many. \ud83d\udd07 quiet = no announcements: any move is happening WITHOUT a news reason, which is exactly where quiet accumulation hides. Where the feed hasn\u2019t confirmed this share yet, the flag is an estimate from price and volume.">News (5d)</th>'
       +'<th style="padding:4px 6px;text-align:right;" title="PN Edge \u2014 measured, not predicted: the extra dollars per $100 this share\u2019s strongest proven pattern has historically made in the days after firing, beyond the market, before costs.">Extra per $100</th></tr></thead><tbody>';
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
@@ -3696,6 +3697,17 @@ function _starterMarket(){
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cc+';">'+(chg==null?'\u2014':((chg>=0?'+':'\u2212')+'$'+Math.abs(chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'')+(pct!=null?' <span style="font-weight:400;font-size:10px;">('+(pct>=0?'+':'')+pct.toFixed(1)+'%)</span>':'')))+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;">'+(r.score!=null?r.score:'\u2014')+'</td>'
         +'<td style="padding:6px;">'+tier+'</td>'
+        +(function(){
+          var t='',cl='var(--dim)';
+          if(r.annConfirmed){
+            var n=(r.annNews5d||0);
+            if(n>0){ t='\ud83d\udcf0 \u00d7'+n; cl='var(--blue)'; }
+            else { t='\ud83d\udd07 quiet'; cl='var(--muted)'; }
+          } else if(r.newsFlag==='likely'){ t='\ud83d\udcf0 likely'; cl='var(--blue)'; }
+          else if(r.newsFlag==='quiet'){ t='\ud83d\udd07 quiet'; cl='var(--muted)'; }
+          else { t='\u2014'; }
+          return '<td style="padding:6px;font-size:10.5px;font-weight:600;color:'+cl+';white-space:nowrap;">'+t+'</td>';
+        })()
         +'<td style="padding:6px;text-align:right;">'+edge+'</td></tr>';
     }
     out+='</tbody></table>';
