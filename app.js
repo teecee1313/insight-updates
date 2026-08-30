@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-853-open';
+const APP_VERSION='2026.08.30-854-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3671,6 +3671,13 @@ function _starterMarket(){
        "doesn't scroll past CAM"). */
     host.style.cssText='padding:6px 14px 26px;flex:1 1 auto;min-height:0;overflow-y:auto;display:block;';
     if(!Array.isArray(allData)||!allData.length){ host.innerHTML=''; return; }
+    host.innerHTML=_strongestTableHTML(50,true);
+  }catch(e){}
+}
+// v854: ONE builder for the strongest-of-today table - Starter's home view and
+// the Advanced "\ud83c\udfc6 Strongest Today" report render the same component, so the
+// two can never drift apart. `starterHeader` adds the Starter-specific intro.
+function _strongestTableHTML(limit,starterHeader){
     var rows=allData.slice();
     var tR={'SOLID':2,'PROMISING':1};
     rows.sort(function(a,b){
@@ -3678,10 +3685,12 @@ function _starterMarket(){
       var ea=(a._evEdge!=null&&isFinite(a._evEdge))?a._evEdge:-9e9, eb=(b._evEdge!=null&&isFinite(b._evEdge))?b._evEdge:-9e9; if(eb!==ea)return eb-ea;
       return (b.score||0)-(a.score||0);
     });
-    rows=rows.slice(0,50);
-    var out='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
-      +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 the 50 strongest of '+allData.length.toLocaleString()+'</span>'
-      +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
+    rows=rows.slice(0,limit||50);
+    var out=(starterHeader
+      ? '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
+        +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 the '+(limit||50)+' strongest of '+allData.length.toLocaleString()+'</span>'
+        +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
+      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">The '+(limit||50)+' strongest of '+allData.length.toLocaleString()+' \u2014 proven evidence first, then measured PN Edge, then score. Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
       +'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
       +'<thead><tr style="color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;text-align:left;">'
       +'<th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
@@ -3718,7 +3727,14 @@ function _starterMarket(){
         +'<td style="padding:6px;text-align:right;">'+edge+'</td></tr>';
     }
     out+='</tbody></table>';
-    host.innerHTML=out;
+    return out;
+}
+// v854: the same component as an Advanced report (Tony: "one of the strongest we have now")
+function strongestTodayReport(){
+  try{
+    if(!Array.isArray(allData)||!allData.length){ alert('Load the market first \u2014 tap \u26a1 Load.'); return; }
+    window._modalLabel='\ud83c\udfc6 Strongest Today'; window._modalType='strongest';
+    showModal(_strongestTableHTML(50,false),'\ud83c\udfc6 Strongest Today');
   }catch(e){}
 }
 function renderRows(rows){
@@ -19529,7 +19545,7 @@ function _groupScans(){
     const zone=document.getElementById('scanDragZone'); if(!zone)return;
     const GROUPS=[
       {id:'sgStart',title:'⭐ Start your day',hint:'the four-tap routine',ids:['scan-pulse','scan-top20','scan-bestev','scan-picks'],pinned:true},
-      {id:'sgGrade',title:'🎓 Graded evidence',hint:'reports with a track record',ids:['scan-fade','scan-climbers','scan-gradecheck']},
+      {id:'sgGrade',title:'🎓 Graded evidence',hint:'reports with a track record',ids:['scan-strongest','scan-fade','scan-climbers','scan-gradecheck']},
       {id:'sgAct',title:'🔎 Today’s action',hint:'what stood out this session',ids:['scan-sharp','scan-unusual','scan-surge','scan-gap']},
       {id:'sgBuild',title:'🌱 Building quietly',hint:'patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
       {id:'sgComp',title:'🧩 Composite',hint:'every signal at once',ids:['scan-allsig']}
