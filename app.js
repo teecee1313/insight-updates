@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-851-open';
+const APP_VERSION='2026.08.30-852-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3654,15 +3654,22 @@ function _showFastRows(){ window._rowCap=1000; try{ (typeof applyF==='function'?
 // report. Advanced remains the full instrument, one tap away.
 function _starterMarket(){
   try{
-    if(!document.body.classList.contains('simple-mode'))return;
     var host=document.getElementById('starterMarket');
+    if(!document.body.classList.contains('simple-mode')){
+      if(host)host.style.display='none';   /* v852: never shadow Advanced's real table */
+      return;
+    }
     if(!host){
       var tw=document.getElementById('tblwrap');
       if(!tw||!tw.parentNode)return;
       host=document.createElement('div'); host.id='starterMarket';
-      host.style.cssText='padding:6px 14px 26px;';
       tw.parentNode.insertBefore(host,tw);
     }
+    /* v852: the main column is overflow:hidden by design (scrolling lives INSIDE
+       the table wrapper, which Starter hides) - so this host must be its own
+       scroll container or everything below the fold is unreachable (Tony:
+       "doesn't scroll past CAM"). */
+    host.style.cssText='padding:6px 14px 26px;flex:1 1 auto;min-height:0;overflow-y:auto;display:block;';
     if(!Array.isArray(allData)||!allData.length){ host.innerHTML=''; return; }
     var rows=allData.slice();
     var tR={'SOLID':2,'PROMISING':1};

@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.30-851-open",
+  "version": "2026.08.30-852-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udcf0 Starter\u2019s market table gains a News (5d) column. \ud83d\udcf0 \u00d7N means N confirmed ASX announcements in the last five days, straight from the official feed. \ud83d\udd07 quiet means none \u2014 any move is happening WITHOUT a news reason, which is exactly where quiet accumulation hides. Where the feed hasn\u2019t confirmed a share yet, the flag falls back to an honest price-and-volume estimate and says so on hover.",
+  "notes": "\ud83d\udcdc Starter\u2019s market table now scrolls \u2014 all fifty rows reachable. The main column clips its children by design (scrolling normally lives inside the full table, which Starter hides), so the new table is now its own scroll area. Also ensured it steps aside completely when you switch to Advanced.",
   "date": "2026-08-30"
 }
