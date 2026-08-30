@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.30-854-open",
+  "version": "2026.08.30-855-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83c\udfc6 Strongest Today comes to Advanced. The evidence-first ranking Starter opens with \u2014 fifty shares, proven evidence first, then measured PN Edge, then score, with each share\u2019s day move and confirmed-news count \u2014 is now an Advanced report too, in the \ud83c\udf93 Graded evidence group. Both views render the identical component, so they can never drift apart. A ranking of today\u2019s evidence, not a buy list.",
+  "notes": "\ud83d\udd22 The Strongest Today table now shows each share\u2019s /10 score (it was reading an empty field \u2014 the score lives where the radar\u2019s SCORE 7+ tile counts it). Scores of 7+ show in gold. Both the Starter view and the Advanced report get it, since they share one component.",
   "date": "2026-08-30"
 }

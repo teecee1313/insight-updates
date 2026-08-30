@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-854-open';
+const APP_VERSION='2026.08.30-855-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3683,7 +3683,7 @@ function _strongestTableHTML(limit,starterHeader){
     rows.sort(function(a,b){
       var ta=tR[a._evTier]||0, tb=tR[b._evTier]||0; if(tb!==ta)return tb-ta;
       var ea=(a._evEdge!=null&&isFinite(a._evEdge))?a._evEdge:-9e9, eb=(b._evEdge!=null&&isFinite(b._evEdge))?b._evEdge:-9e9; if(eb!==ea)return eb-ea;
-      return (b.score||0)-(a.score||0);
+      return ((b.watchScore!=null?b.watchScore:b.score)||0)-((a.watchScore!=null?a.watchScore:a.score)||0);  /* v855: the /10 score lives in watchScore */
     });
     rows=rows.slice(0,limit||50);
     var out=(starterHeader
@@ -3711,7 +3711,7 @@ function _strongestTableHTML(limit,starterHeader){
         +'<td style="padding:6px;"><strong style="color:var(--text);">'+r.ticker+'</strong>'+(r.name?' <span style="font-size:10px;color:var(--muted);">'+String(r.name).slice(0,26)+'</span>':'')+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);">'+fmtP(r.price,r.currency)+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cc+';">'+(chg==null?'\u2014':((chg>=0?'+':'\u2212')+'$'+Math.abs(chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'')+(pct!=null?' <span style="font-weight:400;font-size:10px;">('+(pct>=0?'+':'')+pct.toFixed(1)+'%)</span>':'')))+'</td>'
-        +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;">'+(r.score!=null?r.score:'\u2014')+'</td>'
+        +(function(){var sc=(r.watchScore!=null?r.watchScore:r.score);return '<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;'+(sc!=null&&sc>=7?'color:var(--gold);':'')+'">'+(sc!=null?sc:'\u2014')+'</td>';})()
         +'<td style="padding:6px;">'+tier+'</td>'
         +(function(){
           var t='',cl='var(--dim)';
