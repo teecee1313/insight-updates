@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.26-849-open",
+  "version": "2026.08.30-850-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83e\uddfe Retired markets, honest portfolio. If a practice account still holds a share from a market the app no longer loads, its row menu used to offer \u201cSwitch to that exchange now\u201d \u2014 a button that quietly did nothing since the picker went ASX-only. It now tells the truth instead: the market is retired, the record stays in your history, prices no longer update, nothing to press. Plus one orphaned styling rule for the old NYSE badge removed.",
-  "date": "2026-08-26"
+  "notes": "\ud83c\udfc6 Starter now shows the market \u2014 because the graded market IS the product. Since v711 the Starter view hid the share table entirely to protect beginners from thirty columns of jargon, leaving a big empty space that could read as broken. The space now carries the fifty strongest shares of the day \u2014 proven evidence first, then score \u2014 in six plain-language columns: price, the day\u2019s move, score, the evidence badge, and the measured extra-dollars-per-$100. Every column explains itself on hover, every row opens the share\u2019s full story, and the complete table with every column is one tap away in Advanced, unchanged.",
+  "date": "2026-08-30"
 }

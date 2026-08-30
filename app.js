@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.26-849-open';
+const APP_VERSION='2026.08.30-850-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3644,6 +3644,64 @@ function _showFastRows(){ window._rowCap=1000; try{ (typeof applyF==='function'?
 
 // Build table rows from any array of stock objects (used by both the main
 // filtered view and the filter-independent watchlist view).
+// ── v850: STARTER SHOWS THE PRODUCT ─────────────────────────────────────────
+// Tony, 30 Aug: "doesn't make sense to hide this - it's what the product is
+// about." He is right. v711 hid the full table from Starter to protect
+// beginners from 30 columns of jargon - but the graded market IS the product,
+// and hiding it left a giant white void that reads as broken (it fooled the
+// founder on camera). Starter now shows the market as a GENTLE table: top 50
+// by evidence-then-score, six plain-language columns, each row opens the share's
+// report. Advanced remains the full instrument, one tap away.
+function _starterMarket(){
+  try{
+    if(!document.body.classList.contains('simple-mode'))return;
+    var host=document.getElementById('starterMarket');
+    if(!host){
+      var tw=document.getElementById('tblwrap');
+      if(!tw||!tw.parentNode)return;
+      host=document.createElement('div'); host.id='starterMarket';
+      host.style.cssText='padding:6px 14px 26px;';
+      tw.parentNode.insertBefore(host,tw);
+    }
+    if(!Array.isArray(allData)||!allData.length){ host.innerHTML=''; return; }
+    var rows=allData.slice();
+    var tR={'SOLID':2,'PROMISING':1};
+    rows.sort(function(a,b){
+      var ta=tR[a._evTier]||0, tb=tR[b._evTier]||0; if(tb!==ta)return tb-ta;
+      var ea=(a._evEdge!=null&&isFinite(a._evEdge))?a._evEdge:-9e9, eb=(b._evEdge!=null&&isFinite(b._evEdge))?b._evEdge:-9e9; if(eb!==ea)return eb-ea;
+      return (b.score||0)-(a.score||0);
+    });
+    rows=rows.slice(0,50);
+    var out='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
+      +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 the 50 strongest of '+allData.length.toLocaleString()+'</span>'
+      +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+      +'<thead><tr style="color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;text-align:left;">'
+      +'<th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
+      +'<th style="padding:4px 6px;text-align:right;" title="Pattern score out of 10 \u2014 how many of today\u2019s studied patterns line up on this share.">Score</th>'
+      +'<th style="padding:4px 6px;" title="The evidence badge. SOLID = this share\u2019s firing pattern made money consistently across up to a decade of history and passed the luck test, including in earlier years. PROMISING = positive so far, still earning its stripes.">Evidence</th>'
+      +'<th style="padding:4px 6px;text-align:right;" title="PN Edge \u2014 measured, not predicted: the extra dollars per $100 this share\u2019s strongest proven pattern has historically made in the days after firing, beyond the market, before costs.">Extra per $100</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];
+      var chg=(typeof r.chgAbs==='number'&&isFinite(r.chgAbs))?r.chgAbs:((typeof r.chgPct==='number'&&isFinite(r.chgPct)&&r.price>0&&r.chgPct!==-100)?(r.price-(r.price/(1+r.chgPct/100))):null);
+      var pct=(chg!=null&&r.price>0&&(r.price-chg)>0)?(chg/(r.price-chg)*100):null;
+      var cc=chg==null?'var(--muted)':chg>0.0005?'var(--green)':chg<-0.0005?'var(--red)':'var(--muted)';
+      var tier=r._evTier==='SOLID'?'<span style="font-size:9px;font-weight:800;color:var(--green);border:1px solid var(--green);border-radius:8px;padding:1px 7px;">SOLID</span>'
+        :r._evTier==='PROMISING'?'<span style="font-size:9px;font-weight:800;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:1px 7px;">PROMISING</span>'
+        :'<span style="font-size:9px;color:var(--dim);">\u2014</span>';
+      var edge=(r._evTier&&r._evEdge!=null&&isFinite(r._evEdge))?('<span style="font-family:var(--mono);font-weight:700;color:'+(r._evEdge>0?'var(--green)':'var(--red)')+';">'+(r._evEdge>0?'+':'')+'$'+(+r._evEdge).toFixed(2)+'</span>'):'<span style="color:var(--dim);">\u2014</span>';
+      out+='<tr onclick="try{showShareDetail(\''+String(r.ticker).replace(/'/g,'')+'\')}catch(e){}" style="cursor:pointer;border-top:1px solid var(--border2);">'
+        +'<td style="padding:6px;"><strong style="color:var(--text);">'+r.ticker+'</strong>'+(r.name?' <span style="font-size:10px;color:var(--muted);">'+String(r.name).slice(0,26)+'</span>':'')+'</td>'
+        +'<td style="padding:6px;text-align:right;font-family:var(--mono);">'+fmtP(r.price,r.currency)+'</td>'
+        +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cc+';">'+(chg==null?'\u2014':((chg>=0?'+':'\u2212')+'$'+Math.abs(chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'')+(pct!=null?' <span style="font-weight:400;font-size:10px;">('+(pct>=0?'+':'')+pct.toFixed(1)+'%)</span>':'')))+'</td>'
+        +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;">'+(r.score!=null?r.score:'\u2014')+'</td>'
+        +'<td style="padding:6px;">'+tier+'</td>'
+        +'<td style="padding:6px;text-align:right;">'+edge+'</td></tr>';
+    }
+    out+='</tbody></table>';
+    host.innerHTML=out;
+  }catch(e){}
+}
 function renderRows(rows){
   const tbody=document.getElementById('tbody');
   // Build the ENTIRE table body as one HTML string and inject it in a single
@@ -17725,6 +17783,7 @@ function setAppMode(mode){
   const simple = mode==='simple';
   document.body.classList.toggle('simple-mode', simple);
   try{ if(simple&&typeof _todayRender==='function')_todayRender(); }catch(_){}
+  try{ if(simple)_starterMarket(); }catch(_){}  /* v850: Starter shows the product */
   const sb=document.getElementById('modeSimpleBtn'), ab=document.getElementById('modeAdvBtn');
   if(sb)sb.classList.toggle('on',simple);
   if(ab)ab.classList.toggle('on',!simple);
@@ -19199,6 +19258,7 @@ function setAutoLoad(on){
     el.style.display='none';
   }catch(_){} }
   setInterval(_radarPrepTick, 2500);
+  setInterval(function(){ try{_starterMarket();}catch(_){} }, 2500);  /* v850: keeps the Starter market live as prep fills in */
   async function _wakeLoad(why){
     try{
       if(window._wakeLoading) return; 
