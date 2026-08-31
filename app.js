@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-855-open';
+const APP_VERSION='2026.08.30-856-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -815,7 +815,21 @@ function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PRO
     // it with the stale stored key, so a device holding an old password could
     // never be unlocked with the new one no matter what you entered.
     if(k){ try{ const h=new Headers((init&&init.headers)||{}); if(!h.get('X-Insight-Access'))h.set('X-Insight-Access',k); const _d=_devId(); if(_d&&!h.get('X-Insight-Device'))h.set('X-Insight-Device',_d); init.headers=h; }catch(e){} }
-    return _raw(input,init).then(function(r){ try{ if(r&&r.status===401)_gateLock(); }catch(e){} return r; });
+    // v856: NO server call may hang the app. A wedged connection used to stall
+    // its caller FOREVER (30 Aug: 'fresh prices... just frozen and did nothing'
+    // — the request neither succeeded nor failed, so nothing downstream moved).
+    // Every worker call now carries a 25-second clock unless the caller brought
+    // its own; a timeout rejects like any network error, so the existing catch
+    // paths (offline fallback, retry messages) engage instead of silence.
+    var _to=null;
+    try{
+      if(!init.signal && (typeof AbortController!=='undefined')){
+        var _ctl=new AbortController(); init.signal=_ctl.signal;
+        _to=setTimeout(function(){ try{_ctl.abort();}catch(e){} },25000);
+      }
+    }catch(e){}
+    return _raw(input,init).then(function(r){ if(_to)clearTimeout(_to); try{ if(r&&r.status===401)_gateLock(); }catch(e){} return r; },
+                                 function(err){ if(_to)clearTimeout(_to); throw err; });
   };
 })();
 let _gatePromise=null;

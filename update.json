@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.30-855-open",
+  "version": "2026.08.30-856-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udd22 The Strongest Today table now shows each share\u2019s /10 score (it was reading an empty field \u2014 the score lives where the radar\u2019s SCORE 7+ tile counts it). Scores of 7+ show in gold. Both the Starter view and the Advanced report get it, since they share one component.",
+  "notes": "\u23f1 No server call can hang the app any more. A wedged connection used to stall whatever pressed it \u2014 silently, forever \u2014 which felt like freezing. Every server request now carries a 25-second clock: if the server doesn\u2019t answer in time, the request fails cleanly and the app\u2019s normal fallbacks take over (saved data, the offline chip, a retry) instead of silence.",
   "date": "2026-08-30"
 }
