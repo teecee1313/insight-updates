@@ -1,6 +1,6 @@
 {
-  "version": "2026.09.04-857-open",
+  "version": "2026.09.04-858-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udcc5 Pending orders can change their expiry. Every order card gains an expiry button beside the price editor: give it a number of days (45) or a date (26/10/2026), and the unfilled order waits that long before cancelling itself and returning the reserved cash. Must be at least tomorrow, a year at most. Previously the only way was cancel-and-replace, which threw away the order\u2019s cheapest-since-ordered tracking.",
+  "notes": "\u23f3 New orders now expire after 5 days instead of 30. A dip-limit that hasn\u2019t filled within a week is a decayed signal \u2014 the reserved cash comes back automatically and stays deployable for fresh decisions instead of sitting locked for a month. Orders already pending keep their current dates; the \ud83d\udcc5 expiry button adjusts any of them individually.",
   "date": "2026-09-04"
 }

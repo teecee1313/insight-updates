@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.04-857-open';
+const APP_VERSION='2026.09.04-858-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -4929,7 +4929,7 @@ const PAPER_START_CASH=10000;
 const BROKERAGE_STORE='asxScreener.brokerage.v1';
 const SLIPPAGE_STORE='asxScreener.slippage.v1';
 const REALFILL_STORE='asxScreener.realFills.v1';
-const ORDER_EXPIRY_DAYS=30;
+const ORDER_EXPIRY_DAYS=5; /* v858 (Tony, 4 Sep): a dip-limit that hasn't filled in 5 days is a decayed signal - the cash comes back and stays deployable. Was 30. Existing pending orders keep their stamped dates; the \ud83d\udcc5 button adjusts any of them. */
 function slippagePct(){try{const v=parseFloat(localStorage.getItem(SLIPPAGE_STORE));return (isFinite(v)&&v>0)?Math.min(v,10):0;}catch(e){return 0;}}
 function setSlippage(v){const n=parseFloat(v);try{localStorage.setItem(SLIPPAGE_STORE,(isFinite(n)&&n>0)?Math.min(n,10):0);}catch(e){}showPortfolio();}
 function realFillsOn(){return true;} /* v261: realistic fills LOCKED on — market buys always fill at next day's open */
