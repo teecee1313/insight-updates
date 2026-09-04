@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.30-856-open",
+  "version": "2026.09.04-857-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\u23f1 No server call can hang the app any more. A wedged connection used to stall whatever pressed it \u2014 silently, forever \u2014 which felt like freezing. Every server request now carries a 25-second clock: if the server doesn\u2019t answer in time, the request fails cleanly and the app\u2019s normal fallbacks take over (saved data, the offline chip, a retry) instead of silence.",
-  "date": "2026-08-30"
+  "notes": "\ud83d\udcc5 Pending orders can change their expiry. Every order card gains an expiry button beside the price editor: give it a number of days (45) or a date (26/10/2026), and the unfilled order waits that long before cancelling itself and returning the reserved cash. Must be at least tomorrow, a year at most. Previously the only way was cancel-and-replace, which threw away the order\u2019s cheapest-since-ordered tracking.",
+  "date": "2026-09-04"
 }

@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.08.30-856-open';
+const APP_VERSION='2026.09.04-857-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -8151,6 +8151,37 @@ function paperEditOrderLimit(id){
   const ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--green)">✎ '+o.ticker+' limit updated to '+fmtP(np,o.currency)+' — '+fmtP(newCost,o.currency)+' reserved'+(delta<0?' ('+fmtP(-delta,o.currency)+' returned to cash)':delta>0?' ('+fmtP(delta,o.currency)+' more reserved)':'')+'.</span>';
   showPortfolio();
 }
+// v857: change a pending order's expiry (Tony, 4 Sep: 'how do I change expiry?'
+// — the honest answer was 'you can\u2019t', and cancel-and-replace threw away the
+// order\u2019s cheapest-since tracking). Accepts a number of days from today, or a
+// date as dd/mm/yyyy or yyyy-mm-dd. Must be at least tomorrow (an expiry of
+// today would purge the order at tonight\u2019s sweep) and at most 365 days.
+function paperEditOrderExpiry(id){
+  const _fs=_pfFindStore(pp=>((pp.orders||[]).find(x=>x.id===id))||null);if(!_fs)return;const p=_fs.p,o=_fs.hit;
+  const cur=o.expiry||'\u2014';
+  const v=prompt('\ud83d\udcc5 New expiry for the '+o.ticker+' order\n\nCurrently expires '+cur+' (orders are placed with '+ORDER_EXPIRY_DAYS+' days).\nUnfilled orders are cancelled and the reserved cash returned on the expiry night.\n\nEnter either:\n  \u2022 a number of days from today (e.g. 45)\n  \u2022 a date \u2014 dd/mm/yyyy or yyyy-mm-dd\n\n(blank keeps '+cur+')','');
+  if(v===null)return;
+  const t=String(v).trim(); if(t==='')return;
+  let nd=null;
+  try{
+    if(/^\d{1,3}$/.test(t)){
+      const d=new Date(_todayLocal()+'T12:00:00'); d.setDate(d.getDate()+parseInt(t,10)); nd=d.toISOString().slice(0,10);
+    } else {
+      let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(m) nd=m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+      else { m=t.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) nd=m[1]+'-'+m[2]+'-'+m[3]; }
+    }
+  }catch(e){}
+  if(!nd||isNaN(new Date(nd+'T12:00:00').getTime())){ alert('Couldn\u2019t read that. Enter a number of days (e.g. 45) or a date like 26/10/2026.'); return; }
+  const today=_todayLocal();
+  if(nd<=today){ alert('The expiry must be at least tomorrow \u2014 an expiry of today would cancel the order at tonight\u2019s sweep.'); return; }
+  const max=(function(){const d=new Date(today+'T12:00:00');d.setDate(d.getDate()+365);return d.toISOString().slice(0,10);})();
+  if(nd>max){ alert('A year is the ceiling \u2014 pick a date within 365 days.'); return; }
+  o.expiry=nd; o.checkedDate=_todayLocal();
+  _paperSave(p,_fs.acct,_fs.exch);
+  const ls=document.getElementById('loadStatus'); if(ls)ls.innerHTML='<span style="color:var(--green)">\ud83d\udcc5 '+o.ticker+' order now expires '+nd+'.</span>';
+  showPortfolio();
+}
 // Set, change or clear a holding's auto-sell price target.
 function paperSetTarget(id){
   const _fs=_pfFindStore(pp=>{const l=_lotsFor(pp,id);return l.length?l:null});if(!_fs)return;const p=_fs.p; // v409: act on the store this holding lives in
@@ -9720,7 +9751,7 @@ ${_undoOn()?`<div class="pf-card-actions">
       if(!ords.length)return '<div style="font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;">No pending orders. Place a limit or market buy from any share\'s 💼 Buy button — it\'ll wait here until it fills or expires.</div>';
       const rows=ords.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;margin-bottom:5px;background:rgba(88,166,255,.05);">
         <div><strong style="color:var(--text);font-size:11px;">${o.ticker}</strong> ${_dcChip(o.ticker,o.exchange)} <span style="font-size:9px;color:${o.side==='sell'?'#ff9caa':'var(--muted)'}">${o.side==='sell'?`market SELL ${o.qty.toLocaleString()} at next open (est ~${fmtP(o.estPx,o.currency)})`:o.market?`market buy ~${fmtP(o.amount||o.reserved,o.currency)} at next open`:`limit buy ${o.qty} @ ${fmtP(o.limit,o.currency)}`}</span>${o.target?`<br><span style="font-size:9px;color:var(--gold)">🎯 ${fmtP(o.target,o.currency)}</span>`:''}${o.stop?` <span style="font-size:9px;color:#ff9caa">🛑 ${fmtP(o.stop,o.currency)}</span>`:''}<div id="met_${o.id}" style="font-size:9.5px;margin-top:3px;line-height:1.4;"></div></div>
-        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperWhyPending('${o.id}')" title="Why has this not filled yet? Shows exactly what the app has seen." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">? why</button>${o.side!=='sell'?`<button onclick="paperEditOrderExits('${o.id}')" title="Set or repair this order's take-profit and stop-loss" style="padding:5px 10px;border-radius:6px;border:1px solid ${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'var(--red)':'var(--border)'};background:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'rgba(226,25,55,.12)':'var(--bg3)'};color:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'#ff9caa':'var(--text)'};font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">◎ exits</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">✕ cancel</button></div>
+        <div style="text-align:right;"><span style="font-size:9px;color:var(--muted)">${o.side==='sell'?'shares locked':fmtP(o.reserved,o.currency)+' held'}</span>${o.expiry?`<br><span style="font-size:9px;color:var(--dim)">expires ${o.expiry}</span>`:''}<br><span style="font-size:9px;color:var(--dim)">${o.exchange||''}</span> ${!o.market?`<button onclick="paperEditOrderLimit('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">✎ price</button>`:''}<button onclick="paperEditOrderExpiry('${o.id}')" title="Change when this unfilled order gives up — days from today, or a date. Reserved cash returns on the expiry night." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">📅 expiry</button><button onclick="paperWhyPending('${o.id}')" title="Why has this not filled yet? Shows exactly what the app has seen." style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">? why</button>${o.side!=='sell'?`<button onclick="paperEditOrderExits('${o.id}')" title="Set or repair this order's take-profit and stop-loss" style="padding:5px 10px;border-radius:6px;border:1px solid ${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'var(--red)':'var(--border)'};background:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'rgba(226,25,55,.12)':'var(--bg3)'};color:${(+o.target>0&&!o.market&&+o.target<=+o.limit)?'#ff9caa':'var(--text)'};font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;margin-right:6px;">◎ exits</button>`:''}<button onclick="paperCancelOrder('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--red);background:rgba(226,25,55,.12);color:#ff9caa;font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">✕ cancel</button></div>
       </div>`).join('');
       return `<div style="margin:10px 0 4px;font-size:10px;color:var(--blue);font-weight:700;">⏳ Pending orders (${ords.length})</div>${rows}<div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Limit orders fill when a day's low reaches your limit · market buys AND sells fill at the next day's open. Reserved cash (buys) returns — and queued shares (sells) unlock — on fill, cancel or expiry (${ORDER_EXPIRY_DAYS} days).</div>`;
     })()}
