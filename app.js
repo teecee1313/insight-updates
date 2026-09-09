@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.08-860-open';
+const APP_VERSION='2026.09.09-861-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3700,12 +3700,15 @@ function _strongestTableHTML(limit,starterHeader){
       return ((b.watchScore!=null?b.watchScore:b.score)||0)-((a.watchScore!=null?a.watchScore:a.score)||0);  /* v855: the /10 score lives in watchScore */
     });
     rows=rows.slice(0,limit||50);
+    var _anyTier=rows.some(function(r){return !!r._evTier;});
     var out=(starterHeader
       ? '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
         +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 the '+(limit||50)+' strongest of '+allData.length.toLocaleString()+'</span>'
         +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
       : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">The '+(limit||50)+' strongest of '+allData.length.toLocaleString()+' \u2014 proven evidence first, then measured PN Edge, then score. Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
-      +'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+      +((!_anyTier)?'<div style="font-size:10px;color:var(--gold);margin:0 0 6px;">\u23f3 Evidence badges and PN Edge appear once today\u2019s evidence check finishes \u2014 until then this ranks by score. On a phone, swipe the table sideways for every column.</div>':'')
+      +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
+      +'<table style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">'
       +'<thead><tr style="color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;text-align:left;">'
       +'<th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
       +'<th style="padding:4px 6px;text-align:right;" title="Pattern score out of 10 \u2014 how many of today\u2019s studied patterns line up on this share.">Score</th>'
@@ -3722,7 +3725,7 @@ function _strongestTableHTML(limit,starterHeader){
         :'<span style="font-size:9px;color:var(--dim);">\u2014</span>';
       var edge=(r._evTier&&r._evEdge!=null&&isFinite(r._evEdge))?('<span style="font-family:var(--mono);font-weight:700;color:'+(r._evEdge>0?'var(--green)':'var(--red)')+';">'+(r._evEdge>0?'+':'')+'$'+(+r._evEdge).toFixed(2)+'</span>'):'<span style="color:var(--dim);">\u2014</span>';
       out+='<tr onclick="try{showShareDetail(\''+String(r.ticker).replace(/'/g,'')+'\')}catch(e){}" style="cursor:pointer;border-top:1px solid var(--border2);">'
-        +'<td style="padding:6px;"><strong style="color:var(--text);">'+r.ticker+'</strong>'+(r.name?' <span style="font-size:10px;color:var(--muted);">'+String(r.name).slice(0,26)+'</span>':'')+'</td>'
+        +'<td style="padding:6px;"><strong style="color:var(--text);">'+r.ticker+'</strong>'+((r.name&&String(r.name).toUpperCase()!==String(r.ticker).toUpperCase())?' <span style="font-size:10px;color:var(--muted);">'+String(r.name).slice(0,26)+'</span>':'')+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);">'+fmtP(r.price,r.currency)+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cc+';">'+(chg==null?'\u2014':((chg>=0?'+':'\u2212')+'$'+Math.abs(chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'')+(pct!=null?' <span style="font-weight:400;font-size:10px;">('+(pct>=0?'+':'')+pct.toFixed(1)+'%)</span>':'')))+'</td>'
         +(function(){var sc=(r.watchScore!=null?r.watchScore:r.score);return '<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;'+(sc!=null&&sc>=7?'color:var(--gold);':'')+'">'+(sc!=null?sc:'\u2014')+'</td>';})()
@@ -3740,7 +3743,7 @@ function _strongestTableHTML(limit,starterHeader){
         })()
         +'<td style="padding:6px;text-align:right;">'+edge+'</td></tr>';
     }
-    out+='</tbody></table>';
+    out+='</tbody></table></div>';
     return out;
 }
 // v854: the same component as an Advanced report (Tony: "one of the strongest we have now")

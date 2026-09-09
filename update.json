@@ -1,6 +1,6 @@
 {
-  "version": "2026.09.08-860-open",
+  "version": "2026.09.09-861-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83e\udded Share history freshness is now judged the right way: does the stored history reach the day the app is on? If not, it refetches from your server store \u2014 which also refills any holes inside the series, because the fetch replaces the whole window. The previous rule (\u201cis the newest row less than a week old?\u201d) let a partly-healed share serve with days missing in the middle.",
-  "date": "2026-09-08"
+  "notes": "\ud83d\udcf1 Strongest Today fits the phone. The table now swipes sideways on small screens instead of clipping its right-hand columns, says plainly when evidence badges and PN Edge are still being checked (ranking by score until then), and stops printing a share\u2019s name when it\u2019s just the ticker repeated.",
+  "date": "2026-09-09"
 }
