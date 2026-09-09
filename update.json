@@ -1,6 +1,6 @@
 {
-  "version": "2026.09.08-859-open",
+  "version": "2026.09.08-860-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83e\uddb4 A fossil was serving stale share history forever. In saved-data mode the app skipped refreshing a share\u2019s history if it was fresh \u2014 OR if no data key was entered. That second condition dated from the era when no key meant no live route; keys were removed long ago, so it short-circuited the freshness check on every device and history could sit weeks old, silently, while prices stayed current. Removed: history older than 6 days now refreshes itself from your server store the moment you open it.",
+  "notes": "\ud83e\udded Share history freshness is now judged the right way: does the stored history reach the day the app is on? If not, it refetches from your server store \u2014 which also refills any holes inside the series, because the fetch replaces the whole window. The previous rule (\u201cis the newest row less than a week old?\u201d) let a partly-healed share serve with days missing in the middle.",
   "date": "2026-09-08"
 }

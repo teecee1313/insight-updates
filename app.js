@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.08-859-open';
+const APP_VERSION='2026.09.08-860-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -12262,7 +12262,20 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
              arbitrarily old history forever, silently. The v407 server-store
              route needs no key. Age alone decides now: fresh serves instantly,
              >6 days stale falls through to a real fetch that refreshes the store. */
-          if(_age<=6){ _histCache.set(ckey,stored.rows); return stored.rows; }
+          /* v860 - AGE WAS THE WRONG QUESTION (Tony's GML: healed to Sep 4 with
+             Aug 31 + Sep 1 missing INSIDE the series, then served as 'fresh'
+             because 4 days old cleared the 6-day bar). The stored series must
+             reach the day the app itself is on - if it doesn't, refetch from
+             the server store, which also refills any holes because the fetch
+             replaces the whole window. Age (<=2d) only decides when no market
+             day is known yet. */
+          var _cd=null; try{ _cd=(typeof _pfMktDate==='function')?_pfMktDate(exch):null; }catch(e){}
+          var _srvFresh=false;
+          try{
+            var _ldISO=null; var _srt2=_sortedCloses(stored.rows); if(_srt2.length)_ldISO=_srt2[_srt2.length-1].d;
+            _srvFresh=_cd?(_ldISO&&String(_ldISO).slice(0,10)>=String(_cd).slice(0,10)):(_age<=2);
+          }catch(e){ _srvFresh=(_age<=2); }
+          if(_srvFresh){ _histCache.set(ckey,stored.rows); return stored.rows; }
         }
         } // v238: end !forceNet — a forced-live run skips disk serving but keeps the fallback
       }
