@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.04-858-open';
+const APP_VERSION='2026.09.08-859-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -12254,7 +12254,15 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
         if(window._offlineMode){ _histCache.set(ckey,stored.rows); return stored.rows; }
         if(window._preferOffline){
           let _age=999; try{const _srt=_sortedCloses(stored.rows);const _ld=_srt.length?_srt[_srt.length-1].d:null;if(_ld)_age=Math.round((Date.now()-new Date(_ld).getTime())/86400000);}catch(e){}
-          if(_age<=6 || !apiKey){ _histCache.set(ckey,stored.rows); return stored.rows; }
+          /* v859 - THE STALE-HISTORY FOSSIL (found via Tony's phone: NVA history
+             frozen at Aug 19 in September while the live list was current).
+             The '!apiKey' arm was written when having no key meant there was no
+             live route worth trying - but since v382 removed keys, EVERY device
+             has no key, so this line short-circuited the age check and served
+             arbitrarily old history forever, silently. The v407 server-store
+             route needs no key. Age alone decides now: fresh serves instantly,
+             >6 days stale falls through to a real fetch that refreshes the store. */
+          if(_age<=6){ _histCache.set(ckey,stored.rows); return stored.rows; }
         }
         } // v238: end !forceNet — a forced-live run skips disk serving but keeps the fallback
       }

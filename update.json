@@ -1,6 +1,6 @@
 {
-  "version": "2026.09.04-858-open",
+  "version": "2026.09.08-859-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\u23f3 New orders now expire after 5 days instead of 30. A dip-limit that hasn\u2019t filled within a week is a decayed signal \u2014 the reserved cash comes back automatically and stays deployable for fresh decisions instead of sitting locked for a month. Orders already pending keep their current dates; the \ud83d\udcc5 expiry button adjusts any of them individually.",
-  "date": "2026-09-04"
+  "notes": "\ud83e\uddb4 A fossil was serving stale share history forever. In saved-data mode the app skipped refreshing a share\u2019s history if it was fresh \u2014 OR if no data key was entered. That second condition dated from the era when no key meant no live route; keys were removed long ago, so it short-circuited the freshness check on every device and history could sit weeks old, silently, while prices stayed current. Removed: history older than 6 days now refreshes itself from your server store the moment you open it.",
+  "date": "2026-09-08"
 }
