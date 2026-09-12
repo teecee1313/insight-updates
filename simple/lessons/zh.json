@@ -1,0 +1,80 @@
+{
+ "lang": "zh",
+ "name": "Simplified Chinese",
+ "total": 55,
+ "lessons": [
+  {
+   "id": "zero",
+   "title": "1 · 从零开始，认识股票",
+   "mins": 5,
+   "steps": [
+    [
+     "股票到底是什么",
+     "股票是一家真实公司里一小片所有权。持有一股 Woolworths，你就拥有它每一家门店、每一辆卡车、每一台收银机的（非常小的）一部分。公司越值钱，你的这一片也越值钱。许多公司还会派发股息 — 从利润中分给股东的现金，有点像拥有一小片资产收到的租金。 <svg viewBox='0 0 320 100' style='max-width:340px;width:100%;display:block;margin:8px 0' xmlns='http://www.w3.org/2000/svg'><rect x='10' y='20' width='296' height='74' rx='6' fill='none' stroke='#3a4a7a' stroke-width='1.2'/><text x='14' y='14' fill='#8fa0c9' font-size='8.5' font-weight='400' text-anchor='start' font-family='sans-serif'>整家公司 — 门店、卡车、品牌、利润</text><rect x='14' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='38' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='62' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='86' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='110' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='134' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='158' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='182' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='206' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='230' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='254' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='278' y='26' width='20' height='13' rx='2' fill='#54627f' /><rect x='14' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='38' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='62' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='86' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='110' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='134' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='158' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='206' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='230' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='254' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='278' y='43' width='20' height='13' rx='2' fill='#54627f' /><rect x='14' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='38' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='62' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='86' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='110' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='134' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='158' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='182' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='206' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='230' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='254' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='278' y='60' width='20' height='13' rx='2' fill='#54627f' /><rect x='14' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='38' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='62' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='86' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='110' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='134' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='158' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='182' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='206' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='230' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='254' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='278' y='77' width='20' height='13' rx='2' fill='#54627f' /><rect x='182' y='43' width='20' height='13' rx='2' fill='#f5c84c' /><text x='192' y='53' fill='#0b1020' font-size='7.5' font-weight='800' text-anchor='middle' font-family='sans-serif'>你</text><text x='14' y='100' fill='#f5c84c' font-size='8.5' font-weight='400' text-anchor='start' font-family='sans-serif'>一股 = 真实公司的一小片</text></svg>"
+    ],
+    [
+     "ASX 是什么",
+     "Australian Securities Exchange（澳大利亚证券交易所）— 买卖这些\"小片\"的市场，工作日悉尼时间上午 10 点到下午 4 点开市。每家上市公司都有一个简短代码，叫 ticker：BHP、WOW、CBA。本应用总是先显示代码，因为市场就是这样称呼公司的。"
+    ],
+    [
+     "你实际上怎么买一股",
+     "通过券商（broker）— 替你下单的应用或网站，就像股票界的房产中介。本应用不是券商：它从不买卖任何东西，也从不碰你的钱。它是你的研究桌。在任何真实券商介入之前，你可以在这里用模拟资金练习多久都行。"
+    ],
+    [
+     "价格从哪里来",
+     "没有人\"设定\"股价。价格只是最近一位真实买家和一位真实卖家成交的金额。想买的人多于想卖的人时，买家必须出更高价，价格就向上漂；卖家多于买家时，价格向下漂。整台机器就是这样。 <svg viewBox='0 0 320 100' style='max-width:340px;width:100%;display:block;margin:8px 0' xmlns='http://www.w3.org/2000/svg'><text x='60' y='14' fill='#4ade80' font-size='9' font-weight='700' text-anchor='middle' font-family='sans-serif'>买家更多</text><rect x='22' y='22' width='11' height='26' rx='2' fill='#4ade80' /><rect x='38' y='22' width='11' height='26' rx='2' fill='#4ade80' /><rect x='54' y='22' width='11' height='26' rx='2' fill='#4ade80' /><rect x='70' y='22' width='11' height='26' rx='2' fill='#4ade80' /><rect x='86' y='22' width='11' height='26' rx='2' fill='#4ade80' /><rect x='102' y='22' width='11' height='26' rx='2' fill='#4ade80' /><text x='60' y='62' fill='#8fa0c9' font-size='8.5' font-weight='400' text-anchor='middle' font-family='sans-serif'>卖家较少</text><rect x='38' y='68' width='11' height='18' rx='2' fill='#54627f' /><rect x='54' y='68' width='11' height='18' rx='2' fill='#54627f' /><rect x='70' y='68' width='11' height='18' rx='2' fill='#54627f' /><path d='M150 54 L188 54 L188 46 L206 58 L188 70 L188 62 L150 62 Z' fill='#f5c84c'/><polyline points='222,78 250,66 270,52 292,34' fill='none' stroke='#4ade80' stroke-width='2.2'/><circle cx='292' cy='34' r='3.5' fill='#4ade80'/><text x='226' y='20' fill='#4ade80' font-size='9.5' font-weight='700' text-anchor='start' font-family='sans-serif'>价格向上走</text><text x='226' y='92' fill='#8fa0c9' font-size='8' font-weight='400' text-anchor='start' font-family='sans-serif'>人群反过来，价格就向下走</text></svg>"
+    ],
+    [
+     "为什么价格每天都在动",
+     "公司消息、利润、传言、利率、整体情绪，以及大基金调整持仓。大多数股票在大多数日子几乎不动 — 这正是为什么不寻常的日子（本应用要找的那些）值得看一眼。"
+    ],
+    [
+     "\"收盘数据\"，用大白话说",
+     "本应用使用每天的收盘数字 — 就像比赛结束后看终场比分，而不是盯着每一脚传球直播。这样更平静、更省钱，也更适合研究和学习。它不是分秒更新的交易屏幕，也从不假装是。 <svg viewBox='0 0 320 100' style='max-width:340px;width:100%;display:block;margin:8px 0' xmlns='http://www.w3.org/2000/svg'><polyline points='14,60 40,48 62,66 90,42 118,58 142,36 170,52 196,44 224,56 250,40 276,50 296,46' fill='none' stroke='#54627f' stroke-width='1.8'/><circle cx='296' cy='46' r='5' fill='#f5c84c'/><line x1='296' y1='12' x2='296' y2='88' stroke='#f5c84c' stroke-width='1' stroke-dasharray='3 3'/><text x='292' y='98' fill='#f5c84c' font-size='9' font-weight='700' text-anchor='end' font-family='sans-serif'>收盘价</text><text x='14' y='16' fill='#8fa0c9' font-size='8.5' font-weight='400' text-anchor='start' font-family='sans-serif'>嘈杂的交易日…</text><text x='14' y='98' fill='#8fa0c9' font-size='8' font-weight='400' text-anchor='start' font-family='sans-serif'>本应用只看终场比分 — 平静、省钱、适合研究</text></svg>"
+    ]
+   ],
+   "quiz": [
+    {
+     "q": "股票到底是什么？",
+     "a": [
+      "你借给公司的一笔贷款",
+      "一家真实公司里一小片所有权",
+      "只有价格上涨才赔付的赌注"
+     ],
+     "c": 1,
+     "why": "持有一股，你就拥有公司的一部分 — 它的卡车、品牌和利润。这就是公司的命运会影响你的钱的原因。"
+    },
+    {
+     "q": "股价从哪里来？",
+     "a": [
+      "ASX 每天早上设定",
+      "公司自己决定",
+      "只是一位真实买家和一位真实卖家最近成交的价格"
+     ],
+     "c": 2,
+     "why": "没有人\"设定\"价格。你看到的每一个价格，都只是两个人之间最近达成的一笔交易。"
+    },
+    {
+     "q": "\"收盘数据\"是什么意思？",
+     "a": [
+      "价格每秒更新",
+      "应用读取每天的收盘数字 — 就像比赛结束后的终场比分",
+      "只有最近一小时的数据"
+     ],
+     "c": 1,
+     "why": "本应用是一张平静的研究桌，不是实时交易屏幕 — 而且从不假装是。"
+    },
+    {
+     "q": "你持股的公司派发股息。那是什么？",
+     "a": [
+      "退还你买股票时付的一部分钱",
+      "ASX 为持股支付的利息",
+      "从公司利润中分给股东的现金"
+     ],
+     "c": 2,
+     "why": "股息来自公司自己的利润 — 股东分到一份。不是每家公司都派息；成长中的公司常常选择再投资。"
+    }
+   ]
+  }
+ ]
+}
