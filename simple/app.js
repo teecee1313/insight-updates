@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.12-862-simple';
+const APP_VERSION='2026.09.12-863-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3708,6 +3708,14 @@ function _starterMarket(){
 // v854: ONE builder for the strongest-of-today table - Starter's home view and
 // the Advanced "\ud83c\udfc6 Strongest Today" report render the same component, so the
 // two can never drift apart. `starterHeader` adds the Starter-specific intro.
+// v863: \u2606 on the strongest table \u2014 the same watchlist star every other
+// view uses (toggleStar), flipped in place so the table never re-renders under
+// the finger. The row's own tap (share detail) is stopped from firing.
+function _strongStar(ev,ticker){
+  try{ if(ev){ ev.stopPropagation(); ev.preventDefault(); } }catch(e){}
+  try{ toggleStar(ticker); }catch(e){}
+  try{ var on=!!inWatch(ticker); var td=ev&&ev.currentTarget; if(td){ td.textContent=on?'\u2605':'\u2606'; td.style.color=on?'var(--gold)':'var(--dim)'; td.title=(on?'Remove from':'Add to')+' watchlist'; } }catch(e){}
+}
 function _strongestTableHTML(limit,starterHeader){
     var rows=allData.slice();
     var tR={'SOLID':2,'PROMISING':1};
@@ -3727,7 +3735,7 @@ function _strongestTableHTML(limit,starterHeader){
       +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
       +'<table style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">'
       +'<thead><tr style="color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;text-align:left;">'
-      +'<th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
+      +'<th style="padding:4px 2px;text-align:center;" title="Tap \u2606 on a row to add that share to your watchlist (\u2605 = already there).">\u2606</th><th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
       +'<th style="padding:4px 6px;text-align:right;" title="Pattern score out of 10 \u2014 how many of today\u2019s studied patterns line up on this share.">Score</th>'
       +'<th style="padding:4px 6px;" title="The evidence badge. SOLID = this share\u2019s firing pattern made money consistently across up to a decade of history and passed the luck test, including in earlier years. PROMISING = positive so far, still earning its stripes.">Evidence</th>'
       +'<th style="padding:4px 6px;" title="The last five days of company news. \ud83d\udcf0 = confirmed ASX announcements (from the official feed) \u2014 the number is how many. \ud83d\udd07 quiet = no announcements: any move is happening WITHOUT a news reason, which is exactly where quiet accumulation hides. Where the feed hasn\u2019t confirmed this share yet, the flag is an estimate from price and volume.">News (5d)</th>'
@@ -3742,6 +3750,7 @@ function _strongestTableHTML(limit,starterHeader){
         :'<span style="font-size:9px;color:var(--dim);">\u2014</span>';
       var edge=(r._evTier&&r._evEdge!=null&&isFinite(r._evEdge))?('<span style="font-family:var(--mono);font-weight:700;color:'+(r._evEdge>0?'var(--green)':'var(--red)')+';">'+(r._evEdge>0?'+':'')+'$'+(+r._evEdge).toFixed(2)+'</span>'):'<span style="color:var(--dim);">\u2014</span>';
       out+='<tr onclick="try{showShareDetail(\''+String(r.ticker).replace(/'/g,'')+'\')}catch(e){}" style="cursor:pointer;border-top:1px solid var(--border2);">'
+        +(function(){ var on=false; try{ on=!!inWatch(r.ticker); }catch(e){} var tk=String(r.ticker).replace(/[^A-Za-z0-9.]/g,''); return '<td onclick="_strongStar(event,\''+tk+'\')" title="'+(on?'Remove from':'Add to')+' watchlist" style="padding:6px 2px;text-align:center;font-size:15px;cursor:pointer;color:'+(on?'var(--gold)':'var(--dim)')+';">'+(on?'\u2605':'\u2606')+'</td>'; })()   /* v863: favourites from the strongest table (Tony, 12 Sep) */
         +'<td style="padding:6px;"><strong style="color:var(--text);">'+r.ticker+'</strong>'+((r.name&&String(r.name).toUpperCase()!==String(r.ticker).toUpperCase())?' <span style="font-size:10px;color:var(--muted);">'+String(r.name).slice(0,26)+'</span>':'')+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);">'+fmtP(r.price,r.currency)+'</td>'
         +'<td style="padding:6px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cc+';">'+(chg==null?'\u2014':((chg>=0?'+':'\u2212')+'$'+Math.abs(chg).toFixed(3).replace(/0$/,'').replace(/\.$/,'')+(pct!=null?' <span style="font-weight:400;font-size:10px;">('+(pct>=0?'+':'')+pct.toFixed(1)+'%)</span>':'')))+'</td>'

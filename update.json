@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.12-862-open",
+  "version": "2026.09.12-863-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🧭 Fewer doors. Every pick now carries a one-line ‘Why:’ — what fired, and what its evidence tier means in plain words (the same sentence the nightly email uses). The three pattern-search scan groups (Today’s action, Building quietly, Composite) now start folded and say ‘not graded’ — the graded reports and your Start-your-day trio stay open. Tap any group heading to open it; your choice is remembered."
+  "notes": "☆ Favourites from the strongest table. Every row in Today’s market / Strongest Today now has a star: tap ☆ to add the share to your watchlist, ★ to remove it — the same watchlist as everywhere else. Tapping the star no longer opens the share’s story by accident."
 }
