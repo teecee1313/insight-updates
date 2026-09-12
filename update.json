@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.12-866-open",
+  "version": "2026.09.12-867-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🌐 The Language picker in the menu now does something you can see. It switches the lessons (every one that has been translated) as well as the few menu labels it always covered, and says so. It also stops reverting the Advanced load button to an old label on every open. For the whole app in your language, your browser's Translate page remains the way."
+  "notes": "🌐 The whole app in your language. Pick a language in the menu and the entire app translates live — every screen, table, report and message, following as they draw — with the lessons using their proper translation wherever one exists. It needs an internet connection; ticker codes and numbers stay as they are. Choose English to switch it off."
 }

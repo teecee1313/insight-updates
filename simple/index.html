@@ -10,7 +10,7 @@
      it, one piece of injected script reads the access key out of storage and
      posts it anywhere it likes. connect-src is deliberately narrow: our worker,
      EODData, and the relays that only ever carry public data. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://insight-data.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://translate.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://translate.googleapis.com https://translate-pa.googleapis.com https://insight-data.tonycotton13.workers.dev https://api.eoddata.com https://www.eoddata.com https://eodhd.com https://api.anthropic.com https://api.marketaux.com https://www.marketaux.com https://feeds.finance.yahoo.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finance.yahoo.com https://news.google.com https://www.asx.com.au https://www.marketindex.com.au https://www.londonstockexchange.com https://www.nasdaq.com https://www.sec.gov https://www.google.com https://teecee1313.github.io https://corsproxy.io https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io; frame-src 'self' blob: https://translate.google.com https://translate.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Insight Trading — ASX End-of-Day Share Screener</title>
 <!-- ══ Installable app (PWA) — embedded so it stays a single file ══ -->
@@ -791,9 +791,10 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 body.theme-switching *,body.theme-switching *::before,body.theme-switching *::after{transition:none!important;animation:none!important;}
 </style>
 <style id="liteMode">#liteCards{display:none}body.lite-mode #liteCards{display:contents}body.lite-mode #starterCards,body.lite-mode #quickPlansRow,body.lite-mode #whatsNewCard,body.lite-mode .simple-more{display:none!important}</style>
+<style id="gtStyle">#google_translate_element{position:absolute;left:-9999px;top:-9999px}.goog-te-banner-frame.skiptranslate,#goog-gt-tt,.goog-te-balloon-frame,.goog-tooltip,.goog-te-spinner-pos{display:none!important}body{top:0!important}.goog-text-highlight{background:none!important;box-shadow:none!important}</style>
 <style id="simpleLock">#modeBar,.simple-more,#quickPlansRow,#quickPlansRowAdv{display:none!important}.simple-load-hint{font-size:12px}</style>
 </head>
-<body>
+<body><div id="google_translate_element" class="notranslate"></div>
 <div id="bgInd" title="Drag to move · tap ✕ to hide"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span><span class="bg-x" onclick="event.stopPropagation();bgHide();" title="Hide">✕</span></div>
 
 <!-- Seller Controls removed -->
@@ -855,7 +856,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <span>Insight<span style="color:var(--gold)"> Trading</span></span>
     <span style="font-size:9px;font-weight:600;letter-spacing:2px;color:var(--muted);">MARKET ANALYSER</span>
     <span id="appVer" style="font-size:9px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;"></span>
-    <span id="simpleTag" title="Insight Simple — the six essentials, nothing else. Ideas or anything confusing? Use the feedback link." style="font-size:8px;font-weight:800;letter-spacing:1px;color:#5fd18a;border:1px solid #5fd18a;border-radius:4px;padding:1px 6px;background:rgba(95,209,138,.10);white-space:nowrap;">🌱 SIMPLE · <a href="mailto:tonycotton13@gmail.com?subject=Insight%20Simple%20feedback%20v2026.09.12-866" style="color:#5fd18a;">✉ feedback</a></span>
+    <span id="simpleTag" title="Insight Simple — the six essentials, nothing else. Ideas or anything confusing? Use the feedback link." style="font-size:8px;font-weight:800;letter-spacing:1px;color:#5fd18a;border:1px solid #5fd18a;border-radius:4px;padding:1px 6px;background:rgba(95,209,138,.10);white-space:nowrap;">🌱 SIMPLE · <a href="mailto:tonycotton13@gmail.com?subject=Insight%20Simple%20feedback%20v2026.09.12-867" style="color:#5fd18a;">✉ feedback</a></span>
   </div>
   <div class="hbadge" id="exchBadge">🇦🇺 ASX end-of-day screener</div>
   <div class="notice" id="notice" style="display:none">—</div>
@@ -881,11 +882,11 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
       <div id="acctMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:2050;min-width:220px;overflow:hidden;">
         <div id="acctMenuVer" style="padding:9px 14px;border-bottom:1px solid var(--border);font-weight:600;font-size:9px;font-family:var(--sans);color:var(--dim);"></div>
         <div style="padding:9px 14px;border-bottom:1px solid var(--border);">
-          <div style="font-weight:600;font-size:9px;font-family:var(--sans);color:var(--muted);margin-bottom:4px;">🌐 Language <span style="font-weight:400;">· lessons &amp; menu labels</span></div>
+          <div style="font-weight:600;font-size:9px;font-family:var(--sans);color:var(--muted);margin-bottom:4px;">🌐 Language</div>
           <select id="langSel" onchange="setLang(this.value)" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">
             <option value="en">🇬🇧 English</option><option value="es">🇪🇸 Español</option><option value="zh">🇨🇳 中文</option><option value="de">🇩🇪 Deutsch</option><option value="fr">🇫🇷 Français</option><option value="ja">🇯🇵 日本語</option><option value="hi">🇮🇳 हिन्दी</option><option value="ar">🇸🇦 العربية</option><option value="it">🇮🇹 Italiano</option><option value="fil">🇵🇭 Filipino</option>
           </select>
-          <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35;">For the whole app in your language, use your browser’s <b>Translate page</b> (Chrome ⋮ / Safari aA).</div>
+          <div id="langNote" style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35;">Translates the whole app live (needs internet). Lessons use their proper translation where one exists.</div>
         </div>
         <button onclick="toggleAcctMenu();toggleHelpPanel()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font-weight:600;font-size:12px;font-family:var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">📖 Help guide</button>
         <button onclick="changeAppPassword()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font-weight:600;font-size:12px;font-family:var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">🔑 Change password</button>
@@ -1777,7 +1778,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.12-866-simple"></script>
+<script src="app.js?v=2026.09.12-867-simple"></script>
 
 
 
@@ -2485,11 +2486,12 @@ window.setLessonLang=function(lang){
   var note=document.getElementById('lsnLangNote'); var sel=document.getElementById('lsnLang');
   lang=String(lang||'en');
   try{ var ms=document.getElementById('langSel'); if(ms&&ms.value!==lang&&[].some.call(ms.options,function(o){return o.value===lang;}))ms.value=lang; }catch(e){}
-  if(lang==='en'){ try{localStorage.setItem(LESSON_LANG_KEY,'en');}catch(e){} if(note)note.textContent=''; _lsnSwap(LESSONS_EN); return; }
+  if(lang==='en'){ try{localStorage.setItem(LESSON_LANG_KEY,'en');}catch(e){} if(note)note.textContent=''; try{ var lp0=document.getElementById('lessonPanel'); if(lp0)lp0.classList.remove('notranslate'); }catch(e){} _lsnSwap(LESSONS_EN); return; }
   if(note)note.textContent='loading\u2026';
   return fetch('lessons/'+lang+'.json?v='+encodeURIComponent(typeof APP_VERSION!=='undefined'?APP_VERSION:'')).then(function(r){ if(!r.ok)throw new Error('http '+r.status); return r.json(); }).then(function(j){
     var arr=Array.isArray(j)?j:(j&&j.lessons)||[]; var by={}; arr.forEach(function(l){ if(l&&l.id)by[l.id]=l; });
     var n=0; var merged=LESSONS_EN.map(function(l){ if(by[l.id]){n++;return by[l.id];} return l; });
+    try{ var lp=document.getElementById('lessonPanel'); if(lp)lp.classList.toggle('notranslate', n>0); window._lsnProper=(n>0); }catch(e){}
     try{localStorage.setItem(LESSON_LANG_KEY,lang);}catch(e){}
     if(note)note.textContent=(n>=LESSONS_EN.length)?'':(n+' of '+LESSONS_EN.length+' lessons translated so far \u2014 the rest show in English');
     _lsnSwap(merged);

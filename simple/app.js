@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.12-866-simple';
+const APP_VERSION='2026.09.12-867-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -488,6 +488,48 @@ function setLang(code){
      nothing else (Tony, 12 Sep: "we already have but not working"). It now also
      switches the lessons (v865) - the one part of the app that IS translated. */
   try{ if(typeof setLessonLang==='function'){ var ls=document.getElementById('lsnLang'); if(ls)ls.value=code; setLessonLang(code); } }catch(e){}
+  try{ _gtApply(code); }catch(e){}
+}
+// ── v867: WHOLE-APP LIVE TRANSLATION (Tony, 12 Sep: "all of program should
+// change to the selected language"). The app has ~5,000 UI strings built at
+// render time, so a dictionary can't reach them; the Google Translate element
+// translates the rendered page live, tables and reports included, and re-runs
+// as the DOM changes. Needs internet. Ticker codes and numbers pass through
+// untouched; lessons with a proper translation are marked notranslate so they
+// are never machine-translated twice. 'en' clears the layer and reloads once.
+const _GT_MAP={zh:'zh-CN',fil:'tl'};
+let _gtLoading=false;
+function _gtNote(t){ try{ var n=document.getElementById('langNote'); if(n)n.textContent=t; }catch(e){} }
+function _gtEnsure(cb){
+  if(window.google&&google.translate&&google.translate.TranslateElement){ cb(); return; }
+  if(_gtLoading){ setTimeout(function(){_gtEnsure(cb);},300); return; }
+  _gtLoading=true;
+  window.googleTranslateElementInit=function(){
+    try{ new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'es,zh-CN,de,fr,ja,hi,ar,it,tl,vi,el',autoDisplay:false},'google_translate_element'); }catch(e){}
+    setTimeout(cb,400);
+  };
+  var s=document.createElement('script'); s.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+  s.onerror=function(){ _gtLoading=false; _gtNote('Could not load the translation layer \u2014 it needs internet. Lessons still switch where a translation exists.'); };
+  document.head.appendChild(s);
+}
+function _gtSet(code,tries){
+  var tgt=_GT_MAP[code]||code; var combo=document.querySelector('.goog-te-combo');
+  if(!combo){ if((tries||0)<20){ setTimeout(function(){_gtSet(code,(tries||0)+1);},300); } else { _gtNote('Translation layer did not start \u2014 try Check for updates, or use your browser\u2019s Translate page.'); } return; }
+  if(combo.value!==tgt){ combo.value=tgt; combo.dispatchEvent(new Event('change')); }
+  _gtNote('Translating the app live \u2014 tables and reports follow as they draw.');
+}
+function _gtApply(code){
+  if(code==='en'){
+    var was=/googtrans=\/en\/[a-zA-Z-]+/.test(document.cookie)||!!document.querySelector('.goog-te-combo');
+    document.cookie='googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+    try{ document.cookie='googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain='+location.hostname; }catch(e){}
+    _gtNote('');
+    if(was&&!window._gtNoReload){ setTimeout(function(){ location.reload(); },50); }
+    return;
+  }
+  document.cookie='googtrans=/en/'+(_GT_MAP[code]||code)+'; path=/';
+  _gtNote('Loading the translation layer\u2026');
+  _gtEnsure(function(){ _gtSet(code); });
 }
 function initLang(){
   let saved='en';
