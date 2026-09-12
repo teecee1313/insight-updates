@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.12-865-open",
+  "version": "2026.09.12-866-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🌐 Lessons in your language. Above the training list there is now a language picker. Choose one and every lesson that has been translated switches over — words, diagrams and quizzes — while any not yet translated stay in English, and the picker says how many are done. First up: Simplified Chinese, lesson 1, with the rest to follow language by language. The app itself stays English for now."
+  "notes": "🌐 The Language picker in the menu now does something you can see. It switches the lessons (every one that has been translated) as well as the few menu labels it always covered, and says so. It also stops reverting the Advanced load button to an old label on every open. For the whole app in your language, your browser's Translate page remains the way."
 }

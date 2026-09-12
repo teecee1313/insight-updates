@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.12-865-open';
+const APP_VERSION='2026.09.12-866-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -142,7 +142,7 @@ const I18N={
     tagline:"ASX End-of-Day Screener",
     setup:"Setup", apiKey:"EODData API Key", keyLocked:"🔒 locked", keyEditable:"🔓 editable",
     unlockEdit:"🔓 Unlock to edit key", lockEdit:"🔒 Lock key editing",
-    exchange:"Exchange", loadData:"⚡ Load Exchange Data", loadPrompt:"Select exchange and press Load",
+    exchange:"Exchange", loadData:"⚡ Get today's prices (internet)", loadPrompt:"Select exchange and press Load",
     instantReports:"Instant Reports", oneClick:"one click", smartScan:"🎯 Best Evidence Today",
     smartScanTag:"proven signals only", speedTicket:"🚨 Speeding Ticket Detector",
     speedTag:"abnormal move · estimate", presetPlans:"Filter presets",
@@ -483,6 +483,10 @@ function setLang(code){
   try{localStorage.setItem('asxScreener.lang',code);}catch(e){}
   const sel=document.getElementById('langSel');if(sel)sel.value=code;
   applyLang();
+  /* v866: the menu picker used to reach 27 labels from the app's first version and
+     nothing else (Tony, 12 Sep: "we already have but not working"). It now also
+     switches the lessons (v865) - the one part of the app that IS translated. */
+  try{ if(typeof setLessonLang==='function'){ var ls=document.getElementById('lsnLang'); if(ls)ls.value=code; setLessonLang(code); } }catch(e){}
 }
 function initLang(){
   let saved='en';

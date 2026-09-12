@@ -879,10 +879,11 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
       <div id="acctMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:2050;min-width:220px;overflow:hidden;">
         <div id="acctMenuVer" style="padding:9px 14px;border-bottom:1px solid var(--border);font-weight:600;font-size:9px;font-family:var(--sans);color:var(--dim);"></div>
         <div style="padding:9px 14px;border-bottom:1px solid var(--border);">
-          <div style="font-weight:600;font-size:9px;font-family:var(--sans);color:var(--muted);margin-bottom:4px;">🌐 Language</div>
+          <div style="font-weight:600;font-size:9px;font-family:var(--sans);color:var(--muted);margin-bottom:4px;">🌐 Language <span style="font-weight:400;">· lessons &amp; menu labels</span></div>
           <select id="langSel" onchange="setLang(this.value)" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">
             <option value="en">🇬🇧 English</option><option value="es">🇪🇸 Español</option><option value="zh">🇨🇳 中文</option><option value="de">🇩🇪 Deutsch</option><option value="fr">🇫🇷 Français</option><option value="ja">🇯🇵 日本語</option><option value="hi">🇮🇳 हिन्दी</option><option value="ar">🇸🇦 العربية</option><option value="it">🇮🇹 Italiano</option><option value="fil">🇵🇭 Filipino</option>
           </select>
+          <div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35;">For the whole app in your language, use your browser’s <b>Translate page</b> (Chrome ⋮ / Safari aA).</div>
         </div>
         <button onclick="toggleAcctMenu();toggleHelpPanel()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font-weight:600;font-size:12px;font-family:var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">📖 Help guide</button>
         <button onclick="changeAppPassword()" style="display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:none;color:var(--text);font-weight:600;font-size:12px;font-family:var(--sans);cursor:pointer;border-bottom:1px solid var(--border);">🔑 Change password</button>
@@ -1774,7 +1775,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.12-865-open"></script>
+<script src="app.js?v=2026.09.12-866-open"></script>
 
 
 
@@ -2473,7 +2474,7 @@ window.LESSONS=LESSONS; // v410: completion/certificate helpers live in a later 
    originals stay in LESSONS_EN; LESSONS is swapped IN PLACE so every reader
    (renderLesson, quiz, flashcards, certificate) sees the chosen language. */
 const LESSONS_EN=LESSONS.slice();
-const LESSON_LANGS=[['en','English'],['zh','中文 (简体)'],['vi','Tiếng Việt'],['it','Italiano'],['el','Ελληνικά'],['hi','हिन्दी'],['ar','العربية'],['es','Español'],['fil','Filipino']];
+const LESSON_LANGS=[['en','English'],['zh','中文 (简体)'],['es','Español'],['de','Deutsch'],['fr','Français'],['ja','日本語'],['hi','हिन्दी'],['ar','العربية'],['it','Italiano'],['fil','Filipino'],['vi','Tiếng Việt'],['el','Ελληνικά']];
 const LESSON_LANG_KEY='asxScreener.lessonLang.v1';
 function _lsnLangFill(){ try{ var s=document.getElementById('lsnLang'); if(!s||s.options.length)return; var cur=localStorage.getItem(LESSON_LANG_KEY)||'en';
   s.innerHTML=LESSON_LANGS.map(function(p){return '<option value="'+p[0]+'"'+(p[0]===cur?' selected':'')+'>'+p[1]+'</option>';}).join(''); }catch(e){} }
@@ -2481,6 +2482,7 @@ function _lsnSwap(list){ LESSONS.length=0; for(var i=0;i<list.length;i++)LESSONS
 window.setLessonLang=function(lang){
   var note=document.getElementById('lsnLangNote'); var sel=document.getElementById('lsnLang');
   lang=String(lang||'en');
+  try{ var ms=document.getElementById('langSel'); if(ms&&ms.value!==lang&&[].some.call(ms.options,function(o){return o.value===lang;}))ms.value=lang; }catch(e){}
   if(lang==='en'){ try{localStorage.setItem(LESSON_LANG_KEY,'en');}catch(e){} if(note)note.textContent=''; _lsnSwap(LESSONS_EN); return; }
   if(note)note.textContent='loading\u2026';
   return fetch('lessons/'+lang+'.json?v='+encodeURIComponent(typeof APP_VERSION!=='undefined'?APP_VERSION:'')).then(function(r){ if(!r.ok)throw new Error('http '+r.status); return r.json(); }).then(function(j){
