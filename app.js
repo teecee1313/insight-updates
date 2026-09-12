@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.09-861-open';
+const APP_VERSION='2026.09.12-862-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -1457,6 +1457,21 @@ function _csSpreadFromRows(rows){ /* v793: Corwin–Schultz daily high/low sprea
     return n>=40 ? sum/n : null;
   }catch(e){ return null; }
 }
+// v862: one plain sentence under every pick — the signal names, the tier and
+// what the tier means (SOLID 200+ fires, PROMISING 50+, TOO EARLY under 50).
+// Same words the nightly email uses, so the app and the mail never disagree.
+function _whyLine(r){
+  try{
+    const t=String(r.tier||'').toUpperCase();
+    const tw= t==='SOLID' ? 'has SOLID evidence (200+ fires in the replayed year)'
+            : t==='PROMISING' ? 'is PROMISING (50+ fires, still building a record)'
+            : t ? 'is TOO EARLY to trust on its own (under 50 fires \u2014 luck can still explain it)'
+            : 'has no tier yet';
+    const e=(r.edge==null||!isFinite(+r.edge))?'':(', average edge '+(+r.edge>=0?'+':'')+(+r.edge).toFixed(2)+'% over the hold');
+    const names=(typeof sigName==='function')?sigName(r.evidence_key):String(r.evidence_key||'');
+    return 'Why: fired '+(names||'the graded signals')+'; this combination '+tw+e+'.';
+  }catch(_){ return ''; }
+}
 async function showDailyPicks(mode){
   if(mode) window._picksMode = mode;
   const M = window._picksMode;
@@ -1565,7 +1580,8 @@ async function showDailyPicks(mode){
           +(r.status==='queued'?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(217,164,65,.18);color:var(--gold);">already queued</span>':'')
           +(oob?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(226,25,55,.18);color:#ff9caa;">outside the band</span>':'')
           +age+'</div>'
-          +'<div style="font-size:11px;color:var(--muted);margin:3px 0 7px;">'+esc(sigName(r.evidence_key))+' \u00b7 score '+(r.score==null?'\u2014':(+r.score).toFixed(1))+(r.tier?(' \u00b7 '+esc(String(r.tier).toUpperCase())):'')+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin:3px 0 2px;">'+esc(sigName(r.evidence_key))+' \u00b7 score '+(r.score==null?'\u2014':(+r.score).toFixed(1))+(r.tier?(' \u00b7 '+esc(String(r.tier).toUpperCase())):'')+'</div>'
+          +'<div style="font-size:11px;color:var(--dim);margin:0 0 7px;line-height:1.35;">'+esc(_whyLine(r))+'</div>'   /* v862: one plain sentence — what fired, what the tier means */
           +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;">'
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Buy under</span><b>'+money(r.limit_price)+'</b></div>'
           +(tr
@@ -19615,16 +19631,16 @@ function _groupScans(){
     const GROUPS=[
       {id:'sgStart',title:'⭐ Start your day',hint:'the four-tap routine',ids:['scan-pulse','scan-top20','scan-bestev','scan-picks'],pinned:true},
       {id:'sgGrade',title:'🎓 Graded evidence',hint:'reports with a track record',ids:['scan-strongest','scan-fade','scan-climbers','scan-gradecheck']},
-      {id:'sgAct',title:'🔎 Today’s action',hint:'what stood out this session',ids:['scan-sharp','scan-unusual','scan-surge','scan-gap']},
-      {id:'sgBuild',title:'🌱 Building quietly',hint:'patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
-      {id:'sgComp',title:'🧩 Composite',hint:'every signal at once',ids:['scan-allsig']}
+      {id:'sgAct',title:'🔎 Today’s action',hint:'not graded \u00b7 what stood out this session',ids:['scan-sharp','scan-unusual','scan-surge','scan-gap']},
+      {id:'sgBuild',title:'🌱 Building quietly',hint:'not graded \u00b7 patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
+      {id:'sgComp',title:'🧩 Composite',hint:'not graded \u00b7 every signal at once',ids:['scan-allsig']}
     ];
     let st={}; try{st=JSON.parse(localStorage.getItem('asxScreener.scanGroups.v1'))||{};}catch(e){}
     const wrap=document.createElement('div'); wrap.id='scanGroups';
     let lastBody=null;
     GROUPS.forEach(g=>{
       const sec=document.createElement('div'); sec.className='scan-group'+(g.pinned?' sg-pinned':'');
-      const open=g.pinned||st[g.id]!==0;
+      const open=g.pinned||(st[g.id]!=null?st[g.id]===1:(g.id==='sgGrade'));   /* v862: graded open, pattern-search groups folded until opened */
       const h=document.createElement('div'); h.className='sg-h';
       h.innerHTML='<span>'+g.title+'<span class="sg-hint">'+g.hint+'</span></span>'+(g.pinned?'':'<span class="sg-ch">'+(open?'▾':'▸')+'</span>');
       const body=document.createElement('div'); body.className='sg-b'+((g.pinned||g.id==='sgGrade')?' sg-trio':''); if(!open)body.style.display='none'; // v557: three graded tiles sit three-across like the trio — no orphan

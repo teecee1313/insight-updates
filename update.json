@@ -1,6 +1,5 @@
 {
-  "version": "2026.09.09-861-open",
+  "version": "2026.09.12-862-open",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "\ud83d\udcf1 Strongest Today fits the phone. The table now swipes sideways on small screens instead of clipping its right-hand columns, says plainly when evidence badges and PN Edge are still being checked (ranking by score until then), and stops printing a share\u2019s name when it\u2019s just the ticker repeated.",
-  "date": "2026-09-09"
+  "notes": "🧭 Fewer doors. Every pick now carries a one-line ‘Why:’ — what fired, and what its evidence tier means in plain words (the same sentence the nightly email uses). The three pattern-search scan groups (Today’s action, Building quietly, Composite) now start folded and say ‘not graded’ — the graded reports and your Start-your-day trio stay open. Tap any group heading to open it; your choice is remembered."
 }
