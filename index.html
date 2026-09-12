@@ -790,6 +790,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 
 body.theme-switching *,body.theme-switching *::before,body.theme-switching *::after{transition:none!important;animation:none!important;}
 </style>
+<style id="liteMode">#liteCards{display:none}body.lite-mode #liteCards{display:contents}body.lite-mode #starterCards,body.lite-mode #quickPlansRow,body.lite-mode #whatsNewCard,body.lite-mode .simple-more{display:none!important}</style>
 </head>
 <body>
 <div id="bgInd" title="Drag to move · tap ✕ to hide"><div class="bgspin"></div><span class="bgtxt" id="bgIndTxt">Loading…</span><span class="bg-x" onclick="event.stopPropagation();bgHide();" title="Hide">✕</span></div>
@@ -1455,6 +1456,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
   <!-- SIMPLE / ADVANCED toggle -->
   <div id="modeBar">
     <div id="modeSeg">
+      <button id="modeLiteBtn" class="mode-seg-btn" onclick="setAppMode('lite')" title="Six screens, nothing else — the brief, Strongest Today, tonight’s picks, PN Edge, quiet climbers and your portfolio.">🌱 Simple</button>
       <button id="modeSimpleBtn" class="mode-seg-btn on" onclick="setAppMode('simple')">🙂 Starter</button>
       <button id="modeAdvBtn" class="mode-seg-btn" onclick="setAppMode('advanced')">⚙ Advanced</button>
     </div>
@@ -1481,6 +1483,36 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     </div>
     <div class="simple-grid">
       <div id="simpleClosedBanner"><span class="sm-dot"></span>ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
+      <div id="liteCards">
+      <div class="simple-section-label">TONIGHT'S ANSWERS</div>
+      <button class="simple-card sc-gold" onclick="strongestTodayReport()">
+        <span class="sc-emoji">🏆</span>
+        <span class="sc-title">Strongest Today<span class="sc-count" id="cnt-top20"></span></span>
+        <span class="sc-sub">Proven evidence first, then PN Edge, then score · a ranking, not a buy list</span>
+      </button>
+      <button class="simple-card sc-green sc-always-on" onclick="showDailyPicks()">
+        <span class="sc-emoji">🎯</span>
+        <span class="sc-title">Tonight's picks</span>
+        <span class="sc-sub">The tested rules: 20% trail, $0.20–$0.99, 2% dip, score 7+ · practice money</span>
+      </button>
+      <button class="simple-card sc-green" onclick="simpleRun('smart')">
+        <span class="sc-emoji">💰</span>
+        <span class="sc-title">PN Edge<span class="sc-count" id="cnt-smart"></span></span>
+        <span class="sc-sub">Only PROMISING or SOLID lines with a positive measured edge</span>
+      </button>
+      <button class="simple-card sc-amber sc-always-on" onclick="simpleQuietClimbers()">
+        <span class="sc-emoji">🕵️</span>
+        <span class="sc-title">Quiet climbers</span>
+        <span class="sc-sub">Up 3+ days on heavy volume, no price-sensitive news · an estimate</span>
+      </button>
+      <div class="simple-section-label">MINE</div>
+      <button class="simple-card sc-blue sc-always-on" onclick="simpleRun('portfolio')">
+        <span class="sc-emoji">💼</span>
+        <span class="sc-title">My portfolio</span>
+        <span class="sc-sub">Practice trades, performance and the auto-pilot switch</span>
+      </button>
+      </div>
+      <div id="starterCards">
       <div class="simple-section-label">TODAY'S MARKET</div>
       <button class="simple-card sc-gold" onclick="simpleRun('top20')">
         <span class="sc-emoji">🏆</span>
@@ -1523,6 +1555,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
         <span class="sc-title">Research further <span data-research-count style="font-size:12px;color:var(--green);"></span></span>
         <span class="sc-sub">Shares you've parked to look into later</span>
       </button>
+    </div>
     </div>
     <div id="simpleDataDate"></div>
     <div id="simpleStatus" class="simple-status"></div>
@@ -1741,7 +1774,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.12-863-open"></script>
+<script src="app.js?v=2026.09.12-864-open"></script>
 
 
 

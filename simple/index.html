@@ -790,6 +790,7 @@ body.theme-light .tblwrap th:nth-child(3),body.theme-light .tblwrap td:nth-child
 
 body.theme-switching *,body.theme-switching *::before,body.theme-switching *::after{transition:none!important;animation:none!important;}
 </style>
+<style id="liteMode">#liteCards{display:none}body.lite-mode #liteCards{display:contents}body.lite-mode #starterCards,body.lite-mode #quickPlansRow,body.lite-mode #whatsNewCard,body.lite-mode .simple-more{display:none!important}</style>
 <style id="simpleLock">#modeBar,.simple-more,#quickPlansRow,#quickPlansRowAdv{display:none!important}.simple-load-hint{font-size:12px}</style>
 </head>
 <body>
@@ -854,7 +855,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     <span>Insight<span style="color:var(--gold)"> Trading</span></span>
     <span style="font-size:9px;font-weight:600;letter-spacing:2px;color:var(--muted);">MARKET ANALYSER</span>
     <span id="appVer" style="font-size:9px;color:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;"></span>
-    <span id="simpleTag" title="Insight Simple — the six essentials, nothing else. Ideas or anything confusing? Use the feedback link." style="font-size:8px;font-weight:800;letter-spacing:1px;color:#5fd18a;border:1px solid #5fd18a;border-radius:4px;padding:1px 6px;background:rgba(95,209,138,.10);white-space:nowrap;">🌱 SIMPLE · <a href="mailto:tonycotton13@gmail.com?subject=Insight%20Simple%20feedback%20v2026.09.12-863" style="color:#5fd18a;">✉ feedback</a></span>
+    <span id="simpleTag" title="Insight Simple — the six essentials, nothing else. Ideas or anything confusing? Use the feedback link." style="font-size:8px;font-weight:800;letter-spacing:1px;color:#5fd18a;border:1px solid #5fd18a;border-radius:4px;padding:1px 6px;background:rgba(95,209,138,.10);white-space:nowrap;">🌱 SIMPLE · <a href="mailto:tonycotton13@gmail.com?subject=Insight%20Simple%20feedback%20v2026.09.12-864" style="color:#5fd18a;">✉ feedback</a></span>
   </div>
   <div class="hbadge" id="exchBadge">🇦🇺 ASX end-of-day screener</div>
   <div class="notice" id="notice" style="display:none">—</div>
@@ -1457,6 +1458,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
   <!-- SIMPLE / ADVANCED toggle -->
   <div id="modeBar">
     <div id="modeSeg">
+      <button id="modeLiteBtn" class="mode-seg-btn" onclick="setAppMode('lite')" title="Six screens, nothing else — the brief, Strongest Today, tonight’s picks, PN Edge, quiet climbers and your portfolio.">🌱 Simple</button>
       <button id="modeSimpleBtn" class="mode-seg-btn on" onclick="setAppMode('simple')">🙂 Starter</button>
       <button id="modeAdvBtn" class="mode-seg-btn" onclick="setAppMode('advanced')">⚙ Advanced</button>
     </div>
@@ -1483,6 +1485,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
     </div>
     <div class="simple-grid">
       <div id="simpleClosedBanner"><span class="sm-dot"></span>ASX is currently <strong>closed</strong> — data shown is from the last trading session.</div>
+      <div id="liteCards">
       <div class="simple-section-label">TONIGHT'S ANSWERS</div>
       <button class="simple-card sc-gold" onclick="strongestTodayReport()">
         <span class="sc-emoji">🏆</span>
@@ -1510,6 +1513,51 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
         <span class="sc-title">My portfolio</span>
         <span class="sc-sub">Practice trades, performance and the auto-pilot switch</span>
       </button>
+      </div>
+      <div id="starterCards">
+      <div class="simple-section-label">TODAY'S MARKET</div>
+      <button class="simple-card sc-gold" onclick="simpleRun('top20')">
+        <span class="sc-emoji">🏆</span>
+        <span class="sc-title">Today's top scorers<span class="sc-count" id="cnt-top20"></span></span>
+        <span class="sc-sub">Proven evidence first, then score · <i>Top 20 to Watch</i></span>
+      </button>
+      <button class="simple-card sc-green" onclick="simpleRun('smart')">
+        <span class="sc-emoji">🎯</span>
+        <span class="sc-title">Best evidence today<span class="sc-count" id="cnt-smart"></span></span>
+        <span class="sc-sub">Proven signals only · <i>Best Evidence</i></span>
+      </button>
+      <button class="simple-card sc-red" onclick="simpleRun('surge')">
+        <span class="sc-emoji">🔥</span>
+        <span class="sc-title">What's moving on big volume?<span class="sc-count" id="cnt-surge"></span></span>
+        <span class="sc-sub">Unusual trading activity today · <i>Volume Surge</i></span>
+      </button>
+      <button class="simple-card sc-amber" onclick="simpleMarketPulse()">
+        <span class="sc-emoji">📊</span>
+        <span class="sc-title">Market today</span>
+        <span class="sc-sub">Breadth snapshot · how the market is trading right now</span>
+      </button>
+      <button class="simple-card sc-amber" onclick="simpleRun('recovery')">
+        <span class="sc-emoji">↩️</span>
+        <span class="sc-title">Recovery watch<span class="sc-count" id="cnt-recovery"></span></span>
+        <span class="sc-sub">Fallen shares stabilising on volume · potential reversals</span>
+      </button>
+      <div class="simple-section-label">MY LISTS</div>
+      <button class="simple-card sc-blue sc-always-on" onclick="simpleRun('portfolio')">
+        <span class="sc-emoji">💼</span>
+        <span class="sc-title">My portfolio</span>
+        <span class="sc-sub">Your practice trades &amp; performance</span>
+      </button>
+      <button class="simple-card sc-plain sc-always-on" onclick="simpleRun('watchlist')">
+        <span class="sc-emoji">⭐</span>
+        <span class="sc-title">My watchlist</span>
+        <span class="sc-sub">Shares you've starred to follow</span>
+      </button>
+      <button class="simple-card sc-green sc-always-on" onclick="renderResearch()">
+        <span class="sc-emoji">🔬</span>
+        <span class="sc-title">Research further <span data-research-count style="font-size:12px;color:var(--green);"></span></span>
+        <span class="sc-sub">Shares you've parked to look into later</span>
+      </button>
+    </div>
     </div>
     <div id="simpleDataDate"></div>
     <div id="simpleStatus" class="simple-status"></div>
@@ -1728,7 +1776,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.12-863-simple"></script>
+<script src="app.js?v=2026.09.12-864-simple"></script>
 
 
 

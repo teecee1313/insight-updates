@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.12-863-open';
+const APP_VERSION='2026.09.12-864-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -17909,15 +17909,20 @@ function toggleSidebar(){
 // ── Simple / Advanced mode ──────────────────────────────────────────────────
 const APP_MODE_KEY='asxScreener.appMode.v1';
 function setAppMode(mode){
-  const simple = mode==='simple';
+  const lite = mode==='lite';                       /* v864: 🌱 Simple — Starter's page, six screens only */
+  const simple = mode==='simple' || lite;
   document.body.classList.toggle('simple-mode', simple);
+  document.body.classList.toggle('lite-mode', lite);
+  try{ const lb=document.getElementById('modeLiteBtn'); if(lb)lb.classList.toggle('on',lite); }catch(_){}
   try{ if(simple&&typeof _todayRender==='function')_todayRender(); }catch(_){}
   try{ if(simple)_starterMarket(); }catch(_){}  /* v850: Starter shows the product */
   const sb=document.getElementById('modeSimpleBtn'), ab=document.getElementById('modeAdvBtn');
-  if(sb)sb.classList.toggle('on',simple);
+  if(sb)sb.classList.toggle('on',simple&&!lite);
   if(ab)ab.classList.toggle('on',!simple);
   const hint=document.getElementById('modeHint');
-  if(hint)hint.textContent = simple
+  if(hint)hint.textContent = lite
+    ? 'Simple — six screens, nothing else: the brief, Strongest Today, tonight\u2019s picks, PN Edge, quiet climbers, your portfolio.'
+    : simple
     ? 'Starter — the essentials, complete on their own. Advanced adds every tool.'
     : 'Advanced view — all scans, filters and settings.';
   try{localStorage.setItem(APP_MODE_KEY,mode);}catch(_){}
@@ -19681,3 +19686,28 @@ function _groupScans(){
 })();
 _groupScans();
 syncP();syncV();
+
+// ── make_simple: 🕵️ Quiet climbers — reads the server's nightly cache (/foot) ──
+async function simpleQuietClimbers(){
+  const st=document.getElementById('simpleStatus'); if(st)st.textContent='Working\u2026';
+  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const px=n=>(n==null?'\u2014':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+  let j=null, err='';
+  try{ const r=await fetch(DATA_PROXY+'/foot?exch=ASX'); j=await r.json(); if(!r.ok||!j||j.error) err=(j&&j.error)||('the server replied '+r.status); }
+  catch(e){ err=String(e&&e.message||e); }
+  if(st)st.textContent='';
+  const cfg=(j&&j.cfg)||{STREAK_MIN:3,SURGE_MIN:3,QUIET_DAYS:5};
+  let body;
+  if(err){ body='<p style="color:var(--muted)">Could not reach the server: '+esc(err)+'</p>'; }
+  else if(!j.ok){ body='<p style="color:var(--muted)">\u23f3 '+esc(j.held||'not available yet')+'.</p>'; }
+  else if(!(j.rows||[]).length){ body='<p style="color:var(--muted)">None for '+esc(j.day)+'. Most strong runs come with news; a quiet one is rare by design.</p>'; }
+  else{
+    body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px">Run</th><th style="padding:6px 8px">Volume</th><th style="padding:6px 8px;text-align:right">Run gain</th></tr>'
+      + j.rows.map(r=>'<tr style="border-top:1px solid var(--border2)"><td style="padding:7px 8px;font-weight:800">'+esc(r.t)+'</td><td style="padding:7px 8px">'+px(r.px)+'</td><td style="padding:7px 8px">up '+r.streak+(r.streakMax?'+':'')+' days</td><td style="padding:7px 8px">'+Math.round(r.surge*100)+'% of avg</td><td style="padding:7px 8px;text-align:right;color:var(--green)">+'+(+r.gain).toFixed(1)+'%</td></tr>').join('')
+      + '</table>';
+  }
+  const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px">Shares up '+cfg.STREAK_MIN+'+ closes in a row on \u2265'+Math.round(cfg.SURGE_MIN*100)+'% of their own 20-day average volume, with <b>no announcement the ASX marked price-sensitive</b> in the last '+cfg.QUIET_DAYS+' trading days'+(j&&j.quietStart?(' (since '+esc(j.quietStart)+')'):'')+'.</p>';
+  const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">A pattern estimate from price and volume only. It is <b>not</b> a claim that anyone traded on inside information, and not advice \u2014 always open the share\u2019s announcements yourself before acting.</p>';
+  window._modalLabel='\ud83d\udd75\ufe0f Quiet climbers'; window._modalType='quiet';
+  showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','\ud83d\udd75\ufe0f Quiet climbers');
+}

@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.12-863-simple';
+const APP_VERSION='2026.09.12-864-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -17910,16 +17910,21 @@ function toggleSidebar(){
 // ── Simple / Advanced mode ──────────────────────────────────────────────────
 const APP_MODE_KEY='SIMPLE_asxScreener.appMode.v1';
 function setAppMode(mode){
-  if(window._SIMPLE_LOCK)mode='simple';   /* make_simple: Starter is the whole product here */
-  const simple = mode==='simple';
+  if(window._SIMPLE_LOCK)mode='lite';   /* make_simple: the Simple tab is the whole product here */
+  const lite = mode==='lite';                       /* v864: 🌱 Simple — Starter's page, six screens only */
+  const simple = mode==='simple' || lite;
   document.body.classList.toggle('simple-mode', simple);
+  document.body.classList.toggle('lite-mode', lite);
+  try{ const lb=document.getElementById('modeLiteBtn'); if(lb)lb.classList.toggle('on',lite); }catch(_){}
   try{ if(simple&&typeof _todayRender==='function')_todayRender(); }catch(_){}
   try{ if(simple)_starterMarket(); }catch(_){}  /* v850: Starter shows the product */
   const sb=document.getElementById('modeSimpleBtn'), ab=document.getElementById('modeAdvBtn');
-  if(sb)sb.classList.toggle('on',simple);
+  if(sb)sb.classList.toggle('on',simple&&!lite);
   if(ab)ab.classList.toggle('on',!simple);
   const hint=document.getElementById('modeHint');
-  if(hint)hint.textContent = simple
+  if(hint)hint.textContent = lite
+    ? 'Simple — six screens, nothing else: the brief, Strongest Today, tonight\u2019s picks, PN Edge, quiet climbers, your portfolio.'
+    : simple
     ? 'Starter — the essentials, complete on their own. Advanced adds every tool.'
     : 'Advanced view — all scans, filters and settings.';
   try{localStorage.setItem(APP_MODE_KEY,mode);}catch(_){}
