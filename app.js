@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.12-867-open';
+const APP_VERSION='2026.09.13-868-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -3763,6 +3763,12 @@ function _strongStar(ev,ticker){
 }
 function _strongestTableHTML(limit,starterHeader){
     var rows=allData.slice();
+    /* v868: the radar tiles filter THIS table too (Tony, 13 Sep: "radar not
+       filtering"). The tiles narrow the pool BEFORE ranking, using the same
+       _statPass predicate every other view uses, so all views filter
+       identically. Unfiltered behaviour is unchanged. */
+    var _tot=rows.length, _filt=false;
+    try{ if(typeof _statAnyOn==='function'&&_statAnyOn()){ rows=rows.filter(_statPass); _filt=true; } }catch(e){}
     var tR={'SOLID':2,'PROMISING':1};
     rows.sort(function(a,b){
       var ta=tR[a._evTier]||0, tb=tR[b._evTier]||0; if(tb!==ta)return tb-ta;
@@ -3771,11 +3777,14 @@ function _strongestTableHTML(limit,starterHeader){
     });
     rows=rows.slice(0,limit||50);
     var _anyTier=rows.some(function(r){return !!r._evTier;});
+    var _emptyNote=(_filt&&!rows.length)?'<div style="font-size:12px;color:var(--muted);padding:14px 4px;">Nothing matches this combination of radar filters today. <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 Clear the filters</a> to see the full table.</div>':'';
     var out=(starterHeader
       ? '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
-        +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 the '+(limit||50)+' strongest of '+allData.length.toLocaleString()+'</span>'
+        +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 '+(_filt?(rows.length.toLocaleString()+' matching your radar filters (of '+_tot.toLocaleString()+')'):('the '+(limit||50)+' strongest of '+_tot.toLocaleString()))+'</span>'
+        +(_filt?'<a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="font-size:10px;color:var(--gold);font-weight:700;">\u2715 clear filters</a>':'')
         +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
-      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">The '+(limit||50)+' strongest of '+allData.length.toLocaleString()+' \u2014 proven evidence first, then measured PN Edge, then score. Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
+      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score. Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
+      +_emptyNote
       +((!_anyTier)?'<div style="font-size:10px;color:var(--gold);margin:0 0 6px;">\u23f3 Evidence badges and PN Edge appear once today\u2019s evidence check finishes \u2014 until then this ranks by score. On a phone, swipe the table sideways for every column.</div>':'')
       +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
       +'<table style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">'
@@ -11465,6 +11474,16 @@ function _applyStatFilters(){
   if(window._modalType==='top20'&&_sm&&_sm.style.display!=='none'){
     try{ showTop10Panel(window._lastTop10||[]); }catch(e){}
   }
+  /* v868: the Starter market table and the \ud83c\udfc6 Strongest Today report follow
+     the radar tiles too. Before this they ranked ALL shares and never redrew
+     on a tile tap \u2014 the counts updated but the table did not (Tony, 13 Sep:
+     "radar not filtering"). */
+  try{ if(typeof _starterMarket==='function')_starterMarket(); }catch(e){}
+  try{
+    if(window._modalType==='strongest'&&_sm&&_sm.style.display!=='none'){
+      var _ms=_sm.querySelector('.modal-scroll'); if(_ms)_ms.innerHTML=_strongestTableHTML(50,false);
+    }
+  }catch(e){}
   try{ render&&render(); }catch(e){}
   try{ statsBar&&statsBar(); }catch(e){}
 }

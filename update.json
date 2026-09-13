@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.12-867-open",
+  "version": "2026.09.13-868",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🌐 The whole app in your language. Pick a language in the menu and the entire app translates live — every screen, table, report and message, following as they draw — with the lessons using their proper translation wherever one exists. It needs an internet connection; ticker codes and numbers stay as they are. Choose English to switch it off."
+  "notes": "🎯 The radar now filters the whole Starter screen. Tap radar tiles (Vol ≥200%, Up 2+ Days, Vol Record and the rest) and the Strongest Today table narrows to only the shares that match — with an honest count and a one-tap ✕ clear filters. Works in the 🏆 Strongest Today report too. Tiles still stack, and clearing them brings the full 50 back."
 }

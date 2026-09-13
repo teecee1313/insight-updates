@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.12-867",
+  "version": "2026.09.13-868",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "Insight Simple 2026.09.12-867 — six screens: Starter Today, Strongest Today, Tonight's picks, PN Edge, Quiet climbers and your portfolio. Anything confusing: use the ✉ feedback link top-left."
+  "notes": "🎯 The radar now filters the whole Starter screen. Tap radar tiles (Vol ≥200%, Up 2+ Days, Vol Record and the rest) and the Strongest Today table narrows to only the shares that match — with an honest count and a one-tap ✕ clear filters. Works in the 🏆 Strongest Today report too. Tiles still stack, and clearing them brings the full 50 back."
 }
