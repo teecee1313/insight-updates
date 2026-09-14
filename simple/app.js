@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.14-870-simple';
+const APP_VERSION='2026.09.14-871-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -18748,9 +18748,23 @@ async function serverReportCheck(){
   for(var i=0;i<_REP_OPEN.length;i++){
     var k=_REP_OPEN[i], a=(mine[k]&&mine[k].tickers)||[], b=(j.picks[k]&&j.picks[k].tickers)||[];
     var why='';
-    if(a.length!==b.length)why='this device '+a.length+', server '+b.length;
-    else{
-      for(var p=0;p<a.length;p++){ if(a[p]!==b[p]){ why='differs at position '+(p+1)+': '+a[p]+' here, '+b[p]+' there'; break; } }
+    // v871 — a ✗ that only says the counts is a riddle; name the shares.
+    // Set difference first: which tickers does each side hold that the other
+    // doesn't? If the sets are identical but the order differs, say THAT —
+    // same verdicts in a different order is a tie-break question, not a rule
+    // difference, and deserves to be read as the smaller problem it is.
+    var _sa={},_sb={},_q;
+    for(_q=0;_q<a.length;_q++)_sa[a[_q]]=1;
+    for(_q=0;_q<b.length;_q++)_sb[b[_q]]=1;
+    var onlyA=[],onlyB=[];
+    for(_q=0;_q<a.length;_q++)if(!_sb[a[_q]])onlyA.push(a[_q]);
+    for(_q=0;_q<b.length;_q++)if(!_sa[b[_q]])onlyB.push(b[_q]);
+    if(onlyA.length||onlyB.length){
+      why='this device '+a.length+', server '+b.length;
+      if(onlyA.length)why+='<br>only here: '+onlyA.slice(0,6).join(', ')+(onlyA.length>6?' +'+(onlyA.length-6)+' more':'');
+      if(onlyB.length)why+='<br>only server: '+onlyB.slice(0,6).join(', ')+(onlyB.length>6?' +'+(onlyB.length-6)+' more':'');
+    }else{
+      for(var p=0;p<a.length;p++){ if(a[p]!==b[p]){ why='same '+a.length+' shares, different ORDER — first differs at position '+(p+1)+' ('+a[p]+' here, '+b[p]+' there)'; break; } }
     }
     // The one honest exception: without today's opening prices this device
     // cannot find a gap at all, and the server can. Say which, rather than

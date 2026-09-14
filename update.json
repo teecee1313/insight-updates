@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.14-870",
+  "version": "2026.09.14-871",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🇦🇺 ASX only, everywhere — the download list, welcome screen, install name and every translation now say what's true: built and proven on the ASX. Plus a fairer 🔬 server check: it now compares only shares this device fully knows (deep history + a volume average), so both sides judge with the same information and any disagreement is a real one, not missing data."
+  "notes": "🔬 The server check now explains itself: when a report disagrees, it names the exact shares each side found that the other didn't — and when both found the same shares in a different order, it says that instead. Same fair 250-day sample as before; nothing on screen changes."
 }
