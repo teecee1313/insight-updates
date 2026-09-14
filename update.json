@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.14-874",
+  "version": "2026.09.15-875",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🪜 Pullback now lists its finds in one fixed order everywhere — when two shares tie on score, their codes break the tie — so the 🔬 server check can agree with the server position for position."
+  "notes": "🔬 The server-check's data probe now also compares highs and lows (not just closes and volumes), and when two shares come back in a different ORDER it now checks their data too — so an order difference finally tells you whether it's stale data on this device or a genuine rule difference, instead of leaving it a riddle."
 }
