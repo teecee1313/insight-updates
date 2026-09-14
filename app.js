@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.14-872-open';
+const APP_VERSION='2026.09.14-873-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -18787,8 +18787,9 @@ async function serverReportCheck(){
   var _diag='';
   if(_diagT.length){
     say('Comparing '+sample.length+' shares… now checking the data behind the disagreements…');
-    var _rc=function(r){return (r&&r.c!=null)?r.c:(r?r.close:null);};
-    var _rv=function(r){return (r&&r.v!=null)?r.v:(r&&r.vol!=null)?r.vol:(r?r.volume:null);};
+    var _rd=function(r){return r?(r.d||r.dateStamp||r.date||r.Date||null):null;};
+    var _rc=function(r){var x=r?(r.c!=null?r.c:(r.close!=null?r.close:r.Close)):null;x=parseFloat(x);return isFinite(x)?x:null;};
+    var _rv=function(r){var x=r?(r.v!=null?r.v:(r.vol!=null?r.vol:(r.volume!=null?r.volume:r.Volume))):null;x=parseFloat(x);return isFinite(x)?x:null;};
     var _lines=[];
     for(var _t=0;_t<Math.min(3,_diagT.length);_t++){
       var tk=_diagT[_t], line='';
@@ -18801,11 +18802,11 @@ async function serverReportCheck(){
         if(!_dsh||!_srv||!_srv.length){ line=tk+': could not fetch the server\'s stored days to compare.'; }
         else{
           var _map={},_r,_d;
-          for(_x=0;_x<_srv.length;_x++){_r=_srv[_x];if(_r&&_r.d&&_rc(_r)>0)_map[_r.d]=_r;}
+          for(_x=0;_x<_srv.length;_x++){_r=_srv[_x];_d=_rd(_r);if(_d&&_rc(_r)>0)_map[_d]=_r;}
           var _mine=_dsh.series||[],_shared=0,_cd=0,_vd=0,_first=null,_lastMine=null,_lastSrv=null;
-          for(_x=0;_x<_srv.length;_x++){_r=_srv[_x];if(_r&&_r.d&&(!_lastSrv||_r.d>_lastSrv))_lastSrv=_r.d;}
+          for(_x=0;_x<_srv.length;_x++){_r=_srv[_x];_d=_rd(_r);if(_d&&(!_lastSrv||_d>_lastSrv))_lastSrv=_d;}
           for(_x=Math.max(0,_mine.length-250);_x<_mine.length;_x++){
-            _r=_mine[_x]; _d=_r&&_r.d; if(!_d||!(_rc(_r)>0))continue;
+            _r=_mine[_x]; _d=_rd(_r); if(!_d||!(_rc(_r)>0))continue;
             if(!_lastMine||_d>_lastMine)_lastMine=_d;
             var _sv=_map[_d]; if(!_sv)continue;
             _shared++;

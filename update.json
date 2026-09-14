@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.14-872",
+  "version": "2026.09.14-873",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🔬 The server check now finishes the detective work itself: for the shares the two sides disagree on, it fetches the server's stored days and compares them with this device's, date by date — then says plainly whether the data differs (different numbers being judged) or the data is identical (a genuine rule difference). Nothing on screen changes."
+  "notes": "🔬 Small fix to yesterday's data check: it now reads the server's stored days in every date format the server uses, so the 'data behind the disagreements' section gives real verdicts instead of 'no shared dates'."
 }
