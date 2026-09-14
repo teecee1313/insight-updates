@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.14-869-simple';
+const APP_VERSION='2026.09.14-870-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -18664,11 +18664,23 @@ const _REP_NAME={allSignals:'📋 All Signals',unusual:'🔥 Unusual Activity',v
 // An even spread across the loaded list, not the first N. The first 300 by
 // ticker are the A's, which on the ASX is mostly tiny miners — a sample that
 // would miss every large, liquid share the floors are there to separate.
-function _repSample(n){
+function _repSample(n,minDays){
+  // v870 — minDays asks for FULLY-INFORMED shares only: at least that many real
+  // closing prices on this device AND a computed volume average. The 🔬 check
+  // uses it so both sides judge with the same information — a share this device
+  // only half-knows can disagree with the server for data reasons, which proves
+  // nothing about the formulas.
   var pool=[],i;
   for(i=0;i<allData.length;i++){
     var s=allData[i];
-    if(s&&Array.isArray(s.series)&&s.series.length>=30&&s.price>0)pool.push(s);
+    if(!(s&&Array.isArray(s.series)&&s.series.length>=30&&s.price>0))continue;
+    if(minDays){
+      if(!s.volCalced)continue;
+      var _c=0,_ser=s.series;
+      for(var _j=0;_j<_ser.length;_j++){ var _cl=_ser[_j]&&(_ser[_j].c!=null?_ser[_j].c:_ser[_j].close); if(_cl>0)_c++; }
+      if(_c<minDays)continue;
+    }
+    pool.push(s);
   }
   if(pool.length<=n)return pool;
   var step=pool.length/n,out=[];
@@ -18702,27 +18714,20 @@ async function serverReportCheck(){
   var say=function(h){ if(el)el.innerHTML=h; };
   if(!Array.isArray(allData)||allData.length<50){ say('Load a market first — there is nothing to compare.'); return; }
   if(!DATA_PROXY){ say('No server address configured.'); return; }
-  var sample=_repSample(300);
+  // v870 — a FAIR test compares only shares this device can fully judge.
+  // The 14 Sep run scored 3 of 10 with every ✗ running in the direction deeper
+  // data explains (server 300 Volume Surge to our 287, server 36 Pullbacks to
+  // our 31…) — because 36 of the 300 sampled shares had no 200-day view here
+  // and some had no volume average. A half-known share can disagree with the
+  // server for data reasons, which proves nothing about the formulas. So the
+  // sample now demands 250+ real closes AND a computed volume average, easing
+  // to 200+ and then to any share only if a device is too shallow to fill the
+  // sample — and the result says which bar was used.
+  var _bar=250, sample=_repSample(300,_bar);
+  if(sample.length<50){ _bar=200; sample=_repSample(300,_bar); }
+  if(sample.length<50){ _bar=0;   sample=_repSample(300); }
   if(sample.length<50){ say('Only '+sample.length+' shares have enough history to compare. Load saved data or run a full load first.'); return; }
   say('Comparing '+sample.length+' shares…');
-  // v507 — measure the sample's history depth HERE, on the exact shares being
-  // compared, so a 🪜 Pullback gap arrives with its own explanation. Both sides
-  // run the identical rule (verified clause-by-clause, 29 July); the rule's
-  // lenient branch passes a share on the 50-day test alone when no 200-day
-  // average exists. The server's pantry is deep, so the strict branch applies
-  // to nearly everything there; shallow downloads here take the lenient branch.
-  // More history = stricter test — which is the whole 42-vs-23 mechanism.
-  var _dep={have200:0,noView:0};
-  try{
-    for(var _di=0;_di<sample.length;_di++){
-      var _ds=sample[_di], _ser=_ds.series||[];
-      var _n=0; for(var _dj=0;_dj<_ser.length;_dj++){ var _dc=_ser[_dj]&&(_ser[_dj].c!=null?_ser[_dj].c:_ser[_dj].close); if(_dc>0)_n++; }
-      if(_n>=200){ _dep.have200++; continue; }
-      // v508: 🪜 is strict on both sides now — nothing passes leniently. What
-      // still matters is how many shares this device simply CANNOT judge.
-      _dep.noView++;
-    }
-  }catch(e){}
   var mine;
   try{ mine=await _repLocal(sample); }catch(e){ say('This device could not run the reports: '+e); return; }
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
@@ -18763,8 +18768,9 @@ async function serverReportCheck(){
     ? '<b style="color:var(--green)">All '+agree+' reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
     : '<b style="color:var(--gold)">'+agree+' of '+_REP_OPEN.length+' agree</b> on '+sample.length+' real shares.';
   var _depLine='<div style="margin-top:5px;font-size:9px;color:var(--dim);line-height:1.5;">'
-    +'📏 depth here: <b>'+_dep.have200+'</b> of '+sample.length+' have 200+ days on this device'
-    +(_dep.noView?' · 🪜 needs a 200-day view and <b>'+_dep.noView+'</b> don\'t have one here yet — this device cannot judge them, so the server, which holds the full year, may rightly find pullbacks this device cannot see':'')
+    +(_bar>0
+      ? '⚖ fair test: every one of the '+sample.length+' shares compared has <b>'+_bar+'+ days</b> of history and a volume average on this device, so both sides judged with the same information — any ✗ above is a real difference in the rules, not missing data. (Shares this device only half-knows were left out; the server always holds the full year.)'
+      : '📏 this device is too shallow to fill a fully-informed sample, so half-known shares were included — a ✗ above may just mean the server, which holds the full year, could judge shares this device cannot. ⬇ Download all data, then run this again for a fair test.')
     +'</div>';
   say(head+_depLine+'<div style="margin-top:6px">'+rows.join('')+'</div>'+
       '<div style="color:var(--dim);margin-top:5px">Server had opening prices for '+(j.bars||0)+
