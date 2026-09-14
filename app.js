@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.14-871-open';
+const APP_VERSION='2026.09.14-872-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -18742,7 +18742,7 @@ async function serverReportCheck(){
   }catch(e){ say('Could not reach the server: '+e); return; }
   if(!j||!j.ok||!j.picks){ say('The server did not send an answer it could stand behind.'); return; }
 
-  var rows=[],agree=0;
+  var rows=[],agree=0,_diagT=[];
   for(var i=0;i<_REP_OPEN.length;i++){
     var k=_REP_OPEN[i], a=(mine[k]&&mine[k].tickers)||[], b=(j.picks[k]&&j.picks[k].tickers)||[];
     var why='';
@@ -18761,6 +18761,8 @@ async function serverReportCheck(){
       why='this device '+a.length+', server '+b.length;
       if(onlyA.length)why+='<br>only here: '+onlyA.slice(0,6).join(', ')+(onlyA.length>6?' +'+(onlyA.length-6)+' more':'');
       if(onlyB.length)why+='<br>only server: '+onlyB.slice(0,6).join(', ')+(onlyB.length>6?' +'+(onlyB.length-6)+' more':'');
+      for(_q=0;_q<onlyB.length;_q++)if(_diagT.indexOf(onlyB[_q])<0)_diagT.push(onlyB[_q]);
+      for(_q=0;_q<onlyA.length;_q++)if(_diagT.indexOf(onlyA[_q])<0)_diagT.push(onlyA[_q]);
     }else{
       for(var p=0;p<a.length;p++){ if(a[p]!==b[p]){ why='same '+a.length+' shares, different ORDER — first differs at position '+(p+1)+' ('+a[p]+' here, '+b[p]+' there)'; break; } }
     }
@@ -18776,6 +18778,51 @@ async function serverReportCheck(){
     rows.push('<div style="margin:2px 0">'+(why?'<span style="color:#ff9caa">✗</span> ':'<span style="color:var(--green)">✓</span> ')+
       _REP_NAME[k]+' <span style="color:var(--dim)">('+a.length+')</span>'+(why?'<br><span style="color:var(--dim);padding-left:14px">'+why+'</span>':'')+'</div>');
   }
+  // v872 — settle data-vs-rules for the shares the sides disagree on. Fetch
+  // the server's stored series for up to three of them and diff it against
+  // this device's, date by date, over the shared window. Identical numbers on
+  // both sides = the disagreement is a genuine rule difference. Different
+  // numbers = the sides are judging different data (an adjusted or repaired
+  // day), and the rules were never on trial.
+  var _diag='';
+  if(_diagT.length){
+    say('Comparing '+sample.length+' shares… now checking the data behind the disagreements…');
+    var _rc=function(r){return (r&&r.c!=null)?r.c:(r?r.close:null);};
+    var _rv=function(r){return (r&&r.v!=null)?r.v:(r&&r.vol!=null)?r.vol:(r?r.volume:null);};
+    var _lines=[];
+    for(var _t=0;_t<Math.min(3,_diagT.length);_t++){
+      var tk=_diagT[_t], line='';
+      try{
+        var _dsh=null;
+        for(var _x=0;_x<sample.length;_x++)if(sample[_x].ticker===tk){_dsh=sample[_x];break;}
+        var _hr=await _fetchTO(DATA_PROXY.replace(/\/+$/,'')+'/history/series/'+encodeURIComponent(currentExch)+'/'+encodeURIComponent(tk)+'?days=365',{},8000);
+        var _hj=_hr&&_hr.ok?await _hr.json():null;
+        var _srv=(_hj&&_hj.ok===true&&Array.isArray(_hj.rows))?_hj.rows:null;
+        if(!_dsh||!_srv||!_srv.length){ line=tk+': could not fetch the server\'s stored days to compare.'; }
+        else{
+          var _map={},_r,_d;
+          for(_x=0;_x<_srv.length;_x++){_r=_srv[_x];if(_r&&_r.d&&_rc(_r)>0)_map[_r.d]=_r;}
+          var _mine=_dsh.series||[],_shared=0,_cd=0,_vd=0,_first=null,_lastMine=null,_lastSrv=null;
+          for(_x=0;_x<_srv.length;_x++){_r=_srv[_x];if(_r&&_r.d&&(!_lastSrv||_r.d>_lastSrv))_lastSrv=_r.d;}
+          for(_x=Math.max(0,_mine.length-250);_x<_mine.length;_x++){
+            _r=_mine[_x]; _d=_r&&_r.d; if(!_d||!(_rc(_r)>0))continue;
+            if(!_lastMine||_d>_lastMine)_lastMine=_d;
+            var _sv=_map[_d]; if(!_sv)continue;
+            _shared++;
+            var mc=_rc(_r),sc=_rc(_sv);
+            if(mc>0&&sc>0&&Math.abs(mc-sc)/sc>0.005){_cd++;if(!_first||_d<_first)_first=_d;}
+            var mv=_rv(_r),sv2=_rv(_sv);
+            if(mv>0&&sv2>0&&Math.abs(mv-sv2)/sv2>0.02){_vd++;if(!_first||_d<_first)_first=_d;}
+          }
+          if(!_shared)line=tk+': no shared dates to compare (here to '+(_lastMine||'?')+', server to '+(_lastSrv||'?')+').';
+          else if(!_cd&&!_vd)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days — this disagreement is a genuine rule difference.';
+          else line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
+        }
+      }catch(e){ line=tk+': data check failed ('+e+').'; }
+      if(line)_lines.push(line);
+    }
+    if(_lines.length)_diag='<div style="margin-top:6px;font-size:9px;line-height:1.6;color:var(--muted)"><b>🔎 the data behind the disagreements:</b><br>'+_lines.join('<br>')+'</div>';
+  }
   var head=(agree===_REP_OPEN.length)
     ? '<b style="color:var(--green)">All '+agree+' reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
     : '<b style="color:var(--gold)">'+agree+' of '+_REP_OPEN.length+' agree</b> on '+sample.length+' real shares.';
@@ -18784,7 +18831,7 @@ async function serverReportCheck(){
       ? '⚖ fair test: every one of the '+sample.length+' shares compared has <b>'+_bar+'+ days</b> of history and a volume average on this device, so both sides judged with the same information — any ✗ above is a real difference in the rules, not missing data. (Shares this device only half-knows were left out; the server always holds the full year.)'
       : '📏 this device is too shallow to fill a fully-informed sample, so half-known shares were included — a ✗ above may just mean the server, which holds the full year, could judge shares this device cannot. ⬇ Download all data, then run this again for a fair test.')
     +'</div>';
-  say(head+_depLine+'<div style="margin-top:6px">'+rows.join('')+'</div>'+
+  say(head+_depLine+'<div style="margin-top:6px">'+rows.join('')+'</div>'+_diag+
       '<div style="color:var(--dim);margin-top:5px">Server had opening prices for '+(j.bars||0)+
       ' shares and graded '+(j.graded||0)+'. Nothing on screen changed — this is only a comparison.</div>');
 }
