@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.14-873-open';
+const APP_VERSION='2026.09.14-874-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -13481,7 +13481,7 @@ function _selPullback(shares){
     try{ const r=watchScore10(s); s.watchScore=r.score; }catch(e){}
     scored.push({s,score});
   }
-  scored.sort((a,b)=>b.score-a.score);
+  scored.sort((a,b)=>b.score-a.score||String(a.ticker).localeCompare(String(b.ticker))); // v874: ticker tie-break, mirrored in w559, so 🔬 sees one order
   return scored;
 }
 

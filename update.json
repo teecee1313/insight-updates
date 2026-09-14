@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.14-873",
+  "version": "2026.09.14-874",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "🔬 Small fix to yesterday's data check: it now reads the server's stored days in every date format the server uses, so the 'data behind the disagreements' section gives real verdicts instead of 'no shared dates'."
+  "notes": "🪜 Pullback now lists its finds in one fixed order everywhere — when two shares tie on score, their codes break the tie — so the 🔬 server check can agree with the server position for position."
 }
