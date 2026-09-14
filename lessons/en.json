@@ -349,7 +349,7 @@
    ],
    [
     "Choosing a saved market",
-    "If you've downloaded more than one exchange (say ASX and NYSE), tapping '📂 Load your saved shares' asks which market to load — each is stored separately and never mixes. With just one saved, it loads straight away."
+    "Normally there's just the ASX, so '📂 Load your saved shares' loads it straight away. If this device also holds saved data from a market that has since been retired, the app asks which to load — each is stored separately and never mixes."
    ],
    [
     "What's changed since last time",

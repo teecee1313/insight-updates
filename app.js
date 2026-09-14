@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.13-868-open';
+const APP_VERSION='2026.09.14-869-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -34,7 +34,7 @@ function _stopPctTxt(buy,stop){ var b=+buy, st=+stop; if(!(b>0&&st>0))return '';
   const manifest={
     name:"Insight Trading — Share Screener",
     short_name:"Insight Trading",
-    description:"Multi-exchange end-of-day share screener.",
+    description:"ASX end-of-day share screener.",
     start_url:".",
     scope:".",
     display:"standalone",
@@ -156,7 +156,7 @@ const I18N={
     sharePrice:"Share Price", daysUp:"Days Up in a Row",
     volSurge:"Volume Surge", absVolume:"Absolute Volume",
     any:"Any", clear:"clear",
-    welcomeTitle:"Welcome to Insight Trading", welcomeSub:"Multi-exchange end-of-day share screener",
+    welcomeTitle:"Welcome to Insight Trading", welcomeSub:"ASX end-of-day share screener",
     qs1Title:"Load a market", qs1Desc:"Pick an exchange and load the day's data — top-left.",
     qs2Title:"Run a report", qs2Desc:"Hit 🎯 Best Evidence Today or a preset for instant picks.",
     qs3Title:"Refine & save", qs3Desc:"Tune filters, star shares to a watchlist, save your My Report.",
@@ -172,7 +172,7 @@ const I18N={
     estimate:"estimate"
   },
   es:{
-    tagline:"Cribador Multi-Bolsa",
+    tagline:"Cribador ASX al Cierre",
     setup:"Configuración", apiKey:"Clave API de EODData", keyLocked:"🔒 bloqueada", keyEditable:"🔓 editable",
     unlockEdit:"🔓 Desbloquear para editar", lockEdit:"🔒 Bloquear edición",
     exchange:"Bolsa", loadData:"⚡ Cargar datos de la bolsa", loadPrompt:"Elija una bolsa y pulse Cargar",
@@ -189,7 +189,7 @@ const I18N={
     sharePrice:"Precio de Acción", daysUp:"Días Seguidos al Alza",
     volSurge:"Aumento de Volumen", absVolume:"Volumen Absoluto",
     any:"Cualquiera", clear:"limpiar",
-    welcomeTitle:"Bienvenido a Insight Trading", welcomeSub:"Cribador de acciones de cierre, multi-bolsa",
+    welcomeTitle:"Bienvenido a Insight Trading", welcomeSub:"Cribador de acciones ASX al cierre",
     qs1Title:"Cargar un mercado", qs1Desc:"Elija una bolsa y cargue los datos del día — arriba a la izquierda.",
     qs2Title:"Ejecutar un informe", qs2Desc:"Pulse Escaneo de Dinero Inteligente o un plan para resultados al instante.",
     qs3Title:"Refinar y guardar", qs3Desc:"Ajuste filtros, marque acciones en una lista, guarde Mi Informe.",
@@ -205,7 +205,7 @@ const I18N={
     estimate:"estimación"
   },
   zh:{
-    tagline:"多交易所筛选器",
+    tagline:"ASX 收盘筛选器",
     setup:"设置", apiKey:"EODData API 密钥", keyLocked:"🔒 已锁定", keyEditable:"🔓 可编辑",
     unlockEdit:"🔓 解锁以编辑密钥", lockEdit:"🔒 锁定密钥编辑",
     exchange:"交易所", loadData:"⚡ 加载交易所数据", loadPrompt:"选择交易所并按加载",
@@ -222,7 +222,7 @@ const I18N={
     sharePrice:"股价", daysUp:"连续上涨天数",
     volSurge:"成交量激增", absVolume:"绝对成交量",
     any:"任意", clear:"清除",
-    welcomeTitle:"欢迎使用 Insight Trading", welcomeSub:"多交易所收盘股票筛选器",
+    welcomeTitle:"欢迎使用 Insight Trading", welcomeSub:"ASX 收盘股票筛选器",
     qs1Title:"加载市场", qs1Desc:"选择交易所并加载当日数据 — 左上角。",
     qs2Title:"运行报告", qs2Desc:"点击聪明钱扫描或预设方案，即时获得标的。",
     qs3Title:"细化并保存", qs3Desc:"调整筛选，收藏股票到观察列表，保存我的报告。",
@@ -238,7 +238,7 @@ const I18N={
     estimate:"估算"
   },
   de:{
-    tagline:"Multi-Börsen-Screener",
+    tagline:"ASX-Tagesschluss-Screener",
     setup:"Einrichtung", apiKey:"EODData API-Schlüssel", keyLocked:"🔒 gesperrt", keyEditable:"🔓 bearbeitbar",
     unlockEdit:"🔓 Zum Bearbeiten entsperren", lockEdit:"🔒 Bearbeitung sperren",
     exchange:"Börse", loadData:"⚡ Börsendaten laden", loadPrompt:"Börse wählen und Laden drücken",
@@ -255,7 +255,7 @@ const I18N={
     sharePrice:"Aktienkurs", daysUp:"Tage in Folge im Plus",
     volSurge:"Volumenanstieg", absVolume:"Absolutes Volumen",
     any:"Beliebig", clear:"löschen",
-    welcomeTitle:"Willkommen bei Insight Trading", welcomeSub:"Multi-Börsen-Aktienscreener (Tagesschluss)",
+    welcomeTitle:"Willkommen bei Insight Trading", welcomeSub:"ASX-Aktienscreener (Tagesschluss)",
     qs1Title:"Markt laden", qs1Desc:"Börse wählen und Tagesdaten laden — oben links.",
     qs2Title:"Bericht ausführen", qs2Desc:"Smart-Money-Scan oder Plan klicken für sofortige Treffer.",
     qs3Title:"Verfeinern & speichern", qs3Desc:"Filter anpassen, Aktien zur Watchlist markieren, Mein Bericht speichern.",
@@ -271,7 +271,7 @@ const I18N={
     estimate:"Schätzung"
   },
   fr:{
-    tagline:"Filtre Multi-Bourses",
+    tagline:"Filtre ASX de Clôture",
     setup:"Configuration", apiKey:"Clé API EODData", keyLocked:"🔒 verrouillée", keyEditable:"🔓 modifiable",
     unlockEdit:"🔓 Déverrouiller pour modifier", lockEdit:"🔒 Verrouiller la modification",
     exchange:"Bourse", loadData:"⚡ Charger les données", loadPrompt:"Choisissez une bourse et cliquez sur Charger",
@@ -288,7 +288,7 @@ const I18N={
     sharePrice:"Prix de l'action", daysUp:"Jours de Hausse Consécutifs",
     volSurge:"Hausse de Volume", absVolume:"Volume Absolu",
     any:"Tous", clear:"effacer",
-    welcomeTitle:"Bienvenue sur Insight Trading", welcomeSub:"Filtre d'actions de clôture, multi-bourses",
+    welcomeTitle:"Bienvenue sur Insight Trading", welcomeSub:"Filtre d'actions ASX de clôture",
     qs1Title:"Charger un marché", qs1Desc:"Choisissez une bourse et chargez les données du jour — en haut à gauche.",
     qs2Title:"Lancer un rapport", qs2Desc:"Cliquez sur Scan Argent Intelligent ou un plan pour des résultats instantanés.",
     qs3Title:"Affiner et enregistrer", qs3Desc:"Ajustez les filtres, ajoutez des actions à une liste, enregistrez Mon Rapport.",
@@ -304,7 +304,7 @@ const I18N={
     estimate:"estimation"
   },
   ja:{
-    tagline:"マルチ取引所スクリーナー",
+    tagline:"ASX 終値スクリーナー",
     setup:"設定", apiKey:"EODData APIキー", keyLocked:"🔒 ロック中", keyEditable:"🔓 編集可能",
     unlockEdit:"🔓 ロック解除して編集", lockEdit:"🔒 キー編集をロック",
     exchange:"取引所", loadData:"⚡ 取引所データを読込", loadPrompt:"取引所を選んで読込を押してください",
@@ -321,7 +321,7 @@ const I18N={
     sharePrice:"株価", daysUp:"連続上昇日数",
     volSurge:"出来高急増", absVolume:"絶対出来高",
     any:"すべて", clear:"クリア",
-    welcomeTitle:"Insight Trading へようこそ", welcomeSub:"マルチ取引所・終値ベース株式スクリーナー",
+    welcomeTitle:"Insight Trading へようこそ", welcomeSub:"ASX・終値ベース株式スクリーナー",
     qs1Title:"市場を読込", qs1Desc:"取引所を選び当日のデータを読み込む — 左上。",
     qs2Title:"レポート実行", qs2Desc:"スマートマネースキャンまたはプリセットで即座に銘柄を抽出。",
     qs3Title:"絞込と保存", qs3Desc:"フィルターを調整し、銘柄をウォッチリストに星付け、マイレポートを保存。",
@@ -337,7 +337,7 @@ const I18N={
     estimate:"推定"
   },
   hi:{
-    tagline:"मल्टी-एक्सचेंज स्क्रीनर",
+    tagline:"ASX समापन-मूल्य स्क्रीनर",
     setup:"सेटअप", apiKey:"EODData API कुंजी", keyLocked:"🔒 लॉक", keyEditable:"🔓 संपादन योग्य",
     unlockEdit:"🔓 संपादन हेतु अनलॉक करें", lockEdit:"🔒 कुंजी संपादन लॉक करें",
     exchange:"एक्सचेंज", loadData:"⚡ एक्सचेंज डेटा लोड करें", loadPrompt:"एक्सचेंज चुनें और लोड दबाएँ",
@@ -354,7 +354,7 @@ const I18N={
     sharePrice:"शेयर मूल्य", daysUp:"लगातार तेज़ी के दिन",
     volSurge:"वॉल्यूम उछाल", absVolume:"पूर्ण वॉल्यूम",
     any:"कोई भी", clear:"साफ़ करें",
-    welcomeTitle:"Insight Trading में आपका स्वागत है", welcomeSub:"मल्टी-एक्सचेंज समापन-मूल्य शेयर स्क्रीनर",
+    welcomeTitle:"Insight Trading में आपका स्वागत है", welcomeSub:"ASX समापन-मूल्य शेयर स्क्रीनर",
     qs1Title:"बाज़ार लोड करें", qs1Desc:"एक्सचेंज चुनें और दिन का डेटा लोड करें — ऊपर बाएँ।",
     qs2Title:"रिपोर्ट चलाएँ", qs2Desc:"तुरंत चयन हेतु स्मार्ट मनी स्कैन या प्रीसेट दबाएँ।",
     qs3Title:"सुधारें और सहेजें", qs3Desc:"फ़िल्टर समायोजित करें, शेयरों को वॉचलिस्ट में तारांकित करें, मेरी रिपोर्ट सहेजें।",
@@ -370,7 +370,7 @@ const I18N={
     estimate:"अनुमान"
   },
   ar:{
-    tagline:"ماسح متعدد البورصات",
+    tagline:"ماسح ASX بسعر الإغلاق",
     setup:"الإعداد", apiKey:"مفتاح EODData API", keyLocked:"🔒 مقفل", keyEditable:"🔓 قابل للتعديل",
     unlockEdit:"🔓 فتح للتعديل", lockEdit:"🔒 قفل تعديل المفتاح",
     exchange:"البورصة", loadData:"⚡ تحميل بيانات البورصة", loadPrompt:"اختر بورصة واضغط تحميل",
@@ -387,7 +387,7 @@ const I18N={
     sharePrice:"سعر السهم", daysUp:"أيام صعود متتالية",
     volSurge:"ارتفاع الحجم", absVolume:"الحجم المطلق",
     any:"أي", clear:"مسح",
-    welcomeTitle:"مرحباً بك في Insight Trading", welcomeSub:"ماسح أسهم بسعر الإغلاق متعدد البورصات",
+    welcomeTitle:"مرحباً بك في Insight Trading", welcomeSub:"ماسح أسهم ASX بسعر الإغلاق",
     qs1Title:"تحميل سوق", qs1Desc:"اختر بورصة وحمّل بيانات اليوم — أعلى اليسار.",
     qs2Title:"تشغيل تقرير", qs2Desc:"اضغط مسح الأموال الذكية أو خطة جاهزة لنتائج فورية.",
     qs3Title:"تنقيح وحفظ", qs3Desc:"اضبط الفلاتر، أضف أسهماً لقائمة المتابعة، احفظ تقريري.",
@@ -403,7 +403,7 @@ const I18N={
     estimate:"تقدير"
   },
   it:{
-    tagline:"Screener Multi-Borsa",
+    tagline:"Screener ASX di Chiusura",
     setup:"Configurazione", apiKey:"Chiave API EODData", keyLocked:"🔒 bloccata", keyEditable:"🔓 modificabile",
     unlockEdit:"🔓 Sblocca per modificare", lockEdit:"🔒 Blocca modifica chiave",
     exchange:"Borsa", loadData:"⚡ Carica dati borsa", loadPrompt:"Scegli una borsa e premi Carica",
@@ -420,7 +420,7 @@ const I18N={
     sharePrice:"Prezzo Azione", daysUp:"Giorni Consecutivi in Rialzo",
     volSurge:"Aumento di Volume", absVolume:"Volume Assoluto",
     any:"Qualsiasi", clear:"cancella",
-    welcomeTitle:"Benvenuto in Insight Trading", welcomeSub:"Screener azionario di chiusura, multi-borsa",
+    welcomeTitle:"Benvenuto in Insight Trading", welcomeSub:"Screener azionario ASX di chiusura",
     qs1Title:"Carica un mercato", qs1Desc:"Scegli una borsa e carica i dati del giorno — in alto a sinistra.",
     qs2Title:"Esegui un report", qs2Desc:"Premi 🎯 Best Evidence Today o un piano per risultati immediati.",
     qs3Title:"Affina e salva", qs3Desc:"Regola i filtri, aggiungi azioni a una lista, salva Il Mio Report.",
@@ -453,7 +453,7 @@ const I18N={
     sharePrice:"Presyo ng Share", daysUp:"Sunod-sunod na Araw na Pataas",
     volSurge:"Pagtaas ng Volume", absVolume:"Absolutong Volume",
     any:"Kahit ano", clear:"burahin",
-    welcomeTitle:"Maligayang pagdating sa Insight Trading", welcomeSub:"Multi-exchange na end-of-day na screener ng share",
+    welcomeTitle:"Maligayang pagdating sa Insight Trading", welcomeSub:"ASX end-of-day na screener ng share",
     qs1Title:"Mag-load ng merkado", qs1Desc:"Pumili ng palitan at i-load ang datos ng araw — kaliwang itaas.",
     qs2Title:"Magpatakbo ng ulat", qs2Desc:"Pindutin ang 🎯 Best Evidence Today o preset para sa instant na piling stocks.",
     qs3Title:"Pinuhin at i-save", qs3Desc:"I-adjust ang filter, i-star ang shares sa watchlist, i-save ang Aking Ulat.",
@@ -16517,7 +16517,7 @@ async function _refreshOfflineBtn(){
 async function histClearAll(){const db=await cacheOpen();if(!db)return;try{db.transaction(HIST_STORE,'readwrite').objectStore(HIST_STORE).clear();}catch(e){}}
 
 // Fetch just the SYMBOL LIST (share codes) for an exchange — used by the
-// multi-exchange downloader to know which shares to pull for each market.
+// bulk downloader to know which shares to pull (ASX-only since v869).
 async function fetchSymbolList(exch,apiKey){
   const url=`https://api.eoddata.com/symbol/list/${exch}?apiKey=${apiKey}`;
   const proxies=_safeRoutes(url,[u=>u]);   // v474: keyed → worker/direct only
@@ -16535,8 +16535,12 @@ async function fetchSymbolList(exch,apiKey){
   return null;
 }
 
-// ── MULTI-EXCHANGE DOWNLOAD: pick several markets, download all of them ───────
-const DOWNLOADABLE_EXCH=['ASX','NYSE','NASDAQ','AMEX','LSE','TSX','TSXV','NSE','SGX','FRA','AMS','PAR','BRU','OSL','MSE','SHG','SHE','OTCBB','USMF'];
+// ── BULK DOWNLOAD ─────────────────────────────────────────────────────────────
+// v869: ASX only. The 18 other markets followed the exchange picker out (v846) —
+// the server serves ASX alone, so offering their download only poked retired
+// code paths. The full list lives in git history; a market returns here only
+// with its own nightly ingest and evidence.
+const DOWNLOADABLE_EXCH=['ASX'];
 function openMultiDownload(){
   const saved=(()=>{try{return JSON.parse(localStorage.getItem('asxScreener.dlExch.v1'))||['ASX'];}catch(e){return ['ASX'];}})();
   const boxes=DOWNLOADABLE_EXCH.map(x=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text);padding:4px 8px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;margin:2px;"><input type="checkbox" class="dlExchChk" value="${x}" ${saved.includes(x)?'checked':''} style="cursor:pointer;margin:0;"> ${x}</label>`).join('');
