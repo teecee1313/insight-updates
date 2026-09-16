@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-884",
+  "version": "2026.09.16-885",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The 🔬's data check now inspects up to 8 disputed shares instead of 3 — enough to cover BOTH halves of each disagreeing pair, so it can no longer certify one share as clean while never looking at the share it allegedly outranked. The device self-check now also covers the day's change-% (built from a different field than price and volume, and the one most reports actually rank on). And the wording is more careful: a share is 'certified clean'; a disagreement is only called a true rule difference when both shares involved are."
+  "notes": "The 🔬 now catches the sneakiest data problem of all: missing days. A thin share's quiet days can skip bulk downloads entirely, so this device's copy can be identical on every day both sides hold — and still be missing the most recent days the server has (one share tonight had stopped 6 days short while still trading). The check now counts those missing days, says so plainly, and the 🩹 Repair button can now fix this kind too — it re-pulls the complete series for exactly those shares."
 }

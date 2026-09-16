@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-884-simple';
+const APP_VERSION='2026.09.16-885-simple';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -19012,9 +19012,25 @@ async function serverReportCheck(){
               if(_vBad||_pBad||_cBad)_selfBad='its live quote says '+(_pBad?('price $'+_qp):'')+((_pBad&&(_vBad||_cBad))?' / ':'')+(_vBad?('volume '+Math.round(_qv).toLocaleString()):'')+((_vBad&&_cBad)?' / ':'')+(_cBad?('change '+_qc+'%'):'')+' but its own saved bars ('+(_rd(_lb)||'?')+') say '+(_pBad?('$'+_bp):'')+((_pBad&&(_vBad||_cBad))?' / ':'')+(_vBad?Math.round(_bv).toLocaleString():'')+((_vBad&&_cBad)?' / ':'')+(_cBad?(_sc2+'%'):'');
             }
           }catch(e){}
+          // v885 — the day-GAP class. "Identical on shared days" is honest and
+          // still misses the damage on thin stocks: the device's series can
+          // STOP days earlier than the server's (LPE ended 2026-09-10 while
+          // trading on the 16th), or skip zero-volume days entirely (AEV's
+          // 15 Sep). Shared-day diffs can't see absent days — count them.
+          var _gap=0,_gapNote='';
+          try{
+            for(_x=0;_x<_srv.length;_x++){
+              _r=_srv[_x];_d=_rd(_r);
+              if(_d&&_lastMine&&_d>_lastMine)_gap++;
+            }
+            if(_gap>0)_gapNote=' — and this device is missing the last '+_gap+' server day'+(_gap>1?'s':'')+' entirely (its series ends '+(_lastMine||'?')+', the server\'s continues to '+(_lastSrv||'?')+'; thin shares\' quiet days often skip bulk downloads)';
+          }catch(e){}
           if(!_shared)line=tk+': no shared dates to compare (here to '+(_lastMine||'?')+', server to '+(_lastSrv||'?')+').';
-          else if(!_cd&&!_vd&&!_hld&&_selfBad)line=tk+': <b style="color:#ffd28a">this device disagrees with itself</b> — stored history matches the server, but '+_selfBad+'. Scans here judge the quote; the server judged the saved bar — today\'s number is the difference, not the rules. An app restart or ⬇ Download / update after 7pm Sydney re-syncs them.';
-          else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days, and this device\'s today-numbers match its own saved bars — <b>this share is certified clean</b>. (A disagreement is only a true rule difference when the share it is compared against is certified clean too.)';
+          else if(!_cd&&!_vd&&!_hld&&(_selfBad||_gap>0)){
+            line=tk+': <b style="color:#ffd28a">this device disagrees with itself</b> — stored history matches the server on shared days'+_gapNote+(_selfBad?(', and its live quote says '+_selfBad):'')+'. Scans here judge the quote and the gappy series; the server judged its complete one — the missing days are the difference, not the rules. 🩹 Repair re-pulls the full series for this share.';
+            try{ if(window._repRepairList&&window._repRepairList.indexOf(tk)<0)window._repRepairList.push(tk); }catch(e){}
+          }
+          else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days, no missing recent days, and this device\'s today-numbers match its own saved bars — <b>this share is certified clean</b>. (A disagreement is only a true rule difference when the share it is compared against is certified clean too.)';
           else { try{ if(window._repRepairList&&window._repRepairList.indexOf(tk)<0)window._repRepairList.push(tk); }catch(e){} }
           if(_cd>0||_vd>0||_hld>0) line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+', highs/lows on '+_hld+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
         }
