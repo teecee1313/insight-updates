@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-886",
+  "version": "2026.09.16-887",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "Repairing a share now finishes the job: after re-pulling fresh history, the app immediately recomputes this device's signals from it — before, the fresh data sat on disk while every score still judged the old world, which could make a repaired share look like a rule disagreement. The 🔬 check also detects that situation on its own now (it compares a stored score against what the data actually says and tells you when the scores are older than the data). One garbled sentence in the diagnosis is fixed too."
+  "notes": "The 🏆 Top 20 is ranked again by the exact recipe its track record measures — the same watch-score ranking the year-long replay grades every night. For a while the list was ranked with proven evidence first, but that version's track record cannot be measured (it would need the very grades it feeds into), so the list you saw wore a record earned by a different recipe. That is not honest enough for this app. Evidence hasn't gone anywhere: the badges still show on every share, the PN Edge column still sorts by proven evidence, and the autopilot still ranks by it with its own separately measured record. The server check should now read 11 of 11."
 }

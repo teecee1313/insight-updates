@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-886-simple';
+const APP_VERSION='2026.09.16-887-simple';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -13441,7 +13441,18 @@ function _selVolumeSurge(shares){
 // so a phone does not freeze while it scores several thousand shares, and that
 // yield has to survive the move.
 async function _selTopTen(shares){
-  try{ if(typeof _evMark==='function')_evMark(shares); }catch(e){} // w-top20: populate _evTier/_evEdge cheaply when grading is already cached; safely no-ops (returns false fast) when it isn't, same call topTenScan() already makes on the post-selection subset — just moved earlier so selection itself can use it
+  // v887 — Tony's call, 16 Sep: the Top 20 ranks again by the EXACT recipe its
+  // track record measures. w-top20 had made the live list evidence-first while
+  // the year-replay (which grades the 'top20' rule and earns its tier) still
+  // ranks by score||acc — so the list customers saw wore a record earned by a
+  // different recipe. The evidence-first recipe cannot be graded at all: the
+  // replay would need the evidence that only exists after grading (circular).
+  // Under the honesty constitution the ungradeable sort must not silently
+  // replace the graded one. Evidence stays fully visible where it is explicit
+  // and separately measured: the PN Edge column keeps its evidence sort, and
+  // auto-pilot's ranking keeps its own end-to-end fill record. This also
+  // closes the last 🔬 seam (RDX/INA, both certified) — both sides now run
+  // the one graded rule.
   const scored=[];
   for(let _j=0;_j<shares.length;_j++){
     if((_j&255)===0&&_j>0)await new Promise(_r=>setTimeout(_r,0)); // v335: chunk the scoring pass too — keep the phone responsive
@@ -13452,12 +13463,7 @@ async function _selTopTen(shares){
     s.watchParts=r.parts;
     if(r.score>0)scored.push({s,r});
   }
-  // w-top20: proven evidence decides first (same _pnEdgeSortVal used by PN Edge
-  // column + auto-pilot's ranking); watchScore/acc remain the fallback chain —
-  // when no share has cached evidence yet, _pnEdgeSortVal returns -9999 for
-  // everyone, so the sort falls straight through to the old watchScore order
-  // with no special-casing needed.
-  scored.sort((a,b)=>(_pnEdgeSortVal(b.s)-_pnEdgeSortVal(a.s)) || (b.r.score-a.r.score) || (b.r.acc-a.r.acc));
+  scored.sort((a,b)=>b.r.score-a.r.score || (b.r.acc-a.r.acc));
   return scored;
 }
 
