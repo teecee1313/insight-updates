@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-880",
+  "version": "2026.09.16-881",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The volume-window setting now measures exactly what its labels say. The maths behind the volume comparison counts calendar days, but the old menu values were trading-day counts — so '1-year average' really averaged about 8 and a half months, and '1-month' about 3 weeks. The menu values are now calendar days, your saved choice is converted automatically, and the Auto option's label is fixed too: since the last update Auto uses the same 3-month window as the server, not 'all history'. If you use Auto (the default), nothing changes."
+  "notes": "The 🔬 server check now says exactly how many shares this session is holding when it cannot run, instead of just 'load a market first'. If your screen shows shares but the check says the session holds 0, the app woke from sleep without reloading them — close the app fully, reopen it, and the check will work. Your saved data is never affected."
 }

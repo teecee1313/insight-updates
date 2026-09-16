@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-880-open';
+const APP_VERSION='2026.09.16-881-open';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -18785,7 +18785,16 @@ async function repairFlaggedShares(){
 async function serverReportCheck(){
   var el=document.getElementById('srvChkOut');
   var say=function(h){ if(el)el.innerHTML=h; };
-  if(!Array.isArray(allData)||allData.length<50){ say('Load a market first — there is nothing to compare.'); return; }
+  if(!Array.isArray(allData)||allData.length<50){
+    // v881 — "not working" with no numbers is a riddle. Say exactly what this
+    // session holds, and name the one known way the screen can show shares the
+    // session does not hold (a phone resuming a sleeping page whose memory was
+    // cleared — the v686 wake-loader usually catches it, but can lose the race).
+    var _n=Array.isArray(allData)?allData.length:0;
+    say('This session holds <b>'+_n+'</b> shares in memory — the check needs 50+ to compare.'
+      +(_n===0?'<br>If the table above shows shares anyway, the app woke from sleep without reloading them: close the app fully (swipe it away), reopen it, let it load, then press this again. Or press ⚡ Load now.':'<br>Press ⚡ Load to load the full market, then run this again.')
+      +'<br><span style="font-size:9px;color:var(--dim)">Your saved data on this device is untouched and fine — this is only about what is loaded right now.</span>');
+    return; }
   if(!DATA_PROXY){ say('No server address configured.'); return; }
   // v870 — a FAIR test compares only shares this device can fully judge.
   // The 14 Sep run scored 3 of 10 with every ✗ running in the direction deeper
