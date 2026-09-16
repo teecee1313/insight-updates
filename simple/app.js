@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-885-simple';
+const APP_VERSION='2026.09.16-886-simple';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -18839,9 +18839,18 @@ async function repairFlaggedShares(){
   }
   try{ if(typeof _histClearCache==='function')_histClearCache(); }catch(e){}
   window._repRepairList=[];
+  // v886 — the missing half of a repair. Fresh rows on DISK change nothing the
+  // scans judge: the in-memory series and every computed field (watchScore,
+  // volDays, accum10, daysUp…) still carry the pre-repair world, so the old
+  // closing line ("any share still disagreeing is a real rule difference") was
+  // false — the 16 Sep RDX/INA case proved it: both shares certified clean,
+  // server provably right (INA 6.8 vs RDX 3.1), and the device was ranking on
+  // scores prepared before its own data changed. Re-prepare, then claim.
+  say('\u2705 Repaired '+ok+' of '+list.length+'. Recomputing this device\u2019s signals from the fresh data \u2014 this takes a moment\u2026');
+  try{ if(typeof prepareAllSignals==='function')await prepareAllSignals(true); }catch(e){}
   say('\u2705 Repaired '+ok+' of '+list.length+' share'+(list.length>1?'s':'')+'.'
     +(bad.length?(' Could not fetch: '+bad.join(', ')+'.'):'')
-    +'<br>Fresh history saved and this device\u2019s working copy cleared. Run \ud83d\udd2c again \u2014 any share still disagreeing is a real rule difference, not stale data.');
+    +'<br>Fresh history saved AND this device\u2019s signals recomputed from it. Run \ud83d\udd2c again \u2014 a share still disagreeing now is telling the truth about a rule difference.');
 }
 
 async function serverReportCheck(){
@@ -18965,6 +18974,18 @@ async function serverReportCheck(){
       try{
         var _dsh=null;
         for(var _x=0;_x<sample.length;_x++)if(sample[_x].ticker===tk){_dsh=sample[_x];break;}
+        // v886 — class 5: STALE COMPUTED FIELDS. The scans judge fields
+        // prepared at some earlier moment; the series may have moved since
+        // (download or repair without a re-prepare). countStreak on the series
+        // is cheap and pure — if it disagrees with the stored daysUp field,
+        // every score on this share predates its own data.
+        var _stale='';
+        try{
+          if(_dsh&&Array.isArray(_dsh.series)&&_dsh.series.length>2&&typeof countStreak==='function'&&isFinite(_dsh.daysUp)){
+            var _liveDu=countStreak(_dsh.series.map(function(r){return {date:r.d,c:r.c};}));
+            if(_liveDu!==_dsh.daysUp)_stale=' \u26a0 AND this device\'s computed scores are OLDER than its data (its streak field says '+_dsh.daysUp+' but its own series says '+_liveDu+') \u2014 signals were prepared before the last data change. Repairs now re-prepare automatically; an app restart also fixes it.';
+          }
+        }catch(e){}
         var _hr=await _fetchTO(DATA_PROXY.replace(/\/+$/,'')+'/history/series/'+encodeURIComponent(currentExch)+'/'+encodeURIComponent(tk)+'?days=365',{},8000);
         var _hj=_hr&&_hr.ok?await _hr.json():null;
         var _srv=(_hj&&_hj.ok===true&&Array.isArray(_hj.rows))?_hj.rows:null;
@@ -19027,7 +19048,7 @@ async function serverReportCheck(){
           }catch(e){}
           if(!_shared)line=tk+': no shared dates to compare (here to '+(_lastMine||'?')+', server to '+(_lastSrv||'?')+').';
           else if(!_cd&&!_vd&&!_hld&&(_selfBad||_gap>0)){
-            line=tk+': <b style="color:#ffd28a">this device disagrees with itself</b> — stored history matches the server on shared days'+_gapNote+(_selfBad?(', and its live quote says '+_selfBad):'')+'. Scans here judge the quote and the gappy series; the server judged its complete one — the missing days are the difference, not the rules. 🩹 Repair re-pulls the full series for this share.';
+            line=tk+': <b style="color:#ffd28a">this device disagrees with itself</b> — stored history matches the server on shared days'+_gapNote+(_selfBad?(', and '+_selfBad):'')+'. Scans here judge the quote and the gappy series; the server judged its complete one — the missing days are the difference, not the rules. 🩹 Repair re-pulls the full series for this share.';
             try{ if(window._repRepairList&&window._repRepairList.indexOf(tk)<0)window._repRepairList.push(tk); }catch(e){}
           }
           else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days, no missing recent days, and this device\'s today-numbers match its own saved bars — <b>this share is certified clean</b>. (A disagreement is only a true rule difference when the share it is compared against is certified clean too.)';
@@ -19035,6 +19056,7 @@ async function serverReportCheck(){
           if(_cd>0||_vd>0||_hld>0) line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+', highs/lows on '+_hld+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
         }
       }catch(e){ line=tk+': data check failed ('+e+').'; }
+      if(line&&_stale)line+=_stale;
       if(line)_lines.push(line);
     }
     // v876 - remember which shares actually disagreed on DATA so the repair

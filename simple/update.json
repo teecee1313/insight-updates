@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-885",
+  "version": "2026.09.16-886",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "The 🔬 now catches the sneakiest data problem of all: missing days. A thin share's quiet days can skip bulk downloads entirely, so this device's copy can be identical on every day both sides hold — and still be missing the most recent days the server has (one share tonight had stopped 6 days short while still trading). The check now counts those missing days, says so plainly, and the 🩹 Repair button can now fix this kind too — it re-pulls the complete series for exactly those shares."
+  "notes": "Repairing a share now finishes the job: after re-pulling fresh history, the app immediately recomputes this device's signals from it — before, the fresh data sat on disk while every score still judged the old world, which could make a repaired share look like a rule disagreement. The 🔬 check also detects that situation on its own now (it compares a stored score against what the data actually says and tells you when the scores are older than the data). One garbled sentence in the diagnosis is fixed too."
 }
