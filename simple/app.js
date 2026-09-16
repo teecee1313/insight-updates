@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-878-simple';
+const APP_VERSION='2026.09.16-879-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -177,7 +177,7 @@ const I18N={
     setup:"Configuración", apiKey:"Clave API de EODData", keyLocked:"🔒 bloqueada", keyEditable:"🔓 editable",
     unlockEdit:"🔓 Desbloquear para editar", lockEdit:"🔒 Bloquear edición",
     exchange:"Bolsa", loadData:"⚡ Cargar datos de la bolsa", loadPrompt:"Elija una bolsa y pulse Cargar",
-    instantReports:"Informes instantáneos", oneClick:"un clic", smartScan:"🎯 Escaneo de Dinero Inteligente",
+    instantReports:"Informes instantáneos", oneClick:"un clic", smartScan:"🎯 Mejor Evidencia de Hoy",
     smartScanTag:"sube 2+ días · vol 50%+", speedTicket:"🚨 Detector de Movimientos Anómalos",
     speedTag:"movimiento anómalo · estimación", presetPlans:"Planes de filtro predefinidos",
     planBreakout:"🚀 Ruptura", planMomentum:"📈 Impulso", planSpike:"⚡ Pico de Volumen", planPenny:"🪙 Acciones Penny",
@@ -210,7 +210,7 @@ const I18N={
     setup:"设置", apiKey:"EODData API 密钥", keyLocked:"🔒 已锁定", keyEditable:"🔓 可编辑",
     unlockEdit:"🔓 解锁以编辑密钥", lockEdit:"🔒 锁定密钥编辑",
     exchange:"交易所", loadData:"⚡ 加载交易所数据", loadPrompt:"选择交易所并按加载",
-    instantReports:"即时报告", oneClick:"一键", smartScan:"🎯 聪明钱扫描",
+    instantReports:"即时报告", oneClick:"一键", smartScan:"🎯 今日最佳证据",
     smartScanTag:"连涨2天以上 · 量+50%以上", speedTicket:"🚨 异动检测器",
     speedTag:"异常波动 · 估算", presetPlans:"预设筛选方案",
     planBreakout:"🚀 突破", planMomentum:"📈 动量", planSpike:"⚡ 成交量激增", planPenny:"🪙 低价股",
@@ -243,7 +243,7 @@ const I18N={
     setup:"Einrichtung", apiKey:"EODData API-Schlüssel", keyLocked:"🔒 gesperrt", keyEditable:"🔓 bearbeitbar",
     unlockEdit:"🔓 Zum Bearbeiten entsperren", lockEdit:"🔒 Bearbeitung sperren",
     exchange:"Börse", loadData:"⚡ Börsendaten laden", loadPrompt:"Börse wählen und Laden drücken",
-    instantReports:"Sofortberichte", oneClick:"ein Klick", smartScan:"🎯 Smart-Money-Scan",
+    instantReports:"Sofortberichte", oneClick:"ein Klick", smartScan:"🎯 Beste Evidenz heute",
     smartScanTag:"2+ Tage im Plus · Vol. 50%+", speedTicket:"🚨 Auffälligkeits-Detektor",
     speedTag:"auffällige Bewegung · Schätzung", presetPlans:"Vorgefertigte Filterpläne",
     planBreakout:"🚀 Ausbruch", planMomentum:"📈 Momentum", planSpike:"⚡ Volumenspitze", planPenny:"🪙 Penny-Aktien",
@@ -276,7 +276,7 @@ const I18N={
     setup:"Configuration", apiKey:"Clé API EODData", keyLocked:"🔒 verrouillée", keyEditable:"🔓 modifiable",
     unlockEdit:"🔓 Déverrouiller pour modifier", lockEdit:"🔒 Verrouiller la modification",
     exchange:"Bourse", loadData:"⚡ Charger les données", loadPrompt:"Choisissez une bourse et cliquez sur Charger",
-    instantReports:"Rapports instantanés", oneClick:"un clic", smartScan:"🎯 Scan Argent Intelligent",
+    instantReports:"Rapports instantanés", oneClick:"un clic", smartScan:"🎯 Meilleure Preuve du Jour",
     smartScanTag:"hausse 2+ jours · vol 50%+", speedTicket:"🚨 Détecteur de Mouvements Anormaux",
     speedTag:"mouvement anormal · estimation", presetPlans:"Plans de filtre prédéfinis",
     planBreakout:"🚀 Cassure", planMomentum:"📈 Momentum", planSpike:"⚡ Pic de Volume", planPenny:"🪙 Penny Stocks",
@@ -309,7 +309,7 @@ const I18N={
     setup:"設定", apiKey:"EODData APIキー", keyLocked:"🔒 ロック中", keyEditable:"🔓 編集可能",
     unlockEdit:"🔓 ロック解除して編集", lockEdit:"🔒 キー編集をロック",
     exchange:"取引所", loadData:"⚡ 取引所データを読込", loadPrompt:"取引所を選んで読込を押してください",
-    instantReports:"即時レポート", oneClick:"ワンクリック", smartScan:"🎯 スマートマネースキャン",
+    instantReports:"即時レポート", oneClick:"ワンクリック", smartScan:"🎯 本日のベストエビデンス",
     smartScanTag:"2日以上上昇 · 出来高+50%以上", speedTicket:"🚨 異常変動ディテクター",
     speedTag:"異常な値動き · 推定", presetPlans:"プリセットフィルター",
     planBreakout:"🚀 ブレイクアウト", planMomentum:"📈 モメンタム", planSpike:"⚡ 出来高急増", planPenny:"🪙 低位株",
@@ -342,7 +342,7 @@ const I18N={
     setup:"सेटअप", apiKey:"EODData API कुंजी", keyLocked:"🔒 लॉक", keyEditable:"🔓 संपादन योग्य",
     unlockEdit:"🔓 संपादन हेतु अनलॉक करें", lockEdit:"🔒 कुंजी संपादन लॉक करें",
     exchange:"एक्सचेंज", loadData:"⚡ एक्सचेंज डेटा लोड करें", loadPrompt:"एक्सचेंज चुनें और लोड दबाएँ",
-    instantReports:"त्वरित रिपोर्ट", oneClick:"एक क्लिक", smartScan:"🎯 स्मार्ट मनी स्कैन",
+    instantReports:"त्वरित रिपोर्ट", oneClick:"एक क्लिक", smartScan:"🎯 आज का सर्वश्रेष्ठ साक्ष्य",
     smartScanTag:"2+ दिन तेज़ी · वॉल्यूम 50%+", speedTicket:"🚨 असामान्य चाल डिटेक्टर",
     speedTag:"असामान्य चाल · अनुमान", presetPlans:"पूर्वनिर्धारित फ़िल्टर योजनाएँ",
     planBreakout:"🚀 ब्रेकआउट", planMomentum:"📈 मोमेंटम", planSpike:"⚡ वॉल्यूम उछाल", planPenny:"🪙 पेनी स्टॉक",
@@ -375,7 +375,7 @@ const I18N={
     setup:"الإعداد", apiKey:"مفتاح EODData API", keyLocked:"🔒 مقفل", keyEditable:"🔓 قابل للتعديل",
     unlockEdit:"🔓 فتح للتعديل", lockEdit:"🔒 قفل تعديل المفتاح",
     exchange:"البورصة", loadData:"⚡ تحميل بيانات البورصة", loadPrompt:"اختر بورصة واضغط تحميل",
-    instantReports:"تقارير فورية", oneClick:"نقرة واحدة", smartScan:"🎯 مسح الأموال الذكية",
+    instantReports:"تقارير فورية", oneClick:"نقرة واحدة", smartScan:"🎯 أفضل دليل اليوم",
     smartScanTag:"صعود يومين+ · حجم +50%", speedTicket:"🚨 كاشف الحركات غير الطبيعية",
     speedTag:"حركة غير طبيعية · تقدير", presetPlans:"خطط تصفية جاهزة",
     planBreakout:"🚀 اختراق", planMomentum:"📈 زخم", planSpike:"⚡ ارتفاع الحجم", planPenny:"🪙 أسهم زهيدة",
@@ -408,7 +408,7 @@ const I18N={
     setup:"Configurazione", apiKey:"Chiave API EODData", keyLocked:"🔒 bloccata", keyEditable:"🔓 modificabile",
     unlockEdit:"🔓 Sblocca per modificare", lockEdit:"🔒 Blocca modifica chiave",
     exchange:"Borsa", loadData:"⚡ Carica dati borsa", loadPrompt:"Scegli una borsa e premi Carica",
-    instantReports:"Report istantanei", oneClick:"un clic", smartScan:"🎯 Scansione Smart Money",
+    instantReports:"Report istantanei", oneClick:"un clic", smartScan:"🎯 Migliore Evidenza di Oggi",
     smartScanTag:"su 2+ giorni · vol 50%+", speedTicket:"🚨 Rilevatore Movimenti Anomali",
     speedTag:"movimento anomalo · stima", presetPlans:"Piani di filtro predefiniti",
     planBreakout:"🚀 Breakout", planMomentum:"📈 Momentum", planSpike:"⚡ Picco di Volume", planPenny:"🪙 Penny Stock",
@@ -441,7 +441,7 @@ const I18N={
     setup:"Setup", apiKey:"EODData API Key", keyLocked:"🔒 naka-lock", keyEditable:"🔓 mae-edit",
     unlockEdit:"🔓 I-unlock para i-edit", lockEdit:"🔒 I-lock ang pag-edit",
     exchange:"Palitan", loadData:"⚡ I-load ang Datos ng Palitan", loadPrompt:"Pumili ng palitan at pindutin ang Load",
-    instantReports:"Instant na Ulat", oneClick:"isang click", smartScan:"🎯 Smart Money Scan",
+    instantReports:"Instant na Ulat", oneClick:"isang click", smartScan:"🎯 Pinakamahusay na Ebidensya Ngayon",
     smartScanTag:"taas 2+ araw · vol 50%+", speedTicket:"🚨 Detektor ng Abnormal na Galaw",
     speedTag:"abnormal na galaw · tantya", presetPlans:"Mga handa nang filter plan",
     planBreakout:"🚀 Breakout", planMomentum:"📈 Momentum", planSpike:"⚡ Volume Spike", planPenny:"🪙 Penny Stocks",
@@ -18681,14 +18681,20 @@ async function quietMoversScan(){
   }
 }
 // ═══ v487 — THE SHADOW CHECK ══════════════════════════════════════════════
-// Ask the server to run the same ten reports over the same shares, and compare
+// Ask the server to run the same reports over the same shares, and compare
 // its answer with ours, position by position. Nothing on screen changes: this
 // exists to earn the right to delete our own copy later, and a comparison run
 // on invented data cannot earn it.
-const _REP_OPEN=['allSignals','unusual','volumeSurge','topTen','gaps','smart','pullback','recovery','quietMovers','sharpMovers'];
+// v879 — 'smart' left the list: the customer-facing button was retired
+// (w-retire-smart; its recipe predicts a WORSE next-5-day return), so the 🔬
+// now tests only what customers can actually see. The two deep reports joined
+// instead; the server may hold them back (needs a year of stored days + the
+// nightly 52-week table) and the result prints its reason when it does.
+const _REP_OPEN=['allSignals','unusual','volumeSurge','topTen','gaps','pullback','recovery','quietMovers','sharpMovers','technical','strongTrends'];
 const _REP_NAME={allSignals:'📋 All Signals',unusual:'🔥 Unusual Activity',volumeSurge:'📊 Volume Surge',
-  topTen:'🏆 Top 20',gaps:'🕳 Gap Report',smart:'🎯 Smart Money',pullback:'🪜 Pullback',
-  recovery:'↩️ Recovery Watch',quietMovers:'🫧 Quiet Movers',sharpMovers:'🚨 Sharp Movers'};
+  topTen:'🏆 Top 20',gaps:'🕳 Gap Report',pullback:'🪜 Pullback',
+  recovery:'↩️ Recovery Watch',quietMovers:'🫧 Quiet Movers',sharpMovers:'🚨 Sharp Movers',
+  technical:'📐 Technical Signals',strongTrends:'🧱 Strong Trends'};
 
 // An even spread across the loaded list, not the first N. The first 300 by
 // ticker are the A's, which on the ASX is mostly tiny miners — a sample that
@@ -18721,11 +18727,12 @@ function _repSample(n,minDays){
 async function _repLocal(sample){
   var out={},k;
   var FN={allSignals:_selAllSignals,unusual:_selUnusual,volumeSurge:_selVolumeSurge,
-    topTen:_selTopTen,gaps:_selGaps,smart:_selSmartCandidates,pullback:_selPullback,
-    recovery:_selRecovery,quietMovers:_selQuietMovers,sharpMovers:_selSharpMovers};
+    topTen:_selTopTen,gaps:_selGaps,pullback:_selPullback,
+    recovery:_selRecovery,quietMovers:_selQuietMovers,sharpMovers:_selSharpMovers,
+    technical:_selTechnical,strongTrends:_selStrongTrends};
   for(var i=0;i<_REP_OPEN.length;i++){
     k=_REP_OPEN[i];
-    var args=(k==='sharpMovers')?[speedSensitivity]:(k==='smart')?[3,false]:[];
+    var args=(k==='sharpMovers')?[speedSensitivity]:[];
     var r=null;
     try{
       r=FN[k].apply(null,[sample.slice()].concat(args));
@@ -18782,7 +18789,11 @@ async function serverReportCheck(){
   // sample now demands 250+ real closes AND a computed volume average, easing
   // to 200+ and then to any share only if a device is too shallow to fill the
   // sample — and the result says which bar was used.
-  var _bar=250, sample=_repSample(300,_bar);
+  // v879: the deep pair rank partly on 52-week extremes, which need 252
+  // trading days — at 250 a high in the last two days of the year window is
+  // invisible here, and an honest data difference would read as a rule seam.
+  var _bar=252, sample=_repSample(300,_bar);
+  if(sample.length<50){ _bar=250; sample=_repSample(300,_bar); }
   if(sample.length<50){ _bar=200; sample=_repSample(300,_bar); }
   if(sample.length<50){ _bar=0;   sample=_repSample(300); }
   if(sample.length<50){ say('Only '+sample.length+' shares have enough history to compare. Load saved data or run a full load first.'); return; }
@@ -18792,6 +18803,7 @@ async function serverReportCheck(){
   var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
   var body={exch:currentExch,dataDate:dd,cap:((typeof F!=='undefined'&&F&&F.cap)||'any'),
     sensitivity:speedSensitivity,minDays:3,scanAll:false,
+    reports:_REP_OPEN.slice(), // v879: ask for exactly what we compare — the server answers what it can and names what it holds back
     shares:sample.map(function(s){return {ticker:s.ticker,series:s.series};})};
   var j=null;
   try{
@@ -18803,9 +18815,19 @@ async function serverReportCheck(){
   }catch(e){ say('Could not reach the server: '+e); return; }
   if(!j||!j.ok||!j.picks){ say('The server did not send an answer it could stand behind.'); return; }
 
-  var rows=[],agree=0,_diagT=[];
+  var rows=[],agree=0,scored=0,_diagT=[];
   for(var i=0;i<_REP_OPEN.length;i++){
-    var k=_REP_OPEN[i], a=(mine[k]&&mine[k].tickers)||[], b=(j.picks[k]&&j.picks[k].tickers)||[];
+    var k=_REP_OPEN[i];
+    // v879 — the server may hold a deep report back (not enough stored days,
+    // or the nightly 52-week table not built yet). That is information, not a
+    // disagreement: print the server's own reason and leave the row unscored.
+    if((!j.picks[k])&&j.held&&j.held[k]){
+      rows.push('<div style="margin:2px 0"><span style="color:var(--dim)">\u2139</span> '+_REP_NAME[k]
+        +'<br><span style="color:var(--dim);padding-left:14px">held by the server: '+String(j.held[k])+'</span></div>');
+      continue;
+    }
+    scored++;
+    var a=(mine[k]&&mine[k].tickers)||[], b=(j.picks[k]&&j.picks[k].tickers)||[];
     var why='';
     // v871 — a ✗ that only says the counts is a riddle; name the shares.
     // Set difference first: which tickers does each side hold that the other
@@ -18899,9 +18921,9 @@ async function serverReportCheck(){
     }
     if(_lines.length)_diag='<div style="margin-top:6px;font-size:9px;line-height:1.6;color:var(--muted)"><b>🔎 the data behind the disagreements:</b><br>'+_lines.join('<br>')+'</div>';
   }
-  var head=(agree===_REP_OPEN.length)
-    ? '<b style="color:var(--green)">All '+agree+' reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
-    : '<b style="color:var(--gold)">'+agree+' of '+_REP_OPEN.length+' agree</b> on '+sample.length+' real shares.';
+  var head=(agree===scored)
+    ? '<b style="color:var(--green)">All '+agree+' compared reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
+    : '<b style="color:var(--gold)">'+agree+' of '+scored+' agree</b> on '+sample.length+' real shares.';
   // v876 - when the sample is shallow the \u2717 marks below are mostly artefacts of
   // missing history, not rule differences (16 Sep: Volume Surge read 0 here vs 300
   // on the server purely because this device had not loaded its volume history).
