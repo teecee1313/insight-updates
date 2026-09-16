@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-879",
+  "version": "2026.09.16-880",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "The 🔬 server check now tests exactly what you can run. The retired Smart Money report is out of the comparison, and the two deep reports — 📐 Technical Signals and 🧱 Strong Trends — are in for the first time. If the server cannot serve a deep report yet (it needs a full year of stored days plus its nightly 52-week table), the result says so in plain words instead of showing a false disagreement. The old Smart Money name has also been retired from the translated menus — every language now says Best Evidence Today."
+  "notes": "The volume-window setting now measures exactly what its labels say. The maths behind the volume comparison counts calendar days, but the old menu values were trading-day counts — so '1-year average' really averaged about 8 and a half months, and '1-month' about 3 weeks. The menu values are now calendar days, your saved choice is converted automatically, and the Auto option's label is fixed too: since the last update Auto uses the same 3-month window as the server, not 'all history'. If you use Auto (the default), nothing changes."
 }

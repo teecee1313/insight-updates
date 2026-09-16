@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-879-simple';
+const APP_VERSION='2026.09.16-880-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -1779,8 +1779,18 @@ function volDepthGood(w){return volDepthRank(w)>=3;} // 3-month+ = upgraded
 // User-selectable averaging window for the "today vs history" volume comparison.
 // 0 = Auto (use all cached history). Otherwise trading-day counts.
 const VOLWIN_STORE='SIMPLE_asxScreener.volWindow.v1';
-let volAvgWindow = (function(){try{return parseInt(localStorage.getItem(VOLWIN_STORE))||0;}catch(e){return 0;}})();
-const VOLWIN_LABELS={0:'Auto',22:'1-month',66:'3-month',132:'6-month',252:'1-year'};
+let volAvgWindow = (function(){try{
+  let n=parseInt(localStorage.getItem(VOLWIN_STORE))||0;
+  // v880 — the stored value is now CALENDAR days, which is what the shared
+  // window maths (computeVolAvg, same code as the server) actually measures.
+  // Older saves held BAR counts (22/66/132/252) while the maths counted them
+  // as calendar days, so "1-year" really averaged ~8.4 months and "1-month"
+  // ~3 weeks. Migrate old saves to the calendar figure their label promised.
+  const _mig={22:31,66:92,132:183,252:365};
+  if(_mig[n]){ n=_mig[n]; try{localStorage.setItem(VOLWIN_STORE,n);}catch(_){}}
+  return n;
+}catch(e){return 0;}})();
+const VOLWIN_LABELS={0:'Auto',31:'1-month',92:'3-month',183:'6-month',365:'1-year'}; // v880: calendar-day keys
 // ── Trading-range window (sessions). Selectable: 3 days ≈ 3, 1 week ≈ 5,
 //    1 month ≈ 20, 3 months ≈ 66. Default 1 month. ──
 const RANGEWIN_STORE='SIMPLE_asxScreener.rangeWindow.v1';
@@ -12590,7 +12600,7 @@ function countStreak(history){
 
 // Returns the volume-average window the USER selected (from the Volume window
 // dropdown), so every prepare path honours it instead of a hardcoded 3-month.
-// volAvgWindow: 0=Auto(all history), 22=1mo, 66=3mo, 132=6mo, 252=1yr.
+// volAvgWindow: CALENDAR days fed to computeVolAvg. 0=Auto(90d, matches the server), 31=1mo, 92=3mo, 183=6mo, 365=1yr. (v880: was bar counts that the maths mis-read as calendar days.)
 function effVolWindow(){ return (typeof volAvgWindow==='number'&&volAvgWindow>0)?volAvgWindow:90; }
 function effVolWindowLabel(){ return (typeof volAvgWindow==='number'&&volAvgWindow>0)?(VOLWIN_LABELS[volAvgWindow]||(volAvgWindow+'d')):'3-month'; }
 // v532 (audit A2): the GRADING ENGINE averages the previous 90 BARS

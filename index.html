@@ -989,11 +989,11 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
         <div class="field" style="margin-bottom:10px;">
           <label>Volume compare window <span style="float:right;font-weight:400;font-size:9px;color:var(--dim);">today vs history</span></label>
           <select id="volWinSel" onchange="setVolWindow(this.value)">
-            <option value="0">Auto (all history)</option>
-            <option value="22">1-month average</option>
-            <option value="66">3-month average</option>
-            <option value="132">6-month average</option>
-            <option value="252">1-year average</option>
+            <option value="0">Auto (3-month — matches the server)</option>
+            <option value="31">1-month average</option>
+            <option value="92">3-month average</option>
+            <option value="183">6-month average</option>
+            <option value="365">1-year average</option>
           </select>
         </div>
         <!-- (Trading-range window moved to the Range column header for easy access.) -->
@@ -1777,7 +1777,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.16-879-open"></script>
+<script src="app.js?v=2026.09.16-880-open"></script>
 
 
 
