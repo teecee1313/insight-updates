@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-882-simple';
+const APP_VERSION='2026.09.16-883-simple';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -59,6 +59,18 @@ const APP_VERSION='2026.09.16-882-simple';
 // down — the honest explanation for a bad load at 5pm is 'today's prices are
 // arriving', not 'the proxy was slow'. w543 paces the writes so this window
 // should rarely bite; the message covers the residue truthfully.
+// v883 — the 🔬's wider truth window: from the first take-in to the end of the
+// final one (17:00–18:45 Sydney, weekdays) tonight's numbers can still MOVE
+// between the early and final passes. A comparison run in that stretch is a
+// photo of a kitchen mid-cook: honest, but it will not stand. The 🔬 says so
+// on its verdict instead of letting settling data read as rule differences
+// (16 Sep evening: three runs, three different ✗ patterns, all data-in-motion).
+function _repDataSettling(){ try{
+  var p={}; new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});
+  var dow={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[p.weekday]; if(dow===0||dow===6)return false;
+  var h=parseInt(p.hour,10), m=parseInt(p.minute,10);
+  return (h===17)||(h===18&&m<45);
+}catch(e){ return false; } }
 function _inIngestWindow(){ try{
   var p={}; new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});
   var dow={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[p.weekday]; if(dow===0||dow===6)return false;
@@ -18971,8 +18983,26 @@ async function serverReportCheck(){
             var ml=_rl(_r),sl=_rl(_sv);
             if(ml>0&&sl>0&&Math.abs(ml-sl)/sl>0.005){_hld++;if(!_first||_d<_first)_first=_d;}
           }
+          // v883 — third class: the device disagreeing WITH ITSELF. Scans on
+          // this device judge the live-quote fields (s.price / s.volume); the
+          // server judged the uploaded series' last bar. When tonight's revisions
+          // land, the quote and the saved bar can come from different moments —
+          // identical stored history then still produces different answers, and
+          // it is NOT a rule difference. Check before claiming one.
+          var _selfBad='';
+          try{
+            var _lb=_mine.length?_mine[_mine.length-1]:null;
+            if(_lb){
+              var _qv=parseFloat(_dsh.volume), _bv=_rv(_lb);
+              var _qp=parseFloat(_dsh.price),  _bp=_rc(_lb);
+              var _vBad=(isFinite(_qv)&&_bv>0&&Math.abs(_qv-_bv)/_bv>0.02);
+              var _pBad=(isFinite(_qp)&&_bp>0&&Math.abs(_qp-_bp)/_bp>0.005);
+              if(_vBad||_pBad)_selfBad='its live quote says '+(_pBad?('price $'+_qp):'')+(_pBad&&_vBad?' / ':'')+(_vBad?('volume '+Math.round(_qv).toLocaleString()):'')+' but its own saved bar ('+(_rd(_lb)||'?')+') says '+(_pBad?('$'+_bp):'')+(_pBad&&_vBad?' / ':'')+(_vBad?Math.round(_bv).toLocaleString():'');
+            }
+          }catch(e){}
           if(!_shared)line=tk+': no shared dates to compare (here to '+(_lastMine||'?')+', server to '+(_lastSrv||'?')+').';
-          else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days — this disagreement is a genuine rule difference.';
+          else if(!_cd&&!_vd&&!_hld&&_selfBad)line=tk+': <b style="color:#ffd28a">this device disagrees with itself</b> — stored history matches the server, but '+_selfBad+'. Scans here judge the quote; the server judged the saved bar — today\'s number is the difference, not the rules. An app restart or ⬇ Download / update after 7pm Sydney re-syncs them.';
+          else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days — and this device\'s today-numbers match its own saved bar — this disagreement is a genuine rule difference.';
           else { try{ if(window._repRepairList&&window._repRepairList.indexOf(tk)<0)window._repRepairList.push(tk); }catch(e){} }
           if(_cd>0||_vd>0||_hld>0) line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+', highs/lows on '+_hld+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
         }
@@ -18990,6 +19020,7 @@ async function serverReportCheck(){
   var head=(agree===scored)
     ? '<b style="color:var(--green)">All '+agree+' compared reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
     : '<b style="color:var(--gold)">'+agree+' of '+scored+' agree</b> on '+sample.length+' real shares.';
+  if(_repDataSettling())head='<div style="color:var(--gold);font-weight:700;margin-bottom:4px">⏳ Tonight\'s numbers are still settling on the server (the 5:00–6:45pm Sydney take-in). Differences found right now are usually tonight\'s data on the move, not rule differences — for a verdict that stands, ⬇ Download / update and re-run after 7pm Sydney.</div>'+head;
   // v876 - when the sample is shallow the \u2717 marks below are mostly artefacts of
   // missing history, not rule differences (16 Sep: Volume Surge read 0 here vs 300
   // on the server purely because this device had not loaded its volume history).
