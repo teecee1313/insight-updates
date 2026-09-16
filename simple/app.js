@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-876-simple';
+const APP_VERSION='2026.09.16-877-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -4963,13 +4963,23 @@ window._pfCtx=window._pfCtx||'main'; // which account the UI is looking at
 // records out of the shared store (see _pfSplitMigrate).
 const PF_EXCHS_KEY='SIMPLE_asxScreener.paperExchs.v1';
 function _pfExch(exch){ const e=String(exch||currentExch||'ASX').toUpperCase(); return e||'ASX'; }
+// v877 — NYSE was retired in v869 (no ingest, no grading, prices frozen), but a
+// device that traded it before still has it in PF_EXCHS_KEY, so the portfolio
+// kept rendering an NYSE tab whose P/L can never update again. Retired markets
+// are now filtered out of the tab list. NOTHING IS DELETED: the per-exchange
+// store (PAPER_STORE.NYSE / PAPER_STORE_AUTO.NYSE) is left untouched on disk, so
+// any practice rows survive and can be brought back by removing the ticker from
+// RETIRED_EXCHS. Because the tab is gone, those rows also stop distorting the
+// combined 'All' totals with frozen prices - which is the point.
+const RETIRED_EXCHS=['NYSE','NASDAQ','AMEX'];
+function _pfExchRetired(ex){ return RETIRED_EXCHS.indexOf(String(ex||'').toUpperCase())>=0; }
 function _pfExchsKnown(){
   try{ const l=JSON.parse(localStorage.getItem(PF_EXCHS_KEY)||'[]');
-    const s=['ASX']; (Array.isArray(l)?l:[]).forEach(e=>{ if(e&&s.indexOf(e)<0)s.push(e); }); return s;
+    const s=['ASX']; (Array.isArray(l)?l:[]).forEach(e=>{ if(e&&!_pfExchRetired(e)&&s.indexOf(e)<0)s.push(e); }); return s;
   }catch(e){ return ['ASX']; }
 }
 function _pfExchRegister(ex){
-  try{ if(!ex||ex==='ASX')return; const l=JSON.parse(localStorage.getItem(PF_EXCHS_KEY)||'[]');
+  try{ if(!ex||ex==='ASX'||_pfExchRetired(ex))return;   // v877: retired markets never re-register const l=JSON.parse(localStorage.getItem(PF_EXCHS_KEY)||'[]');
     const a=Array.isArray(l)?l:[]; if(a.indexOf(ex)<0){ a.push(ex); localStorage.setItem(PF_EXCHS_KEY,JSON.stringify(a)); }
   }catch(e){}
 }

@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-876",
+  "version": "2026.09.16-877",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes a real bug: after you downloaded or updated your saved data, the app kept using the copy it already had in memory until you restarted it \u2014 so a re-download appeared to change nothing, and the \ud83d\udd2c server check kept reporting the same stale differences. Downloads now take effect straight away. The \ud83d\udd2c check also stops giving a score when this device hasn't got enough history loaded to judge fairly \u2014 it says so plainly instead. And when the check does find a share whose saved history has drifted, there's now a \ud83e\ude79 Repair button that re-pulls just those shares rather than the whole market."
+  "notes": "Removes the leftover NYSE tab from the practice portfolio. NYSE was retired a while back, so its prices never update and its profit/loss was frozen \u2014 leaving it in the combined totals made them quietly wrong. Nothing is deleted: any practice rows stored under NYSE are still on your device untouched, just no longer shown or counted."
 }
