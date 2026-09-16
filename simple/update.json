@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-883",
+  "version": "2026.09.16-884",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "The 🔬 server check now understands the evening rush. Between 5:00pm and 6:45pm Sydney the server is taking in tonight's closing numbers, and they can still move between the early and final passes — the check now says so on its verdict, because differences found in that window are usually tonight's data settling, not rule differences. It also catches a third kind of difference: when this device's live quote disagrees with its own saved history (they can arrive from different moments on revision nights) it now says that plainly instead of calling it a rule difference. For a verdict that stands: ⬇ Download / update and run the check after 7pm Sydney."
+  "notes": "The 🔬's data check now inspects up to 8 disputed shares instead of 3 — enough to cover BOTH halves of each disagreeing pair, so it can no longer certify one share as clean while never looking at the share it allegedly outranked. The device self-check now also covers the day's change-% (built from a different field than price and volume, and the one most reports actually rank on). And the wording is more careful: a share is 'certified clean'; a disagreement is only called a true rule difference when both shares involved are."
 }

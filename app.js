@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-883-open';
+const APP_VERSION='2026.09.16-884-open';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -18952,7 +18952,12 @@ async function serverReportCheck(){
     var _rh=function(r){var x=r?(r.h!=null?r.h:(r.high!=null?r.high:r.High)):null;x=parseFloat(x);return isFinite(x)?x:null;};
     var _rl=function(r){var x=r?(r.l!=null?r.l:(r.low!=null?r.low:r.Low)):null;x=parseFloat(x);return isFinite(x)?x:null;};
     var _lines=[];
-    for(var _t=0;_t<Math.min(3,_diagT.length);_t++){
+    // v884 — 3 was a blind spot: the first order-flip pushes BOTH its tickers,
+    // but with earlier reports' tickers ahead of them the cap could certify one
+    // half of a pair and never look at the other (16 Sep: AEV certified clean,
+    // VR8 — the share it allegedly outranked — never inspected). 8 covers both
+    // halves of the first pairs plus the membership strays.
+    for(var _t=0;_t<Math.min(8,_diagT.length);_t++){
       var tk=_diagT[_t], line='';
       try{
         var _dsh=null;
@@ -18994,12 +18999,19 @@ async function serverReportCheck(){
               var _qp=parseFloat(_dsh.price),  _bp=_rc(_lb);
               var _vBad=(isFinite(_qv)&&_bv>0&&Math.abs(_qv-_bv)/_bv>0.02);
               var _pBad=(isFinite(_qp)&&_bp>0&&Math.abs(_qp-_bp)/_bp>0.005);
-              if(_vBad||_pBad)_selfBad='its live quote says '+(_pBad?('price $'+_qp):'')+(_pBad&&_vBad?' / ':'')+(_vBad?('volume '+Math.round(_qv).toLocaleString()):'')+' but its own saved bar ('+(_rd(_lb)||'?')+') says '+(_pBad?('$'+_bp):'')+(_pBad&&_vBad?' / ':'')+(_vBad?Math.round(_bv).toLocaleString():'');
+              // v884 — change-% is the field Recovery, Quiet Movers and the
+              // watch score actually rank on, and it is built from the quote
+              // layer's prevClose — which can drift from the series' second-
+              // last close on revision nights while price and volume still
+              // match. Compare it to the series-derived change too.
+              var _cBad=false, _qc=parseFloat(_dsh.chgPct), _sc2=null;
+              try{ var _pb=_mine.length>1?_rc(_mine[_mine.length-2]):null; if(_pb>0&&_bp>0){ _sc2=Math.round(((_bp-_pb)/_pb)*1000)/10; if(isFinite(_qc)&&Math.abs(_qc-_sc2)>0.3)_cBad=true; } }catch(e){}
+              if(_vBad||_pBad||_cBad)_selfBad='its live quote says '+(_pBad?('price $'+_qp):'')+((_pBad&&(_vBad||_cBad))?' / ':'')+(_vBad?('volume '+Math.round(_qv).toLocaleString()):'')+((_vBad&&_cBad)?' / ':'')+(_cBad?('change '+_qc+'%'):'')+' but its own saved bars ('+(_rd(_lb)||'?')+') say '+(_pBad?('$'+_bp):'')+((_pBad&&(_vBad||_cBad))?' / ':'')+(_vBad?Math.round(_bv).toLocaleString():'')+((_vBad&&_cBad)?' / ':'')+(_cBad?(_sc2+'%'):'');
             }
           }catch(e){}
           if(!_shared)line=tk+': no shared dates to compare (here to '+(_lastMine||'?')+', server to '+(_lastSrv||'?')+').';
           else if(!_cd&&!_vd&&!_hld&&_selfBad)line=tk+': <b style="color:#ffd28a">this device disagrees with itself</b> — stored history matches the server, but '+_selfBad+'. Scans here judge the quote; the server judged the saved bar — today\'s number is the difference, not the rules. An app restart or ⬇ Download / update after 7pm Sydney re-syncs them.';
-          else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days — and this device\'s today-numbers match its own saved bar — this disagreement is a genuine rule difference.';
+          else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days, and this device\'s today-numbers match its own saved bars — <b>this share is certified clean</b>. (A disagreement is only a true rule difference when the share it is compared against is certified clean too.)';
           else { try{ if(window._repRepairList&&window._repRepairList.indexOf(tk)<0)window._repRepairList.push(tk); }catch(e){} }
           if(_cd>0||_vd>0||_hld>0) line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+', highs/lows on '+_hld+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
         }
