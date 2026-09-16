@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.15-875",
+  "version": "2026.09.16-876",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "Insight Simple 2026.09.15-875 — six screens: Starter Today, Strongest Today, Tonight's picks, PN Edge, Quiet climbers and your portfolio. Anything confusing: use the ✉ feedback link top-left."
+  "notes": "Fixes a real bug: after you downloaded or updated your saved data, the app kept using the copy it already had in memory until you restarted it \u2014 so a re-download appeared to change nothing, and the \ud83d\udd2c server check kept reporting the same stale differences. Downloads now take effect straight away. The \ud83d\udd2c check also stops giving a score when this device hasn't got enough history loaded to judge fairly \u2014 it says so plainly instead. And when the check does find a share whose saved history has drifted, there's now a \ud83e\ude79 Repair button that re-pulls just those shares rather than the whole market."
 }

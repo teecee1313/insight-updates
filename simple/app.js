@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.15-875-simple';
+const APP_VERSION='2026.09.16-876-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -16840,6 +16840,13 @@ async function downloadEverything(){
   try{ if(ok>0) localStorage.setItem('SIMPLE_asxScreener.histStoreDate.v1', today); }catch(e){}
   window._bulkRunning=false;
   window._forceFullDownload=false; // one-shot: back to smart-update next time
+  // v876 — THE BUG behind three identical \ud83d\udd2c runs on 16 Sep: histPut wrote the
+  // fresh rows to DISK, but _histCache (the in-session copy every scan and the
+  // server-check read from) still held the pre-download rows. So a re-download -
+  // even a Force full re-download - changed nothing until the app was restarted,
+  // and GC1 kept reporting 121/248 closes adrift against a server that was clean.
+  // Every other load path already did this; the download path never did.
+  try{ if(typeof _histClearCache==='function')_histClearCache(); }catch(e){}
   // Everything is now on disk — prepare all signals from the offline cache so the
   // whole system is fully populated (range, technicals, charts) for EVERY share.
   // Since all history is on disk, preparing everything costs no API calls, so we
@@ -18709,6 +18716,36 @@ async function _repLocal(sample){
   return out;
 }
 
+
+// v876 \u2014 repair just the shares the \ud83d\udd2c data check found adrift, instead of
+// re-downloading the whole exchange. Fetches each one LIVE (forceNet), writes it
+// to disk, and drops the session cache so the very next scan reads the new rows.
+async function repairFlaggedShares(){
+  var list=(window._repRepairList||[]).slice(0,25);
+  var el=document.getElementById('srvChkOut');
+  var say=function(h){ if(el)el.innerHTML='<div style="font-size:10px;line-height:1.6">'+h+'</div>'; };
+  if(!list.length){ say('Nothing flagged to repair.'); return; }
+  var key=((document.getElementById('apiKey')||{}).value||'').trim();
+  if(!key){ try{ key=(localStorage.getItem('asxScreener.apiKey')||'').trim(); }catch(e){} }
+  var ok=0, bad=[];
+  for(var i=0;i<list.length;i++){
+    var tk=list[i];
+    say('\ud83e\ude79 Repairing '+(i+1)+' of '+list.length+' \u2014 '+tk+'\u2026');
+    try{
+      var rows=await fetchHistory(currentExch,tk,key,400,true);
+      if(Array.isArray(rows)&&rows.length>=2){
+        await histPut(currentExch,tk,rows,new Date().toISOString().slice(0,10));
+        ok++;
+      } else bad.push(tk);
+    }catch(e){ bad.push(tk); }
+  }
+  try{ if(typeof _histClearCache==='function')_histClearCache(); }catch(e){}
+  window._repRepairList=[];
+  say('\u2705 Repaired '+ok+' of '+list.length+' share'+(list.length>1?'s':'')+'.'
+    +(bad.length?(' Could not fetch: '+bad.join(', ')+'.'):'')
+    +'<br>Fresh history saved and this device\u2019s working copy cleared. Run \ud83d\udd2c again \u2014 any share still disagreeing is a real rule difference, not stale data.');
+}
+
 async function serverReportCheck(){
   var el=document.getElementById('srvChkOut');
   var say=function(h){ if(el)el.innerHTML=h; };
@@ -18787,6 +18824,7 @@ async function serverReportCheck(){
   // numbers = the sides are judging different data (an adjusted or repaired
   // day), and the rules were never on trial.
   var _diag='';
+  window._repRepairList=[];   // v876: shares the data check found adrift
   if(_diagT.length){
     say('Comparing '+sample.length+' shares… now checking the data behind the disagreements…');
     var _rd=function(r){return r?(r.d||r.dateStamp||r.date||r.Date||null):null;};
@@ -18825,16 +18863,33 @@ async function serverReportCheck(){
           }
           if(!_shared)line=tk+': no shared dates to compare (here to '+(_lastMine||'?')+', server to '+(_lastSrv||'?')+').';
           else if(!_cd&&!_vd&&!_hld)line=tk+': <b style="color:var(--gold)">identical data</b> on both sides over '+_shared+' shared days — this disagreement is a genuine rule difference.';
-          else line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+', highs/lows on '+_hld+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
+          else { try{ if(window._repRepairList&&window._repRepairList.indexOf(tk)<0)window._repRepairList.push(tk); }catch(e){} }
+          if(_cd>0||_vd>0||_hld>0) line=tk+': <b style="color:#ff9caa">the data differs</b> — closes differ on '+_cd+' of '+_shared+' shared days, volumes on '+_vd+', highs/lows on '+_hld+(_first?', earliest '+_first:'')+' — the sides are judging different numbers, not different rules. (⬇ Download / update usually refreshes this device\'s copy.)';
         }
       }catch(e){ line=tk+': data check failed ('+e+').'; }
       if(line)_lines.push(line);
+    }
+    // v876 - remember which shares actually disagreed on DATA so the repair
+    // button below can re-pull just those, instead of the whole exchange.
+    if(window._repRepairList&&window._repRepairList.length){
+      _lines.push('<div style="margin-top:6px"><button onclick="repairFlaggedShares()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--gold);background:rgba(245,200,76,.10);color:var(--gold);font-weight:700;font-size:10px;font-family:var(--sans);cursor:pointer;">\ud83e\ude79 Repair these '+window._repRepairList.length+' share'+(window._repRepairList.length>1?'s':'')+' now</button>'
+        +'<div style="margin-top:3px;font-size:9px;color:var(--dim)">Re-pulls fresh history for just these shares and replaces this device\u2019s copy. Nothing else is touched.</div></div>');
     }
     if(_lines.length)_diag='<div style="margin-top:6px;font-size:9px;line-height:1.6;color:var(--muted)"><b>🔎 the data behind the disagreements:</b><br>'+_lines.join('<br>')+'</div>';
   }
   var head=(agree===_REP_OPEN.length)
     ? '<b style="color:var(--green)">All '+agree+' reports agree</b> — same shares, same order, on '+sample.length+' of your real ones.'
     : '<b style="color:var(--gold)">'+agree+' of '+_REP_OPEN.length+' agree</b> on '+sample.length+' real shares.';
+  // v876 - when the sample is shallow the \u2717 marks below are mostly artefacts of
+  // missing history, not rule differences (16 Sep: Volume Surge read 0 here vs 300
+  // on the server purely because this device had not loaded its volume history).
+  // That warning used to sit in 9px grey UNDER the verdict, so it read as a real
+  // score. Say it first, in the headline's place, and label the verdict void.
+  if(!(_bar>0)) head='<b style="color:#ff9caa">\u26a0 Not a fair test \u2014 this comparison does not count.</b>'
+    +'<div style="margin-top:4px;font-size:10px;color:var(--muted);line-height:1.5;font-weight:400">'
+    +'This device has not got a full year of history loaded for enough shares, so most \u2717 marks below just mean the server could judge a share this device cannot \u2014 they are NOT rule differences. '
+    +'Tap \u2b07 Download / update, let it finish, then run this again.</div>';
+
   var _depLine='<div style="margin-top:5px;font-size:9px;color:var(--dim);line-height:1.5;">'
     +(_bar>0
       ? '⚖ fair test: every one of the '+sample.length+' shares compared has <b>'+_bar+'+ days</b> of history and a volume average on this device, so both sides judged with the same information — any ✗ above is a real difference in the rules, not missing data. (Shares this device only half-knows were left out; the server always holds the full year.)'
