@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-881",
+  "version": "2026.09.16-882",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The 🔬 server check now says exactly how many shares this session is holding when it cannot run, instead of just 'load a market first'. If your screen shows shares but the check says the session holds 0, the app woke from sleep without reloading them — close the app fully, reopen it, and the check will work. Your saved data is never affected."
+  "notes": "When something breaks, the app now says so out loud. The first error of a session appears in a small red box with the exact detail — instead of scans quietly refusing or the radar counting almost nothing while the screen still looks loaded. Nothing else changes. If you see the red box, long-press the text, copy it, and paste it into the build chat — that text is the whole diagnosis."
 }

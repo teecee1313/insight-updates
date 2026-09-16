@@ -5,7 +5,54 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-881-simple';
+const APP_VERSION='2026.09.16-882-simple';
+// v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
+// crash that dies silently leaves a half-loaded session that LOOKS loaded
+// (table rendered, radar counting one share, 🔬 refusing). This paints the
+// FIRST JavaScript error — sync or async — into a small copyable box and the
+// status bars, with the app version and how many shares the session held at
+// that moment. It changes no behaviour; it only makes failure name itself.
+(function(){
+  var _hit=0;
+  function _paint(kind,msg,src,line,col,stack){
+    try{
+      if(_hit++)return; // first error only — the rest are usually echoes
+      var n=(typeof allData!=='undefined'&&Array.isArray(allData))?allData.length:'?';
+      var head='⚠ '+kind+' — '+String(msg||'').slice(0,300);
+      var where=(src?String(src).split('/').pop():'')+(line?(':'+line+(col?(':'+col):'')):'');
+      var tail=(stack?String(stack).split('\n').slice(0,3).join(' ⏎ ').slice(0,400):'');
+      var txt=head+(where?('\n@ '+where):'')+'\napp '+APP_VERSION+' · session shares: '+n+(tail?('\n'+tail):'');
+      function put(){
+        try{
+          var b=document.getElementById('errBeacon');
+          if(!b){
+            b=document.createElement('div'); b.id='errBeacon';
+            b.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#fff3f3;border:2px solid #c0392b;border-radius:10px;padding:8px 10px;font:12px/1.4 monospace;color:#7b241c;white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow:auto;';
+            var x=document.createElement('div');
+            x.textContent='✕ dismiss (long-press the text to copy it for the build chat)';
+            x.style.cssText='text-align:right;cursor:pointer;color:#c0392b;font-weight:bold;margin-bottom:4px;';
+            x.onclick=function(){try{b.remove();}catch(_){}};
+            b.appendChild(x);
+            var t=document.createElement('div'); t.id='errBeaconTxt'; b.appendChild(t);
+            (document.body||document.documentElement).appendChild(b);
+          }
+          var tEl=document.getElementById('errBeaconTxt'); if(tEl)tEl.textContent=txt;
+          ['loadStatus','streakStatus'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='<span style="color:#c0392b">'+head.replace(/[<>]/g,'')+' — details in the red box below</span>';});
+        }catch(_){}
+      }
+      if(document.body)put(); else document.addEventListener('DOMContentLoaded',put,{once:true});
+    }catch(_){}
+  }
+  window.addEventListener('error',function(e){
+    if(e&&e.target&&(e.target.tagName==='IMG'||e.target.tagName==='SCRIPT'||e.target.tagName==='LINK'))return; // resource loads: not code errors
+    _paint('JavaScript error',(e&&e.message)||'',(e&&e.filename)||'',(e&&e.lineno)||0,(e&&e.colno)||0,e&&e.error&&e.error.stack);
+  },true);
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e&&e.reason;
+    _paint('Async (promise) error',(r&&(r.message||String(r)))||'',(r&&r.fileName)||'',0,0,r&&r.stack);
+  });
+})();
+
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
