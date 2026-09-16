@@ -5,7 +5,7 @@ window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-877-simple';
+const APP_VERSION='2026.09.16-878-simple';
 // v827 — is Sydney right now inside a server ingest pass? (17:00–17:15 early,
 // 18:15–18:45 final, weekdays.) During those minutes the server is writing the
 // whole market's closing prices into its database, and reads genuinely slow
@@ -1794,18 +1794,18 @@ function setVolWindow(n){
   let done=0;
   (allData||[]).forEach(s=>{
     if(!Array.isArray(s.series)||s.series.length<3)return;
-    let hist=s.series.map(x=>x.v).filter(v=>v>0);
-    if(hist.length>=2)hist=hist.slice(0,-1);                 // drop today
-    if(volAvgWindow>0 && hist.length>volAvgWindow)hist=hist.slice(-volAvgWindow);
-    if(hist.length<1)return;
-    let sum=0;hist.forEach(v=>sum+=v);
-    const avg=Math.round(sum/hist.length);
+    // v878: one measuring cup everywhere — the same shared window math the
+    // server and every other app path use (computeVolAvg over effVolWindow()),
+    // instead of a private all-history / bar-count average. This private math
+    // was one cause of the device-vs-server ORDERING seam: same shares, same
+    // data, different order, because "usual volume" was measured over a
+    // different span than the worker's 90 calendar days.
+    const avg=computeVolAvg(_volRowsForAvg(s.series),effVolWindow());
     if(avg>0){
-      s.avgVol=avg;
+      s.avgVol=avg;s.avg3mo=avg;
       s.volPct=Math.round(((s.volume-avg)/avg)*100);
       s.volCalced=true;
-      s.volWindow=volAvgWindow>0?(VOLWIN_LABELS[volAvgWindow]||(hist.length+'d'))
-                 :hist.length>=200?'1-year':hist.length>=120?'6-month':hist.length>=45?'3-month':hist.length>=30?'2-month':'1-month';
+      s.volWindow=effVolWindowLabel();
       done++;
     }
   });
@@ -6079,9 +6079,7 @@ function _apPrepShare(s){
       let dn=0; for(let i=ser.length-1;i>0;i--){ if(ser[i].c<ser[i-1].c)dn++; else break; }
       s.daysUp=up; s.daysDown=dn; s.streakCalced=true; }catch(e){} }
     if(!s.volCalced){ try{
-      const W=effVolWindow(); const from=Math.max(0,ser.length-W);
-      let vs=0,vn=0; for(let i=from;i<ser.length;i++){ if(ser[i].v>0){vs+=ser[i].v;vn++;} }
-      const a=vn>0?vs/vn:0;
+      const a=computeVolAvg(_volRowsForAvg(ser),effVolWindow()); // v878: same cup as the server (was: last-90-BARS incl. today)
       if(a>0){ s.avg3mo=s.avg3mo||a; s.avgVol=s.avgVol||a; if(s.volume>0&&s.volPct==null)s.volPct=Math.round(((s.volume-a)/a)*100); s.volCalced=true; s.volWindow=effVolWindowLabel(); } }catch(e){} }
     if(!s.volStreakCalced){ try{
       const older=ser.slice(0,-5); let vs=0,vn=0; older.slice(-63).forEach(function(x){ if(x.v>0){vs+=x.v;vn++;} }); /* v700: 3-month baseline, not all-history */
@@ -12611,6 +12609,16 @@ function _engineVolAvg(history,bars){
   for(const q of take){ const v=getVol(q); if(!isNaN(v)&&v>0){sum+=v;n++;} }
   return n>0?Math.round(sum/n):0;
 }
+// v878 — computeVolAvg resolves dates via qField(['dateStamp','date','Date'])
+// — deliberately WITHOUT 'd' (the v695 pantry-row trap) — so {d,c,v} series
+// rows must be re-keyed before the shared window math sees them, exactly as
+// the server's prepare step does. Every caller below passes rows through here.
+function _volRowsForAvg(rows){
+  if(!Array.isArray(rows))return [];
+  const out=new Array(rows.length);
+  for(let i=0;i<rows.length;i++){const q=rows[i];out[i]=(q&&(q.date!=null||q.d==null))?q:{date:q.d,v:q.v};}
+  return out;
+}
 function computeVolAvg(history,limitDays){
   // Average daily volume over the window, EXCLUDING today's bar. If limitDays
   // given, only bars within that many days are averaged (the 3-month reference).
@@ -17119,20 +17127,15 @@ async function bulkMonthAverageByDates(apiKey,say){
     if(rec.n>=3){
       // Build the historical volume list from the retained series, dropping the
       // most recent day (today) so it doesn't dilute its own comparison.
-      let hist=(rec.closes||[]).map(x=>x.v).filter(v=>v>0);
-      if(hist.length>=2)hist=hist.slice(0,-1); // drop today
-      // If a specific window is chosen, use only the last N days of that history.
-      if(volAvgWindow>0 && hist.length>volAvgWindow)hist=hist.slice(-volAvgWindow);
-      let histSum=0;hist.forEach(v=>histSum+=v);
-      const histN=hist.length;
-      const avg=histN>0?Math.round(histSum/histN):0;
+      // v878: shared window math — the same measuring cup as the server and
+      // every other path (computeVolAvg over effVolWindow()); the private
+      // all-history / bar-count average here was part of the ordering seam.
+      const avg=computeVolAvg(_volRowsForAvg(rec.closes||[]),effVolWindow());
       if(avg>0){
         s.avgVol=avg;
         s.volPct=Math.round(((s.volume-avg)/avg)*100);
         s.volCalced=true;
-        // Label: chosen window if set, else the actual depth available.
-        s.volWindow = volAvgWindow>0 ? (VOLWIN_LABELS[volAvgWindow]||(histN+'d'))
-                    : histN>=200?'1-year' : histN>=120?'6-month' : histN>=45?'3-month' : histN>=30?'2-month' : '1-month';
+        s.volWindow=effVolWindowLabel();
         if(!s.avg3mo)s.avg3mo=avg;
         const ratio=s.volume/avg;
         s.unusualEod=ratio>1.5&&Math.abs(s.chgPct)>2;
@@ -17314,15 +17317,24 @@ async function bulkVolume(){
       for(let _k=0;_k<ser.length;_k++){ const _c=ser[_k].c, _v=ser[_k].v; if(isFinite(_c))_cl.push(_c); if(isFinite(_v)&&_v>0)_vl.push(_v); }
       const closes=_cl, vols=_vl;
       if(vols.length>1){
-        let _vsum=0; for(let i=0;i<vols.length-1;i++)_vsum+=vols[i]; // avg of all vols except the most recent (== old vols.slice(0,-1) mean)
-        const avg=_vsum/(vols.length-1);
-        s.avgVol=Math.round(avg);
-        s.volPct=avg>0?Math.round((vols[vols.length-1]-avg)/avg*100):0;
-        s.volCalced=true; s.volWindow=s.volWindow||'demo';
-        // volume-above-average streak
-        let vd=0; { let i=vols.length-1; while(i>=0&&!(vols[i]>avg*0.01))i--; /* v696 */ for(;i>=0;i--){if(vols[i]>avg)vd++;else break;} }
-        s.volDays=vd; s.volStreakCalced=true;
-        _liveTodayFix(s,[{v:vols[vols.length-1]}],avg); // v694: second escaped site
+        // v878: same measuring cup as the server — the shared window math
+        // instead of an all-history mean. This path runs on REAL data whenever
+        // every share carries a series (i.e. after a full download), and its
+        // private average was the main cause of the device-vs-server ordering
+        // seam. Today's volume is the live quote when present, else the series'
+        // true newest bar (even if 0 — matching what the server would compute).
+        const _lastBar=ser[ser.length-1];
+        const _todayV=(s.volume!=null&&isFinite(s.volume))?+s.volume:((_lastBar&&isFinite(_lastBar.v))?+_lastBar.v:0);
+        const avg=computeVolAvg(_volRowsForAvg(ser),effVolWindow());
+        if(avg>0){
+          s.avgVol=avg; s.avg3mo=s.avg3mo||avg;
+          s.volPct=Math.round(((_todayV-avg)/avg)*100);
+          s.volCalced=true; s.volWindow=effVolWindowLabel();
+          // volume-above-average streak
+          let vd=0; { let i=vols.length-1; while(i>=0&&!(vols[i]>avg*0.01))i--; /* v696 */ for(;i>=0;i--){if(vols[i]>avg)vd++;else break;} }
+          s.volDays=vd; s.volStreakCalced=true;
+          _liveTodayFix(s,[{v:_todayV}],avg); // v694: second escaped site
+        }
       }
       // days-up streak
       let du=0; for(let i=closes.length-1;i>0;i--){if(closes[i]>closes[i-1])du++;else break;}

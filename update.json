@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-877",
+  "version": "2026.09.16-878",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Removes the leftover NYSE tab from the practice portfolio. NYSE was retired a while back, so its prices never update and its profit/loss was frozen \u2014 leaving it in the combined totals made them quietly wrong. Nothing is deleted: any practice rows stored under NYSE are still on your device untouched, just no longer shown or counted."
+  "notes": "The phone and the server now measure unusual volume with the same measuring cup: today's trading compared against the last 3 months, exactly as the server's reports do. Before this, some parts of the app compared today against everything saved on your device (up to a year of history), so the phone and the server could rank the very same shares in a different order \u2014 and the volume % shown could differ from the server's number for the same share. Volume percentages may shift after this update; that is the two sides finally agreeing, not new data."
 }
