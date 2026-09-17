@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.16-887",
+  "version": "2026.09.17-888",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "The 🏆 Top 20 is ranked again by the exact recipe its track record measures — the same watch-score ranking the year-long replay grades every night. For a while the list was ranked with proven evidence first, but that version's track record cannot be measured (it would need the very grades it feeds into), so the list you saw wore a record earned by a different recipe. That is not honest enough for this app. Evidence hasn't gone anywhere: the badges still show on every share, the PN Edge column still sorts by proven evidence, and the autopilot still ranks by it with its own separately measured record. The server check should now read 11 of 11."
+  "notes": "The whole app now agrees on what a 'gainer' is. The Market today card and the radar tiles were counting the same shares with two slightly different rules — the card treats a move within ±0.1% as flat (a hair's-breadth tick is not a real gain), while the tiles counted any move above zero — so the two screens showed different gainer and loser counts from the same data. One rule now answers everywhere: up means more than +0.1%, down means below −0.1%, and anything between is flat. The radar's Gainers/Losers filters follow the same rule."
 }

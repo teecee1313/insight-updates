@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.16-887-open';
+const APP_VERSION='2026.09.17-888-open';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -11476,10 +11476,21 @@ function _noNews5d(s){
   if(s.annConfirmed)return (s.annNews5d||0)===0;
   return s.newsFlag==='quiet';
 }
+// v888 — ONE definition of up/flat/down, everywhere (Tony, 17 Sep: 'Numbers
+// dont add up gainers aren't same'). The Market-today pulse deliberately uses
+// a ±0.1% flat band (a +0.02% tick is not a 'gainer'); the radar tiles and
+// the direction filter counted strict >0/<0 — 45 hair's-breadth shares were
+// gainers on one screen and flat on the other, from the same data. The band
+// wins (it is the documented, human-honest rule); every counter now asks
+// this one function.
+function _dayDir(s){
+  const c=+((s&&s.chgPct))||0;
+  return c>0.1?'up':(c<-0.1?'down':'flat');
+}
 function _statPass(s){
   if(!s)return false;
-  if(_statOn.gainers && !(s.chgPct>0))return false;
-  if(_statOn.losers && !(s.chgPct<0))return false;
+  if(_statOn.gainers && _dayDir(s)!=='up')return false;
+  if(_statOn.losers && _dayDir(s)!=='down')return false;
   if(_statOn.vol && !(s.volPct>=200))return false;
   if(_statOn.vol50 && !(s.volCalced&&s.volPct>=50&&s.volPct<=100))return false;
   if(_statOn.dir && !s.dirBuy)return false;
@@ -11677,7 +11688,7 @@ function statsBar(){
   var _tf613=(typeof _scDayGet==='function')?_scDayGet():null; /* v613: today's raw scan fires — a SEPARATE, already-fetched source from the combo-engine's s._evKeys, which structurally never contains these six keys */
   let _evThinN=0,_evNegN=0; // v462: included, but flagged · v465: fired-but-losing
   for(const s of d){
-    if(s.chgPct>0)g++; if(s.chgPct<0)l++;
+    var _dd=_dayDir(s); if(_dd==='up')g++; else if(_dd==='down')l++; // v888: same band as Market today
     if(s.volPct>=200)v200++;
     if(s.dirBuy)dir++;
     if(s.streakCalced&&s.daysUp>=2)c2++;
@@ -18622,9 +18633,9 @@ function simpleMarketPulse(){
   // notes/bonds and preference shares are out. The exclusion is by TYPE, so it
   // follows the classifier (including the new KO rule) rather than a second list.
   const all=allData.filter(s=>s.price>0&&s.type!=='Option'&&s.type!=='Preference'&&s.type!=='Bond');
-  const up=all.filter(s=>s.chgPct>0.1);
-  const dn=all.filter(s=>s.chgPct<-0.1);
-  const fl=all.filter(s=>Math.abs(s.chgPct)<=0.1);
+  const up=all.filter(s=>_dayDir(s)==='up');   // v888: the one classifier
+  const dn=all.filter(s=>_dayDir(s)==='down');
+  const fl=all.filter(s=>_dayDir(s)==='flat');
   const pctUp=all.length?Math.round(up.length/all.length*100):0;
   const pctDn=all.length?Math.round(dn.length/all.length*100):0;
   const adr=dn.length?(up.length/dn.length).toFixed(1)+':1':'—';
