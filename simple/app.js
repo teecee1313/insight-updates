@@ -1,11 +1,10 @@
-window._SIMPLE_LOCK=true; /* built by make_simple.py — Starter locked */
 
 // ── App version & rollback archive ───────────────────────────────────────────
 // APP_VERSION is bumped with each release. On startup the app archives its own
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.17-888-simple';
+const APP_VERSION='2026.09.19-889-simple';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -129,7 +128,7 @@ async function _appSourceSnapshot(){ /* v814: the app's code now lives in app.js
   }catch(e){ return ''; }
 }
 function _verDB(){return new Promise((res,rej)=>{
-  const rq=indexedDB.open('SIMPLE_pnmaVersions',1);
+  const rq=indexedDB.open('pnmaVersions',1);
   rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('versions'))rq.result.createObjectStore('versions',{keyPath:'v'});};
   rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);
 });}
@@ -540,7 +539,7 @@ function applyLang(){
 }
 function setLang(code){
   LANG=code;
-  try{localStorage.setItem('SIMPLE_asxScreener.lang',code);}catch(e){}
+  try{localStorage.setItem('asxScreener.lang',code);}catch(e){}
   const sel=document.getElementById('langSel');if(sel)sel.value=code;
   applyLang();
   /* v866: the menu picker used to reach 27 labels from the app's first version and
@@ -592,7 +591,7 @@ function _gtApply(code){
 }
 function initLang(){
   let saved='en';
-  try{saved=localStorage.getItem('SIMPLE_asxScreener.lang')||'en';}catch(e){}
+  try{saved=localStorage.getItem('asxScreener.lang')||'en';}catch(e){}
   setLang(saved);
 }
 
@@ -695,7 +694,7 @@ const F={
 // v295: the 💧 Liquidity floor is remembered across sessions, and BRAND-NEW users
 // start at ≥$50k/day (thinly-traded shares are hard to exit at a fair price).
 // One tap back to "Any" — and that choice sticks. Existing users keep their setting.
-const LIQ_PREF_KEY='SIMPLE_asxScreener.liqPref.v1';
+const LIQ_PREF_KEY='asxScreener.liqPref.v1';
 function _liqSave(){ try{ localStorage.setItem(LIQ_PREF_KEY,F.cap); }catch(e){} }
 (function _liqInit(){ try{
   const v=localStorage.getItem(LIQ_PREF_KEY);
@@ -706,7 +705,7 @@ function _liqSave(){ try{ localStorage.setItem(LIQ_PREF_KEY,F.cap); }catch(e){} 
 // ── Multiple persistent watchlists ──────────────────────────
 // Stored as { listName: { TICKER: {savedStockSnapshot} } } in localStorage so
 // they survive browser closes AND show regardless of current filters.
-const WL_KEY='SIMPLE_asxScreener.watchlists.v1';
+const WL_KEY='asxScreener.watchlists.v1';
 let watchlists={};       // all named lists
 let activeWatch='My Watchlist'; // currently selected list name
 let watchViewOn=false;   // showing the watchlist view (independent of filters)?
@@ -781,7 +780,7 @@ function _safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u.rep
 // EODData API key is held SERVER-SIDE (never shipped to the browser, never handed
 // to public relays). If the Worker is ever unreachable the app falls back to the
 // existing direct + free-relay routes, so an outage can't dark the app.
-// Override or disable at runtime via localStorage 'SIMPLE_asxScreener.dataProxy.v1'
+// Override or disable at runtime via localStorage 'asxScreener.dataProxy.v1'
 // (set it to '' to turn the server off and use the old relays).
 let DATA_PROXY='https://insight-data.tonycotton13.workers.dev';
 // v474 — the localStorage override is GONE. It was a development convenience
@@ -1247,13 +1246,13 @@ function _applyTheme(t){
 }
 function toggleTheme(){
   var nx=document.body.classList.contains('theme-light')?'dark':'light';
-  try{ localStorage.setItem('SIMPLE_asxScreener.theme.v1',nx); }catch(e){}
+  try{ localStorage.setItem('asxScreener.theme.v1',nx); }catch(e){}
   _applyTheme(nx);
   try{ if(window._chartTicker&&typeof _chartSvg==='function'){ var ca=document.getElementById('chartArea'); if(ca)ca.innerHTML=_chartSvg(_chartTicker,_chartTF); } }catch(e){}
 }
 (function _initTheme(){
   function go(){ try{
-    var s=null; try{ s=localStorage.getItem('SIMPLE_asxScreener.theme.v1'); }catch(e){}
+    var s=null; try{ s=localStorage.getItem('asxScreener.theme.v1'); }catch(e){}
     if(!s){ s=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'; }
     _applyTheme(s);
   }catch(e){} }
@@ -1265,7 +1264,7 @@ function inWatch(ticker){return !!curWL()[ticker];}
 // A DIFFERENT thing from the watchlist: a workflow holding-pen for shares you
 // want to look into later. Each entry keeps a snapshot, a "why" note, and the
 // date flagged. You work through it: research → promote to watchlist, or dismiss.
-const RESEARCH_KEY='SIMPLE_asxScreener.research.v1';
+const RESEARCH_KEY='asxScreener.research.v1';
 let researchList={}; // { TICKER: {ticker,exchange,name,note,ts,snap} }
 function loadResearch(){
   try{const raw=localStorage.getItem(RESEARCH_KEY);researchList=raw?JSON.parse(raw)||{}:{};_sanResearch();}
@@ -1837,7 +1836,7 @@ function volDepthRank(w){return {'1-year':5,'6-month':4,'3-month':3,'2-month':2,
 function volDepthGood(w){return volDepthRank(w)>=3;} // 3-month+ = upgraded
 // User-selectable averaging window for the "today vs history" volume comparison.
 // 0 = Auto (use all cached history). Otherwise trading-day counts.
-const VOLWIN_STORE='SIMPLE_asxScreener.volWindow.v1';
+const VOLWIN_STORE='asxScreener.volWindow.v1';
 let volAvgWindow = (function(){try{
   let n=parseInt(localStorage.getItem(VOLWIN_STORE))||0;
   // v880 — the stored value is now CALENDAR days, which is what the shared
@@ -1852,7 +1851,7 @@ let volAvgWindow = (function(){try{
 const VOLWIN_LABELS={0:'Auto',31:'1-month',92:'3-month',183:'6-month',365:'1-year'}; // v880: calendar-day keys
 // ── Trading-range window (sessions). Selectable: 3 days ≈ 3, 1 week ≈ 5,
 //    1 month ≈ 20, 3 months ≈ 66. Default 1 month. ──
-const RANGEWIN_STORE='SIMPLE_asxScreener.rangeWindow.v1';
+const RANGEWIN_STORE='asxScreener.rangeWindow.v1';
 let rangeWindow = (function(){try{return parseInt(localStorage.getItem(RANGEWIN_STORE))||20;}catch(e){return 20;}})();
 const RANGEWIN_LABELS={3:'3 days',5:'1 week',10:'2 weeks',20:'1 month',66:'3 months'};
 // Change the averaging window and recompute today-vs-history for every share
@@ -1948,7 +1947,7 @@ const selected=new Set();  // tickers tick-boxed for a one-off report
 function onExchChange(){
   currentExch=document.getElementById('exchSel').value;
   document.getElementById('exchBadge').textContent='🌐 '+currentExch+' Screener';
-  try{localStorage.setItem('SIMPLE_asxScreener.lastExch',currentExch);}catch(e){}
+  try{localStorage.setItem('asxScreener.lastExch',currentExch);}catch(e){}
   try{_refreshKeyUI&&_refreshKeyUI();}catch(e){} // v519: NYSE shows the own-key box
   applyAssetMode();
   // Auto-load the newly selected exchange (same full load + prepare as startup),
@@ -2005,7 +2004,7 @@ function applyAssetMode(){
   }
 }
 // ── App password gate (hashed; required on every open) ──────────────────────
-const GATE_STORE='SIMPLE_asxScreener.appGate.v1';
+const GATE_STORE='asxScreener.appGate.v1';
 // ── PERSONAL FIXED CODE ──────────────────────────────────────────────────
 // When this holds a {salt,hash} record, the app is locked to ONE code baked
 // into the file. Every device just asks for that code — there is no
@@ -2126,7 +2125,7 @@ const LICENCE_ENABLED=true;   // master switch in code (leave true; use dev togg
 // When a customer's copy is older than "version", they see a dismissible
 // "Update available" notice with your download link. To announce an update you
 // edit ONE hosted file — no emailing every customer. Blank = checks off.
-const UPDATE_CHECK_URL='https://teecee1313.github.io/insight-updates/simple/update.json'; // teecee1313's GitHub Pages
+const UPDATE_CHECK_URL='https://teecee1313.github.io/insight-updates/update.json'; // teecee1313's GitHub Pages
 function _verNum(v){const m=String(v||'').match(/(\d{4})\.(\d{2})\.(\d{2})-(\d+)/);return m?((+m[1])*1e8+(+m[2])*1e6+(+m[3])*1e4+(+m[4])):0;}
 function _updEsc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
 // v413: one tap = fetch the fresh copy past every cache and reload — ends the
@@ -2144,11 +2143,11 @@ function showUpdateToast(info){
     +'<span id="updToastX" style="position:absolute;top:6px;right:9px;cursor:pointer;color:#8fa6c9;font-size:13px;">✕</span>';
   document.body.appendChild(d);
   const x=document.getElementById('updToastX');
-  if(x)x.onclick=()=>{d.remove();try{sessionStorage.setItem('SIMPLE_asxScreener.updDismiss','1');}catch(e){}};
+  if(x)x.onclick=()=>{d.remove();try{sessionStorage.setItem('asxScreener.updDismiss','1');}catch(e){}};
 }
 async function checkForUpdate(){
   if(!UPDATE_CHECK_URL)return;
-  try{ if(sessionStorage.getItem('SIMPLE_asxScreener.updDismiss')==='1')return; }catch(e){}
+  try{ if(sessionStorage.getItem('asxScreener.updDismiss')==='1')return; }catch(e){}
   try{
     const ctrl=new AbortController();
     const t=setTimeout(()=>ctrl.abort(),8000);
@@ -2163,9 +2162,9 @@ async function checkForUpdate(){
     // Later discoveries (wake/interval checks) show the toast instead of
     // yanking the app mid-work.
     try{
-      var _tried=localStorage.getItem('SIMPLE_asxScreener.updTried.v1');
+      var _tried=localStorage.getItem('asxScreener.updTried.v1');
       if(_tried!==info.version && (Date.now()-(window._bootT0||0))<15000){
-        localStorage.setItem('SIMPLE_asxScreener.updTried.v1', info.version);
+        localStorage.setItem('asxScreener.updTried.v1', info.version);
         _updApply(); return;
       }
     }catch(e){}
@@ -2184,7 +2183,7 @@ async function checkForUpdateNow(){
     document.body.appendChild(d);
     const x=document.getElementById('updToastX'); if(x)x.onclick=()=>d.remove();
   };
-  try{sessionStorage.removeItem('SIMPLE_asxScreener.updDismiss');}catch(e){}
+  try{sessionStorage.removeItem('asxScreener.updDismiss');}catch(e){}
   if(!UPDATE_CHECK_URL){say('⚠ No update source is configured in this copy.');return;}
   say('🔄 Checking for updates…');
   try{
@@ -2213,8 +2212,8 @@ function _setVerLabel(){try{const el=document.getElementById('verLabel');if(el)e
 if(document.readyState!=='loading')_setVerLabel();else document.addEventListener('DOMContentLoaded',_setVerLabel);
 // (Owner mode removed.)
 const LICENCE_REVOKE_URL='';   // optional: baked-in revocation list URL for shipped copies
-const LICENCE_STORE='SIMPLE_asxScreener.licence.v1';
-const OWNER_STORE='SIMPLE_asxScreener.owner.v1';        // {mpSalt, mpHash, secret}
+const LICENCE_STORE='asxScreener.licence.v1';
+const OWNER_STORE='asxScreener.owner.v1';        // {mpSalt, mpHash, secret}
 // The active secret: owner-set (via the protected panel) if present, else the
 // code constant above. This lets you set it in-app without editing code.
 function _lic_activeSecret(){
@@ -2240,8 +2239,8 @@ async function _lic_expectedKey(buyer,exp){
 function _lic_dateGuard(){
   try{
     const t=_lic_todayYMD();
-    const m=localStorage.getItem('SIMPLE_asxScreener.maxSeen')||'';
-    if(t>m)localStorage.setItem('SIMPLE_asxScreener.maxSeen',t);
+    const m=localStorage.getItem('asxScreener.maxSeen')||'';
+    if(t>m)localStorage.setItem('asxScreener.maxSeen',t);
     return (m&&t<m)?m:t;   // returns the max-seen date (effective "today")
   }catch(e){return _lic_todayYMD();}
 }
@@ -2266,7 +2265,7 @@ function _lic_msg(t,c){const el=document.getElementById('licMsg');if(el){el.inne
 // the app fetches it at startup (4s timeout, fail-open when offline) and locks
 // immediately if its own key appears.
 function _lic_localRevoked(key){
-  try{return (JSON.parse(localStorage.getItem('SIMPLE_asxScreener.revokedLocal')||'[]')).includes(key);}catch(e){return false;}
+  try{return (JSON.parse(localStorage.getItem('asxScreener.revokedLocal')||'[]')).includes(key);}catch(e){return false;}
 }
 function _lic_revokeUrl(){
   try{const o=JSON.parse(localStorage.getItem(OWNER_STORE));if(o&&o.revokeUrl)return o.revokeUrl;}catch(e){}
@@ -2530,19 +2529,19 @@ async function changeAppPassword(){
 // update, or under storage pressure), which would wipe the saved API key,
 // portfolio and watchlists. To prevent that, we mirror those critical values
 // into IndexedDB (much stickier) and auto-restore them if localStorage is empty.
-const _CRIT_BASE=['SIMPLE_asxScreener.apiKey','SIMPLE_asxScreener.newsApiKey.v1','SIMPLE_asxScreener.paperTrades.v1','SIMPLE_asxScreener.paperTrades.auto.v1','SIMPLE_asxScreener.watchlists.v1','SIMPLE_asxScreener.brokerage.v1'];
+const _CRIT_BASE=['asxScreener.apiKey','asxScreener.newsApiKey.v1','asxScreener.paperTrades.v1','asxScreener.paperTrades.auto.v1','asxScreener.watchlists.v1','asxScreener.brokerage.v1'];
 // v408: each exchange's own practice accounts are critical too — include them
 // (and the exchange registry itself) so the IndexedDB safety mirror covers them.
 function _CRIT_KEYS_ALL(){
   const out=_CRIT_BASE.slice();
-  try{ out.push('SIMPLE_asxScreener.paperExchs.v1');
-    (JSON.parse(localStorage.getItem('SIMPLE_asxScreener.paperExchs.v1')||'[]')||[]).forEach(ex=>{
-      if(ex&&ex!=='ASX'){ out.push('SIMPLE_asxScreener.paperTrades.v1.'+ex); out.push('SIMPLE_asxScreener.paperTrades.auto.v1.'+ex); }
+  try{ out.push('asxScreener.paperExchs.v1');
+    (JSON.parse(localStorage.getItem('asxScreener.paperExchs.v1')||'[]')||[]).forEach(ex=>{
+      if(ex&&ex!=='ASX'){ out.push('asxScreener.paperTrades.v1.'+ex); out.push('asxScreener.paperTrades.auto.v1.'+ex); }
     });
   }catch(e){}
   return out;
 }
-function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('SIMPLE_asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
+function _backupDB(){return new Promise((res)=>{try{const rq=indexedDB.open('asxScreenerBackup',1);rq.onupgradeneeded=()=>{if(!rq.result.objectStoreNames.contains('kv'))rq.result.createObjectStore('kv');};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(e){res(null);}});}
 // Does a stored JSON string hold ANY real content? An empty object {}, empty
 // array [], the default one-empty-list watchlist, or a holdings-less paper store
 // all count as "empty" — so we never let an empty value overwrite a good backup,
@@ -2551,12 +2550,12 @@ function _critHasContent(k,raw){
   if(raw==null||raw==='')return false;
   let v;try{v=JSON.parse(raw);}catch(e){return true;} // unparseable but present → keep as-is
   if(v==null)return false;
-  if(k==='SIMPLE_asxScreener.watchlists.v1'){
+  if(k==='asxScreener.watchlists.v1'){
     // {} → empty. {'My Watchlist':{}} (or any lists that are all empty) → empty.
     const lists=Object.values(v||{});
     return lists.some(l=>l&&Object.keys(l).length>0);
   }
-  if(k==='SIMPLE_asxScreener.paperTrades.v1'||k==='SIMPLE_asxScreener.paperTrades.auto.v1'){
+  if(k==='asxScreener.paperTrades.v1'||k==='asxScreener.paperTrades.auto.v1'){
     return !!((v.holdings&&v.holdings.length)||(v.history&&v.history.length)||(v.orders&&v.orders.length));
   }
   if(Array.isArray(v))return v.length>0;
@@ -2609,11 +2608,11 @@ async function restoreFromBackup(){
       const cur=localStorage.getItem(k);
       if(v!=null&&_critHasContent(k,v)&&!_critHasContent(k,cur)){
         try{localStorage.setItem(k,v);
-          if(k==='SIMPLE_asxScreener.watchlists.v1')msg.push('watchlist');
-          else if(k==='SIMPLE_asxScreener.paperTrades.v1')msg.push('paper portfolio');
-          else if(k==='SIMPLE_asxScreener.apiKey')msg.push('API key');
-          else if(k==='SIMPLE_asxScreener.newsApiKey.v1')msg.push('news key');
-          else if(k==='SIMPLE_asxScreener.brokerage.v1')msg.push('brokerage setting');
+          if(k==='asxScreener.watchlists.v1')msg.push('watchlist');
+          else if(k==='asxScreener.paperTrades.v1')msg.push('paper portfolio');
+          else if(k==='asxScreener.apiKey')msg.push('API key');
+          else if(k==='asxScreener.newsApiKey.v1')msg.push('news key');
+          else if(k==='asxScreener.brokerage.v1')msg.push('brokerage setting');
         }catch(e){}
       }
     }
@@ -2640,7 +2639,7 @@ function initKeyLock(){
     // stuck carrying it forever - and _hasOwnKey kept arming direct fetches to
     // a corpse. One-time cleanup: the key is deleted from storage and never
     // loaded into the (hidden) field again.
-    try{ localStorage.removeItem('SIMPLE_asxScreener.apiKey'); }catch(e){}
+    try{ localStorage.removeItem('asxScreener.apiKey'); }catch(e){}
     const saved=null;
     if(saved){const el=document.getElementById('apiKey');if(el)el.value=saved;}
     const nk=localStorage.getItem(NEWSAPI_KEY_STORE);
@@ -2652,7 +2651,7 @@ function initKeyLock(){
 // Show the saved-state (collapsed) row when a key exists, else the input row.
 function _refreshKeyUI(){
   const _kb=document.getElementById('keyConnBlock'); if(_kb)_kb.style.display=(_serverData()&&String(window.currentExch||'ASX').toUpperCase()==='ASX')?'none':''; // v382 hide when the server provides it · v519: the server serves ASX only now, so any other exchange shows the box for the user's own key field when the server provides data
-  let has=false; try{has=!!(localStorage.getItem('SIMPLE_asxScreener.apiKey')||'').trim();}catch(e){}
+  let has=false; try{has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();}catch(e){}
   const entry=document.getElementById('keyEntryRow');
   const saved=document.getElementById('keySavedRow');
   if(entry&&saved){ entry.style.display=has?'none':'block'; saved.style.display=has?'flex':'none'; }
@@ -2669,8 +2668,8 @@ function changeApiKey(){
 function _maybeFirstRunKeyPrompt(){
   try{
     if(window._keyPromptShown)return;
-    const done=!!(localStorage.getItem('SIMPLE_asxScreener.welcomeDone.v1')||'').trim();
-    const has=!!(localStorage.getItem('SIMPLE_asxScreener.apiKey')||'').trim();
+    const done=!!(localStorage.getItem('asxScreener.welcomeDone.v1')||'').trim();
+    const has=!!(localStorage.getItem('asxScreener.apiKey')||'').trim();
     if(done||has)return; // already set up or already dismissed the wizard
     // don't stack over the app gate; wait until the app is visible
     const gate=document.getElementById('appGate');
@@ -2801,7 +2800,7 @@ function _showWizard(step){
       <button onclick="_wizGo(2)" style="width:100%;background:var(--gold,#FFD200);color:#0d1b33;border:none;border-radius:9px;padding:13px;font:800 14px system-ui;cursor:pointer;margin-bottom:8px;">Get started →</button>
       ${dots(1)}`);
   } else if(step===2){
-    const savedKey=(localStorage.getItem('SIMPLE_asxScreener.apiKey')||'').trim();
+    const savedKey=(localStorage.getItem('asxScreener.apiKey')||'').trim();
     ov.innerHTML=card(`
       <div style="font:800 16px system-ui;color:#eef3fb;margin-bottom:4px;">🔑 Step 1 — Your data key</div>
       <div style="font-size:12px;color:#9fb2cc;line-height:1.55;margin-bottom:12px;">The app needs a free key from EODData to load live market data. It's saved on this device and you won't be asked again.</div>
@@ -2831,7 +2830,7 @@ function _wizSaveKey(){
   const i=document.getElementById('keyPromptInput'); if(!i)return;
   const v=(i.value||'').trim();
   if(!v){ i.style.borderColor='#E21937'; i.placeholder='Please paste your key, or tap Skip'; return; }
-  try{localStorage.setItem('SIMPLE_asxScreener.apiKey',v);}catch(e){}
+  try{localStorage.setItem('asxScreener.apiKey',v);}catch(e){}
   const f=document.getElementById('apiKey'); if(f)f.value=v;
   try{_refreshKeyUI&&_refreshKeyUI();}catch(e){}
   _showWizard(3);
@@ -2846,7 +2845,7 @@ function _wizFinish(){
   try{ if(typeof loadData==='function')loadData(true); }catch(e){}
 }
 function _wizDone(){
-  try{localStorage.setItem('SIMPLE_asxScreener.welcomeDone.v1','1');}catch(e){}
+  try{localStorage.setItem('asxScreener.welcomeDone.v1','1');}catch(e){}
   const ov=document.getElementById('keyPromptOv'); if(ov)ov.remove();
 }
 function _keyPromptSave(){ _wizSaveKey(); }
@@ -3159,7 +3158,7 @@ function _resetBeforeScan(){
 // ── "My Report" — save the current filter set as a reusable preset ──────────
 // Stored in localStorage so it persists across sessions and is editable
 // (saving again overwrites it). Captures the full F state + the checkboxes.
-const MYREPORT_KEY='SIMPLE_asxScreener.myReport.v1';
+const MYREPORT_KEY='asxScreener.myReport.v1';
 const _CHKS=['cEod','cBlk','cDir','cInst','cES','cBS','cNA','cBO','cDI','cVR','cMX','cDirC','cOrd','cETF','cLIC','cREIT','cOpt','cPref','cBond','cSpec'];
 function _serializeInf(v){return v===Infinity?'Infinity':v;}
 function _deserInf(v){return v==='Infinity'?Infinity:v;}
@@ -3210,7 +3209,7 @@ function clearMyReport(){
 // When ON (and a report is saved), the app applies your saved ⭐ My Report
 // filters automatically once data finishes loading — so you land straight on
 // your report instead of tapping it each time.
-const MYREPORT_AUTO_KEY='SIMPLE_asxScreener.myReportAuto.v1';
+const MYREPORT_AUTO_KEY='asxScreener.myReportAuto.v1';
 function myReportAutoOn(){try{return localStorage.getItem(MYREPORT_AUTO_KEY)==='1';}catch(e){return false;}}
 function setMyReportAuto(on){try{localStorage.setItem(MYREPORT_AUTO_KEY,on?'1':'0');}catch(e){}refreshMyReportBtn();}
 function toggleMyReportAuto(){
@@ -3265,7 +3264,7 @@ function _myRepAutoOff(){ try{ setMyReportAuto(false); myReportMsg('Auto-run off
 //  all in sequence with one click. Each run captures its match count and the
 //  matching tickers, then a summary panel lets you view any result set.
 // ═══════════════════════════════════
-const REPORTS_KEY='SIMPLE_asxScreener.reports.v1';
+const REPORTS_KEY='asxScreener.reports.v1';
 function loadReports(){try{return JSON.parse(localStorage.getItem(REPORTS_KEY))||[];}catch(e){return [];}}
 function saveReports(list){try{localStorage.setItem(REPORTS_KEY,JSON.stringify(list));}catch(e){}}
 
@@ -3609,7 +3608,7 @@ function newsSearchFor(ticker,exch,name){
 // Only called when you open a share's deep dive — never for all shares — so it
 // stays within a small free quota. Cached 45 min. If no key or no result, the
 // app silently falls back to the existing click-through news buttons.
-const NEWSAPI_KEY_STORE='SIMPLE_asxScreener.newsApiKey.v1';
+const NEWSAPI_KEY_STORE='asxScreener.newsApiKey.v1';
 function newsApiKey(){try{return (localStorage.getItem(NEWSAPI_KEY_STORE)||'').trim();}catch(e){return '';}}
 function setNewsApiKey(v){try{localStorage.setItem(NEWSAPI_KEY_STORE,(v||'').trim());}catch(e){} const el=document.getElementById('newsKeyMsg'); if(el)el.textContent=newsApiKey()?'✓ Saved. Open any share\u2019s Deep dive to see live headlines.':'Cleared.';}
 const _newsCache={};
@@ -4389,7 +4388,7 @@ function _shdNewsLoad(tk,exch){
 //
 // Nothing here predicts DIRECTION, because the same study found nothing that
 // does. Every number below is either arithmetic or a measurement of the past.
-var _TP_RISK_KEY='SIMPLE_asxScreener.tpRisk.v1';
+var _TP_RISK_KEY='asxScreener.tpRisk.v1';
 function _tpRisk(){ try{ var v=+localStorage.getItem(_TP_RISK_KEY); return (v>0)?v:200; }catch(e){ return 200; } }
 function _tpSetRisk(v){ try{ localStorage.setItem(_TP_RISK_KEY,String(Math.max(1,+v||200))); }catch(e){}
   try{ if(window._detailTicker)showShareDetail(window._detailTicker,window._detailDays||30); }catch(e){} }
@@ -5020,9 +5019,9 @@ function tradingDaysHeld(a,b){
   _tdhCache.set(k,n);
   return n;
 }
-const PAPER_STORE='SIMPLE_asxScreener.paperTrades.v1';
+const PAPER_STORE='asxScreener.paperTrades.v1';
 // ═══ v312 — the 🤖 Auto-pilot trades its OWN practice account ($50k) ═══
-const PAPER_STORE_AUTO='SIMPLE_asxScreener.paperTrades.auto.v1';
+const PAPER_STORE_AUTO='asxScreener.paperTrades.auto.v1';
 const AP_START_CASH=50000;
 window._pfCtx=window._pfCtx||'main'; // which account the UI is looking at
 // v408: ONE practice account PER EXCHANGE. ASX keeps the original storage keys
@@ -5030,7 +5029,7 @@ window._pfCtx=window._pfCtx||'main'; // which account the UI is looking at
 // its own cash, its own history — so a NYSE buy (USD) can never draw from the
 // ASX (AUD) pot. First open of a non-ASX exchange migrates that exchange's old
 // records out of the shared store (see _pfSplitMigrate).
-const PF_EXCHS_KEY='SIMPLE_asxScreener.paperExchs.v1';
+const PF_EXCHS_KEY='asxScreener.paperExchs.v1';
 function _pfExch(exch){ const e=String(exch||currentExch||'ASX').toUpperCase(); return e||'ASX'; }
 // v877 — NYSE was retired in v869 (no ingest, no grading, prices frozen), but a
 // device that traded it before still has it in PF_EXCHS_KEY, so the portfolio
@@ -5089,9 +5088,9 @@ const PAPER_START_CASH=10000;
 //    like a real broker. 0 = off (default). Fees come straight out of cash and
 //    are tallied in p.feesPaid; per-trade P/L stays gross of fees (the running
 //    fee total is shown as its own card so nothing is hidden). ──
-const BROKERAGE_STORE='SIMPLE_asxScreener.brokerage.v1';
-const SLIPPAGE_STORE='SIMPLE_asxScreener.slippage.v1';
-const REALFILL_STORE='SIMPLE_asxScreener.realFills.v1';
+const BROKERAGE_STORE='asxScreener.brokerage.v1';
+const SLIPPAGE_STORE='asxScreener.slippage.v1';
+const REALFILL_STORE='asxScreener.realFills.v1';
 const ORDER_EXPIRY_DAYS=5; /* v858 (Tony, 4 Sep): a dip-limit that hasn't filled in 5 days is a decayed signal - the cash comes back and stays deployable. Was 30. Existing pending orders keep their stamped dates; the \ud83d\udcc5 button adjusts any of them. */
 function slippagePct(){try{const v=parseFloat(localStorage.getItem(SLIPPAGE_STORE));return (isFinite(v)&&v>0)?Math.min(v,10):0;}catch(e){return 0;}}
 function setSlippage(v){const n=parseFloat(v);try{localStorage.setItem(SLIPPAGE_STORE,(isFinite(n)&&n>0)?Math.min(n,10):0);}catch(e){}showPortfolio();}
@@ -5179,7 +5178,7 @@ function _ladderLockPct(gainPct,step,margin){
   const r=Math.floor((gainPct-(margin>0?margin:0))/step)*step;
   return r>=step?r:0;
 }
-const RULES_KEY='SIMPLE_asxScreener.rules.v1';
+const RULES_KEY='asxScreener.rules.v1';
 // v659 - an edge is quoted as dollars per $100 invested, which is simply a
 // percentage: $0.50 per $100 IS 0.5%. Quoting the rate alone left the reader to
 // do the conversion, and the whole point of the number is what it means against
@@ -5393,10 +5392,10 @@ window._paintPresetChips=function(){try{
   if(cap)cap.innerHTML=match?('The numbers below = <b>'+RULE_PRESETS[match].label+'</b> (highlighted).'):'The numbers below are your own custom mix — no preset highlighted.';
 }catch(e){}};
 // ⚙ v315 — advanced bot settings fold away (collapsed by default, remembered).
-window._apAdvOpen=(function(){try{return localStorage.getItem('SIMPLE_asxScreener.apAdvOpen.v1')==='1';}catch(e){return false;}})();
+window._apAdvOpen=(function(){try{return localStorage.getItem('asxScreener.apAdvOpen.v1')==='1';}catch(e){return false;}})();
 window.toggleApAdv=function(){
   window._apAdvOpen=!window._apAdvOpen;
-  try{localStorage.setItem('SIMPLE_asxScreener.apAdvOpen.v1',window._apAdvOpen?'1':'0');}catch(e){}
+  try{localStorage.setItem('asxScreener.apAdvOpen.v1',window._apAdvOpen?'1':'0');}catch(e){}
   const b=document.getElementById('apAdvBox'); if(b)b.style.display=window._apAdvOpen?'block':'none';
   const t=document.getElementById('apAdvToggle'); if(t)t.innerHTML='⚙ Advanced bot settings '+(window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)');
 };
@@ -5674,7 +5673,7 @@ function toggleAutoPilot(){
 }
 
 // ═══ v297 — 🤖 Auto-pilot (PRACTICE): rule-based paper entries ═══
-const AP_LOG_KEY='SIMPLE_asxScreener.autoPilot.log.v1', AP_RUN_KEY='SIMPLE_asxScreener.autoPilot.lastRun.v1';
+const AP_LOG_KEY='asxScreener.autoPilot.log.v1', AP_RUN_KEY='asxScreener.autoPilot.lastRun.v1';
 // v408: the once-per-day lock is PER EXCHANGE (ASX keeps the original key).
 // One shared key meant: run ASX, switch to NYSE (different data date), run —
 // the key was overwritten, so switching back to ASX the same day could re-run
@@ -6481,7 +6480,7 @@ function botScoreboard(){
 
   }finally{ window._pfCtx=_pfc; }
 }
-const AP_PICKS_KEY='SIMPLE_asxScreener.autoPilot.picks.v1';
+const AP_PICKS_KEY='asxScreener.autoPilot.picks.v1';
 function _apPicksLoad(){ try{ return (JSON.parse(localStorage.getItem(AP_PICKS_KEY)||'[]')||[]).slice(0,20); }catch(e){ return []; } }
 function _apPicksSave(l){ try{ localStorage.setItem(AP_PICKS_KEY,JSON.stringify((l||[]).slice(0,20))); }catch(e){} }
 function _apPicksHtml(){
@@ -6636,7 +6635,7 @@ function _apQueueSellPush(sells){
 // trading bridge, so it should never have been the side with the weaker
 // credential. Without a key set here, nothing is queued — which is the right
 // failure for anything that touches money.
-var _BRIDGE_STORE='SIMPLE_asxScreener.bridgeKey.v1';
+var _BRIDGE_STORE='asxScreener.bridgeKey.v1';
 function _bridgeKey(){ try{ return localStorage.getItem(_BRIDGE_STORE)||''; }catch(e){ return ''; } }
 window._bridgeSet=function(k){ try{ if(k)localStorage.setItem(_BRIDGE_STORE,String(k).trim()); else localStorage.removeItem(_BRIDGE_STORE); }catch(e){} };
 function _bridgeHeaders(){ var h={'Content-Type':'application/json'}; var k=_bridgeKey(); if(k)h['X-Bridge-Key']=k; return h; }
@@ -6832,7 +6831,7 @@ function _autoPilotRun(manual){
     var _defer=false;
     try{
       if(!manual && (!ent.buys||!ent.buys.length) && window._apCardUnreadable===true){
-        var _dk='SIMPLE_asxScreener.apDefer.v1', _dv=null;
+        var _dk='asxScreener.apDefer.v1', _dv=null;
         try{ _dv=JSON.parse(localStorage.getItem(_dk)||'null'); }catch(e){}
         if(!_dv||_dv.d!==dd)_dv={d:dd,n:0};
         if(_dv.n<30){ _dv.n++; _defer=true; try{ localStorage.setItem(_dk,JSON.stringify(_dv)); }catch(e){}
@@ -6871,7 +6870,7 @@ function runAutoPilotNow(){
 // funnel's day is claimed so the bot never decides the same day twice - and
 // when the server is unreachable or pre-w505, the local funnel proceeds
 // untouched after one 11-second beat. Practice money only, always.
-window._apSrvSeenKey='SIMPLE_asxScreener.apSrvSeen.v1';
+window._apSrvSeenKey='asxScreener.apSrvSeen.v1';
 function _apSrvSeen(){ try{ const v=JSON.parse(localStorage.getItem(_apSrvSeenKey)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 window._apSrvDone=false;
 window._apSrvConsume=function(){
@@ -7026,7 +7025,7 @@ function _pfFresh(acct){ return ((acct||window._pfCtx)==='auto')?{holdings:[],hi
 function _pfSplitMigrate(acct,ex){
   try{
     if(!ex||ex==='ASX')return;
-    const mk='SIMPLE_asxScreener.pfSplit.v1.'+(((acct||window._pfCtx)==='auto')?'auto':'main')+'.'+ex;
+    const mk='asxScreener.pfSplit.v1.'+(((acct||window._pfCtx)==='auto')?'auto':'main')+'.'+ex;
     if(localStorage.getItem(mk))return;
     localStorage.setItem(mk,'1');
     const legacyKey=_pfKey(acct,'ASX'), newKey=_pfKey(acct,ex);
@@ -9174,7 +9173,7 @@ function showPasteRestore(){
       <strong>On the version that HAS your portfolio:</strong><br>
       1. Press <b>F12</b> → click the <b>Console</b> tab.<br>
       2. Paste this line and press Enter:<br>
-      <code style="display:block;background:var(--bg3);padding:7px;border-radius:5px;margin:5px 0;font-size:10px;color:var(--gold);user-select:all;">copy(localStorage.getItem('SIMPLE_asxScreener.paperTrades.v1'))</code>
+      <code style="display:block;background:var(--bg3);padding:7px;border-radius:5px;margin:5px 0;font-size:10px;color:var(--gold);user-select:all;">copy(localStorage.getItem('asxScreener.paperTrades.v1'))</code>
       3. It's now copied. Come back here and paste it in the box below.
     </div>
     <textarea id="pasteBox" placeholder="Paste your portfolio data here…" style="width:100%;height:100px;padding:9px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;box-sizing:border-box;"></textarea>
@@ -9429,8 +9428,8 @@ function paperAcceptBalance(){
 
 // Portfolio + 1-year history panel (scoped to All or a single exchange).
 // v263: flip the portfolio between its two pages without a full re-render.
-function _pfHideProfit(){ try{return localStorage.getItem('SIMPLE_asxScreener.pfHideProfit.v1')==='1';}catch(e){return false;} }
-function _pfToggleProfit(){ const on=!_pfHideProfit(); try{localStorage.setItem('SIMPLE_asxScreener.pfHideProfit.v1',on?'1':'0');}catch(e){} try{document.body.classList.toggle('pf-hideprofit',on);}catch(e){} const b=document.getElementById('pfHideBtn'); if(b)b.textContent=on?'🙈 Show P/L':'👁 Hide P/L'; }
+function _pfHideProfit(){ try{return localStorage.getItem('asxScreener.pfHideProfit.v1')==='1';}catch(e){return false;} }
+function _pfToggleProfit(){ const on=!_pfHideProfit(); try{localStorage.setItem('asxScreener.pfHideProfit.v1',on?'1':'0');}catch(e){} try{document.body.classList.toggle('pf-hideprofit',on);}catch(e){} const b=document.getElementById('pfHideBtn'); if(b)b.textContent=on?'🙈 Show P/L':'👁 Hide P/L'; }
 // ── v749 · WEEKLY DIARY ────────────────────────────────────────────────────
 // Answers a question the rest of the portfolio can't: not "what am I worth"
 // but "how did this week go, and am I getting better?"
@@ -9460,10 +9459,10 @@ function _wkLabel(key){
   const sameMonth=mon.getMonth()===fri.getMonth();
   return mon.getDate()+(sameMonth?'':' '+M[mon.getMonth()])+'–'+fri.getDate()+' '+M[fri.getMonth()];
 }
-function _wkNotes(){ try{ return JSON.parse(localStorage.getItem('SIMPLE_asxScreenerWeekNotes')||'{}'); }catch(e){ return {}; } }
+function _wkNotes(){ try{ return JSON.parse(localStorage.getItem('asxScreenerWeekNotes')||'{}'); }catch(e){ return {}; } }
 function _wkNoteSet(key,txt){
   try{ const all=_wkNotes(); if(txt&&txt.trim())all[key]=txt.trim().slice(0,280); else delete all[key];
-    localStorage.setItem('SIMPLE_asxScreenerWeekNotes',JSON.stringify(all)); }catch(e){}
+    localStorage.setItem('asxScreenerWeekNotes',JSON.stringify(all)); }catch(e){}
 }
 window._wkEditNote=function(key){
   const all=_wkNotes();
@@ -10106,7 +10105,7 @@ async function _newsRegister(force){
     var hash=ex+':'+payload.hold.map(function(x){return x.ticker;}).sort().join(',')
       +'|'+payload.watch.map(function(x){return x.ticker;}).sort().join(',')
       +'|'+picks.map(function(x){return x.ticker;}).join(',');
-    var K='SIMPLE_asxScreener.newsReg.v1', st=null;
+    var K='asxScreener.newsReg.v1', st=null;
     try{ st=JSON.parse(localStorage.getItem(K)); }catch(e){}
     if(!force&&st&&st.hash===hash&&(Date.now()-(st.t||0))<6*3600e3)return;
     var r=await _fetchTO(DATA_PROXY+'/news/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)},20000);
@@ -10583,7 +10582,7 @@ function showModal(html,label){
   // The portfolio is data-dense, so it opens large by default; other panels stay compact.
   const _isBig=_big;
   let sz=_isBig?{w:Math.round(window.innerWidth*0.9),h:Math.round(window.innerHeight*0.9)}:{w:460,h:0};
-  try{const key=_isBig?'SIMPLE_asxScreener.modalSize.big.v1':'SIMPLE_asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
+  try{const key=_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
   const hStyle=sz.h>0?`height:${Math.min(sz.h,window.innerHeight*0.95)}px;`:'';
   m.innerHTML=`<div id="modalBox" style="position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
     <button id="modalCloseX" onclick="closeModal()" title="Close">✕</button>
@@ -10602,7 +10601,7 @@ function showModal(html,label){
   m.style.display='flex';
   // Remember the size whenever the user finishes a resize drag (per size-class).
   const box=document.getElementById('modalBox');
-  if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'SIMPLE_asxScreener.modalSize.big.v1':'SIMPLE_asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
+  if(box)box.onmouseup=()=>{try{localStorage.setItem(_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1',JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}));}catch(e){}};
   try{_syncStatOverTop();}catch(_){}
 }
 // v262: drop report panels (Top 20 / scans) below the floating stats banner so
@@ -11619,7 +11618,7 @@ window._rowMenu=function(t,ev){
 window._radarMore=function(){
   var el=document.getElementById('statsBar'); if(!el)return;
   var less=el.classList.toggle('r-less');
-  try{ localStorage.setItem('SIMPLE_asxScreener.radarLess.v1',less?'1':'0'); }catch(e){}
+  try{ localStorage.setItem('asxScreener.radarLess.v1',less?'1':'0'); }catch(e){}
   _radarBtnLabel(less);
 };
 // v518: the compact strip never counts anything itself — it mirrors the
@@ -11658,7 +11657,7 @@ function _radarBtnLabel(less){
   }catch(e){}
 }
 (function(){ try{
-  var pref=localStorage.getItem('SIMPLE_asxScreener.radarLess.v1');
+  var pref=localStorage.getItem('asxScreener.radarLess.v1');
   // v479: folded is now the default everywhere, not just on phones. The old
   // reasoning was that a desktop has room — but a desktop showing 4,300 shares
   // does not, and the table is what people came for. An existing choice wins.
@@ -12134,7 +12133,7 @@ async function _srvFirstFill(exch,depth,say){
       }));
       if(say)say('\ud83d\udcbe Saving - '+Math.min(i+150,ticks.length)+' of '+ticks.length+' shares...');
     }
-    try{ localStorage.setItem('SIMPLE_asxScreener.srvDaySync.v1.'+exch,latestD); }catch(e){}
+    try{ localStorage.setItem('asxScreener.srvDaySync.v1.'+exch,latestD); }catch(e){}
     if(say)say('\u2705 Filled '+out.days+' days for '+out.shares.toLocaleString()+' shares from your server - '+out.seeded.toLocaleString()+' new, '+out.topped.toLocaleString()+' updated. Reload to use it.');
     return out;
   }catch(e){ if(say)say('\u26a0 Fill stopped: '+(e&&e.message?e.message:'unknown')); return out; }
@@ -12183,7 +12182,7 @@ async function _srvDaySync(exch,say){
     // its newest bar's date) rather than today's — histPut defaults a missing
     // stamp to today, which is exactly the freeze we are avoiding.
     const _stampFor=(s,ld)=>_ptrOK?today:((s&&s.saved)||ld||'1970-01-01');
-    const skey='SIMPLE_asxScreener.srvDaySync.v1.'+exch;
+    const skey='asxScreener.srvDaySync.v1.'+exch;
     let lastSync=null; try{ lastSync=localStorage.getItem(skey); }catch(e){}
     if(lastSync&&lastSync>=latestD)return out;              // nothing new in the pantry
     // Collect the missing days, newest→oldest, stopping at what we've merged,
@@ -12347,7 +12346,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
   try{
     if(!window._deadHist){
       const _dt=new Date().toISOString().slice(0,10);
-      let _saved=null; try{_saved=JSON.parse(localStorage.getItem('SIMPLE_asxScreener.deadHist.v1')||'null');}catch(e){}
+      let _saved=null; try{_saved=JSON.parse(localStorage.getItem('asxScreener.deadHist.v1')||'null');}catch(e){}
       window._deadHist=new Set(_saved&&_saved.date===_dt?_saved.list:[]);
       window._deadHistDate=_dt;
     }
@@ -12566,7 +12565,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     window._goodHistProxy=got.pi;
     window._histFailRun=0;
     window._histOkCount=(window._histOkCount||0)+1;
-    try{ if(window._deadHist&&window._deadHist.delete(exch+':'+ticker)){clearTimeout(window._deadHistT);window._deadHistT=setTimeout(()=>{try{localStorage.setItem('SIMPLE_asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);} }catch(e){}
+    try{ if(window._deadHist&&window._deadHist.delete(exch+':'+ticker)){clearTimeout(window._deadHistT);window._deadHistT=setTimeout(()=>{try{localStorage.setItem('asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);} }catch(e){}
     // Fresh data replaced a stale stored copy → update the disk store so the
     // offline data auto-heals to today's without a full re-download.
     if(Array.isArray(got.out)&&got.out.length>=2){ try{histPut(exch,ticker,got.out);}catch(e){} } // v236: save EVERY fresh fetch — new shares now grow the on-device store
@@ -12591,7 +12590,7 @@ async function fetchHistory(exch,ticker,apiKey,days,forceNet){
     if((window._histOkCount||0)>=10 && window._deadHist){
       window._deadHist.add(exch+':'+ticker);
       clearTimeout(window._deadHistT);
-      window._deadHistT=setTimeout(()=>{try{localStorage.setItem('SIMPLE_asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);
+      window._deadHistT=setTimeout(()=>{try{localStorage.setItem('asxScreener.deadHist.v1',JSON.stringify({date:window._deadHistDate,list:[...window._deadHist].slice(0,4000)}));}catch(e){}},1200);
     }
   }catch(e){}
   // Serve older stored data if we have it — stale beats nothing, and this is
@@ -14243,8 +14242,8 @@ let _chartTicker=null, _chartTF=66;  // default ~3 months
 // ═══ v220 CHART ENGINE — candles, touch, trades, accumulation, benchmark, log ═══
 function showChart(ticker){
   _chartTicker=ticker; _chartTF=66;
-  try{window._chartStyle=localStorage.getItem('SIMPLE_asxScreener.chartStyle.v1')==='candle'?'candle':'line';}catch(e){window._chartStyle='line';}
-  try{window._chartLog=localStorage.getItem('SIMPLE_asxScreener.chartLog.v1')==='1';}catch(e){window._chartLog=false;}
+  try{window._chartStyle=localStorage.getItem('asxScreener.chartStyle.v1')==='candle'?'candle':'line';}catch(e){window._chartStyle='line';}
+  try{window._chartLog=localStorage.getItem('asxScreener.chartLog.v1')==='1';}catch(e){window._chartLog=false;}
   window._chartBench=false;
   showModal(_chartHtml(ticker),'📈 '+ticker+' price chart');
 }
@@ -14257,12 +14256,12 @@ function _chartRerender(){
 }
 function _chartToggleStyle(){
   window._chartStyle=(window._chartStyle==='candle')?'line':'candle';
-  try{localStorage.setItem('SIMPLE_asxScreener.chartStyle.v1',window._chartStyle);}catch(e){}
+  try{localStorage.setItem('asxScreener.chartStyle.v1',window._chartStyle);}catch(e){}
   _chartRerender();
 }
 function _chartToggleLog(){
   window._chartLog=!window._chartLog;
-  try{localStorage.setItem('SIMPLE_asxScreener.chartLog.v1',window._chartLog?'1':'0');}catch(e){}
+  try{localStorage.setItem('asxScreener.chartLog.v1',window._chartLog?'1':'0');}catch(e){}
   _chartRerender();
 }
 function _chartToggleBench(){
@@ -14630,8 +14629,8 @@ function openStudyQuiz(){
 function _qzRender(){
   var box=document.getElementById('qzBox'); if(!box||!_qz)return;
   if(_qz.i>=_qz.qs.length){
-    var best=0; try{best=+localStorage.getItem('SIMPLE_asxScreener.studyQuizBest.v1')||0;}catch(e){}
-    if(_qz.score>best){ best=_qz.score; try{localStorage.setItem('SIMPLE_asxScreener.studyQuizBest.v1',String(best));}catch(e){} }
+    var best=0; try{best=+localStorage.getItem('asxScreener.studyQuizBest.v1')||0;}catch(e){}
+    if(_qz.score>best){ best=_qz.score; try{localStorage.setItem('asxScreener.studyQuizBest.v1',String(best));}catch(e){} }
     var verdict=_qz.score>=9?'Sharp. The honesty machinery has nothing on you.':_qz.score>=7?'Solid \u2014 a couple of lessons would close the gap.':'Good start \u2014 the \ud83c\udf93 lessons cover every one of these.';
     box.innerHTML='<div style="text-align:center;padding:18px 6px;">'
       +'<div style="font-weight:800;font-size:34px;font-family:var(--sans);">'+_qz.score+' / '+_qz.qs.length+'</div>'
@@ -15626,8 +15625,8 @@ async function autoRunTechnicals(){
 // ── Live Load Presets ──────────────────────────────────────────────────────
 // 3 renameable presets, each saving: security types, gainers-only, min volume.
 // Applies to the LIVE load only. Stored in localStorage.
-const LOADPRESET_STORE='SIMPLE_asxScreener.loadPresets.v1';
-let _activeLoadPreset=(function(){try{return parseInt(localStorage.getItem('SIMPLE_asxScreener.loadPresetActive.v1'))||0;}catch(e){return 0;}})();
+const LOADPRESET_STORE='asxScreener.loadPresets.v1';
+let _activeLoadPreset=(function(){try{return parseInt(localStorage.getItem('asxScreener.loadPresetActive.v1'))||0;}catch(e){return 0;}})();
 function _defaultLoadPresets(){
   return [
     {name:'All shares', types:['Ordinary','ETF','LIC','REIT','Option','Preference','Bond','Speculative'], gainers:false, minVol:0},
@@ -15643,7 +15642,7 @@ function saveLoadPresetsAll(arr){ try{localStorage.setItem(LOADPRESET_STORE,JSON
 // Paint the form with a preset's values
 function selectLoadPreset(slot){
   _activeLoadPreset=slot;
-  try{localStorage.setItem('SIMPLE_asxScreener.loadPresetActive.v1',String(slot));}catch(e){}
+  try{localStorage.setItem('asxScreener.loadPresetActive.v1',String(slot));}catch(e){}
   const p=getLoadPresets()[slot]||_defaultLoadPresets()[slot];
   document.querySelectorAll('#loadPresetTabs .lp-tab').forEach((t,i)=>t.classList.toggle('active',i===slot));
   const nm=document.getElementById('lpName'); if(nm)nm.value=p.name||('Preset '+(slot+1));
@@ -16598,7 +16597,7 @@ async function _loadOfflineNowInner(){
     try{ closeOverlay(); }catch(e){}
     if(statusEl)statusEl.innerHTML=`<span style="color:var(--green)">📂 Loaded ${offlineRows.length.toLocaleString()} ${exch} shares from your saved data (offline — no network used). Prices are from your last download; press ⚡ Load for today's fresh prices.</span>`;
     try{
-      const _full=parseInt(localStorage.getItem('SIMPLE_asxScreener.lastLiveCount.'+exch))||0;
+      const _full=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0;
       if(_full>0 && offlineRows.length<_full*0.9 && statusEl){
         statusEl.innerHTML+=` <span style="color:var(--gold)">Heads-up: your saved data holds ${offlineRows.length.toLocaleString()} of the ~${_full.toLocaleString()} shares on ${exch}. Press the ⚡ live load once — the app fetches &amp; saves the missing ones automatically.</span>`;
       }
@@ -16647,7 +16646,7 @@ async function fetchSymbolList(exch,apiKey){
 // with its own nightly ingest and evidence.
 const DOWNLOADABLE_EXCH=['ASX'];
 function openMultiDownload(){
-  const saved=(()=>{try{return JSON.parse(localStorage.getItem('SIMPLE_asxScreener.dlExch.v1'))||['ASX'];}catch(e){return ['ASX'];}})();
+  const saved=(()=>{try{return JSON.parse(localStorage.getItem('asxScreener.dlExch.v1'))||['ASX'];}catch(e){return ['ASX'];}})();
   const boxes=DOWNLOADABLE_EXCH.map(x=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text);padding:4px 8px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;margin:2px;"><input type="checkbox" class="dlExchChk" value="${x}" ${saved.includes(x)?'checked':''} style="cursor:pointer;margin:0;"> ${x}</label>`).join('');
   window._modalLabel='⬇ Download data';
   showModal(`
@@ -16668,7 +16667,7 @@ async function startMultiDownload(){
   if(!apiKey && !_serverData()){alert('Enter your API key first.');return;}
   const chosen=[...document.querySelectorAll('.dlExchChk:checked')].map(c=>c.value);
   if(!chosen.length){alert('Tick at least one exchange.');return;}
-  try{localStorage.setItem('SIMPLE_asxScreener.dlExch.v1',JSON.stringify(chosen));}catch(e){}
+  try{localStorage.setItem('asxScreener.dlExch.v1',JSON.stringify(chosen));}catch(e){}
   const bar=document.getElementById('multiBar'), lbl=document.getElementById('multiLbl'), go=document.getElementById('multiGo');
   _multiAbort=false; if(go){go.disabled=true;go.textContent='Downloading…';}
   const today=new Date().toISOString().slice(0,10);
@@ -16733,8 +16732,8 @@ async function startMultiDownload(){
 // Takes a while (per-share API calls), but afterwards everything works offline.
 let _bulkAbort=false;
 // ── Download type chips: remember which security types you download ────────
-const DLTYPES_STORE='SIMPLE_asxScreener.dlTypes.v1'; // legacy (v306): array of TICKED types
-const DLTYPES_OFF='SIMPLE_asxScreener.dlTypesOff.v1'; // v357: array of types the user explicitly turned OFF
+const DLTYPES_STORE='asxScreener.dlTypes.v1'; // legacy (v306): array of TICKED types
+const DLTYPES_OFF='asxScreener.dlTypesOff.v1'; // v357: array of types the user explicitly turned OFF
 function saveDlTypes(){
   // v357: remember which types are turned OFF (not which are on) so a security type
   // added in a later app version is loaded BY DEFAULT instead of being silently dropped
@@ -16799,7 +16798,7 @@ async function downloadEverything(){
   let apiKey=((document.getElementById('apiKey')||{}).value||'').trim();
   // v362: same startup-race fallback as loadData — the box can be empty while
   // the saved key is in localStorage, which used to abort the auto first-run.
-  if(!apiKey){ try{ apiKey=(localStorage.getItem('SIMPLE_asxScreener.apiKey')||'').trim(); if(apiKey){ const _ki=document.getElementById('apiKey'); if(_ki)_ki.value=apiKey; } }catch(e){} }
+  if(!apiKey){ try{ apiKey=(localStorage.getItem('asxScreener.apiKey')||'').trim(); if(apiKey){ const _ki=document.getElementById('apiKey'); if(_ki)_ki.value=apiKey; } }catch(e){} }
   const _lbl=document.getElementById('bulkLbl')||document.getElementById('loadStatus');
   const _say=(m)=>{ if(_lbl)_lbl.innerHTML='<span style="color:#f0b849">'+m+'</span>'; };
   if(!apiKey && !_serverData()){
@@ -16941,7 +16940,7 @@ async function downloadEverything(){
   updateOfflineStatus();
   // Record when the store was last brought up to date — startup uses this to
   // decide whether a full-depth prepare can safely read from disk (saved today).
-  try{ if(ok>0) localStorage.setItem('SIMPLE_asxScreener.histStoreDate.v1', today); }catch(e){}
+  try{ if(ok>0) localStorage.setItem('asxScreener.histStoreDate.v1', today); }catch(e){}
   window._bulkRunning=false;
   window._forceFullDownload=false; // one-shot: back to smart-update next time
   // v876 — THE BUG behind three identical \ud83d\udd2c runs on 16 Sep: histPut wrote the
@@ -16997,8 +16996,8 @@ async function updateOfflineStatus(){
     const sd=document.getElementById('savedDataStat');
     if(sd){
       if(n){
-        let when=''; try{when=localStorage.getItem('SIMPLE_asxScreener.histStoreDate.v1')||'';}catch(e){}
-        let _cov=''; try{const _f=parseInt(localStorage.getItem('SIMPLE_asxScreener.lastLiveCount.'+((document.getElementById('exchSel')||{}).value||'ASX')))||0; if(_f>0&&n<_f*0.9)_cov=' · <span style="color:var(--gold)">covers '+n.toLocaleString()+' of ~'+_f.toLocaleString()+' — one ⚡ live load fetches &amp; saves the rest</span>';}catch(e){}
+        let when=''; try{when=localStorage.getItem('asxScreener.histStoreDate.v1')||'';}catch(e){}
+        let _cov=''; try{const _f=parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+((document.getElementById('exchSel')||{}).value||'ASX')))||0; if(_f>0&&n<_f*0.9)_cov=' · <span style="color:var(--gold)">covers '+n.toLocaleString()+' of ~'+_f.toLocaleString()+' — one ⚡ live load fetches &amp; saves the rest</span>';}catch(e){}
         sd.innerHTML='✓ <span style="color:var(--green)">'+n.toLocaleString()+' shares saved on this device</span>'+(when?' · last updated '+when:'')+_cov;
       } else {
         sd.innerHTML='<span style="color:var(--orange)">Nothing saved yet</span> — press ⬇ Download below once, and every later load is instant.';
@@ -17306,7 +17305,7 @@ function bgSet(html){
 function bgHide(){const el=document.getElementById('bgInd');if(el)el.style.display='none';}
 // v268: let the progress banner be dragged out of the way (position remembered).
 (function _bgIndDraggable(){
-  const KEY='SIMPLE_asxScreener.bgIndPos.v1';
+  const KEY='asxScreener.bgIndPos.v1';
   function applyPos(el){ try{ const p=JSON.parse(localStorage.getItem(KEY)||'null');
     if(p&&isFinite(p.left)&&isFinite(p.top)){ el.style.left=p.left+'px'; el.style.top=p.top+'px'; el.style.right='auto'; } }catch(e){} }
   function clamp(el){ const r=el.getBoundingClientRect(); const mw=window.innerWidth-r.width-4, mh=window.innerHeight-r.height-4;
@@ -17639,7 +17638,7 @@ async function _loadDataInner(userClick){
   // put it in the box so every later reader sees it too.
   if(!apiKey){
     try{
-      apiKey=(localStorage.getItem('SIMPLE_asxScreener.apiKey')||'').trim();
+      apiKey=(localStorage.getItem('asxScreener.apiKey')||'').trim();
       if(apiKey){ const _ki=document.getElementById('apiKey'); if(_ki)_ki.value=apiKey; if(typeof _refreshKeyUI==='function')_refreshKeyUI(); }
     }catch(e){}
   }
@@ -17826,7 +17825,7 @@ Output the complete array. Start with [`;
       {
         const _arr=Array.isArray(rows)?rows:((rows&&(rows.symbols||rows.quotes||rows.data))||[]);
         let _known={ASX:1500,NYSE:2000,NASDAQ:3000,LSE:1800,TSX:1200}[exch]||0;
-        try{_known=Math.max(_known,parseInt(localStorage.getItem('SIMPLE_asxScreener.lastLiveCount.'+exch))||0);}catch(e){}
+        try{_known=Math.max(_known,parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch))||0);}catch(e){}
         try{_known=Math.max(_known,await histCount());}catch(e){}
         if(_known>0 && _arr.length<_known*0.85){ rows=null; throw new Error('the AI relay returned only '+_arr.length+' shares of the ~'+_known.toLocaleString()+' on '+exch+' — truncated list rejected'); }
       }
@@ -17924,7 +17923,7 @@ Output the complete array. Start with [`;
         .map(c=>c.getAttribute('data-t')).sort().join(',');
       return t||'all';
     }catch(e){ return 'all'; } })();
-    let _kn=(parseInt(localStorage.getItem('SIMPLE_asxScreener.lastLiveCount.'+exch+'.'+_fkey))||0);
+    let _kn=(parseInt(localStorage.getItem('asxScreener.lastLiveCount.'+exch+'.'+_fkey))||0);
     if(!_kn){
       // No benchmark for THIS filter yet. The older whole-market figure is NOT
       // reused - it is too high by exactly the amount the filter removes, which
@@ -17941,7 +17940,7 @@ Output the complete array. Start with [`;
     // of being refused forever.
     let _agree=0;
     try{
-      const _ck='SIMPLE_asxScreener.lowStreak.'+exch+'.'+_fkey;
+      const _ck='asxScreener.lowStreak.'+exch+'.'+_fkey;
       const _prevLow=parseInt(localStorage.getItem(_ck+'.n'))||0;
       const _prevCnt=parseInt(localStorage.getItem(_ck+'.c'))||0;
       if(_kn>0 && results.length<_kn*0.85){
@@ -17949,7 +17948,7 @@ Output the complete array. Start with [`;
         localStorage.setItem(_ck+'.n',String(_agree));
         localStorage.setItem(_ck+'.c',String(results.length));
         if(_agree>=3){
-          localStorage.setItem('SIMPLE_asxScreener.lastLiveCount.'+exch+'.'+_fkey,String(results.length));
+          localStorage.setItem('asxScreener.lastLiveCount.'+exch+'.'+_fkey,String(results.length));
           localStorage.removeItem(_ck+'.n'); localStorage.removeItem(_ck+'.c');
           _kn=results.length;   // accept it: the market has genuinely changed
         }
@@ -17983,8 +17982,8 @@ Output the complete array. Start with [`;
         .map(c=>c.getAttribute('data-t')).sort().join(',');
       return t||'all';
     }catch(e){ return 'all'; } })();
-    localStorage.setItem('SIMPLE_asxScreener.lastLiveCount.'+exch+'.'+_fk,String(results.length));
-    localStorage.setItem('SIMPLE_asxScreener.lastLiveCount.'+exch,String(results.length)); // legacy readers
+    localStorage.setItem('asxScreener.lastLiveCount.'+exch+'.'+_fk,String(results.length));
+    localStorage.setItem('asxScreener.lastLiveCount.'+exch,String(results.length)); // legacy readers
   } }catch(e){} // v238: full-confidence routes only, never shrink (AI-relay truncation had poisoned this)
   window._listRetryN=0;
   window._offlineMode=false; // v236: a successful LIVE load leaves offline mode — history & scans fetch normally again
@@ -18057,7 +18056,7 @@ Output the complete array. Start with [`;
 })();
 
 // ── Sidebar: drag-to-resize + hide/show (persist) ───────────────────────────
-const SIDEBAR_W_KEY='SIMPLE_asxScreener.sidebarW', SIDEBAR_HIDDEN_KEY='SIMPLE_asxScreener.sidebarHidden';
+const SIDEBAR_W_KEY='asxScreener.sidebarW', SIDEBAR_HIDDEN_KEY='asxScreener.sidebarHidden';
 let _resizing=false;
 function startResize(e){
   _resizing=true;document.body.classList.add('resizing');
@@ -18092,9 +18091,8 @@ function toggleSidebar(){
   try{localStorage.setItem(SIDEBAR_HIDDEN_KEY,hidden?'1':'0');}catch(_){}
 }
 // ── Simple / Advanced mode ──────────────────────────────────────────────────
-const APP_MODE_KEY='SIMPLE_asxScreener.appMode.v1';
+const APP_MODE_KEY='asxScreener.appMode.v1';
 function setAppMode(mode){
-  if(window._SIMPLE_LOCK)mode='lite';   /* make_simple: the Simple tab is the whole product here */
   const lite = mode==='lite';                       /* v864: 🌱 Simple — Starter's page, six screens only */
   const simple = mode==='simple' || lite;
   document.body.classList.toggle('simple-mode', simple);
@@ -18122,7 +18120,7 @@ function setAppMode(mode){
 // Snapshots key per-share metrics each visit; on the next visit, surfaces the
 // shares that crossed a meaningful threshold (newly accumulating, newly surging,
 // big move). Uses the growing offline history — personal, proactive, offline.
-const WHATSNEW_KEY='SIMPLE_asxScreener.whatsNew.v1';
+const WHATSNEW_KEY='asxScreener.whatsNew.v1';
 function _snapshotNow(){
   const snap={}; 
   if(!Array.isArray(allData))return snap;
@@ -18400,7 +18398,7 @@ function _todayRender(){
       +'<div style="font-size:10.5px;color:var(--dim);margin-top:6px;">Fresh prices load themselves when you open the app. Every study and full report lives in <a href="#" onclick="setAppMode(\'advanced\');return false;" style="color:var(--muted)">Advanced \u2192</a></div>');
   }catch(e){}
   host.innerHTML=out;
-  try{ localStorage.setItem('SIMPLE_asxScreener.today.cache.v1',JSON.stringify({t:Date.now(),html:out})); }catch(e){}
+  try{ localStorage.setItem('asxScreener.today.cache.v1',JSON.stringify({t:Date.now(),html:out})); }catch(e){}
   // one idea fills itself in without blocking anything above
   (B&&B.pick?Promise.resolve(B.pick):_todayPickFetch()).then(r=>{ try{
     const el=document.getElementById('todayIdea'); if(!el)return;
@@ -18420,7 +18418,7 @@ try{ /* v799: instant paint — yesterday's Today page shows the moment the app 
     if(!document.body.classList.contains('simple-mode'))return;
     const host=document.getElementById('todayPage');
     if(host&&!host.innerHTML){
-      const c=JSON.parse(localStorage.getItem('SIMPLE_asxScreener.today.cache.v1')||'null');
+      const c=JSON.parse(localStorage.getItem('asxScreener.today.cache.v1')||'null');
       if(c&&c.html&&(Date.now()-c.t)<3*864e5) host.innerHTML=c.html;
     }
     _todayBriefFetch().then(function(){ try{ _todayRender(); }catch(e){} });
@@ -18583,7 +18581,7 @@ function _simpleSearchOpen(tk){
 }
 async function simpleLoad(fresh){
   const st=document.getElementById('simpleStatus');
-  const hasKey = (function(){try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('SIMPLE_asxScreener.apiKey');}catch(_){return false;}})();
+  const hasKey = (function(){try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
   // How much saved (offline) data is on the device?
   let saved=0; try{ saved=await histCount(); }catch(_){}
   // DEFAULT = fast: if we have saved data and the caller didn't force fresh,
@@ -18709,7 +18707,7 @@ async function recoveryScan(){
   if(!allData||!allData.length){if(st)st.textContent='Load your shares first.';return;}
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('SIMPLE_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{if(st)st.textContent='Loading volume & streaks…';if(typeof bulkVolume==='function')await bulkVolume();}
   }
@@ -18738,7 +18736,7 @@ async function quietMoversScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Quiet Movers.'; _scanDone&&_scanDone(); return; }
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('SIMPLE_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading volume & streaks…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -18830,7 +18828,6 @@ async function _repLocal(sample){
   }
   return out;
 }
-
 
 // v876 \u2014 repair just the shares the \ud83d\udd2c data check found adrift, instead of
 // re-downloading the whole exchange. Fetches each one LIVE (forceNet), writes it
@@ -19097,7 +19094,6 @@ async function serverReportCheck(){
     +'<div style="margin-top:4px;font-size:10px;color:var(--muted);line-height:1.5;font-weight:400">'
     +'This device has not got a full year of history loaded for enough shares, so most \u2717 marks below just mean the server could judge a share this device cannot \u2014 they are NOT rule differences. '
     +'Tap \u2b07 Download / update, let it finish, then run this again.</div>';
-
   var _depLine='<div style="margin-top:5px;font-size:9px;color:var(--dim);line-height:1.5;">'
     +(_bar>0
       ? '⚖ fair test: every one of the '+sample.length+' shares compared has <b>'+_bar+'+ days</b> of history and a volume average on this device, so both sides judged with the same information — any ✗ above is a real difference in the rules, not missing data. (Shares this device only half-knows were left out; the server always holds the full year.)'
@@ -19123,7 +19119,7 @@ async function gapScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run the Gap Report.'; _scanDone&&_scanDone(); return; }
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('SIMPLE_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -19177,7 +19173,7 @@ async function trendScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Strong Trends.'; _scanDone&&_scanDone(); return; }
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('SIMPLE_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -19215,7 +19211,7 @@ async function pullbackScan(){
   if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Pullback in Uptrend.'; _scanDone&&_scanDone(); return; }
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
-    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('SIMPLE_asxScreener.apiKey');}catch(_){return false;}})();
+    const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(st)st.textContent='Loading price history…'; if(typeof bulkVolume==='function')await bulkVolume(); }
   }
@@ -19335,7 +19331,7 @@ function myChangesData(){
   }
   out.items=holdItems.concat(...out.lists.map(x=>x.items));
   // v297: report what auto-pilot queued today (practice) — AFTER items are assembled
-  try{ const _apbuys=((JSON.parse(localStorage.getItem('SIMPLE_asxScreener.autoPilot.log.v1')||'[]')||[]).filter(x=>x.d===out.dataDate)).flatMap(x=>x.buys||[]);
+  try{ const _apbuys=((JSON.parse(localStorage.getItem('asxScreener.autoPilot.log.v1')||'[]')||[]).filter(x=>x.d===out.dataDate)).flatMap(x=>x.buys||[]);
     _apbuys.forEach(b=>{ const it={tk:b.tk,icon:'\ud83e\udd16',txt:(b.limit?('Auto-pilot placed your PRACTICE limit buy at $'+(+b.px).toFixed(3)+' — '+b.qty+' shares. Fills if the price touches it; \ud83c\udfaf/\ud83d\uded1 from your pick.'):('Auto-pilot queued a PRACTICE buy — '+b.qty+' shares (~$'+Math.round(b.cost)+'). Fills at the next open; \ud83c\udfaf/\ud83d\uded1 set from your rules.'))};
       out.items.unshift(it); out.holdItems.unshift(it); }); }catch(e){}
   // v312: 🤖 bot-ACCOUNT exits recorded today (separate $50k portfolio)
@@ -19376,7 +19372,7 @@ function showMyChanges(auto){
   const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🔔 What's changed for YOU</div>
     <div style="font-size:9.5px;color:var(--dim);margin:3px 0 10px;">Your holdings & watchlists checked against ${d.dataDate?`the data of <b style="color:var(--muted)">${d.dataDate}</b>`:'the latest data'} · ${d.holdN} holding${d.holdN===1?'':'s'} · ${watchTotal} watched.</div>`;
   showModal(head+body,"🔔 What's changed for me");
-  try{ if(d.dataDate)localStorage.setItem('SIMPLE_asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
+  try{ if(d.dataDate)localStorage.setItem('asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
   return true;
 }
 function _openListFromBriefing(nm){
@@ -19390,7 +19386,7 @@ function _openListFromBriefing(nm){
       if(!Array.isArray(allData)||!allData.length)return;
       let dd=null; try{ dd=_pfMktDate(currentExch||'ASX'); }catch(e){}
       if(!dd)return;
-      let seenD=null; try{ seenD=localStorage.getItem('SIMPLE_asxScreener.myChangesSeen.v1'); }catch(e){}
+      let seenD=null; try{ seenD=localStorage.getItem('asxScreener.myChangesSeen.v1'); }catch(e){}
       if(seenD===dd)return;
       if(window._myChangesAutoShown===dd)return;      // v288: auto-open at most once per data day, per session
       const m=document.getElementById('appModal');
@@ -19399,7 +19395,7 @@ function _openListFromBriefing(nm){
       // v288: mark it seen with OUR dd (the value this loop compares) BEFORE opening,
       // so it can never disagree with a differently-computed date and loop forever.
       window._myChangesAutoShown=dd;
-      try{ localStorage.setItem('SIMPLE_asxScreener.myChangesSeen.v1',dd); }catch(e){}
+      try{ localStorage.setItem('asxScreener.myChangesSeen.v1',dd); }catch(e){}
       if(!d.items.length)return;
       // v292: rapid re-open guard. If the app opened on yesterday's cached data and
       // then auto-refreshed to today's, the data date flips mid-session and the
@@ -19505,7 +19501,7 @@ function initSidebarLayout(){
 }
 
 // ── Vertical resize: drag the divider to grow section 3 (and shrink 1&2) ─────
-const SETUPROW_H_KEY='SIMPLE_asxScreener.setupRowH';
+const SETUPROW_H_KEY='asxScreener.setupRowH';
 let _vresizing=false;
 function startVResize(e){
   _vresizing=true;document.body.classList.add('vresizing');
@@ -19536,7 +19532,7 @@ function resetVResize(){
 
 // Make every filter group (.fg) collapsible by clicking its label. Persists
 // which groups are collapsed so section 3 can be trimmed to just what you use.
-const FG_COLLAPSE_KEY='SIMPLE_asxScreener.fgCollapsed.v1';
+const FG_COLLAPSE_KEY='asxScreener.fgCollapsed.v1';
 function loadFgCollapsed(){try{return JSON.parse(localStorage.getItem(FG_COLLAPSE_KEY))||{};}catch(e){return {};}}
 function saveFgCollapsed(o){try{localStorage.setItem(FG_COLLAPSE_KEY,JSON.stringify(o));}catch(e){}}
 function initCollapsibleGroups(){
@@ -19587,7 +19583,7 @@ function initCollapsibleGroups(){
 // Hides every hover explanation (filter hints + tooltips) so the methodology
 // behind filters, scans and scores isn't revealed to anyone watching or using
 // the app. Titles are parked in data-ttip and restored if switched off.
-const PRIVATE_STORE='SIMPLE_asxScreener.privateMode.v1';
+const PRIVATE_STORE='asxScreener.privateMode.v1';
 function privateOn(){return true;} // LOCKED ON
 function stripTitles(){
   document.querySelectorAll('[title]').forEach(el=>{
@@ -19611,7 +19607,7 @@ function setPrivateMode(on){ on=true; // locked on
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=on?'🔒 Private mode ON — explanations hidden.':'Private mode off — hover explanations restored.';
 }
-const ADVFILT_STORE='SIMPLE_asxScreener.advFilters.v1';
+const ADVFILT_STORE='asxScreener.advFilters.v1';
 function advFiltersOpen(){try{return localStorage.getItem(ADVFILT_STORE)==='1';}catch(e){return false;}} // default hidden
 function applyAdvFilters(){
   // The Refine-filters section is now a <details> tab (like Setup & data). The
@@ -19634,14 +19630,14 @@ function syncRefineToggle(){
   if(!det)return;
   try{localStorage.setItem(ADVFILT_STORE,det.open?'1':'0');}catch(e){}
 }
-const AUTOTECH_STORE='SIMPLE_asxScreener.autoTech.v1';
+const AUTOTECH_STORE='asxScreener.autoTech.v1';
 function autoTechOn(){try{return localStorage.getItem(AUTOTECH_STORE)!=='0';}catch(e){return true;}} // default ON
 function setAutoTech(on){try{localStorage.setItem(AUTOTECH_STORE,on?'1':'0');}catch(e){}
   const ls=document.getElementById('loadStatus');
   if(ls)ls.innerHTML=on?'<span style="color:var(--green)">📐 Technicals at startup ON</span> — MA/RSI/52-wk etc. compute automatically for the top shares and all your watchlist stocks.':'Technicals at startup OFF — use the 📐 scan when you want them.';
 }
-const PREPALL_STORE='SIMPLE_asxScreener.prepAll.v1';
-const PREPDEPTH_STORE='SIMPLE_asxScreener.prepDepth.v1';
+const PREPALL_STORE='asxScreener.prepAll.v1';
+const PREPDEPTH_STORE='asxScreener.prepDepth.v1';
 function prepAllOn(){try{return localStorage.getItem(PREPALL_STORE)!=='0';}catch(e){return true;}} // default ON (fills streak/accum/score columns at startup)
 function prepDepthRaw(){try{return localStorage.getItem(PREPDEPTH_STORE)||'all';}catch(e){return 'all';}}
 function prepDepth(){const r=prepDepthRaw();return r==='all'?999999:(parseInt(r)||2000);}
@@ -19654,10 +19650,10 @@ function setPrepDepth(v){try{localStorage.setItem(PREPDEPTH_STORE,v);}catch(e){}
 // A browser page can't run while closed, so this fetches at the set time IF the
 // app is open then, otherwise it catches up the next time you open the app after
 // the scheduled time on a selected day (once per day).
-const AUTODL_STORE='SIMPLE_asxScreener.autoDownload.v1';
-const AUTODL_TIME='SIMPLE_asxScreener.autoDownload.time.v1';
-const AUTODL_DAYS='SIMPLE_asxScreener.autoDownload.days.v1';
-const AUTODL_LAST='SIMPLE_asxScreener.autoDownload.lastRun.v1';
+const AUTODL_STORE='asxScreener.autoDownload.v1';
+const AUTODL_TIME='asxScreener.autoDownload.time.v1';
+const AUTODL_DAYS='asxScreener.autoDownload.days.v1';
+const AUTODL_LAST='asxScreener.autoDownload.lastRun.v1';
 function autoDownloadOn(){try{return localStorage.getItem(AUTODL_STORE)==='1';}catch(e){return false;}} // default OFF
 function autoDownloadTime(){try{return localStorage.getItem(AUTODL_TIME)||'19:00';}catch(e){return '19:00';}}
 function autoDownloadDays(){ // default: weekdays (Mon–Fri)
@@ -19685,7 +19681,7 @@ function autoDownloadDue(){
   if(!autoDownloadOn())return false;
   if(window._bulkRunning)return false;
   let key=((document.getElementById('apiKey')||{}).value||'').trim();
-  if(!key){ try{ key=(localStorage.getItem('SIMPLE_asxScreener.apiKey')||'').trim(); }catch(e){} } // v362: box may be empty at startup while the key is saved
+  if(!key){ try{ key=(localStorage.getItem('asxScreener.apiKey')||'').trim(); }catch(e){} } // v362: box may be empty at startup while the key is saved
   // v488: the SAME test downloadEverything() uses. Since v382 the Worker
   // supplies the data and no customer key is needed, so demanding one here
   // meant the scheduled fetch could never fire for anyone who arrived after
@@ -19732,7 +19728,7 @@ function startAutoDownloadScheduler(){
   if(_autoDlTimer)clearInterval(_autoDlTimer);
   _autoDlTimer=setInterval(runScheduledDownloadIfDue, 60000); // check each minute
 }
-const AUTOLOAD_STORE='SIMPLE_asxScreener.autoLoad.v1';
+const AUTOLOAD_STORE='asxScreener.autoLoad.v1';
 function autoLoadOn(){try{return localStorage.getItem(AUTOLOAD_STORE)!=='0';}catch(e){return true;}} // default ON
 function setAutoLoad(on){
   try{localStorage.setItem(AUTOLOAD_STORE,on?'1':'0');}catch(e){}
@@ -19756,7 +19752,7 @@ function setAutoLoad(on){
   if(typeof updateOfflineStatus==='function')setTimeout(updateOfflineStatus,500);
   const pd=document.getElementById('prepDepth');if(pd)pd.value=prepDepthRaw();
   try{
-    const last=localStorage.getItem('SIMPLE_asxScreener.lastExch');
+    const last=localStorage.getItem('asxScreener.lastExch');
     if(last){const es=document.getElementById('exchSel');if(es&&es.querySelector(`option[value="${last}"]`)){es.value=last;currentExch=last;applyAssetMode();}}
   }catch(e){}
   if(!autoLoadOn())return;
@@ -19897,7 +19893,7 @@ function setAutoLoad(on){
     try{ cached=await histCount(); }catch(e){}
     _bt('saved-data check');
     let key=(document.getElementById('apiKey')||{}).value||'';
-    if(!key){ try{ key=localStorage.getItem('SIMPLE_asxScreener.apiKey')||''; }catch(e){} } // v249: input may not be populated yet at this point
+    if(!key){ try{ key=localStorage.getItem('asxScreener.apiKey')||''; }catch(e){} } // v249: input may not be populated yet at this point
 
     if(cached>0){
       // ── We have offline data — load the list, then prepare signals. ──
@@ -19907,7 +19903,7 @@ function setAutoLoad(on){
       // API calls at startup — so instead we prepare at the normal depth (same
       // as a fresh install) and let the scheduled fetch / manual download bring
       // the full store up to date.
-      const _storeFresh=(function(){try{return localStorage.getItem('SIMPLE_asxScreener.histStoreDate.v1')===new Date().toISOString().slice(0,10);}catch(e){return false;}})();
+      const _storeFresh=(function(){try{return localStorage.getItem('asxScreener.histStoreDate.v1')===new Date().toISOString().slice(0,10);}catch(e){return false;}})();
       if(ls)ls.innerHTML=`<span style="color:var(--green)">📂 Offline data found (${cached.toLocaleString()} shares${_storeFresh?', saved today':''})…</span>`;
       // ── v246: DISK-FIRST STARTUP ──────────────────────────────────────
       // Show the saved market with full signals IMMEDIATELY (seconds, offline),
@@ -20057,7 +20053,7 @@ function _groupScans(){
       {id:'sgBuild',title:'🌱 Building quietly',hint:'not graded \u00b7 patient setups',ids:['scan-quiet','scan-pullback','scan-trend','scan-recovery']},
       {id:'sgComp',title:'🧩 Composite',hint:'not graded \u00b7 every signal at once',ids:['scan-allsig']}
     ];
-    let st={}; try{st=JSON.parse(localStorage.getItem('SIMPLE_asxScreener.scanGroups.v1'))||{};}catch(e){}
+    let st={}; try{st=JSON.parse(localStorage.getItem('asxScreener.scanGroups.v1'))||{};}catch(e){}
     const wrap=document.createElement('div'); wrap.id='scanGroups';
     let lastBody=null;
     GROUPS.forEach(g=>{
@@ -20069,7 +20065,7 @@ function _groupScans(){
       if(!g.pinned){ h.style.cursor='pointer'; h.title='Tap to show or hide this group';
         h.onclick=function(){ const now=body.style.display==='none'; body.style.display=now?'grid':'none';
           const c=h.querySelector('.sg-ch'); if(c)c.textContent=now?'▾':'▸';
-          st[g.id]=now?1:0; try{localStorage.setItem('SIMPLE_asxScreener.scanGroups.v1',JSON.stringify(st));}catch(e){} }; }
+          st[g.id]=now?1:0; try{localStorage.setItem('asxScreener.scanGroups.v1',JSON.stringify(st));}catch(e){} }; }
       g.ids.forEach(id=>{ const row=zone.querySelector('[data-dragid="'+id+'"]');
         if(row){ row.draggable=false; body.appendChild(row); } });
       sec.appendChild(h); sec.appendChild(body); wrap.appendChild(sec); if(g.id==='sgGrade')wrap._gradeSec=sec; lastBody=body;
@@ -20089,8 +20085,8 @@ function _groupScans(){
 }
 // Wire up the draggable zones once the DOM is ready.
 (function initDrag(){
-  makeDraggable('scanDragZone','SIMPLE_asxScreener.order.scans.v1');
-  makeDraggable('filterDragZone','SIMPLE_asxScreener.order.filters.v1');
+  makeDraggable('scanDragZone','asxScreener.order.scans.v1');
+  makeDraggable('filterDragZone','asxScreener.order.filters.v1');
 })();
 _groupScans();
 syncP();syncV();

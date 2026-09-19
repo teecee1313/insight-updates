@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.17-888",
+  "version": "2026.09.19-889",
   "url": "https://teecee1313.github.io/insight-updates/simple/",
-  "notes": "The whole app now agrees on what a 'gainer' is. The Market today card and the radar tiles were counting the same shares with two slightly different rules — the card treats a move within ±0.1% as flat (a hair's-breadth tick is not a real gain), while the tiles counted any move above zero — so the two screens showed different gainer and loser counts from the same data. One rule now answers everywhere: up means more than +0.1%, down means below −0.1%, and anything between is flat. The radar's Gainers/Losers filters follow the same rule."
+  "notes": "Your nightly email's PN Edge section now shows exactly the numbers your app's Strongest Today card shows. After each scan the app quietly registers its card with the server, and the email quotes it word for word - same shares, same dollars, same lines. On a day the app hasn't scanned, the email grades on the server's stored market instead and says so plainly."
 }

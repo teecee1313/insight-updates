@@ -1779,7 +1779,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.17-888-simple"></script>
+<script src="app.js?v=2026.09.19-889-simple"></script>
 
 
 
@@ -4605,9 +4605,41 @@ function _evMark(shares){
         }
       }
     }catch(e){}
+    try{ _pnSnapshotSend(); }catch(e){}
     return true;
   }catch(e){ return false; }
 }
+function _pnSnapshotSend(){
+  // v889 — PATH B of the PN-parity fix (the two-day chase ended at one fact:
+  // the card and the server run identical pipelines over DIFFERENT universes,
+  // and the honest tally is market-relative — so the only way the nightly
+  // email can equal this card is to quote it). After every _evMark pass the
+  // app registers its per-share marks (tier, edge, lines, 💧 thin flag) with
+  // the server; the digest quotes them verbatim. Fire-and-forget: never
+  // blocks, never breaks the app, resends only when the picture changed.
+  try{
+    var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
+    if(!dd||!Array.isArray(allData)||!allData.length)return;
+    var out={},n=0,sum=0;
+    for(var i=0;i<allData.length;i++){var s=allData[i];
+      if(!s||!s.ticker)continue;
+      if(s._evD!==dd)continue;
+      if(!(s._evTier==='SOLID'||s._evTier==='PROMISING'))continue;
+      if(s._evEdge==null||!isFinite(+s._evEdge))continue;
+      var o={t:s._evTier,e:Math.round(+s._evEdge*100)/100};
+      var w=String(s._evWhy||'').slice(0,300); if(w)o.w=w;
+      if(s._evThin===true)o.thin=1;
+      out[String(s.ticker)]=o; n++; sum+=o.e;
+      if(n>=2000)break;
+    }
+    if(!n)return;
+    var sig=currentExch+'|'+dd+'|'+n+'|'+Math.round(sum*100);
+    if(window.__pnSnapSig===sig)return;
+    window.__pnSnapSig=sig;
+    fetch(DATA_PROXY+'/cardpn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({exch:currentExch,dataDate:dd,shares:out})}).catch(function(){});
+  }catch(e){}
+}
+
 // ═══ v460 — the six newer signals, as radar tiles ═════════════════════════
 // Each tile is a read of `s._evKeys` — the list `_evMark` already builds of
 // every graded rule firing on a share today. No second pass, no second set of

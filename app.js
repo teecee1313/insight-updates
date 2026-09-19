@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.17-888-open';
+const APP_VERSION='2026.09.19-889-open';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
