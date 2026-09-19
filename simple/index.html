@@ -1779,7 +1779,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.19-889-simple"></script>
+<script src="app.js?v=2026.09.19-890-simple"></script>
 
 
 
@@ -4619,11 +4619,16 @@ function _pnSnapshotSend(){
   // blocks, never breaks the app, resends only when the picture changed.
   try{
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
-    if(!dd||!Array.isArray(allData)||!allData.length)return;
+    // v890 — the marks are stamped s._evD=_evDD() which is 'EXCH|date' (the
+    // v549 comment even warns about this trap); v889 compared against the
+    // bare date, so every share failed the freshness check and the snapshot
+    // never sent. Compare with the stamp format, verbatim.
+    var stamp=(typeof _evDD==='function')?_evDD():'';
+    if(!dd||!stamp||!Array.isArray(allData)||!allData.length)return;
     var out={},n=0,sum=0;
     for(var i=0;i<allData.length;i++){var s=allData[i];
       if(!s||!s.ticker)continue;
-      if(s._evD!==dd)continue;
+      if(s._evD!==stamp)continue;
       if(!(s._evTier==='SOLID'||s._evTier==='PROMISING'))continue;
       if(s._evEdge==null||!isFinite(+s._evEdge))continue;
       var o={t:s._evTier,e:Math.round(+s._evEdge*100)/100};
