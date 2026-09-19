@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.19-890-simple';
+const APP_VERSION='2026.09.19-891-simple';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -3846,13 +3846,28 @@ function _strongestTableHTML(limit,starterHeader){
     });
     rows=rows.slice(0,limit||50);
     var _anyTier=rows.some(function(r){return !!r._evTier;});
+    // v891 — SAY WHICH DAY THE EVIDENCE WAS GRADED. _scReplay falls back to a
+    // STORED replay from an earlier day when the server cannot answer, and its
+    // own comment promised "as long as we say which day it is from" — but
+    // _scanGradedOn was assigned in three places and rendered in none. So a
+    // SOLID badge and a +$2.06 edge could be today's measurement or a leftover
+    // from weeks ago, with nothing on screen to tell them apart. Now it says.
+    var _gradedNote=(function(){
+      try{
+        var s=window._scanSrc||'';
+        if(s==='server') return ' \u00b7 <span style="color:var(--green);">evidence graded today, on the server</span>';
+        if(s==='device'){ var d=window._scanGradedOn||''; return ' \u00b7 <span style="color:var(--gold);font-weight:700;">evidence graded '+(d?d:'on an earlier day')+' \u2014 a stored copy, not today\u2019s</span>'; }
+        if(s==='unavailable') return ' \u00b7 <span style="color:var(--gold);font-weight:700;">evidence not graded \u2014 badges and PN Edge are unavailable</span>';
+      }catch(e){}
+      return '';
+    })();
     var _emptyNote=(_filt&&!rows.length)?'<div style="font-size:12px;color:var(--muted);padding:14px 4px;">Nothing matches this combination of radar filters today. <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 Clear the filters</a> to see the full table.</div>':'';
     var out=(starterHeader
       ? '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
         +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 '+(_filt?(rows.length.toLocaleString()+' matching your radar filters (of '+_tot.toLocaleString()+')'):('the '+(limit||50)+' strongest of '+_tot.toLocaleString()))+'</span>'
         +(_filt?'<a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="font-size:10px;color:var(--gold);font-weight:700;">\u2715 clear filters</a>':'')
-        +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
-      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score. Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
+        +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score'+_gradedNote+' \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
+      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score.'+_gradedNote+' Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
       +_emptyNote
       +((!_anyTier)?'<div style="font-size:10px;color:var(--gold);margin:0 0 6px;">\u23f3 Evidence badges and PN Edge appear once today\u2019s evidence check finishes \u2014 until then this ranks by score. On a phone, swipe the table sideways for every column.</div>':'')
       +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
