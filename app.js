@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.19-891-open';
+const APP_VERSION='2026.09.19-892-open';
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -3861,13 +3861,17 @@ function _strongestTableHTML(limit,starterHeader){
       }catch(e){}
       return '';
     })();
+    // v892 — and whether this card reached the server, so the nightly
+    // email can quote it. Silent failure is what cost two days.
+    var _snapNote=(function(){ try{ var r=window._pnSnapReason||''; if(!r)return '';
+      var good=(r.indexOf('sent ')===0); return ' \u00b7 <span style="color:'+(good?'var(--green)':'var(--gold)')+';">card \u2192 server: '+r+'</span>'; }catch(e){ return ''; } })();
     var _emptyNote=(_filt&&!rows.length)?'<div style="font-size:12px;color:var(--muted);padding:14px 4px;">Nothing matches this combination of radar filters today. <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 Clear the filters</a> to see the full table.</div>':'';
     var out=(starterHeader
       ? '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 8px;">'
         +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 '+(_filt?(rows.length.toLocaleString()+' matching your radar filters (of '+_tot.toLocaleString()+')'):('the '+(limit||50)+' strongest of '+_tot.toLocaleString()))+'</span>'
         +(_filt?'<a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="font-size:10px;color:var(--gold);font-weight:700;">\u2715 clear filters</a>':'')
-        +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score'+_gradedNote+' \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
-      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score.'+_gradedNote+' Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
+        +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score'+_gradedNote+_snapNote+' \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
+      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score.'+_gradedNote+_snapNote+' Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
       +_emptyNote
       +((!_anyTier)?'<div style="font-size:10px;color:var(--gold);margin:0 0 6px;">\u23f3 Evidence badges and PN Edge appear once today\u2019s evidence check finishes \u2014 until then this ranks by score. On a phone, swipe the table sideways for every column.</div>':'')
       +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'

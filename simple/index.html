@@ -4617,6 +4617,12 @@ function _pnSnapshotSend(){
   // app registers its per-share marks (tier, edge, lines, 💧 thin flag) with
   // the server; the digest quotes them verbatim. Fire-and-forget: never
   // blocks, never breaks the app, resends only when the picture changed.
+  // v892 — SAY WHY IT DID NOT SEND. Every exit below was silent, and the
+  // POST is fire-and-forget with a swallowed catch, so a snapshot that
+  // never left the browser looked identical to one that did. The worker's
+  // breadcrumb proved nothing was arriving; this is the other half of the
+  // wire, reported on the card instead of guessed at.
+  window._pnSnapReason='';
   try{
     var dd=(window._exchDataDate&&window._exchDataDate[currentExch])||'';
     // v890 — the marks are stamped s._evD=_evDD() which is 'EXCH|date' (the
@@ -4624,7 +4630,7 @@ function _pnSnapshotSend(){
     // bare date, so every share failed the freshness check and the snapshot
     // never sent. Compare with the stamp format, verbatim.
     var stamp=(typeof _evDD==='function')?_evDD():'';
-    if(!dd||!stamp||!Array.isArray(allData)||!allData.length)return;
+    if(!dd||!stamp||!Array.isArray(allData)||!allData.length){ window._pnSnapReason='no data day or no market loaded'; return; }
     var out={},n=0,sum=0;
     for(var i=0;i<allData.length;i++){var s=allData[i];
       if(!s||!s.ticker)continue;
@@ -4637,12 +4643,15 @@ function _pnSnapshotSend(){
       out[String(s.ticker)]=o; n++; sum+=o.e;
       if(n>=2000)break;
     }
-    if(!n)return;
+    if(!n){ window._pnSnapReason='no share carries a fresh SOLID/PROMISING mark with an edge'; return; }
     var sig=currentExch+'|'+dd+'|'+n+'|'+Math.round(sum*100);
-    if(window.__pnSnapSig===sig)return;
+    if(window.__pnSnapSig===sig){ window._pnSnapReason='already sent this exact card'; return; }
     window.__pnSnapSig=sig;
-    fetch(DATA_PROXY+'/cardpn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({exch:currentExch,dataDate:dd,shares:out})}).catch(function(){});
-  }catch(e){}
+    window._pnSnapReason='sending '+n+' shares\u2026';
+    fetch(DATA_PROXY+'/cardpn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({exch:currentExch,dataDate:dd,shares:out})})
+      .then(function(r){ window._pnSnapReason=r&&r.ok?('sent '+n+' shares to the server'):('server refused it: HTTP '+(r&&r.status)); })
+      .catch(function(e){ window._pnSnapReason='the send failed before it left the browser: '+String(e&&e.message||e).slice(0,70); });
+  }catch(e){ window._pnSnapReason='threw: '+String(e&&e.message||e).slice(0,70); }
 }
 
 // ═══ v460 — the six newer signals, as radar tiles ═════════════════════════
