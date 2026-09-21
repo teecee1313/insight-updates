@@ -4,7 +4,10 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.19-892-open';
+const APP_VERSION='2026.09.21-893-open';
+// v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
+// Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
+const _FRICTION_MULT=1.5;
 // v882 — FIRST-ERROR BEACON. "Not working" with no numbers is a riddle; a
 // crash that dies silently leaves a half-loaded session that LOOKS loaded
 // (table rendered, radar counting one share, 🔬 refusing). This paints the
@@ -1722,7 +1725,7 @@ async function showDailyPicks(mode){
               var _amtLbl=(_sized>0?'$'+Math.round(_sized).toLocaleString():'an assumed $'+Math.round(_amt).toLocaleString());
               var _tip='Two numbers, compared. WHAT IT COSTS: $3 brokerage to buy plus $3 to sell \u2014 $6 for the round trip on the parcel size the server sized this suggestion at. That is the whole cost of trading it the way these picks trade: a limit order in (the market comes to you \u2014 you never pay the buy\u2013sell gap) and the next morning\u2019s opening auction out (one price for everyone). WHAT IT HAS MADE: what this signal has averaged per trade in testing. We want the gain to be at least DOUBLE the cost before calling it worth doing. Brokerage is a flat $6 either way, so it hurts a small parcel far more than a large one \u2014 which is why the parcel size is named. The separate spread figure shows what buying AT MARKET instead would add \u2014 the limit entry exists precisely to avoid it. All figures are estimates from past data, never a promise about this trade.';
               var _ed=(r.edge!=null&&isFinite(+r.edge))?+r.edge:null;
-              var _ok=(_ed!=null)?(_ed>=2*_fr):null;
+              var _ok=(_ed!=null)?(_ed>=_FRICTION_MULT*_fr):null; // v893: same multiple as the worker's lanes
               var _costD=_amt*_fr/100, _edD=(_ed!=null)?(_amt*_ed/100):null;
               var _mktD=_amt*_cross/100;
               var _money=function(x){ return '$'+(x>=100?Math.round(x).toLocaleString():x.toFixed(2)); };
