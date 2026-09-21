@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-901",
+  "version": "2026.09.22-902",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: Rules & auto-pilot - every setting in My trading rules and behind the robot, explained. The tour only looks: it never taps a preset, Save or the robot switch. Also fixed: the text under the best-practice button now describes what it really sets (Hunter's 20% trailing stop), not the old All-rounder numbers."
+  "notes": "Fix: Tonight's picks said a pick was 'worth the costs' when its gain was 'more than twice' the cost - but the test has been 1.5x since your cost-buffer change. It now states the real setting. Behind the scenes, the tour can now open reports that load from the server."
 }
