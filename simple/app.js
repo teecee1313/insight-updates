@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-901-simple';
+const APP_VERSION='2026.09.22-902-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -1647,7 +1647,7 @@ async function showDailyPicks(mode){
       else fresh='<span style="color:var(--green)">\u2713 Up to date \u2014 picked from '+esc(j.latestPick)+', the latest market day.</span>';
     }
 
-    const tabs='<div style="display:flex;gap:6px;margin:10px 0 4px;">'
+    const tabs='<div id="dpTabs" style="display:flex;gap:6px;margin:10px 0 4px;">'
       +['mine','trail','fixed'].map(m=>'<button onclick="showDailyPicks(\''+m+'\')" style="flex:1;padding:7px;border-radius:6px;font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;'
         +'border:1px solid '+(M===m?'var(--gold)':'var(--border2)')+';background:'+(M===m?'rgba(217,164,65,.15)':'var(--bg3)')+';color:'+(M===m?'var(--gold)':'var(--text)')+';">'
         +(m==='mine'?'\ud83c\udf10 My rules':m==='trail'?'\u26a1 The tested rules':'\u2696 15/15 comparison')+'</button>').join('')+'</div>';
@@ -1682,14 +1682,14 @@ async function showDailyPicks(mode){
         const _ad=_ageD(r);
         const age=(_ad>0)
           ? ' <span style="color:var(--gold);font-size:10px;">(picked '+_ad+' day'+(_ad===1?'':'s')+' ago \u00b7 '+esc(r.first_seen_day)+')</span>' : '';
-        return '<div style="border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--bg2);'+(_ad>_OLD_AFTER?'opacity:.72;':'')+'">'
+        return '<div class="dp-card" style="border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--bg2);'+(_ad>_OLD_AFTER?'opacity:.72;':'')+'">'
           +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
           +'<a href="#" onclick="_picksOpen(\''+esc(r.ticker)+'\');return false;" style="font-size:15px;font-weight:800;color:var(--gold);text-decoration:underline dotted;">'+esc(r.ticker)+'</a>'
           +(r.status==='queued'?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(217,164,65,.18);color:var(--gold);">already queued</span>':'')
           +(oob?'<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(226,25,55,.18);color:#ff9caa;">outside the band</span>':'')
           +age+'</div>'
           +'<div style="font-size:11px;color:var(--muted);margin:3px 0 2px;">'+esc(sigName(r.evidence_key))+' \u00b7 score '+(r.score==null?'\u2014':(+r.score).toFixed(1))+(r.tier?(' \u00b7 '+esc(String(r.tier).toUpperCase())):'')+'</div>'
-          +'<div style="font-size:11px;color:var(--dim);margin:0 0 7px;line-height:1.35;">'+esc(_whyLine(r))+'</div>'   /* v862: one plain sentence — what fired, what the tier means */
+          +'<div class="dp-why" style="font-size:11px;color:var(--dim);margin:0 0 7px;line-height:1.35;">'+esc(_whyLine(r))+'</div>'   /* v862: one plain sentence — what fired, what the tier means */
           +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;">'
           +'<div><span style="color:var(--muted);font-size:10px;display:block;">Buy under</span><b>'+money(r.limit_price)+'</b></div>'
           +(tr
@@ -1730,9 +1730,9 @@ async function showDailyPicks(mode){
               var _mktD=_amt*_cross/100;
               var _money=function(x){ return '$'+(x>=100?Math.round(x).toLocaleString():x.toFixed(2)); };
               var _verdict=(_ed==null)?''
-                :(_ok?('<br><b style="color:var(--green)">Worth the costs</b> \u2014 the average gain is more than twice what this trade costs.')
+                :(_ok?('<br><b style="color:var(--green)">Worth the costs</b> \u2014 the average gain is at least '+_FRICTION_MULT+'\u00d7 what this trade costs.')  /* v902: worded from the setting it tests — it said 'twice' after v893 made it 1.5× */
                      :('<br><b style="color:#ff9caa">Costs eat it</b> \u2014 even at just $6 brokerage, on past form this one does not pay for itself.'));
-              return '<div title="'+_tip+'" style="flex-basis:100%;font-size:10px;cursor:help;line-height:1.55;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:4px;">'
+              return '<div class="dp-cost" title="'+_tip+'" style="flex-basis:100%;font-size:10px;cursor:help;line-height:1.55;color:'+(_ok===false?'#ff9caa':'var(--dim)')+';margin-top:4px;">'
                 +'\ud83d\udcb8 Trading this the way these picks trade \u2014 limit in, next open out \u2014 costs <b>'+_money(_costD)+'</b> on a '+_amtLbl+' parcel ('+_fr.toFixed(2)+'%).'
                 +(_edD!=null?(' This signal has averaged <b>'+_money(_edD)+'</b> a trade at that size ('+_ed.toFixed(2)+'%).'):'')
                 +_verdict
@@ -1752,8 +1752,8 @@ async function showDailyPicks(mode){
       if(_oldRows.length){ body+='<div style="margin:14px 0 8px;padding-top:10px;border-top:1px dashed var(--border2);font-size:11px;color:var(--muted);line-height:1.5;"><b style="color:var(--gold);">\u23f3 Still open \u2014 picked on earlier days.</b> The prices shown are from the day each was picked, not from today. The server retires suggested picks after 5 trading days \u2014 sooner if they leave the price band or fail the costs test \u2014 so anything here is due for review at the next close.</div>'+_oldRows.map(_pickCard).join(''); }
     }
 
-    html='<div style="font-size:12px;color:var(--muted);line-height:1.55;">'+esc(ruleLine)+'</div>'
-      +'<div style="font-size:11px;margin-top:5px;">'+fresh+'</div>'
+    html='<div id="dpRule" style="font-size:12px;color:var(--muted);line-height:1.55;">'+esc(ruleLine)+'</div>'
+      +'<div id="dpFresh" style="font-size:11px;margin-top:5px;">'+fresh+'</div>'
       +tabs
       +(mine?'<div style="font-size:11px;color:var(--muted);margin:6px 0 10px;line-height:1.5;">These are the picks <b>your saved rules</b> chose on the server at end-of-day \u2014 the same decisions the \ud83e\udd16 bot places as dated practice orders. This page is that list, human-readable, running beside the two control sets so all three are judged forward from the same nights.</div>'
               :trail?'<div style="font-size:11px;color:var(--muted);margin:6px 0 10px;line-height:1.5;">The stop shown is where the trail <b>starts</b>. It only ever moves up as the price rises, and never down \u2014 there is no take-profit, so a winner runs until it gives back '+((R.trailPct||20))+'% from its best close.</div>'
@@ -3874,11 +3874,11 @@ function _strongestTableHTML(limit,starterHeader){
         +'<span style="font-weight:800;font-size:14px;color:var(--text);">\ud83c\udfc6 Today\u2019s market \u2014 '+(_filt?(rows.length.toLocaleString()+' matching your radar filters (of '+_tot.toLocaleString()+')'):('the '+(limit||50)+' strongest of '+_tot.toLocaleString()))+'</span>'
         +(_filt?'<a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="font-size:10px;color:var(--gold);font-weight:700;">\u2715 clear filters</a>':'')
         +'<span style="font-size:10px;color:var(--muted);">proven evidence first, then score'+_gradedNote+_snapNote+' \u00b7 tap any share for its full story \u00b7 the complete table with every column lives in <a href="#" onclick="try{setAppMode(\'advanced\');}catch(e){};return false;" style="color:var(--gold);">Advanced</a></span></div>'
-      : '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score.'+_gradedNote+_snapNote+' Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
+      : '<div id="stIntro" style="font-size:10px;color:var(--muted);margin:2px 0 8px;">'+(_filt?(rows.length.toLocaleString()+' of '+_tot.toLocaleString()+' matching your radar filters \u2014 <a href="#" onclick="try{statFilter(\'all\');}catch(e){};return false;" style="color:var(--gold);font-weight:700;">\u2715 clear filters</a>. '):('The '+(limit||50)+' strongest of '+_tot.toLocaleString()+' \u2014 '))+'proven evidence first, then measured PN Edge, then score.'+_gradedNote+_snapNote+' Tap any share for its full story. A ranking of today\u2019s evidence, not a buy list and not advice.</div>')
       +_emptyNote
       +((!_anyTier)?'<div style="font-size:10px;color:var(--gold);margin:0 0 6px;">\u23f3 Evidence badges and PN Edge appear once today\u2019s evidence check finishes \u2014 until then this ranks by score. On a phone, swipe the table sideways for every column.</div>':'')
       +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
-      +'<table style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">'
+      +'<table id="stTbl" style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">'
       +'<thead><tr style="color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;text-align:left;">'
       +'<th style="padding:4px 2px;text-align:center;" title="Tap \u2606 on a row to add that share to your watchlist (\u2605 = already there).">\u2606</th><th style="padding:4px 6px;">Share</th><th style="padding:4px 6px;text-align:right;">Price</th><th style="padding:4px 6px;text-align:right;" title="The share\u2019s move over the latest session \u2014 close vs the close before.">Day</th>'
       +'<th style="padding:4px 6px;text-align:right;" title="Pattern score out of 10 \u2014 how many of today\u2019s studied patterns line up on this share.">Score</th>'
@@ -20244,8 +20244,20 @@ async function simpleQuietClimbers(){
     rules:function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&document.getElementById('rTgt'))return; if(typeof showRules==='function'){ showRules(); if(S)S.opened=true; } },
     // Advanced bot settings, shown as DISPLAY ONLY: toggleApAdv() would save a
     // preference, so the tour just unhides the box inside the open panel.
-    apAdv:function(){ ACTIONS.rules(); var b=document.getElementById('apAdvBox'); if(b)b.style.display='block'; }
+    apAdv:function(){ ACTIONS.rules(); var b=document.getElementById('apAdvBox'); if(b)b.style.display='block'; },
+    // v902 — reports. Each is opened once and re-used while it is the one on
+    // screen. All three are read-only on open (verified: no saves, no sends;
+    // picks and climbers only FETCH). A report needing loaded market data is
+    // skipped rather than opened, so the app's 'load first' alert never fires.
+    strongest:function(){ if(!(Array.isArray(window.allData)?window.allData.length:(typeof allData!=='undefined'&&allData&&allData.length)))return; _rep('strongest',function(){ strongestTodayReport(); }); },
+    picks:function(lane){ if(S&&S.picksMode0===undefined)S.picksMode0=window._picksMode; _rep('picks:'+(lane||'mine'),function(){ showDailyPicks(lane||'mine'); }); },
+    climbers:function(){ _rep('climbers',function(){ simpleQuietClimbers(); }); },
+    // back to the screen underneath: closes the report the TOUR opened
+    home:function(){ if(S&&S.rep){ _closeAll(); S.rep=null; } }
   };
+  function _modalUp(){ var m=document.getElementById('appModal'); return !!(m&&m.style.display!=='none'&&m.offsetHeight!==0); }
+  function _closeAll(){ try{ if(typeof closeModal==='function'){ for(var q=0;q<3;q++){ if(!_modalUp())break; closeModal(); } } }catch(e){} }
+  function _rep(key, open){ if(!S)return; if(S.rep===key&&_modalUp())return; try{ open(); S.rep=key; S.opened=true; }catch(e){} }
   function _do(stop){ if(!stop||!stop.do)return; var fn=ACTIONS[stop.do[0]]; if(!fn)return; try{ fn(stop.do[1]); }catch(e){} }
   window._tourChapter=function(name, title, desc, stops){ CHAPTERS[name]={title:title, desc:desc, stops:stops}; };
 
@@ -20360,14 +20372,21 @@ async function simpleQuietClimbers(){
     var spoke=_speak(stop.title+'. '+stop.text, function(){ if(S&&!S.paused)S.t=setTimeout(function(){ go(S.i+1); }, 900); });
     if(!spoke) S.t=setTimeout(function(){ go(S.i+1); }, Math.max(4500, words*380));
   }
-  function go(i){
-    if(!S)return; clearTimeout(S.t); _hush();
+  function go(i, retry){
+    if(!S)return; clearTimeout(S.t); if(!retry)_hush();
     if(i<0)i=0;
     if(i>=S.stops.length){ end(); return; }
     // skip stops whose element is not on screen (never fake a location)
-    var dir=(i>=S.i)?1:-1, stop, el;
-    while(i>=0&&i<S.stops.length){ stop=S.stops[i]; _do(stop); el=_resolve(stop); if(!stop.sel||el)break; i+=dir; }
-    if(i<0){ i=0; stop=S.stops[0]; _do(stop); el=_resolve(stop); }
+    var dir=retry?(S.dir||1):((i>=S.i)?1:-1), stop, el; S.dir=dir;
+    while(i>=0&&i<S.stops.length){
+      stop=S.stops[i];
+      if(S.didDo!==i){ S.didDo=i; _do(stop); S.until=stop.wait?Date.now()+stop.wait:0; }
+      el=_resolve(stop); if(!stop.sel||el)break;
+      // v902 — a report loading from the server: keep looking, then skip
+      if(S.until&&Date.now()<S.until){ var ii=i; _loading(stop); S.t=setTimeout(function(){ go(ii,true); },200); return; }
+      i+=dir;
+    }
+    if(i<0){ i=0; stop=S.stops[0]; S.didDo=0; _do(stop); el=_resolve(stop); }
     if(i>=S.stops.length){ end(); return; }
     S.i=i; S.el=el;
     document.getElementById('tourTitle').textContent=stop.title;
@@ -20378,6 +20397,7 @@ async function simpleQuietClimbers(){
     setTimeout(function(){ if(S){ _place(S.el); _applyPos(); } }, el?420:0);
     if(!S.paused)_arm(stop);
   }
+  function _loading(stop){ var t=document.getElementById('tourTitle'), x=document.getElementById('tourText'); if(t)t.textContent=stop.title; if(x)x.textContent='Opening\u2026'; }
   function pause(){ if(!S)return; S.paused=true; clearTimeout(S.t); _hush(); var b=document.getElementById('tourPause'); if(b)b.textContent='\u25b6 Resume'; }
   function resume(){ if(!S)return; S.paused=false; var b=document.getElementById('tourPause'); if(b)b.textContent='\u23f8 Pause'; _arm(S.stops[S.i]); }
   function end(){
@@ -20387,6 +20407,7 @@ async function simpleQuietClimbers(){
     try{ localStorage.setItem(_seenKey(S.name),'1'); }catch(e){}
     if(S.opened){ try{ if(typeof closeModal==='function'){ for(var q=0;q<3;q++){ var mm=document.getElementById('appModal'); if(!mm||mm.style.display==='none')break; closeModal(); } } }catch(e){} }
     try{ window._pfView=S.pfView0; }catch(e){}
+    try{ if(S.picksMode0!==undefined)window._picksMode=S.picksMode0; }catch(e){}
     window._tourActive=false;
     S=null;
   }
