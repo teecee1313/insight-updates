@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-898-simple';
+const APP_VERSION='2026.09.22-899-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20400,4 +20400,31 @@ async function simpleQuietClimbers(){
 
   window._tourStart=start; window._tourEnd=end; window._tourMenu=menu;
   window._tourStops=function(name){ return (name==='full')?fullStops():MAIN.slice(); };
+})();
+
+// ═══ v899 — TOUR CHAPTER: 💼 Portfolio ═══════════════════════════════════════
+// Opens the portfolio LOOK-ONLY (see showPortfolio's _tourActive guards), walks
+// its parts in screen order, switches tabs to show each one, and closes it again.
+// Undo and delete live behind a hidden unlock and are never shown or mentioned.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  window._tourChapter('portfolio','\ud83d\udcbc Portfolio','Inside your practice portfolio: holdings, orders, results, backups',[
+    {do:['pfView','holdings'], title:'Your practice portfolio', text:'Everything you own in practice money: positions, cash, orders and results. None of it is real money.'},
+    {do:['pfView','holdings'], sel:'button[onclick="_pfSwitch(\'main\')"]', up:'div', title:'Two separate accounts', text:'Your account and the auto-pilot\u2019s are kept completely apart. Buys you make from the table go into yours; the robot only ever trades its own fifty-thousand-dollar test account. Tap either to switch between them.'},
+    {do:['pfView','holdings'], sel:'#pfKeyStrip', title:'The key numbers', text:'Your cash, what the account is worth, today\u2019s change and how many orders are waiting. They stay at the top whichever tab you are on.'},
+    {do:['pfView','holdings'], sel:'#pfTab_holdings', title:'Holdings', text:'The shares you hold right now.'},
+    {do:['pfView','holdings'], sel:'.pf-holdings tbody tr, .pf-cards > div', title:'A holding', text:'Each line shows what you paid, today\u2019s price, its value and its profit or loss. Tap the share code for that share\u2019s printable report.'},
+    {do:['pfView','holdings'], sel:'.pf-holdings tbody tr, .pf-cards > div', title:'The markers under a share', text:'Underneath you may see: a target, a stop, a padlock for a stop you set by hand, a trailing stop, a profit ladder, or a sale queued for the next open. Each is a rule that can sell the share for you.'},
+    {do:['pfView','holdings'], sel:'button[onclick^="_pfRowMenu"]', title:'The action menu', text:'Tap the three dots to set or change a target, a stop or a trailing stop, add a note, or sell part or all of the holding.'},
+    {do:['pfView','pending'], sel:'#pfTab_pending', title:'Pending orders', text:'Buys waiting for their price. A limit buy only fills if the market price touches your limit.'},
+    {do:['pfView','pending'], sel:'button[onclick^="paperEditOrderLimit"]', up:'div', title:'Managing an order', text:'Change its price, set how long it waits, set the target and stop it will get when it fills, ask why it hasn\u2019t filled yet, or cancel it.'},
+    {do:['pfView','history'], sel:'#pfTab_history', title:'History', text:'Every closed trade, marked with what sold it: your target, your stop, a trailing stop, or time. Sold trades stay exactly as they happened \u2014 a record you can trust.'},
+    {do:['pfView','performance'], sel:'#pfTab_performance', title:'Performance', text:'How the account has done as a whole.'},
+    {do:['pfView','performance'], sel:'#pfSummary', title:'The summary cards', text:'Account total against your starting money, cash, money set aside for pending orders, what your holdings are worth, and profit or loss \u2014 unrealised on shares you still hold, realised on those you\u2019ve sold.'},
+    {do:['pfView','performance'], sel:'#pfStats', title:'Your trading stats', text:'Trades, win rate, average win and average loss. Read them together: a high win rate can still lose money if the losses are bigger than the wins.'},
+    {do:['pfView','diary'], sel:'#pfTab_diary', title:'Weekly', text:'Your results week by week: profit on trades that closed that week after fees, and what your open positions moved. Add a note about each week \u2014 what you changed, what you learned. That is the part worth keeping.'},
+    {do:['pfView','holdings'], sel:'#pfFooter', title:'Print, export and share', text:'Print a statement, download a spreadsheet, share a summary, or turn your holdings into a watchlist.'},
+    {do:['pfView','holdings'], sel:'button[onclick="exportPortfolioBackup()"]', title:'Backup and restore', text:'Save your whole account to a file, and restore it from one. Keep an occasional backup: it is how you recover if a stop ever sells on bad price data.'},
+    {do:['pfView','holdings'], title:'That\u2019s the portfolio', text:'Close it any time with the cross. Next: your trading rules and the auto-pilot.'}
+  ]);
 })();

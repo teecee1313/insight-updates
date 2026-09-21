@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-898",
+  "version": "2026.09.22-899",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The Tour button now opens a proper menu: Quick tour or Full tour, with a tick on the ones you've finished. Behind the scenes, the tour can now open panels and point inside them - the Portfolio chapter is next."
+  "notes": "New in the Tour menu: the Portfolio chapter. The tour opens your portfolio, walks every part of it - accounts, holdings, orders, history, performance, weekly, backups - and closes it again. It only looks: it never changes anything in your account."
 }
