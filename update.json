@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-904",
+  "version": "2026.09.22-905",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: Reports - the Advanced scans. Every scan on Advanced mode's left panel and the report cards that grade them, explained. The tour runs none of them, so your list and filters stay exactly as they are."
+  "notes": "Tour fixes: in Advanced mode the quick tour now shows Your routine, and the Advanced scans chapter now covers Technical and My Report - all three were being skipped because they live inside panels. Nothing else changes."
 }

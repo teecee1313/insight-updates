@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-904-open';
+const APP_VERSION='2026.09.22-905-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20206,8 +20206,8 @@ async function simpleQuietClimbers(){
     {sel:'#streakBtn', title:'Refreshing your data', text:'Re-fetches fresh prices and recomputes signals for the shares on screen.'},
     {sel:'#bestEvBtn', title:'Best Evidence Today', text:'The graded scan. Of everything that fired today, it keeps only the shares whose strongest signal carries a proven edge.'},
     {sel:'#scanGradedNote', title:'The other scans', text:'The scans in the box marked \u201csearches, not verdicts\u201d find untested patterns. They are for looking, never a reason to buy on their own.'},
-    {sel:'#routineBtn', title:'Your routine', text:'Runs all your saved reports in one tap.'},
-    {sel:'#tourBtn', title:'That\u2019s the tour', text:'The daily routine takes a few minutes after the close: Market today, Strongest Today, Best Evidence, then tonight\u2019s picks. Press Tour any time to run this again, or take the full tour to hear every control explained.'}
+    {do:['refine'], onlyIf:'#streakBtn', sel:'#routineBtn', title:'Your routine', text:'Runs all your saved reports in one tap.'},
+    {do:['main'], sel:'#tourBtn', title:'That\u2019s the tour', text:'The daily routine takes a few minutes after the close: Market today, Strongest Today, Best Evidence, then tonight\u2019s picks. Press Tour any time to run this again, or take the full tour to hear every control explained.'}
   ];
 
   // ── the full tour: every explained control, in screen order ──────────────
@@ -20256,8 +20256,31 @@ async function simpleQuietClimbers(){
     home:function(){ if(S&&S.rep){ _closeAll(); S.rep=null; } },
     // v904 — the Report cards section is folded away; its own header saves a
     // preference when tapped, so the tour just unhides it and restores it after.
-    cards:function(){ ACTIONS.home(); _reveal('sgCardsBody'); }
+    cards:function(){ ACTIONS.home(); _reveal('sgCardsBody'); },
+    // v905 — Settings & data. None of these three saves anything (verified):
+    // the account menu only shows/positions itself; the advanced settings are a
+    // plain <details>; the filter tabs only swap classes. Each is undone at the end.
+    acct:function(){ ACTIONS.home(); var m=document.getElementById('acctMenu'); if(!m||!S)return;
+      if(m.style.display==='none'||!m.style.display){ try{ window.toggleAcctMenu({stopPropagation:function(){}}); }catch(e){ m.style.display='block'; }
+        if(!S.acctOpened){ S.acctOpened=true; _undo(function(){ var mm=document.getElementById('acctMenu'); if(mm)mm.style.display='none'; }); } } },
+    noacct:function(){ ACTIONS.home(); var m=document.getElementById('acctMenu'); if(m&&S&&S.acctOpened)m.style.display='none'; },
+    main:function(){ ACTIONS.noacct(); if(!S||!S.panels)return; ['ovSetup','ovRefine'].forEach(function(o){ if(S.panels[o]){ var x=document.getElementById(o); if(x)x.classList.remove('show'); } }); var bd=document.getElementById('ovBackdrop'); if(bd&&S.bdOpened)bd.classList.remove('show'); },
+    // the floating Setup and Refine panels. openOverlay('refine') also calls
+    // applyAdvFilters(), which re-applies your filters to the list — so the tour
+    // shows the panel by class only, and hides it again at the end.
+    setup:function(){ ACTIONS.noacct(); _panel('ovSetup'); },
+    refine:function(){ ACTIONS.noacct(); _panel('ovRefine'); },
+    adv:function(){ ACTIONS.setup(); var dd=document.getElementById('advSettingsWrap'); if(!dd||!S||dd.open)return; dd.open=true; _undo(function(){ dd.open=false; }); },
+    ftab:function(t){ ACTIONS.refine(); if(!S||typeof sw!=='function')return;
+      if(S.ftab0===undefined){ var on=document.querySelector('.tab.on[id^="tab-"]'); S.ftab0=on?on.id.replace('tab-',''):null; var t0=S.ftab0; _undo(function(){ if(t0)try{ sw(t0); }catch(e){} }); }
+      try{ sw(t); }catch(e){} }
   };
+  function _undo(fn){ if(S)(S.undo=S.undo||[]).push(fn); }
+  function _panel(id){ if(!S)return; var bd=document.getElementById('ovBackdrop');
+    ['ovSetup','ovRefine'].forEach(function(o){ if(o!==id){ var x=document.getElementById(o); if(x&&S.panels&&S.panels[o]){ x.classList.remove('show'); } } });
+    var p=document.getElementById(id); if(!p)return; S.panels=S.panels||{};
+    if(!p.classList.contains('show')){ p.classList.add('show'); if(!S.panels[id]){ S.panels[id]=1; _undo(function(){ p.classList.remove('show'); }); } }
+    if(bd&&!bd.classList.contains('show')){ bd.classList.add('show'); if(!S.bdOpened){ S.bdOpened=1; _undo(function(){ bd.classList.remove('show'); }); } } }
   function _reveal(id){ var el=document.getElementById(id); if(!el||!S)return; if(el.style.display==='none'){ (S.restore=S.restore||[]).push([el,el.style.display]); el.style.display='block'; } }
   function _modalUp(){ var m=document.getElementById('appModal'); return !!(m&&m.style.display!=='none'&&m.offsetHeight!==0); }
   function _closeAll(){ try{ if(typeof closeModal==='function'){ for(var q=0;q<3;q++){ if(!_modalUp())break; closeModal(); } } }catch(e){} }
@@ -20384,8 +20407,11 @@ async function simpleQuietClimbers(){
     var dir=retry?(S.dir||1):((i>=S.i)?1:-1), stop, el; S.dir=dir;
     while(i>=0&&i<S.stops.length){
       stop=S.stops[i];
-      if(S.didDo!==i){ S.didDo=i; _do(stop); S.until=stop.wait?Date.now()+stop.wait:0; }
+      // v905: decide whether a stop applies BEFORE running its action, so a skipped
+      // stop never opens a panel on its way past
       if(stop.unless&&_resolve({sel:stop.unless})){ i+=dir; continue; }   // v904: only when that is NOT on screen
+      if(stop.onlyIf&&!_resolve({sel:stop.onlyIf})){ i+=dir; continue; }  // v905: only when that IS on screen (e.g. Advanced mode)
+      if(S.didDo!==i){ S.didDo=i; _do(stop); S.until=stop.wait?Date.now()+stop.wait:0; }
       el=_resolve(stop); if(!stop.sel||el)break;
       // v902 — a report loading from the server: keep looking, then skip
       if(S.until&&Date.now()<S.until){ var ii=i; _loading(stop); S.t=setTimeout(function(){ go(ii,true); },200); return; }
@@ -20414,6 +20440,7 @@ async function simpleQuietClimbers(){
     try{ window._pfView=S.pfView0; }catch(e){}
     try{ if(S.picksMode0!==undefined)window._picksMode=S.picksMode0; }catch(e){}
     try{ (S.restore||[]).forEach(function(r){ r[0].style.display=r[1]; }); }catch(e){}
+    try{ (S.undo||[]).reverse().forEach(function(f){ try{ f(); }catch(_){} }); }catch(e){}
     window._tourActive=false;
     S=null;
   }
@@ -20588,7 +20615,7 @@ async function simpleQuietClimbers(){
   var H=['home'], C=['cards'];
   var b=function(fn){ return '[onclick^="'+fn+'"]'; };
   window._tourChapter('reports2','\ud83d\udcca Reports \u2014 the Advanced scans','Every scan on Advanced mode\u2019s left panel, and the report cards that grade them',[
-    {do:H, unless:'#bestEvBtn', title:'These live in Advanced mode', text:'The scans in this chapter are on Advanced mode\u2019s left panel. Switch to Advanced with the button at the top of the screen, then run this chapter again.'},
+    {do:H, unless:'#bestEvBtn', title:'Most of these live in Advanced mode', text:'Most of the scans in this chapter are on Advanced mode\u2019s left panel. Switch to Advanced with the button at the top of the screen, then run this chapter again to see them all.'},
     {do:H, title:'The Advanced scans', text:'Each one searches the whole market in its own way and fills your table with what it finds. Here is what each one looks for.'},
     {do:H, sel:'#scanGradedNote', title:'Graded, or not', text:'Only two are built on graded evidence: Best Evidence Today and Climbers Today. The rest are searches, not verdicts \u2014 useful for looking, never a reason to buy on their own.'},
     {do:H, sel:'#bestEvBtn', title:'Best Evidence Today', text:'Of everything that fired today, only shares whose signal holds a SOLID or PROMISING tier with a positive, market-beating edge, ranked by the strength of each share\u2019s best signal. The flagship report.'},
@@ -20602,7 +20629,7 @@ async function simpleQuietClimbers(){
     {do:H, sel:b('recoveryScanAdv'), title:'Recovery Watch', text:'Fallen shares stabilising on higher volume: possible turnarounds, for looking at.'},
     {do:H, sel:'#quietBtn', title:'Quiet Movers', text:'Shares that barely moved today but are quietly building underneath: a paused uptrend, heavy volume on a flat price, or a gain that faded into the close.'},
     {do:H, sel:'#trendBtn', title:'Strong Trends', text:'The strongest trend structure: price above its 20-day average, above the 50-day, above the 200-day. Ranked by how steady the trend is.'},
-    {do:H, sel:'#techBtn', title:'Technical', text:'Ranks shares on classic indicators: moving-average crosses, RSI, 52-week position, volume flow, gaps and volatility.'},
+    {do:H, sel:b('technicalScan'), title:'Technical', text:'Ranks shares on classic indicators: moving-average crosses, RSI, 52-week position, volume flow, gaps and volatility.'},
     {do:H, sel:b('speedingTicketScan'), title:'Sharp Mover Detector', text:'Ranks shares by how big today\u2019s move is compared with that share\u2019s own normal day. A four percent jump is nothing for a wild penny stock and a siren for a sleepy blue chip.'},
     {do:H, sel:'#fadeBtn', title:'Fading Strength', text:'The opposite of the others: shares up two or more days in a row, a pattern that has tested as worse over the next five days. A caution list, not a buy list.'},
     {do:H, sel:'#quickPlansRowAdv, #quickPlansRow', title:'Quick plans', text:'One tap loads a ready-made set of filters: Breakout, Penny Movers or Informed. They change your filters \u2014 press Showing to clear them again.'},
@@ -20611,7 +20638,7 @@ async function simpleQuietClimbers(){
     {do:C, sel:'#sgCardsH', title:'The report cards', text:'The app\u2019s honesty checks. They re-run every signal and every scan over your stored history and report how each actually did \u2014 including when the answer is bad.'},
     {do:C, sel:'[onclick="signalReportCard()"]', title:'Signal report card', text:'For each signal: how often shares beat the market in the days after it fired, over five, ten or thirty days. This is where SOLID and PROMISING come from.'},
     {do:C, sel:'[onclick="allScansCard()"]', title:'All scans report card', text:'Grades every scan at once, re-testing each rule as it stood on each stored day, and ranks the scans by edge. The one screen that shows which scans are actually working right now.'},
-    {do:H, sel:'#myReportBtn', title:'My Report', text:'Save the filters you use most, then bring them back with one tap \u2014 or have them applied automatically each time your data loads.'},
-    {do:H, title:'That\u2019s the reports', text:'Next: settings and your data.'}
+    {do:['refine'], onlyIf:'#streakBtn', sel:'#myReportBtn', title:'My Report', text:'Save the filters you use most, then bring them back with one tap \u2014 or have them applied automatically each time your data loads.'},
+    {do:['main'], title:'That\u2019s the reports', text:'Next: settings and your data.'}
   ]);
 })();
