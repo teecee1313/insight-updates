@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-897",
+  "version": "2026.09.22-898",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The tour now fits whichever mode you're in: Simple walks your Simple cards, Starter its cards, Advanced the radar and table. It covers the header too, and now says what the share code really does (opens its Market Index page) and where the report card lives (the more button)."
+  "notes": "The Tour button now opens a proper menu: Quick tour or Full tour, with a tick on the ones you've finished. Behind the scenes, the tour can now open panels and point inside them - the Portfolio chapter is next."
 }

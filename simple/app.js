@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-897-simple';
+const APP_VERSION='2026.09.22-898-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -9639,8 +9639,10 @@ function showPortfolio(exSel){
   try{document.body.classList.toggle('pf-hideprofit',_pfHideProfit());}catch(e){}
   if(exSel)window._pfExSel=exSel;
   else if(window._pfExSel==null&&currentExch)window._pfExSel=String(currentExch).toUpperCase(); // v412: first open lands on the exchange you're trading — its own separate account
-  try{_pfStraySweep();}catch(e){} // v412: rehome any items stuck in the wrong exchange's account
-  updatePaperPrices();
+  // v898 — a TOUR visit is look-only: no stray sweep, no price re-mark (both save the
+  // account). The tour shows the portfolio exactly as last saved.
+  if(!window._tourActive){ try{_pfStraySweep();}catch(e){} // v412: rehome any items stuck in the wrong exchange's account
+  updatePaperPrices(); }
   // v364: while the bulk "download everything" run is going, DON'T also kick the
   // per-holding target/limit engines — their per-share live fetches queue behind
   // the download on the same rate limiter and the portfolio sat there frozen
@@ -9652,7 +9654,7 @@ function showPortfolio(exSel){
     // still running - which was always. Pending orders were therefore never
     // judged from the Portfolio, and the v642 catch-up never got the chance to
     // run. Chaining them respects the same guard instead of losing to it.
-    if(!window._tgtChecking && !window._ordChecking){
+    if(!window._tgtChecking && !window._ordChecking && !window._tourActive){ // v898: a tour visit never executes a stop, target or limit fill
       (async function(){
         let sold=null, fl=null;
         try{ sold=await checkAutoSellTargets(); }catch(e){}
@@ -9832,7 +9834,7 @@ function showPortfolio(exSel){
   const _dcLabel=_dcKnown?(_dcIsToday?'Today&#8217;s change':('Change &#183; '+(_dcDate||'last close'))):'Day change';
   const _dcPrev=totVal-_dcSum;
   const _dcPct=(_dcKnown&&_dcPrev>0)?(_dcSum/_dcPrev*100):null;
-  const keyStrip=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 13px;margin-bottom:10px;">
+  const keyStrip=`<div id="pfKeyStrip" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 13px;margin-bottom:10px;">
     <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Account</div><div style="font-family:var(--mono);font-weight:800;font-size:15px;color:var(--text);">${_fmtN(_pfAcctNow)}</div></div>
     <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">💵 Cash</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfCashNow)}</div></div>
     ${_pfResvNow>0.005?`<div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">⏳ Reserved</div><div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);">${_fmtN(_pfResvNow)}</div></div>`:''}
@@ -9979,7 +9981,7 @@ ${_undoOn()?`<div class="pf-card-actions">
         const avgHoldW=wins.length?wins.reduce((a,t)=>a+_dOf(t),0)/wins.length:0;
         const avgHoldL=losses.length?losses.reduce((a,t)=>a+_dOf(t),0)/losses.length:0;
         const st=(l,v,c)=>`<span style="white-space:nowrap;">${l} <strong style="color:${c||'var(--text)'}">${v}</strong></span>`;
-        statsHtml=`<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:9px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:12px;">
+        statsHtml=`<div id="pfStats" style="display:flex;gap:12px;flex-wrap:wrap;font-size:9px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:12px;">
           ${st('Trades',allT.length)}
           ${st('Win rate',winRate.toFixed(0)+'%',winRate>=50?'var(--green)':'var(--red)')}
           ${st('Avg win','+'+avgWin.toFixed(2),'var(--green)')}
@@ -9995,7 +9997,7 @@ ${_undoOn()?`<div class="pf-card-actions">
           ${st('Hold: losses',avgHoldL.toFixed(0)+'d')}
         </div>`;
       }
-      return `${mixed?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:9px;color:var(--orange);">⚠ You hold shares in different currencies (${_curs.join(' + ')}) — the combined totals below add them as-is. Use the exchange tabs for exact single-currency figures.</div>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${statsHtml?'8px':'12px'};">
+      return `${mixed?`<div style="border:1px solid var(--orange);background:rgba(255,165,0,.08);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:9px;color:var(--orange);">⚠ You hold shares in different currencies (${_curs.join(' + ')}) — the combined totals below add them as-is. Use the exchange tabs for exact single-currency figures.</div>`:''}<div id="pfSummary" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${statsHtml?'8px':'12px'};">
         ${ex==='ALL'?(function(){const _wd=(p.wdProfit||0);const _r=((acct+_wd-SC)/SC)*100;return card('Account total',acct.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' <span style="font-size:9px">('+(_r>=0?'+':'')+_r.toFixed(1)+'%'+(_wd>0?' incl. $'+_wd.toLocaleString()+' withdrawn':'')+')</span>',pc(acct+_wd-SC));})():''}
         ${(ex==='ALL'&&SC!==PAPER_START_CASH)?card('Start capital',SC.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
         ${ex==='ALL'?card('💵 Cash',cash.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):''}
@@ -10060,7 +10062,7 @@ ${_undoOn()?`<div class="pf-card-actions">
       <div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:right;">Closed P/L (12 mo): <strong style="color:${closedPl>0.005?'var(--green)':closedPl<-0.005?'var(--red)':'var(--muted)'}">${closedPl>=0?'+':''}${closedPl.toFixed(2)}</strong></div>`
     :'<div style="font-size:10px;color:var(--muted);padding:8px;text-align:center;">No closed trades yet.</div>'}
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
+    <div id="pfFooter" style="display:flex;gap:8px;margin-top:12px;">
       <button onclick="printPortfolio()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--blue);background:rgba(56,139,253,.14);color:var(--blue);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">🖨 Print</button>
       <button onclick="exportPortfolioCSV()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.14);color:var(--gold);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">📤 CSV</button>
       <button onclick="sharePortfolio()" style="flex:1;padding:9px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,.14);color:var(--green);font-weight:600;font-size:11px;font-family:var(--sans);cursor:pointer;">📨 Share</button>
@@ -20225,6 +20227,22 @@ async function simpleQuietClimbers(){
     return out;
   }
 
+
+  // ── v898: CHAPTERS — tours that go INSIDE panels ─────────────────────────
+  // A chapter stop may carry do:[action, arg]. Actions are a closed whitelist:
+  // they only OPEN a panel or switch what it DISPLAYS. The tour never presses
+  // a button that changes data (no buy, sell, save, cancel, restore), and a
+  // tour visit to the portfolio is look-only (showPortfolio skips its order
+  // checks and price re-mark while _tourActive).
+  var CHAPTERS={};                              // name -> {title, desc, stops}; filled by _tourChapter()
+  function _pfOpen(){ var m=document.getElementById('appModal'); return !!(m&&m.style.display!=='none'&&document.getElementById('pfTab_holdings')); }
+  var ACTIONS={
+    portfolio:function(){ if(_pfOpen())return; if(typeof showPortfolio==='function'){ showPortfolio(window._pfExSel||'ALL'); if(S)S.opened=true; } },
+    pfView:function(v){ ACTIONS.portfolio(); if(typeof _setPfView==='function')_setPfView(v); }
+  };
+  function _do(stop){ if(!stop||!stop.do)return; var fn=ACTIONS[stop.do[0]]; if(!fn)return; try{ fn(stop.do[1]); }catch(e){} }
+  window._tourChapter=function(name, title, desc, stops){ CHAPTERS[name]={title:title, desc:desc, stops:stops}; };
+
   function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.opacity==='0')return false; var r=el.getBoundingClientRect(); if(!(r.width>0&&r.height>0))return false; return true; }  // v897: no page-bounds test - scroll sizes are unreliable across browsers and it skipped real stops
   function _resolve(stop){ if(!stop.sel)return null; var list=[]; try{ list=document.querySelectorAll(stop.sel); }catch(e){ return null; } for(var i=0;i<list.length;i++){ var el=list[i]; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } if(_visible(el))return el; } return null; }  // v897: first VISIBLE match - the same card exists in the Simple and Starter groups
 
@@ -20251,7 +20269,7 @@ async function simpleQuietClimbers(){
 
   // ── build the overlay once per run ───────────────────────────────────────
   function _css(){ if(document.getElementById('tourCss'))return; var st=document.createElement('style'); st.id='tourCss'; st.textContent=
-    '#tourSpot{position:fixed;z-index:'+Z+';border:2px solid #f4c542;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,10,16,.62),0 0 22px rgba(244,197,66,.55);pointer-events:none;transition:top .35s,left .35s,width .35s,height .35s}'+
+    '#tourMenuBack{position:fixed;inset:0;z-index:'+(Z-1)+';background:rgba(8,10,16,.55)}'+'#tourMenu{position:fixed;z-index:'+(Z+1)+';left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 24px));max-height:calc(100vh - 40px);overflow:auto;background:#0f1420;color:#e8ecf3;border:1px solid #3a4560;border-radius:14px;padding:14px 14px 10px;box-shadow:0 12px 40px rgba(0,0,0,.55);font-family:var(--sans,system-ui,sans-serif)}'+'#tourMenu h4{margin:0 0 10px;font-size:16px;color:#f4c542}'+'#tourMenu [data-tour]{display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border-radius:10px;border:1px solid #3a4560;background:#1a2133;color:#e8ecf3;cursor:pointer;font-family:inherit}'+'#tourMenu [data-tour] b{display:block;font-size:14px}'+'#tourMenu [data-tour] span{display:block;font-size:12px;color:#9aa5bd;margin-top:2px}'+'#tourMenu [data-tour] .ok{display:inline;color:#4ade80;font-size:13px;margin:0}'+'#tourMenu .foot{font-size:11px;color:#9aa5bd;margin:4px 2px 2px}'+'#tourMenuX{position:absolute;top:10px;right:10px;border:1px solid #3a4560;background:#1a2133;color:#e8ecf3;border-radius:8px;width:30px;height:30px;cursor:pointer}'+'#tourSpot{position:fixed;z-index:'+Z+';border:2px solid #f4c542;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,10,16,.62),0 0 22px rgba(244,197,66,.55);pointer-events:none;transition:top .35s,left .35s,width .35s,height .35s}'+
     '#tourBack{position:fixed;inset:0;z-index:'+(Z-1)+';background:transparent;cursor:pointer}'+
     '#tourBox{position:fixed;z-index:'+(Z+1)+';max-width:min(420px,calc(100vw - 24px));background:#0f1420;color:#e8ecf3;border:1px solid #3a4560;border-radius:12px;padding:12px 14px 10px;box-shadow:0 12px 40px rgba(0,0,0,.55);font-family:var(--sans,system-ui,sans-serif);font-size:14px;line-height:1.5}'+
     '#tourBox h4{margin:0 0 5px;font-size:15px;color:#f4c542}'+
@@ -20313,8 +20331,8 @@ async function simpleQuietClimbers(){
     if(i>=S.stops.length){ end(); return; }
     // skip stops whose element is not on screen (never fake a location)
     var dir=(i>=S.i)?1:-1, stop, el;
-    while(i>=0&&i<S.stops.length){ stop=S.stops[i]; el=_resolve(stop); if(!stop.sel||el)break; i+=dir; }
-    if(i<0){ i=0; stop=S.stops[0]; el=_resolve(stop); }
+    while(i>=0&&i<S.stops.length){ stop=S.stops[i]; _do(stop); el=_resolve(stop); if(!stop.sel||el)break; i+=dir; }
+    if(i<0){ i=0; stop=S.stops[0]; _do(stop); el=_resolve(stop); }
     if(i>=S.stops.length){ end(); return; }
     S.i=i; S.el=el;
     document.getElementById('tourTitle').textContent=stop.title;
@@ -20332,12 +20350,14 @@ async function simpleQuietClimbers(){
     ['tourBack','tourSpot','tourBox'].forEach(function(id){ var n=document.getElementById(id); if(n&&n.parentNode)n.parentNode.removeChild(n); });
     window.removeEventListener('resize',S.onR); window.removeEventListener('scroll',S.onR,true); document.removeEventListener('keydown',S.onK);
     try{ localStorage.setItem(_seenKey(S.name),'1'); }catch(e){}
+    if(S.opened){ try{ if(typeof closeModal==='function'){ for(var q=0;q<3;q++){ var mm=document.getElementById('appModal'); if(!mm||mm.style.display==='none')break; closeModal(); } } }catch(e){} }
+    try{ window._pfView=S.pfView0; }catch(e){}
     window._tourActive=false;
     S=null;
   }
   function start(name){
     if(S)end();
-    var stops=(name==='full')?fullStops():MAIN.slice();
+    var stops=(name==='full')?fullStops():(CHAPTERS[name]?CHAPTERS[name].stops.slice():MAIN.slice());
     if(!stops.length)return false;
     // v895 — clear the deck. The first run on a phone spoke about the radar
     // while the daily briefing sat over the whole screen: a report modal (or a
@@ -20346,7 +20366,7 @@ async function simpleQuietClimbers(){
     try{ if(typeof closeModal==='function'){ for(var k=0;k<3;k++){ var m=document.getElementById('appModal'); if(!m||m.style.display==='none'||!m.offsetHeight)break; closeModal(); } } }catch(e){}
     try{ if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }catch(e){}
     window._tourActive=true;
-    S={name:name||'main', stops:stops, i:0, el:null, paused:false, t:null};
+    S={name:name||'main', stops:stops, i:0, el:null, paused:false, t:null, opened:false, pfView0:window._pfView};
     S.onR=function(){ if(S)_place(S.el); };
     S.onK=function(e){ if(!S)return; if(e.key==='Escape')end(); else if(e.key==='ArrowRight')go(S.i+1); else if(e.key==='ArrowLeft')go(S.i-1); else if(e.key===' '){ e.preventDefault(); S.paused?resume():pause(); } };
     _build();
@@ -20355,12 +20375,29 @@ async function simpleQuietClimbers(){
     go(0);
     return true;
   }
+  function _closeMenu(){ ['tourMenuBack','tourMenu'].forEach(function(id){ var n=document.getElementById(id); if(n&&n.parentNode)n.parentNode.removeChild(n); }); }
+  function _seen(name){ try{ return localStorage.getItem(_seenKey(name))==='1'; }catch(e){ return false; } }
   function menu(){
     if(S){ end(); return; }
-    var full=fullStops().length;
-    var pick=window.confirm('Take the quick tour of the screen (about two minutes)?\n\nOK = quick tour.  Cancel = the full tour: every control explained ('+Math.max(0,full-2)+' stops).');
-    start(pick?'main':'full');
+    if(document.getElementById('tourMenu')){ _closeMenu(); return; }
+    _css();
+    var items=[['main','\ud83c\udfac Quick tour','The layout of this screen \u2014 about two minutes'],
+               ['full','\ud83e\udded Full tour','Every control on this screen, explained one by one']];
+    for(var k in CHAPTERS){ if(Object.prototype.hasOwnProperty.call(CHAPTERS,k))items.push([k,CHAPTERS[k].title,CHAPTERS[k].desc]); }
+    var back=document.createElement('div'); back.id='tourMenuBack'; back.onclick=_closeMenu;
+    var box=document.createElement('div'); box.id='tourMenu';
+    var h='<h4>\ud83c\udfac Take a tour</h4><div id="tourMenuList">';
+    for(var i=0;i<items.length;i++){ h+='<button data-tour="'+items[i][0]+'"><b>'+items[i][1]+(_seen(items[i][0])?' <span class="ok">\u2713</span>':'')+'</b><span>'+items[i][2]+'</span></button>'; }
+    h+='</div><div class="foot">The tour only looks and points \u2014 it never changes your data. Esc or \u2715 stops it any time.</div><button id="tourMenuX" title="Close">\u2715</button>';
+    box.innerHTML=h;
+    document.body.appendChild(back); document.body.appendChild(box);
+    box.querySelector('#tourMenuX').onclick=_closeMenu;
+    var bs=box.querySelectorAll('[data-tour]');
+    for(var j=0;j<bs.length;j++){ bs[j].onclick=function(){ var n=this.getAttribute('data-tour'); _closeMenu(); if(!start(n))start('main'); /* a menu button never does nothing */ }; }
+    var onK=function(e){ if(e.key==='Escape'){ _closeMenu(); document.removeEventListener('keydown',onK); } };
+    document.addEventListener('keydown',onK);
   }
+
   window._tourStart=start; window._tourEnd=end; window._tourMenu=menu;
   window._tourStops=function(name){ return (name==='full')?fullStops():MAIN.slice(); };
 })();
