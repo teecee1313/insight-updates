@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-899-simple';
+const APP_VERSION='2026.09.22-900-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20272,7 +20272,7 @@ async function simpleQuietClimbers(){
     '#tourMenuBack{position:fixed;inset:0;z-index:'+(Z-1)+';background:rgba(8,10,16,.55)}'+'#tourMenu{position:fixed;z-index:'+(Z+1)+';left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 24px));max-height:calc(100vh - 40px);overflow:auto;background:#0f1420;color:#e8ecf3;border:1px solid #3a4560;border-radius:14px;padding:14px 14px 10px;box-shadow:0 12px 40px rgba(0,0,0,.55);font-family:var(--sans,system-ui,sans-serif)}'+'#tourMenu h4{margin:0 0 10px;font-size:16px;color:#f4c542}'+'#tourMenu [data-tour]{display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border-radius:10px;border:1px solid #3a4560;background:#1a2133;color:#e8ecf3;cursor:pointer;font-family:inherit}'+'#tourMenu [data-tour] b{display:block;font-size:14px}'+'#tourMenu [data-tour] span{display:block;font-size:12px;color:#9aa5bd;margin-top:2px}'+'#tourMenu [data-tour] .ok{display:inline;color:#4ade80;font-size:13px;margin:0}'+'#tourMenu .foot{font-size:11px;color:#9aa5bd;margin:4px 2px 2px}'+'#tourMenuX{position:absolute;top:10px;right:10px;border:1px solid #3a4560;background:#1a2133;color:#e8ecf3;border-radius:8px;width:30px;height:30px;cursor:pointer}'+'#tourSpot{position:fixed;z-index:'+Z+';border:2px solid #f4c542;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,10,16,.62),0 0 22px rgba(244,197,66,.55);pointer-events:none;transition:top .35s,left .35s,width .35s,height .35s}'+
     '#tourBack{position:fixed;inset:0;z-index:'+(Z-1)+';background:transparent;cursor:pointer}'+
     '#tourBox{position:fixed;z-index:'+(Z+1)+';max-width:min(420px,calc(100vw - 24px));background:#0f1420;color:#e8ecf3;border:1px solid #3a4560;border-radius:12px;padding:12px 14px 10px;box-shadow:0 12px 40px rgba(0,0,0,.55);font-family:var(--sans,system-ui,sans-serif);font-size:14px;line-height:1.5}'+
-    '#tourBox h4{margin:0 0 5px;font-size:15px;color:#f4c542}'+
+    '#tourBox h4{margin:0 0 5px;font-size:15px;color:#f4c542;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}'+'#tourGrip{display:flex;justify-content:center;padding:2px 0 8px;margin:-4px 0 0;cursor:grab;touch-action:none}'+'#tourGrip i{display:block;width:44px;height:5px;border-radius:3px;background:#3a4560}'+'#tourBox.moved{left:var(--tx)!important;top:var(--ty)!important;right:auto!important;bottom:auto!important}'+'@media (max-width:640px){#tourBox.moved{left:8px!important;right:8px!important;width:auto}}'+
     '#tourBox p{margin:0 0 9px}'+
     '#tourBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}'+
     '#tourBar button{padding:5px 10px;border-radius:7px;border:1px solid #3a4560;background:#1a2133;color:#e8ecf3;font-size:12px;font-weight:600;cursor:pointer}'+
@@ -20289,7 +20289,7 @@ async function simpleQuietClimbers(){
     back.onclick=function(){ S&&(S.paused?resume():pause()); };
     var spot=document.createElement('div'); spot.id='tourSpot';
     var box=document.createElement('div'); box.id='tourBox';
-    box.innerHTML='<h4 id="tourTitle"></h4><p id="tourText"></p><div id="tourProg"><i></i></div>'+
+    box.innerHTML='<div id="tourGrip" title="Drag to move \u00b7 double-tap to put it back"><i></i></div><h4 id="tourTitle"></h4><p id="tourText"></p><div id="tourProg"><i></i></div>'+
       '<div id="tourBar"><button id="tourPrev" title="Back">\u25c0</button><button id="tourPause" class="go" title="Pause / resume">\u23f8 Pause</button><button id="tourNext" title="Next">\u25b6</button>'+
       '<button id="tourMute" title="Voice on / off"></button><button id="tourExit" title="End the tour">\u2715</button><span class="n" id="tourN"></span></div>';
     document.body.appendChild(back); document.body.appendChild(spot); document.body.appendChild(box);
@@ -20299,22 +20299,51 @@ async function simpleQuietClimbers(){
     box.querySelector('#tourExit').onclick=end;
     box.querySelector('#tourMute').onclick=function(){ _setMuted(!_muted()); _muteLabel(); _hush(); if(!S.paused){ clearTimeout(S.t); _arm(S.stops[S.i]); } };
     _muteLabel();
+    // v900 — the bubble can be moved. Drag it by the handle or the title; it
+    // stays where you put it for the rest of this tour (the spotlight still
+    // follows each stop). Double-tap the handle to hand placement back.
+    var grip=box.querySelector('#tourGrip'), ttl=box.querySelector('#tourTitle');
+    var drag=null;
+    var down=function(e){
+      if(e.button!=null&&e.button!==0)return;
+      var r=box.getBoundingClientRect();
+      drag={dx:e.clientX-r.left, dy:e.clientY-r.top, id:e.pointerId};
+      try{ if(e.pointerId!=null&&this.setPointerCapture)this.setPointerCapture(e.pointerId); }catch(_){}
+      e.preventDefault();
+    };
+    var move=function(e){
+      if(!drag||!S)return;
+      var vw=window.innerWidth, vh=window.innerHeight, bh=box.offsetHeight||140, bw=box.offsetWidth||320;
+      var x=Math.min(Math.max(8, e.clientX-drag.dx), Math.max(8, vw-bw-8));
+      var y=Math.min(Math.max(8, e.clientY-drag.dy), Math.max(8, vh-bh-8));
+      S.pos={x:x,y:y}; _applyPos();
+      e.preventDefault();
+    };
+    var up=function(){ drag=null; };
+    [grip,ttl].forEach(function(h){ h.addEventListener('pointerdown',down); h.addEventListener('pointermove',move); h.addEventListener('pointerup',up); h.addEventListener('pointercancel',up); });
+    grip.addEventListener('dblclick',function(){ if(!S)return; S.pos=null; box.classList.remove('moved'); _place(S.el); });
+  }
+  function _applyPos(){
+    var box=document.getElementById('tourBox'); if(!box||!S||!S.pos)return;
+    box.classList.add('moved');
+    box.style.setProperty('--tx', S.pos.x+'px'); box.style.setProperty('--ty', S.pos.y+'px');
   }
   function _muteLabel(){ var b=document.getElementById('tourMute'); if(!b)return; if(!_canSpeak()){ b.textContent='\ud83d\udd07 no voice'; b.disabled=true; return; } b.textContent=_muted()?'\ud83d\udd07 Voice off':'\ud83d\udd0a Voice on'; }
 
   // ── placing the spotlight and the bubble ─────────────────────────────────
   function _place(el){
     var spot=document.getElementById('tourSpot'), box=document.getElementById('tourBox'); if(!spot||!box)return;
+    var _keep=!!(S&&S.pos);   // v900: you moved it — only the spotlight moves now
     var pad=6, vw=window.innerWidth, vh=window.innerHeight;
     if(el){ var r=el.getBoundingClientRect();
       spot.style.display='block'; spot.style.top=(r.top-pad)+'px'; spot.style.left=(r.left-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';
-      if(vw>640){ var bh=box.offsetHeight||140, bw=Math.min(420,vw-24);
+      if(vw>640&&!_keep){ var bh=box.offsetHeight||140, bw=Math.min(420,vw-24);
         var below=r.bottom+pad+10, above=r.top-pad-10-bh;
         var top=(below+bh<vh-8)?below:(above>8?above:Math.max(8,vh-bh-8));
         var left=Math.min(Math.max(12, r.left), vw-bw-12);
         box.style.top=top+'px'; box.style.left=left+'px'; box.style.bottom='auto'; }
     } else { spot.style.display='none';
-      if(vw>640){ var bh2=box.offsetHeight||140, bw2=Math.min(420,vw-24); box.style.top=Math.max(8,(vh-bh2)/2)+'px'; box.style.left=Math.max(12,(vw-bw2)/2)+'px'; box.style.bottom='auto'; }
+      if(vw>640&&!_keep){ var bh2=box.offsetHeight||140, bw2=Math.min(420,vw-24); box.style.top=Math.max(8,(vh-bh2)/2)+'px'; box.style.left=Math.max(12,(vw-bw2)/2)+'px'; box.style.bottom='auto'; }
     }
   }
 
@@ -20340,7 +20369,7 @@ async function simpleQuietClimbers(){
     document.getElementById('tourN').textContent=(i+1)+' / '+S.stops.length;
     document.querySelector('#tourProg i').style.width=Math.round(100*(i+1)/S.stops.length)+'%';
     if(el){ try{ el.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'}); }catch(e){ try{ el.scrollIntoView(); }catch(_){} } }
-    setTimeout(function(){ if(S)_place(S.el); }, el?420:0);
+    setTimeout(function(){ if(S){ _place(S.el); _applyPos(); } }, el?420:0);
     if(!S.paused)_arm(stop);
   }
   function pause(){ if(!S)return; S.paused=true; clearTimeout(S.t); _hush(); var b=document.getElementById('tourPause'); if(b)b.textContent='\u25b6 Resume'; }

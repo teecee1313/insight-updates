@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-899",
+  "version": "2026.09.22-900",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: the Portfolio chapter. The tour opens your portfolio, walks every part of it - accounts, holdings, orders, history, performance, weekly, backups - and closes it again. It only looks: it never changes anything in your account."
+  "notes": "The tour's explanation bubble can now be moved: drag it by the bar at its top (or its title) to wherever it isn't in the way. It stays put for the rest of that tour; double-tap the bar to put it back."
 }
