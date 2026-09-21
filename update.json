@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.19-890",
+  "version": "2026.09.22-894",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fixes the card-to-email link: the app's nightly-email snapshot was checking each share's freshness stamp in the wrong format, so it never actually sent. Now it sends after every scan, and your email's PN Edge section quotes your card exactly."
+  "notes": "New: a Tour button in the header. The app drives itself, spotlighting each part of the screen and explaining it, out loud if you like - a quick tour of the layout, or the full tour of every control. Also since 890: the Strongest Today card now says which day its evidence was graded and whether it reached the server, and the cost check for practice buys is 1.5x brokerage instead of 2x."
 }
