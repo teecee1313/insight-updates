@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-902-open';
+const APP_VERSION='2026.09.22-903-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20528,5 +20528,46 @@ async function simpleQuietClimbers(){
     {do:A, sel:'button[onclick="runAutoPilotNow()"]', up:'div', title:'Run now and scoreboard', text:'Run the robot now instead of waiting for the next data day, or open its scoreboard of closed trades.'},
     {do:A, sel:'#apLogBox', title:'The robot\u2019s diary', text:'Every decision it makes, including every day it chose not to buy, is written down here.'},
     {do:A, title:'That\u2019s your rules', text:'Next: the reports, and how to read each one.'}
+  ]);
+})();
+
+// ═══ v903 — TOUR CHAPTER: 📊 Reports — the daily screens ═════════════════════
+// The Simple screen's reports. Strongest Today, Tonight's picks and Quiet
+// climbers are opened (all read-only on open; picks and climbers wait for the
+// server). PN Edge is explained from its card and NOT run: running it resets
+// the main list's filters. Never presses Practice buy.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var H=['home'], ST=['strongest'], PK=['picks','mine'], QC=['climbers'];
+  var card=function(fn){ return '#liteCards [onclick="'+fn+'"], #starterCards [onclick="'+fn+'"]'; };
+  window._tourChapter('reports1','\ud83d\udcca Reports \u2014 the daily screens','Strongest Today, tonight\u2019s picks, PN Edge and quiet climbers, and how to read them',[
+    {do:H, title:'The daily reports', text:'Each card on the Simple screen opens a report. This chapter opens the main ones and shows you how to read them.'},
+    // Strongest Today
+    {do:H, sel:card('strongestTodayReport()'), title:'Strongest Today', text:'The day\u2019s strongest shares, in one ranked list.'},
+    {do:ST, sel:'#stIntro', title:'How it\u2019s ranked', text:'Proven evidence first, then the measured PN Edge, then the score. This line also says which day the evidence was graded, and whether your card reached the server.'},
+    {do:ST, sel:'#stTbl thead', title:'The columns', text:'Price and the day\u2019s move, the score out of ten, the evidence tier, any news in the last five days, and the PN Edge.'},
+    {do:ST, sel:'#stTbl thead th:nth-child(6)', title:'Evidence', text:'SOLID means luck is practically ruled out; PROMISING means it looks real, on thinner evidence. Only signals with a positive measured edge earn a tier.'},
+    {do:ST, sel:'#stTbl thead th:nth-child(7)', title:'News', text:'Whether the company has made a price-sensitive announcement in the last five days. Quiet means none.'},
+    {do:ST, sel:'#stTbl thead th:nth-child(8)', title:'PN Edge', text:'How much more a hundred dollars placed on this signal has historically made than the market over the holding period. An average from history, not a promise for this trade.'},
+    {do:ST, sel:'#stTbl tbody tr', title:'A share', text:'Tap any share for its full story. This is a ranking of today\u2019s evidence, not a buy list.'},
+    // Tonight's picks
+    {do:H, sel:card('showDailyPicks()'), title:'Tonight\u2019s picks', text:'What the tested rules would buy tonight, worked out on the server after the close.'},
+    {do:PK, wait:8000, sel:'#dpRule', title:'The rules being used', text:'Each list follows a set of rules, spelled out at the top.'},
+    {do:PK, wait:8000, sel:'#dpFresh', title:'Is it today\u2019s?', text:'Tells you whether these picks come from the latest market day, or whether the server hasn\u2019t run yet.'},
+    {do:PK, wait:8000, sel:'#dpTabs', title:'Three lists', text:'Picks under your own rules, under the trailing-stop rules, and under the fixed target-and-stop rules. Switch between them here.'},
+    {do:PK, sel:'.dp-card', title:'A pick', text:'The share, the signal that fired, its score and tier, and when it was picked. Older picks fade the longer they wait.'},
+    {do:PK, sel:'.dp-why', title:'Why it was picked', text:'One plain sentence: what fired, and what its tier means.'},
+    {do:PK, sel:'.dp-cost', title:'Is it worth the costs?', text:'What this trade costs in brokerage at this size, set against the average gain the signal has made. A pick only passes if the gain is at least one and a half times the cost.'},
+    {do:PK, sel:'button[onclick^="_picksBuy"]', title:'Practice buy', text:'Places this pick as a practice buy in your own account, at the pick\u2019s price. Practice money only.'},
+    {do:PK, title:'When nothing qualifies', text:'Some days a list is empty. That is the rules working: nothing cleared the bar, so nothing is bought.'},
+    // PN Edge (explained from its card)
+    {do:H, sel:card("simpleRun('smart')"), title:'PN Edge', text:'Only shares firing a SOLID or PROMISING signal with a positive measured edge \u2014 the same PN Edge figures you saw in Strongest Today. Tap it to see just those shares.'},
+    // Quiet climbers
+    {do:H, sel:card('simpleQuietClimbers()'), title:'Quiet climbers', text:'Shares climbing steadily on heavy volume, with no announcement to explain it.'},
+    {do:QC, wait:8000, sel:'#appModal table tr', title:'Reading it', text:'How many days it has run up, its volume against its own average, and its gain over the run.'},
+    {do:QC, wait:8000, sel:'#appModal table tr + tr', title:'A pattern, not a claim', text:'An estimate built from price and volume alone. It says nothing about who is buying, or why.'},
+    // Portfolio
+    {do:H, sel:card("simpleRun('portfolio')"), title:'My portfolio', text:'Your practice trades and results. Take the Portfolio chapter for the full tour of it.'},
+    {do:H, title:'That\u2019s the daily reports', text:'Next: the scans in Advanced mode.'}
   ]);
 })();

@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-902",
+  "version": "2026.09.22-903",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Fix: Tonight's picks said a pick was 'worth the costs' when its gain was 'more than twice' the cost - but the test has been 1.5x since your cost-buffer change. It now states the real setting. Behind the scenes, the tour can now open reports that load from the server."
+  "notes": "New in the Tour menu: Reports - the daily screens. The tour opens Strongest Today, Tonight's picks and Quiet climbers and shows you how to read each one. It only looks: it never presses Practice buy and never changes your list."
 }
