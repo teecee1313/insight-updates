@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-894-simple';
+const APP_VERSION='2026.09.22-895-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -19393,7 +19393,10 @@ function showMyChanges(auto){
   }
   const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🔔 What's changed for YOU</div>
     <div style="font-size:9.5px;color:var(--dim);margin:3px 0 10px;">Your holdings & watchlists checked against ${d.dataDate?`the data of <b style="color:var(--muted)">${d.dataDate}</b>`:'the latest data'} · ${d.holdN} holding${d.holdN===1?'':'s'} · ${watchTotal} watched.</div>`;
-  showModal(head+body,"🔔 What's changed for me");
+  // v895 — a switch to stop this opening by itself. It still opens on the 🔔 button.
+  let _autoOff=false; try{ _autoOff=localStorage.getItem('asxScreener.myChangesAuto.v1')==='0'; }catch(e){}
+  const _sw=`<div style="margin:0 0 8px;"><button onclick="_myChangesAutoToggle(this)" style="padding:4px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-size:10px;font-family:var(--sans);cursor:pointer;">${_autoOff?'🔔 Open this automatically each day: OFF — tap to turn on':'🔕 Open this automatically each day: ON — tap to turn off'}</button></div>`;
+  showModal(head+_sw+body,"🔔 What's changed for me");
   try{ if(d.dataDate)localStorage.setItem('asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
   return true;
 }
@@ -19402,6 +19405,11 @@ function _openListFromBriefing(nm){
   try{ if(watchlists&&watchlists[nm]){ switchWatch(nm); if(typeof watchViewOn!=='undefined'&&!watchViewOn)toggleWatchView(); } }catch(e){}
 }
 // Auto-open once per fresh data date — never over an open panel, never on a quiet day.
+function _myChangesAutoToggle(btn){
+  let off=false; try{ off=localStorage.getItem('asxScreener.myChangesAuto.v1')==='0'; }catch(e){}
+  off=!off; try{ localStorage.setItem('asxScreener.myChangesAuto.v1',off?'0':'1'); }catch(e){}
+  if(btn)btn.textContent=off?'🔔 Open this automatically each day: OFF — tap to turn on':'🔕 Open this automatically each day: ON — tap to turn off';
+}
 (function _myChangesAuto(){
   setInterval(function(){
     try{
@@ -19410,6 +19418,8 @@ function _openListFromBriefing(nm){
       if(!dd)return;
       let seenD=null; try{ seenD=localStorage.getItem('asxScreener.myChangesSeen.v1'); }catch(e){}
       if(seenD===dd)return;
+      if(window._tourActive)return;                    // v895: never pop over a running tour
+      try{ if(localStorage.getItem('asxScreener.myChangesAuto.v1')==='0')return; }catch(e){}   // v895: user switched auto-open off
       if(window._myChangesAutoShown===dd)return;      // v288: auto-open at most once per data day, per session
       const m=document.getElementById('appModal');
       if(m&&m.style.display!=='none'&&m.offsetHeight>0)return;
@@ -20191,7 +20201,7 @@ async function simpleQuietClimbers(){
     return out;
   }
 
-  function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var r=el.getBoundingClientRect(); return r.width>0&&r.height>0; }
+  function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.opacity==='0')return false; var r=el.getBoundingClientRect(); if(!(r.width>0&&r.height>0))return false; if(r.right<0||r.bottom<0||r.left>document.documentElement.scrollWidth||r.top>document.documentElement.scrollHeight)return false; return true; }
   function _resolve(stop){ if(!stop.sel)return null; var el=null; try{ el=document.querySelector(stop.sel); }catch(e){} if(!el)return null; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } return _visible(el)?el:null; }
 
   // ── voice ────────────────────────────────────────────────────────────────
@@ -20298,12 +20308,20 @@ async function simpleQuietClimbers(){
     ['tourBack','tourSpot','tourBox'].forEach(function(id){ var n=document.getElementById(id); if(n&&n.parentNode)n.parentNode.removeChild(n); });
     window.removeEventListener('resize',S.onR); window.removeEventListener('scroll',S.onR,true); document.removeEventListener('keydown',S.onK);
     try{ localStorage.setItem(_seenKey(S.name),'1'); }catch(e){}
+    window._tourActive=false;
     S=null;
   }
   function start(name){
     if(S)end();
     var stops=(name==='full')?fullStops():MAIN.slice();
     if(!stops.length)return false;
+    // v895 — clear the deck. The first run on a phone spoke about the radar
+    // while the daily briefing sat over the whole screen: a report modal (or a
+    // full-screen one) hides everything the tour points at. Close any open
+    // modal, leave full-screen, and hold the auto-briefing back while running.
+    try{ if(typeof closeModal==='function'){ for(var k=0;k<3;k++){ var m=document.getElementById('appModal'); if(!m||m.style.display==='none'||!m.offsetHeight)break; closeModal(); } } }catch(e){}
+    try{ if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }catch(e){}
+    window._tourActive=true;
     S={name:name||'main', stops:stops, i:0, el:null, paused:false, t:null};
     S.onR=function(){ if(S)_place(S.el); };
     S.onK=function(e){ if(!S)return; if(e.key==='Escape')end(); else if(e.key==='ArrowRight')go(S.i+1); else if(e.key==='ArrowLeft')go(S.i-1); else if(e.key===' '){ e.preventDefault(); S.paused?resume():pause(); } };

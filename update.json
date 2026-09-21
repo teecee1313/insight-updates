@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-894",
+  "version": "2026.09.22-895",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New: a Tour button in the header. The app drives itself, spotlighting each part of the screen and explaining it, out loud if you like - a quick tour of the layout, or the full tour of every control. Also since 890: the Strongest Today card now says which day its evidence was graded and whether it reached the server, and the cost check for practice buys is 1.5x brokerage instead of 2x."
+  "notes": "Tour fix: the guided tour now closes any open report (like the daily 'What's changed for me' briefing) before it starts, so it never talks about things hidden under a panel. The daily briefing also gains a switch to stop it opening by itself."
 }
