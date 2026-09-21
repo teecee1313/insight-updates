@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-905-simple';
+const APP_VERSION='2026.09.22-906-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20286,7 +20286,7 @@ async function simpleQuietClimbers(){
   function _closeAll(){ try{ if(typeof closeModal==='function'){ for(var q=0;q<3;q++){ if(!_modalUp())break; closeModal(); } } }catch(e){} }
   function _rep(key, open){ if(!S)return; if(S.rep===key&&_modalUp())return; try{ open(); S.rep=key; S.opened=true; }catch(e){} }
   function _do(stop){ if(!stop||!stop.do)return; var fn=ACTIONS[stop.do[0]]; if(!fn)return; try{ fn(stop.do[1]); }catch(e){} }
-  window._tourChapter=function(name, title, desc, stops){ CHAPTERS[name]={title:title, desc:desc, stops:stops}; };
+  window._tourChapter=function(name, title, desc, stops, need){ CHAPTERS[name]={title:title, desc:desc, stops:stops, need:need||''}; };
 
   function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.opacity==='0')return false; var r=el.getBoundingClientRect(); if(!(r.width>0&&r.height>0))return false; return true; }  // v897: no page-bounds test - scroll sizes are unreliable across browsers and it skipped real stops
   function _resolve(stop){ if(!stop.sel)return null; var list=[]; try{ list=document.querySelectorAll(stop.sel); }catch(e){ return null; } for(var i=0;i<list.length;i++){ var el=list[i]; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } if(_visible(el))return el; } return null; }  // v897: first VISIBLE match - the same card exists in the Simple and Starter groups
@@ -20472,7 +20472,9 @@ async function simpleQuietClimbers(){
     _css();
     var items=[['main','\ud83c\udfac Quick tour','The layout of this screen \u2014 about two minutes'],
                ['full','\ud83e\udded Full tour','Every control on this screen, explained one by one']];
-    for(var k in CHAPTERS){ if(Object.prototype.hasOwnProperty.call(CHAPTERS,k))items.push([k,CHAPTERS[k].title,CHAPTERS[k].desc]); }
+    for(var k in CHAPTERS){ if(!Object.prototype.hasOwnProperty.call(CHAPTERS,k))continue;
+      if(CHAPTERS[k].need&&!_resolve({sel:CHAPTERS[k].need}))continue;   // v906: nothing it covers can be reached on this screen
+      items.push([k,CHAPTERS[k].title,CHAPTERS[k].desc]); }
     var back=document.createElement('div'); back.id='tourMenuBack'; back.onclick=_closeMenu;
     var box=document.createElement('div'); box.id='tourMenu';
     var h='<h4>\ud83c\udfac Take a tour</h4><div id="tourMenuList">';
@@ -20615,7 +20617,7 @@ async function simpleQuietClimbers(){
   var H=['home'], C=['cards'];
   var b=function(fn){ return '[onclick^="'+fn+'"]'; };
   window._tourChapter('reports2','\ud83d\udcca Reports \u2014 the Advanced scans','Every scan on Advanced mode\u2019s left panel, and the report cards that grade them',[
-    {do:H, unless:'#bestEvBtn', title:'Most of these live in Advanced mode', text:'Most of the scans in this chapter are on Advanced mode\u2019s left panel. Switch to Advanced with the button at the top of the screen, then run this chapter again to see them all.'},
+    {do:H, unless:'#bestEvBtn', onlyIf:'#modeSeg', title:'Most of these live in Advanced mode', text:'Most of the scans in this chapter are on Advanced mode\u2019s left panel. Switch to Advanced with the button at the top of the screen, then run this chapter again to see them all.'},
     {do:H, title:'The Advanced scans', text:'Each one searches the whole market in its own way and fills your table with what it finds. Here is what each one looks for.'},
     {do:H, sel:'#scanGradedNote', title:'Graded, or not', text:'Only two are built on graded evidence: Best Evidence Today and Climbers Today. The rest are searches, not verdicts \u2014 useful for looking, never a reason to buy on their own.'},
     {do:H, sel:'#bestEvBtn', title:'Best Evidence Today', text:'Of everything that fired today, only shares whose signal holds a SOLID or PROMISING tier with a positive, market-beating edge, ranked by the strength of each share\u2019s best signal. The flagship report.'},
@@ -20640,5 +20642,60 @@ async function simpleQuietClimbers(){
     {do:C, sel:'[onclick="allScansCard()"]', title:'All scans report card', text:'Grades every scan at once, re-testing each rule as it stood on each stored day, and ranks the scans by edge. The one screen that shows which scans are actually working right now.'},
     {do:['refine'], onlyIf:'#streakBtn', sel:'#myReportBtn', title:'My Report', text:'Save the filters you use most, then bring them back with one tap \u2014 or have them applied automatically each time your data loads.'},
     {do:['main'], title:'That\u2019s the reports', text:'Next: settings and your data.'}
+  ], '#bestEvBtn, #modeSeg');
+})();
+
+// ═══ v905 — TOUR CHAPTER: ⚙ Settings & data ═════════════════════════════════
+// Grouped by where each control really lives (checked against the app's own
+// stylesheet): the account menu (every mode), then — in Advanced mode only —
+// the main-screen data buttons, the floating Setup & data panel, and the
+// floating Refine panel. Panels are shown DISPLAY ONLY (openOverlay('refine')
+// would re-apply filters) and closed again; nothing is ever pressed.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var H=['main'], AC=['acct'], SU=['setup'], AV=['adv'], RF=['refine'], ADV='#streakBtn';
+  var T=function(t){ return ['ftab',t]; };
+  window._tourChapter('settings','\u2699 Settings & data','Your account, where the data comes from, the settings and the filters',[
+    {do:H, title:'Settings and your data', text:'Where your data comes from, how to keep it fresh, and the settings that shape what you see.'},
+    // ── account menu (every mode) ──
+    {do:H, sel:'#acctBtn', title:'Your account', text:'Your account menu: the app\u2019s password, language, updates and log out.'},
+    {do:AC, sel:'#acctMenu [onclick*="toggleHelpPanel"]', title:'Help guide', text:'The written guide to the app, if you want to read rather than watch.'},
+    {do:AC, sel:'#acctMenu [onclick="changeAppPassword()"]', title:'Change password', text:'Changes the password the app asks for.'},
+    {do:AC, sel:'#langSel', title:'Language', text:'Switches the app\u2019s language. Menus and labels translate; your data stays the same.'},
+    {do:AC, sel:'#acctMenu [onclick="checkForUpdateNow()"]', title:'Check for updates', text:'Shows the version you\u2019re on and fetches a newer one if there is one. The app also updates itself when you open it.'},
+    {do:AC, sel:'#acctMenu [onclick="logout()"]', title:'Log out', text:'Locks the app again. Your data stays saved on this device.'},
+    {do:H, sel:'#modeSeg', title:'Three ways to see it', text:'Simple, Starter and Advanced show the same data at different depths. Switching never changes your data.'},
+    {do:H, sel:'#sidebarToggle', title:'More room', text:'Hides the side panel so the rest of the screen gets the room. Tap again to bring it back.'},
+    {do:H, unless:ADV, onlyIf:'#modeSeg', title:'The rest lives in Advanced mode', text:'The data buttons, settings and filters are in Advanced mode. Switch to Advanced, then run this chapter again to see them.'},
+    // ── main screen, Advanced ──
+    {do:H, onlyIf:ADV, sel:'#loadStatus', title:'What it\u2019s doing', text:'Shows what the app is doing: loading, preparing signals, or ready.'},
+    {do:H, onlyIf:ADV, sel:'#streakBtn', title:'Refresh', text:'Re-fetches fresh history and recomputes the signals for the shares on screen.'},
+    {do:H, onlyIf:ADV, sel:'#fillSrvBtn', title:'Fill from your server', text:'Builds your saved price history straight from your server, one request per trading day. Use it on a new device, after clearing data, or whenever loading crawls.'},
+    {do:H, onlyIf:ADV, sel:'#resetBtn', title:'Clear all filters', text:'Back to the full list in one tap. It clears filters only; it never touches your data.'},
+    {do:H, onlyIf:ADV, sel:'#searchBox', title:'Search', text:'Type a share code or company name to jump straight to it.'},
+    {do:H, onlyIf:ADV, sel:'#sortSel', title:'Sort', text:'Reorders the table by any column.'},
+    {do:H, onlyIf:ADV, sel:'#newsFilterBtn', title:'News filter', text:'Shows only shares likely to have had news in the last five days.'},
+    // ── the Setup & data panel, Advanced ──
+    {do:H, onlyIf:ADV, sel:'[onclick="openOverlay(\'setup\')"]', title:'Setup and data', text:'Opens a panel with the market, the loading and download buttons, and the advanced settings.'},
+    {do:SU, onlyIf:ADV, sel:'#exchSel', title:'The market', text:'The ASX \u2014 the market every number in the app was measured on.'},
+    {do:SU, onlyIf:ADV, sel:'#loadBtn', title:'Load', text:'Fetches the latest end-of-day prices and volumes for every share, straight from your server. The first thing to press.'},
+    {do:SU, onlyIf:ADV, sel:'#bulkBtn', title:'Download everything', text:'Downloads deep history for every share and keeps it on this device. Slow once; after that the app works offline and loads almost instantly.'},
+    {do:SU, onlyIf:ADV, sel:'#apiKey', title:'Data connection', text:'The app gets its market data from your server automatically. There is no key to enter.'},
+    {do:AV, onlyIf:ADV, sel:'#advSettingsWrap > summary', title:'Advanced settings', text:'The settings most people never need to touch.'},
+    {do:AV, onlyIf:ADV, sel:'#volWinSel', up:'label', title:'Volume window', text:'What today\u2019s volume is compared against, such as the three-month average. A longer window gives a steadier idea of normal.'},
+    {do:AV, onlyIf:ADV, sel:'#autoLoadChk', up:'label', title:'Load on open', text:'Loads the market automatically every time the app opens.'},
+    {do:AV, onlyIf:ADV, sel:'#autoTechChk', up:'label', title:'Technicals at startup', text:'Works out moving averages, RSI and the 52-week range for the top shares and your watchlist when the app opens.'},
+    {do:AV, onlyIf:ADV, sel:'#prepAllChk', up:'label', title:'Prepare every signal at startup', text:'Works out streaks, accumulation, score and technicals when the app opens, so those columns fill in without running a scan.'},
+    {do:AV, onlyIf:ADV, sel:'#prepDepth', up:'label', title:'How many shares', text:'How many shares, ranked by volume, get full signals prepared at startup. Top 250 is the balanced default; all of them is complete but slow.'},
+    // ── the Refine panel, Advanced ──
+    {do:H, onlyIf:ADV, sel:'[onclick="openOverlay(\'refine\')"]', title:'Refine filters', text:'Opens the filters. They are optional: the reports work without them.'},
+    {do:T('price'), onlyIf:ADV, sel:'#tab-price', title:'The filters', text:'Narrow the list by price, volume, type of share and signals. Set what you want, then press Apply.'},
+    {do:T('price'), onlyIf:ADV, sel:'#panel-price', title:'Price', text:'Which way it moved, how far, the share price, and how many days it has risen in a row.'},
+    {do:T('vol'), onlyIf:ADV, sel:'#panel-vol', title:'Volume', text:'Volume against normal, volume and buying streaks, accumulation over ten days, and how it traded.'},
+    {do:T('mkt'), onlyIf:ADV, sel:'#panel-mkt', title:'Type and liquidity', text:'How much money changes hands on a normal day \u2014 set a floor to skip shares too thin to trade at a fair price \u2014 and which kinds of security to include.'},
+    {do:T('sig'), onlyIf:ADV, sel:'#panel-sig', title:'Signals', text:'Watch score, RSI zone, signal flags and how they combine, and recent announcements.'},
+    {do:RF, onlyIf:ADV, sel:'#applyBtn', title:'Apply', text:'Nothing filters until you press Apply.'},
+    {do:RF, onlyIf:ADV, sel:'#routineBtn', title:'Your routine', text:'Runs your saved sequence of scans in order: your usual check, in one tap.'},
+    {do:H, title:'That\u2019s settings', text:'Next: your daily briefing, the nightly email and the lessons.'}
   ]);
 })();

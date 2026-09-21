@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-905",
+  "version": "2026.09.22-906",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fixes: in Advanced mode the quick tour now shows Your routine, and the Advanced scans chapter now covers Technical and My Report - all three were being skipped because they live inside panels. Nothing else changes."
+  "notes": "New in the Tour menu: Settings & data - your account menu, the three modes, where your data comes from, the advanced settings and the filters. The tour only looks: it opens each panel to show you, presses nothing, and puts everything back."
 }
