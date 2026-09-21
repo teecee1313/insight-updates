@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-896",
+  "version": "2026.09.22-897",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Undo is not a feature: every explanation, guide entry and lesson that described undoing a sale is gone. Sold trades stay in your history exactly as they happened."
+  "notes": "The tour now fits whichever mode you're in: Simple walks your Simple cards, Starter its cards, Advanced the radar and table. It covers the header too, and now says what the share code really does (opens its Market Index page) and where the report card lives (the more button)."
 }

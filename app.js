@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-896-open';
+const APP_VERSION='2026.09.22-897-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20170,18 +20170,42 @@ async function simpleQuietClimbers(){
   // natural pace, none runs past ~12 seconds.
   var MAIN=[
     {title:'Welcome to Insight Trading', text:'This is an end-of-day share screener and practice-trading app for the ASX. Everything here is research, not advice, and every dollar is practice money.'},
-    {sel:'#statsBar', title:'Market Radar', text:'Across the top is the Market Radar: counters for gainers, volume events, trends and evidence. Tap any tile and the whole app filters to just those shares.'},
-    {sel:'#sEvEdge', up:'.stat', title:'The PN Edge tile', text:'PN Edge shows only shares carrying a proven, positive edge today. A tier is only awarded when history says the signal beat the market by more than luck could explain.'},
+    {sel:'#modeSeg', title:'Three ways to see it', text:'Simple, Starter and Advanced show the same data at different depths. Simple is six screens and nothing else. Advanced shows every scan and setting.'},
+    // ── the header ──
+    {sel:'#pfBtn', title:'Your practice portfolio', text:'Your practice positions, cash, profit and loss, and trade history. The robot buys here each data day, following your rules exactly. Many days it buys nothing, and that is the rules working.'},
+    {sel:'#wlNavBtn', title:'Watchlist', text:'The shares you have starred. In Starter it opens as a list; in Advanced it filters the table to your stars.'},
+    {sel:'#researchBtn', title:'Research further', text:'Your worklist of shares parked to look into later. Flag a share from its report, or from the What\u2019s changed list, to add it here.'},
+    {sel:'#myChangesBtn', title:'What\u2019s changed for you', text:'Your holdings and watchlist checked against the latest data: sales, new orders, big moves, and positions grown too large. It can open by itself each day, or only when you tap it.'},
+    {sel:'#calcToolsBtn', title:'Trade calculator', text:'Work out your real costs, profit and break-even on any trade, using your own numbers. Pure arithmetic, no predictions.'},
+    {sel:'#lessonsBtn', title:'Lessons', text:'Fifty-four short illustrated lessons on reading the market, the signals and this app. Your progress is remembered on this device.'},
+    {sel:'#trainBtn', title:'Training mode', text:'Turn this on and every button, column and tile explains itself when you hover over or tap it.'},
+    {sel:'#acctBtn', title:'Your account', text:'Password, language, updates and log out.'},
+    // ── the Simple and Starter screens (whichever cards are showing) ──
+    {sel:'#liteCards [onclick="strongestTodayReport()"], #starterCards [onclick="strongestTodayReport()"]', title:'Strongest Today', text:'The day\u2019s strongest shares: proven evidence first, then measured PN Edge, then score. A ranking of today\u2019s evidence, not a buy list.'},
+    {sel:'#liteCards [onclick="showDailyPicks()"], #starterCards [onclick="showDailyPicks()"]', title:'Tonight\u2019s picks', text:'What the tested rules would buy tonight, sized and priced, with the reasons attached. \u201cNothing qualified\u201d is the system working.'},
+    {sel:'#liteCards [onclick="simpleRun(\'smart\')"], #starterCards [onclick="simpleRun(\'smart\')"]', title:'PN Edge and best evidence', text:'Only shares firing a PROMISING or SOLID signal with a positive measured edge. Every tier is earned against years of history.'},
+    {sel:'#liteCards [onclick="simpleQuietClimbers()"], #starterCards [onclick="simpleQuietClimbers()"]', title:'Quiet climbers', text:'Shares up three or more days on heavy volume, with no price-sensitive announcement. A pattern estimate, not a claim about anyone.'},
+    {sel:'#starterCards [onclick="simpleRun(\'top20\')"]', title:'Today\u2019s top scorers', text:'Proven evidence first, then score out of ten.'},
+    {sel:'#starterCards [onclick="simpleRun(\'surge\')"]', title:'What\u2019s moving on big volume', text:'Unusual trading activity today: shares trading far above their normal volume.'},
+    {sel:'#starterCards [onclick="simpleMarketPulse()"]', title:'Market today', text:'A breadth snapshot: how the whole market traded today. Ten seconds of context before anything else.'},
+    {sel:'#starterCards [onclick="simpleRun(\'recovery\')"]', title:'Recovery watch', text:'Fallen shares stabilising on volume: possible reversals, for looking at, not a reason to buy on their own.'},
+    {sel:'#liteCards [onclick="simpleRun(\'portfolio\')"], #starterCards [onclick="simpleRun(\'portfolio\')"]', title:'My portfolio', text:'Your practice trades and performance, and the switch for the auto-pilot robot.'},
+    {sel:'#starterCards [onclick="simpleRun(\'watchlist\')"]', title:'My watchlist', text:'The shares you have starred to follow.'},
+    // ── Advanced: the radar and the table ──
+    {sel:'#statsBar', title:'Market Radar', text:'Counters for gainers, volume events, trends and evidence. Tap any tile and the whole app filters to just those shares.'},
+    {sel:'#sEvEdge', up:'.stat', title:'The PN Edge tile', text:'Shows only shares carrying a proven, positive edge today. A tier is only awarded when history says the signal beat the market by more than luck could explain.'},
     {sel:'#sTot', up:'.stat', title:'Showing', text:'Taps combine. Press Showing to clear every filter and see the whole market again.'},
     {sel:'#tblwrap thead', title:'The table', text:'One row per share: the price, the day\u2019s move, its PN Edge, volume against its three-month normal, streaks, and a score out of ten.'},
-    {sel:'#tbody tr', title:'Report cards', text:'Tap any share code to open its full report card. Tap the star to add the share to your watchlist.'},
-    {sel:'aside.left', title:'The left panel', text:'Your data buttons, settings and the scans live here. The buttons in the box marked \u201csearches, not verdicts\u201d find untested patterns \u2014 for looking, never a reason to buy on their own.'},
-    {sel:'#bestEvBtn', title:'Best Evidence Today', text:'This is the graded scan. Of everything that fired today, it keeps only the shares whose strongest signal carries a proven edge.'},
-    {sel:'#pfBtn', title:'Your practice portfolio', text:'Your practice balance and positions. The robot buys here each data day, following your rules exactly. Many days it buys nothing \u2014 that is the rules working, not silence.'},
-    {sel:'#wlNavBtn', title:'Watchlist', text:'The shares you have starred, in one place.'},
-    {sel:'#lessonsBtn', title:'Lessons', text:'Fifty-four short illustrated lessons on reading the market, the signals and this app. Free to browse; your progress is remembered on this device.'},
-    {sel:'#trainBtn', title:'Training mode', text:'Turn this on and every button, column and tile explains itself when you hover or tap it.'},
-    {title:'That\u2019s the layout', text:'The daily routine takes a few minutes after the close: Market Today, Top 20 to Watch, Best Evidence Today, then tonight\u2019s picks. Press the Tour button any time to run this again, or take the full tour to hear every control explained.'}
+    {sel:'#tbody .tick-link', title:'The share code', text:'Tap a share code to open that company\u2019s page on Market Index in a new tab: the latest news, price chart and announcements.'},
+    {sel:'#tbody .row-more', title:'More', text:'The report card lives here. Tap more for the deep dive, the chart, price history, announcements and a printable report.'},
+    {sel:'#tbody .tick-links a', title:'Buy', text:'Places a practice buy for that share in your own account. Practice money only.'},
+    {sel:'#tbody td[onclick^="toggleStar"]', title:'The star', text:'Tap the star to add a share to your watchlist, or tap again to remove it.'},
+    // ── Advanced: the left panel ──
+    {sel:'#streakBtn', title:'Refreshing your data', text:'Re-fetches fresh prices and recomputes signals for the shares on screen.'},
+    {sel:'#bestEvBtn', title:'Best Evidence Today', text:'The graded scan. Of everything that fired today, it keeps only the shares whose strongest signal carries a proven edge.'},
+    {sel:'#scanGradedNote', title:'The other scans', text:'The scans in the box marked \u201csearches, not verdicts\u201d find untested patterns. They are for looking, never a reason to buy on their own.'},
+    {sel:'#routineBtn', title:'Your routine', text:'Runs all your saved reports in one tap.'},
+    {sel:'#tourBtn', title:'That\u2019s the tour', text:'The daily routine takes a few minutes after the close: Market today, Strongest Today, Best Evidence, then tonight\u2019s picks. Press Tour any time to run this again, or take the full tour to hear every control explained.'}
   ];
 
   // ── the full tour: every explained control, in screen order ──────────────
@@ -20201,8 +20225,8 @@ async function simpleQuietClimbers(){
     return out;
   }
 
-  function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.opacity==='0')return false; var r=el.getBoundingClientRect(); if(!(r.width>0&&r.height>0))return false; if(r.right<0||r.bottom<0||r.left>document.documentElement.scrollWidth||r.top>document.documentElement.scrollHeight)return false; return true; }
-  function _resolve(stop){ if(!stop.sel)return null; var el=null; try{ el=document.querySelector(stop.sel); }catch(e){} if(!el)return null; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } return _visible(el)?el:null; }
+  function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.opacity==='0')return false; var r=el.getBoundingClientRect(); if(!(r.width>0&&r.height>0))return false; return true; }  // v897: no page-bounds test - scroll sizes are unreliable across browsers and it skipped real stops
+  function _resolve(stop){ if(!stop.sel)return null; var list=[]; try{ list=document.querySelectorAll(stop.sel); }catch(e){ return null; } for(var i=0;i<list.length;i++){ var el=list[i]; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } if(_visible(el))return el; } return null; }  // v897: first VISIBLE match - the same card exists in the Simple and Starter groups
 
   // ── voice ────────────────────────────────────────────────────────────────
   function _muted(){ try{ return localStorage.getItem(MUTE_KEY)==='1'; }catch(e){ return false; } }
