@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-900-open';
+const APP_VERSION='2026.09.22-901-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -5568,7 +5568,7 @@ function showRules(){
         </div>`;
       }catch(e){return '';}})()}
       <button onclick="applyTestedRules()" title="Applies AND saves the rule set the 13 August 2026 ten-year replay settled on: 20% trailing stop with no take-profit, $0.20-$0.99, 2% dip entry, top 4 a day at score 7+. One tap, nothing left half-applied. Ten-year figures are a best case: every share in that test is still listed today — companies that died along the way aren’t in the data yet." style="width:100%;margin:8px 0 3px;padding:10px;border-radius:7px;border:1px solid var(--green);background:rgba(74,222,128,.12);color:var(--green);font-weight:700;font-size:12px;font-family:var(--sans);cursor:pointer;">⚡ Use the tested rules <span style="font-weight:400;font-size:9px;">(one tap — applied AND saved)</span></button><div style="font-size:9px;color:var(--dim);margin:0 0 8px;line-height:1.5;">Re-set 13 Aug 2026 on a ten-year replay (2016–2026, real daily highs and lows, brokerage and 1% slippage included). One dial moved: the dip entry, 5% → 2%. On the decade the 2% dip returned +232% against +89% for the old 5% — and kept +160% with its three biggest winners removed, where the old setting kept +26%. The deeper dip was missing winners, not filtering losers: shares that never fell 5% were often the ones that went straight up. The same signal scores flatter absolute returns because they are graded across the whole period — the comparison between settings is the finding. Most trades still lose and every winner gives back 20% from its peak; that is the mechanism, not a fault.</div><button onclick="applyBotBestPractice()" title="Fills the whole panel with the recommended stack — ⚖ All-rounder risk numbers, every don&#39;t-chase gate, 📋 adaptive combo gate that follows YOUR report card, 🎣 2% dip entry, 🧪 evidence-gated source, min score 7, 2 buys/day. Nothing applies until you press Save." style="width:100%;margin:8px 0 3px;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);font-weight:700;font-size:11.5px;font-family:var(--sans);cursor:pointer;">🏆 Set up the best-practice bot <span style="font-weight:400;font-size:9px;">(one tap — review, then Save)</span></button>
-      <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚖ All-rounder exits (🎯15 🛑15, no trail/breakeven/hold) · every don't-chase gate · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 2% dip entry · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
+      <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5;">⚡ Hunter exits (a 🪤 20% trailing stop — no take-profit, no fixed stop) · 🟢 green-day gate on, RSI gate off on purpose · 🌏 index-above-50-day regime gate · 🎲 1% of account at risk per trade · 📋 adaptive combos from YOUR report card · 🎣 patient 2% dip entry · $0.20–$0.99 · min score 7 · 2 buys/day. Tune the 🎣 depth per share with 📉 Dip Finder. The bot trades its own $50k account.</div>
       <button onclick="toggleApAdv()" id="apAdvToggle" style="width:100%;margin:2px 0 6px;padding:6px;border-radius:6px;border:1px dashed var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;">⚙ Advanced bot settings ${window._apAdvOpen?'▾ (tap to hide)':'▸ (optional — the 🏆 button already set these)'}</button>
       <div id="apAdvBox" style="display:${window._apAdvOpen?'block':'none'};">
       <div style="font-size:9.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5;">Once per fresh data day it applies these entry rules and queues <b>practice</b> buys — same realistic fills as a manual buy (next day's open, brokerage charged). It sets your 🎯/🛑 from above, respects 📦 🔢 and the 💧 liquidity floor, skips parcels under $500, and logs every decision. <b>Practice money only — it cannot touch a real broker.</b></div>
@@ -20238,7 +20238,13 @@ async function simpleQuietClimbers(){
   function _pfOpen(){ var m=document.getElementById('appModal'); return !!(m&&m.style.display!=='none'&&document.getElementById('pfTab_holdings')); }
   var ACTIONS={
     portfolio:function(){ if(_pfOpen())return; if(typeof showPortfolio==='function'){ showPortfolio(window._pfExSel||'ALL'); if(S)S.opened=true; } },
-    pfView:function(v){ ACTIONS.portfolio(); if(typeof _setPfView==='function')_setPfView(v); }
+    pfView:function(v){ ACTIONS.portfolio(); if(typeof _setPfView==='function')_setPfView(v); },
+    // v901 - the rules panel. Opening it writes nothing (verified); the tour never
+    // taps a preset (they save instantly), Save, the robot switch, the best-practice button or Run now.
+    rules:function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&document.getElementById('rTgt'))return; if(typeof showRules==='function'){ showRules(); if(S)S.opened=true; } },
+    // Advanced bot settings, shown as DISPLAY ONLY: toggleApAdv() would save a
+    // preference, so the tour just unhides the box inside the open panel.
+    apAdv:function(){ ACTIONS.rules(); var b=document.getElementById('apAdvBox'); if(b)b.style.display='block'; }
   };
   function _do(stop){ if(!stop||!stop.do)return; var fn=ACTIONS[stop.do[0]]; if(!fn)return; try{ fn(stop.do[1]); }catch(e){} }
   window._tourChapter=function(name, title, desc, stops){ CHAPTERS[name]={title:title, desc:desc, stops:stops}; };
@@ -20455,5 +20461,51 @@ async function simpleQuietClimbers(){
     {do:['pfView','holdings'], sel:'#pfFooter', title:'Print, export and share', text:'Print a statement, download a spreadsheet, share a summary, or turn your holdings into a watchlist.'},
     {do:['pfView','holdings'], sel:'button[onclick="exportPortfolioBackup()"]', title:'Backup and restore', text:'Save your whole account to a file, and restore it from one. Keep an occasional backup: it is how you recover if a stop ever sells on bad price data.'},
     {do:['pfView','holdings'], title:'That\u2019s the portfolio', text:'Close it any time with the cross. Next: your trading rules and the auto-pilot.'}
+  ]);
+})();
+
+// ═══ v901 — TOUR CHAPTER: 📐 Rules & auto-pilot ══════════════════════════════
+// Opens My trading rules LOOK-ONLY (showRules writes nothing on open) and walks
+// it in screen order. Never taps a preset (they apply and save instantly),
+// Save, the auto-pilot switch, the best-practice button or Run now. Advanced
+// bot settings are revealed as display only. Wording approved by Tony 22 Sep.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var R=['rules'], A=['apAdv'];
+  window._tourChapter('rules','\ud83d\udcd0 Rules & auto-pilot','Your trading rules, the three ready-made sets, and every setting behind the robot',[
+    {do:R, title:'Your trading rules', text:'Your plan, in your words. These are limits you set for your practice trading, and the app helps you stick to them. Nothing here is advice.'},
+    {do:R, sel:'button[onclick="toggleRulesEnabled()"]', title:'The master switch', text:'Turns your rules on or off. When it\u2019s off, nothing here is applied.'},
+    {do:R, sel:'#pcDef', up:'div', title:'Three ready-made sets', text:'Defender: steady, with small drawdowns \u2014 the place to start. All-rounder: the evidence-backed default. Hunter: rides trends with a trailing stop and no take-profit; it wins less often and profits from rare big runs. One tap applies and saves the whole set, and you can change any number afterwards.'},
+    {do:R, sel:'#rTgt', up:'label', title:'Take profit', text:'Sells when a share is up this much from what you paid.'},
+    {do:R, sel:'#rStop', up:'label', title:'Stop loss', text:'Sells when a share falls this much. It\u2019s the rule that keeps a bad trade small.'},
+    {do:R, sel:'#rMaxPos', up:'label', title:'Max in one share', text:'The biggest slice of your account one share should be. For your own trades it\u2019s a flag in your briefing, never a block; the auto-pilot won\u2019t go over it.'},
+    {do:R, sel:'#rMaxN', up:'label', title:'Max open positions', text:'How many shares you hold at once. Again, a flag for you and a limit for the auto-pilot.'},
+    {do:R, sel:'#rTrail', up:'label', title:'Trailing stop', text:'A stop that follows the price up. It sits this far below the highest close and only ever rises.'},
+    {do:R, sel:'#rBE', up:'label', title:'Break-even', text:'Once a share is up this much, its stop moves up to what you paid, so a stop-out from there costs you roughly nothing.'},
+    {do:R, sel:'#rHold', up:'label', title:'Max hold', text:'After this many data days, a position that hasn\u2019t reached its target or stop is sold at the next open.'},
+    {do:R, sel:'#rLockOn', up:'label', title:'Profit ladder', text:'Each time the price clears another step, a profit floor is locked in under the trade. The floor can only ever rise.'},
+    {do:R, sel:'#rScaleOut', up:'label', title:'Scale out at target', text:'For the auto-pilot: when a share hits its target, sell part of it and bank the gain, then let the rest run with its stop lifted to break-even.'},
+    {do:R, sel:'#rPlan', title:'Your own rules', text:'Your own rules in plain words \u2014 the ones a number can\u2019t capture.'},
+    {do:R, sel:'button[onclick="saveRulesFromForm()"]', title:'Save', text:'Nothing you change here takes effect until you press Save.'},
+    {do:R, sel:'button[onclick="toggleAutoPilot()"]', title:'The auto-pilot', text:'Turns the robot on. It makes practice buys by these rules in its own fifty-thousand-dollar account, which you can watch in the Portfolio\u2019s robot tab. It\u2019s off until you switch it on.'},
+    {do:R, sel:'button[onclick="applyBotBestPractice()"]', title:'The best-practice bot', text:'One tap fills in the strongest tested setup: Hunter\u2019s 20% trailing stop with no take-profit, the green-day gate, the index gate, 1% of the account at risk per trade, combinations graded by your report card, a patient 2% dip entry, minimum score 7 and two buys a day. Review it, then press Save.'},
+    {do:A, sel:'#apAdvToggle', title:'Advanced settings', text:'Every setting behind the robot, if you want to tune it yourself.'},
+    {do:A, sel:'#rApSrc', up:'label', title:'Buy from', text:'Where the robot looks. Best proven scan follows whichever scan your report card currently grades best.'},
+    {do:A, sel:'#rApMax', up:'label', title:'Buys per day', text:'The most it will buy in one day.'},
+    {do:A, sel:'#rApScore', up:'label', title:'Minimum score', text:'Only shares scoring at least this out of ten.'},
+    {do:A, sel:'#rApProven', up:'label', title:'Quiet only and the evidence gate', text:'Quiet only skips shares with news in the last five days. The evidence gate stops buying while the scan it\u2019s using isn\u2019t beating the market \u2014 standing aside is a decision too.'},
+    {do:A, sel:'#rApAmt', up:'label', title:'Dollars per buy', text:'How much each buy spends: at least two thousand dollars, because the flat six-dollar brokerage eats the edge on anything smaller, and never above your max-in-one-share limit.'},
+    {do:A, sel:'#rApMinPx', up:'label', title:'Price band', text:'Only shares priced between these two amounts.'},
+    {do:A, sel:'#rApLadder', up:'label', title:'Follow the report card', text:'Buys only shares firing the signals your report card rates best, and follows along as signals prove themselves or fade.'},
+    {do:A, sel:'#rApSig_bo', up:'div', title:'Buy signals', text:'The signals it may act on. Selling and warning flags are deliberately never used as reasons to buy.'},
+    {do:A, sel:'#rApGreen', up:'div', title:'Don\u2019t chase', text:'Buy only on a green day, and skip shares with an RSI of 70 or more: don\u2019t pay up for a share that\u2019s already run hard.'},
+    {do:A, sel:'#rApRegime', up:'label', title:'Index gate', text:'Only buys while the market index is above its 50-day average. In a falling market, it stands aside.'},
+    {do:A, sel:'#rApRisk', up:'label', title:'Risk per trade', text:'Sizes each buy so a full stop-out costs about this share of the account: smaller parcels for jumpy shares, bigger for quiet ones. A share it was stopped out of isn\u2019t bought again for five trading days.'},
+    {do:A, sel:'#rApComboSel', up:'label', title:'Combo gate', text:'Require two signals together. The adaptive setting re-reads your report card every data day and uses whatever combination is proving itself now.'},
+    {do:A, sel:'#rApEntrySel', up:'div', title:'How it buys', text:'At the next day\u2019s open, or patiently, with a limit order a set percentage below the last close. Deeper dips fill less often \u2014 measure a share\u2019s real dips with Dip Finder first.'},
+    {do:A, sel:'#apPkT', up:'div', title:'My picks', text:'Your own practice limit orders: pick a share, the price to buy at, the price to sell at and how much to invest.'},
+    {do:A, sel:'button[onclick="runAutoPilotNow()"]', up:'div', title:'Run now and scoreboard', text:'Run the robot now instead of waiting for the next data day, or open its scoreboard of closed trades.'},
+    {do:A, sel:'#apLogBox', title:'The robot\u2019s diary', text:'Every decision it makes, including every day it chose not to buy, is written down here.'},
+    {do:A, title:'That\u2019s your rules', text:'Next: the reports, and how to read each one.'}
   ]);
 })();

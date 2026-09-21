@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-900",
+  "version": "2026.09.22-901",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "The tour's explanation bubble can now be moved: drag it by the bar at its top (or its title) to wherever it isn't in the way. It stays put for the rest of that tour; double-tap the bar to put it back."
+  "notes": "New in the Tour menu: Rules & auto-pilot - every setting in My trading rules and behind the robot, explained. The tour only looks: it never taps a preset, Save or the robot switch. Also fixed: the text under the best-practice button now describes what it really sets (Hunter's 20% trailing stop), not the old All-rounder numbers."
 }
