@@ -876,6 +876,7 @@ body.theme-switching *,body.theme-switching *::before,body.theme-switching *::af
          training mode with a secret code, which made one of the better reasons
          to own this product invisible to the people who own it. -->
     <button id="lessonsBtn" onclick="toggleLessons()" title="🎓 Lessons — 54 short illustrated lessons, flashcards and quizzes on reading the market, the signals and this app. Free to browse; your progress is remembered on this device." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">🎓 Lessons</button>
+     <button id="tourBtn" onclick="_tourMenu()" title="🎬 Guided tour — the app drives itself: it spotlights each part of the screen and explains it, out loud if you like. Press again to stop." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">🎬 Tour</button>
     <button id="trainBtn" onclick="toggleTrainingMode()" title="🎓 Training mode — hover any button, column or tile and it explains itself. Nothing is hidden while it is on and nothing changes about your data; press again to switch it off." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">🎓 Training</button>
     <div style="position:relative;display:inline-block;">
       <button id="acctBtn" onclick="toggleAcctMenu(event)" title="Your account — password, language, updates, log out" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;white-space:nowrap;">👤 Account ▾</button>
@@ -2224,6 +2225,7 @@ const TRAIN_HELP={
   "helpToggle":{"t": "Help guide", "d": "Opens the written guide to every part of the app."},
   "lessonToggle":{"t": "Lessons", "d": "Opens the illustrated course, each lesson ending in a short quiz."},
 
+  "tourBtn":{t:"Guided tour",d:"The app drives itself: it spotlights each part of the screen and explains it, out loud if you like. Quick tour for the layout, full tour for every control. Esc ends it."},
   "sidebarToggle":{t:"Hide / show panel",d:"Collapses the left control panel to give the results table more room. Click again to bring it back."},
   "acctBtn":{t:"Account",d:"Your account menu — change the app password, switch language, ⟳ check for updates (shows the version you're on), and log out."},
   "langSel":{t:"Language",d:"Switches the app's language. Menus and labels translate; your data stays the same."},
@@ -2340,6 +2342,7 @@ const TRAIN_HELP={
   "apPkA":{t:"Pick: $ amount",d:"Practice dollars for this pick. Blank = size by your 📦 % rule. Trimmed to 📦; the $500 minimum applies."},
   "apPkR":{t:"Pick: 🔁 repeat",d:"After this pick sells at your 🎯, buy it again at your buy price — cycling until you remove it. A cycle that ends on the 🛑 pauses the repeat instead of churning."}
 };
+window.TRAIN_HELP=TRAIN_HELP; // v894: the guided tour reads the same explanations Training mode shows
 const COLUMN_HELP={
   "Ticker / Name":{t:"Ticker / Name",d:"The share's code and company name. Click a row for actions; use 🔬 Deep dive for everything about it."},
   "Price":{t:"Price",d:"The last closing price for the share."},

@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.21-893-simple';
+const APP_VERSION='2026.09.22-894-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20137,3 +20137,188 @@ async function simpleQuietClimbers(){
   window._modalLabel='\ud83d\udd75\ufe0f Quiet climbers'; window._modalType='quiet';
   showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','\ud83d\udd75\ufe0f Quiet climbers');
 }
+
+// ═══ v894 — GUIDED TOUR ══════════════════════════════════════════════════════
+// "Take the tour": the app drives itself. It dims the screen, spotlights one
+// part at a time, shows a plain-English bubble and (optionally) reads it aloud
+// with the browser's own voice, then moves on. Two tours:
+//   main — a two-minute walk of the screen, written from the Beginners Guide
+//   full — EVERY control the app can explain, straight from TRAIN_HELP (the
+//          same text Training mode shows on hover), in screen order
+// Stops whose element is not on screen (Starter mode hides Advanced controls,
+// the sidebar may be collapsed) are skipped, never faked. Nothing here changes
+// app state: the tour only looks and points. Esc or ✕ ends it at any time.
+(function(){
+  var S=null;                                   // the running tour, or null
+  var Z=2147480000;                             // above every modal in the app
+  var MUTE_KEY='asxScreener.tourMute';
+  var _seenKey=function(name){ return 'asxScreener.tourSeen.'+name; };
+
+  // ── the main tour ────────────────────────────────────────────────────────
+  // sel: CSS selector (first match). If the element is missing or hidden the
+  // stop is skipped. No sel = a centred card. Texts stay short: spoken at a
+  // natural pace, none runs past ~12 seconds.
+  var MAIN=[
+    {title:'Welcome to Insight Trading', text:'This is an end-of-day share screener and practice-trading app for the ASX. Everything here is research, not advice, and every dollar is practice money.'},
+    {sel:'#statsBar', title:'Market Radar', text:'Across the top is the Market Radar: counters for gainers, volume events, trends and evidence. Tap any tile and the whole app filters to just those shares.'},
+    {sel:'#sEvEdge', up:'.stat', title:'The PN Edge tile', text:'PN Edge shows only shares carrying a proven, positive edge today. A tier is only awarded when history says the signal beat the market by more than luck could explain.'},
+    {sel:'#sTot', up:'.stat', title:'Showing', text:'Taps combine. Press Showing to clear every filter and see the whole market again.'},
+    {sel:'#tblwrap thead', title:'The table', text:'One row per share: the price, the day\u2019s move, its PN Edge, volume against its three-month normal, streaks, and a score out of ten.'},
+    {sel:'#tbody tr', title:'Report cards', text:'Tap any share code to open its full report card. Tap the star to add the share to your watchlist.'},
+    {sel:'aside.left', title:'The left panel', text:'Your data buttons, settings and the scans live here. The buttons in the box marked \u201csearches, not verdicts\u201d find untested patterns \u2014 for looking, never a reason to buy on their own.'},
+    {sel:'#bestEvBtn', title:'Best Evidence Today', text:'This is the graded scan. Of everything that fired today, it keeps only the shares whose strongest signal carries a proven edge.'},
+    {sel:'#pfBtn', title:'Your practice portfolio', text:'Your practice balance and positions. The robot buys here each data day, following your rules exactly. Many days it buys nothing \u2014 that is the rules working, not silence.'},
+    {sel:'#wlNavBtn', title:'Watchlist', text:'The shares you have starred, in one place.'},
+    {sel:'#lessonsBtn', title:'Lessons', text:'Fifty-four short illustrated lessons on reading the market, the signals and this app. Free to browse; your progress is remembered on this device.'},
+    {sel:'#trainBtn', title:'Training mode', text:'Turn this on and every button, column and tile explains itself when you hover or tap it.'},
+    {title:'That\u2019s the layout', text:'The daily routine takes a few minutes after the close: Market Today, Top 20 to Watch, Best Evidence Today, then tonight\u2019s picks. Press the Tour button any time to run this again, or take the full tour to hear every control explained.'}
+  ];
+
+  // ── the full tour: every explained control, in screen order ──────────────
+  function fullStops(){
+    var H=window.TRAIN_HELP||((typeof TRAIN_HELP!=='undefined')?TRAIN_HELP:null); if(!H)return [];
+    var out=[];
+    for(var id in H){ if(!Object.prototype.hasOwnProperty.call(H,id))continue;
+      var el=document.getElementById(id); if(!el||!_visible(el))continue;
+      var h=H[id]; if(!h||!h.d)continue;
+      out.push({sel:'#'+id, title:h.t||id, text:h.d, el:el});
+    }
+    // screen order (top to bottom, then left to right), not object order
+    out.sort(function(a,b){ var ra=a.el.getBoundingClientRect(), rb=b.el.getBoundingClientRect(); var ya=ra.top+window.scrollY, yb=rb.top+window.scrollY; return (ya-yb)||(ra.left-rb.left); });
+    for(var i=0;i<out.length;i++)delete out[i].el;
+    out.unshift({title:'The full tour', text:'Every control the app can explain, in screen order. Pause any time, or press Next to skip ahead.'});
+    out.push({title:'End of the full tour', text:'That is everything on screen right now. Controls hidden in Starter mode or inside closed panels were skipped.'});
+    return out;
+  }
+
+  function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var r=el.getBoundingClientRect(); return r.width>0&&r.height>0; }
+  function _resolve(stop){ if(!stop.sel)return null; var el=null; try{ el=document.querySelector(stop.sel); }catch(e){} if(!el)return null; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } return _visible(el)?el:null; }
+
+  // ── voice ────────────────────────────────────────────────────────────────
+  function _muted(){ try{ return localStorage.getItem(MUTE_KEY)==='1'; }catch(e){ return false; } }
+  function _setMuted(v){ try{ localStorage.setItem(MUTE_KEY,v?'1':'0'); }catch(e){} }
+  function _canSpeak(){ return !!(window.speechSynthesis&&window.SpeechSynthesisUtterance); }
+  function _pickVoice(){
+    try{ var vs=speechSynthesis.getVoices()||[]; var pref=['en-AU','en-GB','en-US','en'];
+      for(var p=0;p<pref.length;p++){ for(var i=0;i<vs.length;i++){ if((vs[i].lang||'').replace('_','-').indexOf(pref[p])===0)return vs[i]; } }
+    }catch(e){} return null;
+  }
+  function _speak(text, onend){
+    if(!_canSpeak()||_muted()){ return false; }
+    try{ speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(text); var v=_pickVoice(); if(v)u.voice=v; u.rate=1; u.pitch=1;
+      var done=false; var fin=function(){ if(done)return; done=true; onend&&onend(); };
+      u.onend=fin; u.onerror=fin; speechSynthesis.speak(u);
+      // some browsers never fire onend if the tab loses focus: a safety timer
+      var est=Math.max(4000, text.split(/\s+/).length*420); setTimeout(fin, est+3000);
+      return true;
+    }catch(e){ return false; }
+  }
+  function _hush(){ try{ if(_canSpeak())speechSynthesis.cancel(); }catch(e){} }
+
+  // ── build the overlay once per run ───────────────────────────────────────
+  function _css(){ if(document.getElementById('tourCss'))return; var st=document.createElement('style'); st.id='tourCss'; st.textContent=
+    '#tourSpot{position:fixed;z-index:'+Z+';border:2px solid #f4c542;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,10,16,.62),0 0 22px rgba(244,197,66,.55);pointer-events:none;transition:top .35s,left .35s,width .35s,height .35s}'+
+    '#tourBack{position:fixed;inset:0;z-index:'+(Z-1)+';background:transparent;cursor:pointer}'+
+    '#tourBox{position:fixed;z-index:'+(Z+1)+';max-width:min(420px,calc(100vw - 24px));background:#0f1420;color:#e8ecf3;border:1px solid #3a4560;border-radius:12px;padding:12px 14px 10px;box-shadow:0 12px 40px rgba(0,0,0,.55);font-family:var(--sans,system-ui,sans-serif);font-size:14px;line-height:1.5}'+
+    '#tourBox h4{margin:0 0 5px;font-size:15px;color:#f4c542}'+
+    '#tourBox p{margin:0 0 9px}'+
+    '#tourBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}'+
+    '#tourBar button{padding:5px 10px;border-radius:7px;border:1px solid #3a4560;background:#1a2133;color:#e8ecf3;font-size:12px;font-weight:600;cursor:pointer}'+
+    '#tourBar button.go{background:#f4c542;color:#101010;border-color:#f4c542}'+
+    '#tourBar .n{margin-left:auto;font-size:11px;color:#9aa5bd}'+
+    '#tourProg{height:3px;background:#2a3348;border-radius:2px;margin:8px 0 6px;overflow:hidden}'+
+    '#tourProg i{display:block;height:100%;background:#f4c542;width:0;transition:width .3s}'+
+    '@media (max-width:640px){#tourBox{left:8px!important;right:8px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;top:auto!important;max-width:none}}';
+    document.head.appendChild(st); }
+
+  function _build(){
+    _css();
+    var back=document.createElement('div'); back.id='tourBack'; back.title='Tap to pause or resume';
+    back.onclick=function(){ S&&(S.paused?resume():pause()); };
+    var spot=document.createElement('div'); spot.id='tourSpot';
+    var box=document.createElement('div'); box.id='tourBox';
+    box.innerHTML='<h4 id="tourTitle"></h4><p id="tourText"></p><div id="tourProg"><i></i></div>'+
+      '<div id="tourBar"><button id="tourPrev" title="Back">\u25c0</button><button id="tourPause" class="go" title="Pause / resume">\u23f8 Pause</button><button id="tourNext" title="Next">\u25b6</button>'+
+      '<button id="tourMute" title="Voice on / off"></button><button id="tourExit" title="End the tour">\u2715</button><span class="n" id="tourN"></span></div>';
+    document.body.appendChild(back); document.body.appendChild(spot); document.body.appendChild(box);
+    box.querySelector('#tourPrev').onclick=function(){ go(S.i-1); };
+    box.querySelector('#tourNext').onclick=function(){ go(S.i+1); };
+    box.querySelector('#tourPause').onclick=function(){ S.paused?resume():pause(); };
+    box.querySelector('#tourExit').onclick=end;
+    box.querySelector('#tourMute').onclick=function(){ _setMuted(!_muted()); _muteLabel(); _hush(); if(!S.paused){ clearTimeout(S.t); _arm(S.stops[S.i]); } };
+    _muteLabel();
+  }
+  function _muteLabel(){ var b=document.getElementById('tourMute'); if(!b)return; if(!_canSpeak()){ b.textContent='\ud83d\udd07 no voice'; b.disabled=true; return; } b.textContent=_muted()?'\ud83d\udd07 Voice off':'\ud83d\udd0a Voice on'; }
+
+  // ── placing the spotlight and the bubble ─────────────────────────────────
+  function _place(el){
+    var spot=document.getElementById('tourSpot'), box=document.getElementById('tourBox'); if(!spot||!box)return;
+    var pad=6, vw=window.innerWidth, vh=window.innerHeight;
+    if(el){ var r=el.getBoundingClientRect();
+      spot.style.display='block'; spot.style.top=(r.top-pad)+'px'; spot.style.left=(r.left-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';
+      if(vw>640){ var bh=box.offsetHeight||140, bw=Math.min(420,vw-24);
+        var below=r.bottom+pad+10, above=r.top-pad-10-bh;
+        var top=(below+bh<vh-8)?below:(above>8?above:Math.max(8,vh-bh-8));
+        var left=Math.min(Math.max(12, r.left), vw-bw-12);
+        box.style.top=top+'px'; box.style.left=left+'px'; box.style.bottom='auto'; }
+    } else { spot.style.display='none';
+      if(vw>640){ var bh2=box.offsetHeight||140, bw2=Math.min(420,vw-24); box.style.top=Math.max(8,(vh-bh2)/2)+'px'; box.style.left=Math.max(12,(vw-bw2)/2)+'px'; box.style.bottom='auto'; }
+    }
+  }
+
+  // ── stepping ─────────────────────────────────────────────────────────────
+  function _arm(stop){
+    // advance when the voice finishes, or after reading time when muted
+    var words=stop.text.split(/\s+/).length;
+    var spoke=_speak(stop.title+'. '+stop.text, function(){ if(S&&!S.paused)S.t=setTimeout(function(){ go(S.i+1); }, 900); });
+    if(!spoke) S.t=setTimeout(function(){ go(S.i+1); }, Math.max(4500, words*380));
+  }
+  function go(i){
+    if(!S)return; clearTimeout(S.t); _hush();
+    if(i<0)i=0;
+    if(i>=S.stops.length){ end(); return; }
+    // skip stops whose element is not on screen (never fake a location)
+    var dir=(i>=S.i)?1:-1, stop, el;
+    while(i>=0&&i<S.stops.length){ stop=S.stops[i]; el=_resolve(stop); if(!stop.sel||el)break; i+=dir; }
+    if(i<0){ i=0; stop=S.stops[0]; el=_resolve(stop); }
+    if(i>=S.stops.length){ end(); return; }
+    S.i=i; S.el=el;
+    document.getElementById('tourTitle').textContent=stop.title;
+    document.getElementById('tourText').textContent=stop.text;
+    document.getElementById('tourN').textContent=(i+1)+' / '+S.stops.length;
+    document.querySelector('#tourProg i').style.width=Math.round(100*(i+1)/S.stops.length)+'%';
+    if(el){ try{ el.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'}); }catch(e){ try{ el.scrollIntoView(); }catch(_){} } }
+    setTimeout(function(){ if(S)_place(S.el); }, el?420:0);
+    if(!S.paused)_arm(stop);
+  }
+  function pause(){ if(!S)return; S.paused=true; clearTimeout(S.t); _hush(); var b=document.getElementById('tourPause'); if(b)b.textContent='\u25b6 Resume'; }
+  function resume(){ if(!S)return; S.paused=false; var b=document.getElementById('tourPause'); if(b)b.textContent='\u23f8 Pause'; _arm(S.stops[S.i]); }
+  function end(){
+    if(!S)return; clearTimeout(S.t); _hush();
+    ['tourBack','tourSpot','tourBox'].forEach(function(id){ var n=document.getElementById(id); if(n&&n.parentNode)n.parentNode.removeChild(n); });
+    window.removeEventListener('resize',S.onR); window.removeEventListener('scroll',S.onR,true); document.removeEventListener('keydown',S.onK);
+    try{ localStorage.setItem(_seenKey(S.name),'1'); }catch(e){}
+    S=null;
+  }
+  function start(name){
+    if(S)end();
+    var stops=(name==='full')?fullStops():MAIN.slice();
+    if(!stops.length)return false;
+    S={name:name||'main', stops:stops, i:0, el:null, paused:false, t:null};
+    S.onR=function(){ if(S)_place(S.el); };
+    S.onK=function(e){ if(!S)return; if(e.key==='Escape')end(); else if(e.key==='ArrowRight')go(S.i+1); else if(e.key==='ArrowLeft')go(S.i-1); else if(e.key===' '){ e.preventDefault(); S.paused?resume():pause(); } };
+    _build();
+    window.addEventListener('resize',S.onR); window.addEventListener('scroll',S.onR,true); document.addEventListener('keydown',S.onK);
+    try{ if(_canSpeak())speechSynthesis.getVoices(); }catch(e){}   // warm the voice list
+    go(0);
+    return true;
+  }
+  function menu(){
+    if(S){ end(); return; }
+    var full=fullStops().length;
+    var pick=window.confirm('Take the quick tour of the screen (about two minutes)?\n\nOK = quick tour.  Cancel = the full tour: every control explained ('+Math.max(0,full-2)+' stops).');
+    start(pick?'main':'full');
+  }
+  window._tourStart=start; window._tourEnd=end; window._tourMenu=menu;
+  window._tourStops=function(name){ return (name==='full')?fullStops():MAIN.slice(); };
+})();
