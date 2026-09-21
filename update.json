@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-895",
+  "version": "2026.09.22-896",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fix: the guided tour now closes any open report (like the daily 'What's changed for me' briefing) before it starts, so it never talks about things hidden under a panel. The daily briefing also gains a switch to stop it opening by itself."
+  "notes": "Undo is not a feature: every explanation, guide entry and lesson that described undoing a sale is gone. Sold trades stay in your history exactly as they happened."
 }
