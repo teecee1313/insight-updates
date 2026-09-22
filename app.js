@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-926-open';
+const APP_VERSION='2026.09.22-927-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20748,8 +20748,10 @@ async function simpleQuietClimbers(){
   if(typeof window._tourChapter!=='function')return;
   var H=['home'], ST=['strongest'], PK=['picks','mine'], QC=['climbers'];
   var card=function(fn){ return '#liteCards [onclick="'+fn+'"], #starterCards [onclick="'+fn+'"]'; };
-  window._tourChapter('reports1','\ud83d\udcca Reports \u2014 the daily screens','Strongest Today, tonight\u2019s picks, PN Edge and quiet climbers, and how to read them',[
+  window._tourChapter('reports1','\ud83d\udcca Reports \u2014 the daily screens','Market Today, Strongest Today, tonight\u2019s picks, PN Edge and quiet climbers, and how to read them',[
     {do:H, title:'The daily reports', text:'Each card on the Simple screen opens a report. This chapter opens the main ones and shows you how to read them.'},
+    // Market Today
+    {do:H, sel:card('simpleMarketPulse()'), title:'Market Today', text:'A one-screen check of the WHOLE market before you judge any single share: how many rose, fell or sat flat, the advance-decline ratio, and today\u2019s average volume against normal. Below that, the biggest gainers and fallers and what\u2019s most active on volume \u2014 each tappable straight to its own report. Read this FIRST: a share up 2% means much less on a day the whole market surged, and much more on a flat or falling day.'},
     // Strongest Today
     {do:H, sel:card('strongestTodayReport()'), title:'Strongest Today', text:'The day\u2019s strongest shares, in one ranked list.'},
     {do:ST, sel:'#stIntro', title:'How it\u2019s ranked', text:'Proven evidence first, then the measured PN Edge, then the score. This line also says which day the evidence was graded, and whether your card reached the server.'},
