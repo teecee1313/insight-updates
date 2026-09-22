@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-919-open';
+const APP_VERSION='2026.09.22-920-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -1788,7 +1788,7 @@ function renderResearch(){
           <span style="font-size:10px;color:${stale?'var(--red)':'var(--dim)'};">flagged ${fmtAgo(it.ts)}</span>
         </div>
         ${it.name?`<div style="font-size:10px;color:var(--muted);margin-top:1px;">${it.name}</div>`:''}
-        ${it.note?`<div style="font-size:12px;color:var(--text);margin-top:6px;padding:6px 8px;background:var(--navy);border-radius:6px;border-left:2px solid var(--gold);">“${it.note.replace(/</g,'&lt;')}”</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:6px;font-style:italic;">no note — <a href="#" onclick="_editResearchNote('${it.ticker}');return false;" style="color:var(--blue);">add why</a></div>`}
+        ${it.note?`<div class="rs-note" style="font-size:12px;color:var(--text);margin-top:6px;padding:6px 8px;background:var(--navy);border-radius:6px;border-left:2px solid var(--gold);">“${it.note.replace(/</g,'&lt;')}”</div>`:`<div class="rs-note" style="font-size:11px;color:var(--dim);margin-top:6px;font-style:italic;">no note — <a href="#" onclick="_editResearchNote('${it.ticker}');return false;" style="color:var(--blue);">add why</a></div>`}
         <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
           <button onclick="closeModal();printShareReport('${it.ticker}')" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--blue);background:rgba(88,166,255,.12);color:var(--blue);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📄 Open report</button>
           <button onclick="_lookalikeOpen('${it.ticker}')" title="What usually happened next to shares that looked like this — a base rate from history, not a prediction" style="flex:1;min-width:90px;padding:8px;border-radius:6px;border:1px solid var(--gold);background:var(--bg2);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📊 Lookalikes</button>
@@ -20303,6 +20303,22 @@ async function simpleQuietClimbers(){
   ACTIONS.deep=function(){ if(!S)return; if(S.rep!=='deep')ACTIONS.main(); if(S.rep==='deep'&&_ddOn())return;
     if(typeof deepDive!=='function')return; var t=S.ddTicker||(S.ddTicker=_ddPick()); if(!t)return;   // nothing loaded yet: the stop waits
     _rep('deep',function(){ deepDive(t); }); };
+  // v920 — watchlists and Research, opened the way you open them. _wlNavOpen (the Simple and
+  // Starter list), openWatchManager and renderResearch only DRAW: nothing is saved by opening them.
+  // In Advanced the watchlist button narrows the main table and clears your search, so there the
+  // tour points at it and explains, and never presses it.
+  function _mLabel(){ return _modalUp()?(window._curModalLabel||''):''; }
+  CHECKS.wl=function(){ return _mLabel()==='\u2b50 Watchlist'; };
+  CHECKS.wlRows=function(){ return CHECKS.wl()&&!!document.querySelector('#appModal div[onclick^="deepDive("]'); };
+  CHECKS.wlMgr=function(){ return _modalUp()&&!!document.querySelector('#appModal button[onclick^="createWatch"]'); };
+  CHECKS.res=function(){ return _mLabel()==='\ud83d\udd2c Research further'; };
+  CHECKS.resRows=function(){ return CHECKS.res()&&!!document.querySelector('#appModal button[onclick^="removeResearch"]'); };
+  ACTIONS.wl=function(){ if(!S)return; if(S.rep!=='wl')ACTIONS.main(); if(!document.body.classList.contains('simple-mode'))return;
+    if(S.rep==='wl'&&CHECKS.wl())return; if(typeof _wlNavOpen!=='function')return; _rep('wl',function(){ _wlNavOpen(); }); };
+  ACTIONS.wlmgr=function(){ if(!S)return; if(S.rep!=='wlmgr')ACTIONS.main(); if(S.rep==='wlmgr'&&CHECKS.wlMgr())return;
+    if(typeof openWatchManager!=='function')return; _rep('wlmgr',function(){ openWatchManager(); }); };
+  ACTIONS.research=function(){ if(!S)return; if(S.rep!=='research')ACTIONS.main(); if(S.rep==='research'&&CHECKS.res())return;
+    if(typeof renderResearch!=='function')return; _rep('research',function(){ renderResearch(); }); };
   ACTIONS.brief=function(){ if(S&&S.rep!=='brief')ACTIONS.main(); if(typeof showMyChanges!=='function')return; _rep('brief',function(){ showMyChanges(); }); };
   ACTIONS.lessons=function(){ ACTIONS.main(); var p=document.getElementById('lessonPanel'); if(!p||!S||typeof toggleLessons!=='function')return;
     if(!p.classList.contains('open')){ try{ toggleLessons(); }catch(e){} if(!S.lsnOpened){ S.lsnOpened=true; _undo(function(){ var pp=document.getElementById('lessonPanel'); if(pp&&pp.classList.contains('open'))try{ toggleLessons(); }catch(e){} }); } } };
@@ -21030,5 +21046,41 @@ async function simpleQuietClimbers(){
     {do:DD, when:'deep', sel:M('[data-ddsec^="Deeper research"]'), title:'Official sources', text:'Links to the authoritative free sources for this share \u2014 announcements, shareholders and more. They are other sites: always check the official filings before deciding anything.'},
     {do:H, whenNot:'deep', why:'deep', title:'No Deep Dive yet', text:'No shares are loaded yet. Load your market, then run this chapter again.'},
     {do:H, title:'That\u2019s the Deep Dive', text:'Every share has one. Open it by tapping a share in the reports, in your briefing, or in Research.'}
+  ]);
+})();
+
+// ═══ v920 — TOUR CHAPTER: ⭐ Watchlists & 🔬 Research ═════════════════════════
+// Stars, your watchlists, the lists manager and the Research to-do list.
+// Opened the way you open them (look-only: they only draw). Presses nothing:
+// no star, create, rename, delete, sweep, print, share, 'to watchlist' or
+// 'done'. In Advanced the watchlist button is explained, never pressed (it
+// would narrow your table and clear your search).
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var H=['main'], WL=['wl'], MG=['wlmgr'], RS=['research'];
+  var M=function(sel){ return '#appModal '+sel; };
+  window._tourChapter('lists','\u2b50 Watchlists & \ud83d\udd2c Research','Stars, your lists, and the to-do list for shares you want to look into',[
+    {do:H, title:'Watchlists and Research', text:'Two places to keep shares: watchlists for the ones you follow, and Research for ideas you want to look into later.'},
+    {do:H, title:'The star', text:'Tap a star on any share \u2014 in a report, its Deep Dive or a list row \u2014 to add it to your watchlist. Tap it again to take it off.'},
+    {do:H, sel:'#wlNavBtn', title:'Your watchlist', text:'Opens your starred shares. In Simple and Starter they open as a list; in Advanced the main table narrows to just them.'},
+    // ── the star list (Simple and Starter) ──
+    {do:WL, onlyIf:'body.simple-mode', wait:3000, redo:true, waitFor:'wl', sel:M('div[onclick^="deepDive("]'), title:'Your stars', text:'Each line is a share you have starred, with today\u2019s price and move. Tap one for its Deep Dive.'},
+    {do:WL, onlyIf:'body.simple-mode', when:'wl', whenNot:'wlRows', title:'No stars yet', text:'Tap a star on any share and it lands here.'},
+    // ── the lists manager ──
+    {do:H, sel:'button[onclick="openWatchManager()"]', title:'Your lists', text:'You can keep more than one watchlist. The Lists button opens them all.'},
+    {do:MG, wait:3000, redo:true, waitFor:'wlMgr', sel:M('button[onclick^="createWatch"]'), title:'More than one list', text:'Keep a list for each idea or theme. Create starts a new one.'},
+    {do:MG, when:'wlMgr', sel:M('button[onclick^="viewActiveWatch"]'), title:'View', text:'Opens the list you have chosen.'},
+    {do:MG, when:'wlMgr', sel:M('button[onclick^="renameWatch"]'), title:'Rename or delete', text:'Give a list a better name, or delete one you no longer need.'},
+    {do:MG, when:'wlMgr', sel:M('button[onclick^="wlScorecard"]'), title:'How\u2019s my eye?', text:'How each starred share has moved since the day you starred it \u2014 your best and worst, grouped from big gains to big falls. A record of your picks, not advice.'},
+    {do:MG, when:'wlMgr', sel:M('button[onclick^="wlSweep"]'), title:'Sweep stale', text:'Finds stars that have sat still for a long time, so you can clear them out. A young or moving list needs no sweep.'},
+    {do:MG, when:'wlMgr', sel:M('button[onclick^="printWatch"]'), title:'Print or share', text:'Print the list, save it as a spreadsheet file, or email it.'},
+    // ── Research ──
+    {do:H, sel:'#researchBtn', title:'Research', text:'A to-do list of shares you have parked to look into later. Add one from its report, its Deep Dive or your briefing.'},
+    {do:RS, wait:3000, redo:true, waitFor:'res', sel:M('button[onclick*="printShareReport"]'), title:'Work through them', text:'For each share: open its report, see its lookalikes, or jump to its Deep Dive.'},
+    {do:RS, when:'resRows', sel:M('button[onclick^="promoteResearch"]'), title:'To watchlist', text:'Worth tracking? Send it to your watchlist.'},
+    {do:RS, when:'resRows', sel:M('button[onclick^="removeResearch"]'), title:'Done', text:'Finished with it? Clear it off. It is a to-do list, not a collection.'},
+    {do:RS, when:'resRows', sel:M('.rs-note'), title:'Your note', text:'Why you parked it. If there is no note yet, \u201cadd why\u201d lets you write one.'},
+    {do:RS, when:'res', whenNot:'resRows', title:'Nothing parked yet', text:'Flag a share from its report, its Deep Dive or your briefing, and it appears here.'},
+    {do:H, title:'That\u2019s watchlists and Research', text:'Stars for what you follow, Research for what to look into next.'}
   ]);
 })();
