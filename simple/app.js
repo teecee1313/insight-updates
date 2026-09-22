@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-918-simple';
+const APP_VERSION='2026.09.22-919-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -15191,13 +15191,13 @@ function deepDive(ticker){
   const s=allData.find(x=>x.ticker===ticker);
   if(!s){alert('Load data first.');return;}
   const px=s.price;
-  const row=(label,val,note)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2);"><span style="color:var(--muted);font-size:11px;">${label}</span><span style="font-size:11px;color:var(--text);text-align:right;">${val}${note?` <span style="color:var(--dim);font-size:9px;">${note}</span>`:''}</span></div>`;
-  const sub=(t)=>`<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 5px;">${t}</div>`;
+  const row=(label,val,note)=>`<div data-dd="${String(label).replace(/"/g,'&quot;')}" style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2);"><span style="color:var(--muted);font-size:11px;">${label}</span><span style="font-size:11px;color:var(--text);text-align:right;">${val}${note?` <span style="color:var(--dim);font-size:9px;">${note}</span>`:''}</span></div>`;
+  const sub=(t)=>`<div data-ddsec="${String(t).replace(/"/g,'&quot;')}" style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 5px;">${t}</div>`;
 
   // ── Section 1: snapshot ──
   const chg=s.chgPct!=null?`${s.chgPct>0?'+':''}${s.chgPct.toFixed(2)}%`:'—';
   const chgcol=s.chgPct>0?'var(--green)':s.chgPct<0?'#ff6b6b':'var(--muted)';
-  let html=`<div style="font-weight:700;font-size:16px;color:var(--text);">🔬 ${s.ticker} <span style="font-size:11px;color:var(--muted)">${s.name||''}</span></div>
+  let html=`<div data-ddsec="head" style="font-weight:700;font-size:16px;color:var(--text);">🔬 ${s.ticker} <span style="font-size:11px;color:var(--muted)">${s.name||''}</span></div>
   <div style="font-size:9px;color:var(--dim);margin:4px 0 8px;">Everything Insight Trading computes for this share — plus links to official sources for shareholders, directors & news. Estimates from price/volume, not advice.</div>
   <div style="display:flex;gap:6px;margin-bottom:8px;">
     <button onclick="showChart('${s.ticker}')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--gold);background:rgba(255,210,0,.12);color:var(--gold);font-weight:700;font-size:11px;font-family:var(--sans);cursor:pointer;">📈 Price chart</button>
@@ -15211,7 +15211,7 @@ function deepDive(ticker){
   <div id="ddNews" style="margin-bottom:8px;"></div>`;
   setTimeout(()=>{try{loadDeepDiveNews(s.ticker,s.exchange,s.name);}catch(e){}},50);
 
-  html+=(s.exchange==='ASX'&&(s.dirBuy||(s.accum10!=null&&s.accum10>=4)||(s.streakCalced&&s.daysUp>=3&&s.volCalced&&s.volPct>=100)))?`<div style="margin:0 0 8px;padding:9px 11px;border:1px solid var(--gold);border-radius:8px;background:rgba(255,210,0,.07);"><div style="font-weight:700;font-size:11.5px;font-family:var(--sans);color:var(--gold);margin-bottom:3px;">🕵️ Quiet-accumulation footprint — who’s actually buying?</div><div style="font-size:10.5px;color:var(--muted);line-height:1.5;margin-bottom:6px;">The footprint is our estimate from price &amp; volume. The public ASX filings show whether a real buyer is behind it:</div><div style="display:flex;flex-wrap:wrap;gap:6px;"><a href="${_safeUrl('https://www.google.com/search?q='+encodeURIComponent('ASX '+s.ticker+' top shareholders ownership insider transactions'))}" target="_blank" style="display:inline-block;padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);text-decoration:none;font-weight:600;font-size:10.5px;font-family:var(--sans);">👥 Top shareholders &amp; insiders ↗</a><a href="${_safeUrl(directorUrlFor(s.ticker,s.exchange))}" target="_blank" style="display:inline-block;padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);text-decoration:none;font-weight:600;font-size:10.5px;font-family:var(--sans);">🧑‍💼 Director filings (3Y) ↗</a><a href="${_safeUrl(newsUrlFor(s.ticker,s.exchange))}" target="_blank" style="display:inline-block;padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);text-decoration:none;font-weight:600;font-size:10.5px;font-family:var(--sans);">📢 Announcements ↗</a></div><div style="font-size:9px;color:var(--dim);margin-top:5px;">Director buys and sells are the announcements titled “Change of Director’s Interest Notice”; a new 5%+ holder lodges a “substantial holder” notice; the full top-20 register is in each company’s annual report. Holdings under 5% aren’t publicly disclosed. Filings are fact; the footprint is an estimate, not advice.</div></div>`:'';
+  html+=(s.exchange==='ASX'&&(s.dirBuy||(s.accum10!=null&&s.accum10>=4)||(s.streakCalced&&s.daysUp>=3&&s.volCalced&&s.volPct>=100)))?`<div style="margin:0 0 8px;padding:9px 11px;border:1px solid var(--gold);border-radius:8px;background:rgba(255,210,0,.07);"><div data-ddsec="footprint" style="font-weight:700;font-size:11.5px;font-family:var(--sans);color:var(--gold);margin-bottom:3px;">🕵️ Quiet-accumulation footprint — who’s actually buying?</div><div style="font-size:10.5px;color:var(--muted);line-height:1.5;margin-bottom:6px;">The footprint is our estimate from price &amp; volume. The public ASX filings show whether a real buyer is behind it:</div><div style="display:flex;flex-wrap:wrap;gap:6px;"><a href="${_safeUrl('https://www.google.com/search?q='+encodeURIComponent('ASX '+s.ticker+' top shareholders ownership insider transactions'))}" target="_blank" style="display:inline-block;padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);text-decoration:none;font-weight:600;font-size:10.5px;font-family:var(--sans);">👥 Top shareholders &amp; insiders ↗</a><a href="${_safeUrl(directorUrlFor(s.ticker,s.exchange))}" target="_blank" style="display:inline-block;padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);text-decoration:none;font-weight:600;font-size:10.5px;font-family:var(--sans);">🧑‍💼 Director filings (3Y) ↗</a><a href="${_safeUrl(newsUrlFor(s.ticker,s.exchange))}" target="_blank" style="display:inline-block;padding:5px 9px;border-radius:6px;border:1px solid var(--gold);background:rgba(255,210,0,.10);color:var(--gold);text-decoration:none;font-weight:600;font-size:10.5px;font-family:var(--sans);">📢 Announcements ↗</a></div><div style="font-size:9px;color:var(--dim);margin-top:5px;">Director buys and sells are the announcements titled “Change of Director’s Interest Notice”; a new 5%+ holder lodges a “substantial holder” notice; the full top-20 register is in each company’s annual report. Holdings under 5% aren’t publicly disclosed. Filings are fact; the footprint is an estimate, not advice.</div></div>`:'';
   html+=sub('Price &amp; volume');
   html+=row('Last close',fmtP(px,s.currency));
   // Market cap: shown when the data feed provides it; otherwise an honest
@@ -20290,6 +20290,19 @@ async function simpleQuietClimbers(){
   var _CARD_CONTENT='#appModal .rc-sig, #appModal .rc-intro, #appModal .ladrow, #appModal span[title^="These grades were computed"], #appModal span[title^="Computed on this device"]';
   function _cardWaitingForLoad(){ return _cardOn()&&!!document.querySelector('#appModal .rc-wait'); }
   var CHECKS={ card:function(){ return _cardOn()&&!!document.querySelector(_CARD_CONTENT); } };   // v917: its real content, not one row type
+  // v919 — a share's Deep Dive, opened the way you open one (the app's own deepDive), for the
+  // share with today's highest Watch Score. deepDive saves nothing and sends nothing; its news box
+  // only READS. Chosen once per tour, so every stop talks about the same share.
+  function _ddPick(){ try{ var data=(typeof allData!=='undefined'&&Array.isArray(allData))?allData:[], best='', bw=-1;
+      for(var i=0;i<data.length;i++){ var sh=data[i]; if(!sh||!sh.ticker||!(sh.price>0)||!Array.isArray(sh.series)||sh.series.length<30)continue;
+        var w=-1; try{ w=(typeof watchScore10==='function')?watchScore10(sh).score:(+sh.watchScore||0); }catch(e){}
+        if(w>bw){ bw=w; best=sh.ticker; } }
+      return best; }catch(e){ return ''; } }
+  function _ddOn(){ return _modalUp()&&!!document.querySelector('#appModal [data-ddsec="head"]'); }
+  CHECKS.deep=function(){ return _ddOn(); };
+  ACTIONS.deep=function(){ if(!S)return; if(S.rep!=='deep')ACTIONS.main(); if(S.rep==='deep'&&_ddOn())return;
+    if(typeof deepDive!=='function')return; var t=S.ddTicker||(S.ddTicker=_ddPick()); if(!t)return;   // nothing loaded yet: the stop waits
+    _rep('deep',function(){ deepDive(t); }); };
   ACTIONS.brief=function(){ if(S&&S.rep!=='brief')ACTIONS.main(); if(typeof showMyChanges!=='function')return; _rep('brief',function(){ showMyChanges(); }); };
   ACTIONS.lessons=function(){ ACTIONS.main(); var p=document.getElementById('lessonPanel'); if(!p||!S||typeof toggleLessons!=='function')return;
     if(!p.classList.contains('open')){ try{ toggleLessons(); }catch(e){} if(!S.lsnOpened){ S.lsnOpened=true; _undo(function(){ var pp=document.getElementById('lessonPanel'); if(pp&&pp.classList.contains('open'))try{ toggleLessons(); }catch(e){} }); } } };
@@ -20340,6 +20353,7 @@ async function simpleQuietClimbers(){
       t=t.replace(/(\d)\s*[\u2013\u2014-]\s*(\d)\s*yrs?\b/g,'$1 to $2 years').replace(/\byrs\b/g,'years');
       t=t.replace(/\uD83D\uDFE9/g,'up days').replace(/\uD83D\uDFE5/g,'down days');              // the tape's green and red squares
       t=t.replace(/\u2713/g,'').replace(/\u2717/g,'not ');
+      t=t.replace(/(\d)\s*\u00d7/g,'$1 times').replace(/\u00d7/g,' times ');                        // 22.0× average
       t=t.replace(/\s+\/\s+/g,', ').replace(/\u00b7/g,',');
       t=t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'');   // other emoji
       t=t.replace(/\(\s*(\d[\d,]*)\s*\)/g,', $1,');                                                // (752)
@@ -20483,7 +20497,10 @@ async function simpleQuietClimbers(){
     S.i=i; S.el=el; try{ var _bx=document.getElementById('tourBox'); if(_bx)_bx.removeAttribute('data-loading'); }catch(e){}
     document.getElementById('tourTitle').textContent=stop.title;
     var _fin=(stop.why&&FINMSG[stop.why])?FINMSG[stop.why]():'';
-    var _q=''; if(stop.quote&&el){ var _qt=(el.textContent||'').replace(/\s+/g,' ').replace(/^[\s\u00b7]+|[\s\u00b7]+$/g,''); if(_qt&&_qt.length<=70)_q='On your card: \u201c'+_qt+'\u201d. '; }   // v915: read the real figure off the card
+    var _q=''; if(stop.quote&&el){ var _qe=(el.hasAttribute&&el.hasAttribute('data-dd')&&el.lastElementChild)?el.lastElementChild:el;   // v919: a labelled row -> just its VALUE
+      var _qt=(_qe.textContent||'').replace(/\s+/g,' ').replace(/^[\s\u00b7]+|[\s\u00b7]+$/g,''); var _qp=(typeof stop.quote==='string')?stop.quote:'On your card';
+      if(_qt&&_qt.length>70&&_qe.firstElementChild){ var _q1=(_qe.firstElementChild.textContent||'').replace(/\s+/g,' ').trim(); if(_q1&&_q1.length<=70)_qt=_q1; }   // a long value: quote its label pill
+      if(_qt&&_qt.length<=70)_q=_qp+': \u201c'+_qt+'\u201d. '; }   // v915: read the real figure off the screen
     document.getElementById('tourText').textContent=_fin||(_q+stop.text);   // v914: a closing reason when there is one   // v911: say WHY, when there is a specific reason
     document.getElementById('tourN').textContent=(i+1)+' / '+S.stops.length;
     document.querySelector('#tourProg i').style.width=Math.round(100*(i+1)/S.stops.length)+'%';
@@ -20495,7 +20512,8 @@ async function simpleQuietClimbers(){
       if(_cardWaitingForLoad()||(!_cardOn()&&window._prepRunning)) return 'The app is still loading today\u2019s data. The report card opens as soon as loading finishes.';
       if(_cardOn()&&/Grading every signal/.test(_cardText())) return 'The card is grading today\u2019s signals \u2014 one moment.';
       return 'Opening the report card\u2026'; } };
-  var WAITOK={ card:function(){ return !_cardFailed(); } };   // the card itself said it can't grade: stop waiting
+  var WAITOK={ card:function(){ return !_cardFailed(); } };
+  WAITMSG.deep=function(){ return window._prepRunning?'The app is still loading today\u2019s shares. The Deep Dive opens as soon as one is ready.':'Opening a Deep Dive\u2026'; };   // the card itself said it can't grade: stop waiting
   function _diagNow(){ return ' (loading: '+(window._prepRunning?'yes':'no')+' \u00b7 card open: '+(_cardOn()?'yes':'no')+(_cardWaitingForLoad()?' (waiting for load)':'')+' \u00b7 content: '+document.querySelectorAll(_CARD_CONTENT).length+' \u00b7 window: '+((typeof _cardHold==='function')?_cardHold():'?')+'d \u00b7 '+((typeof APP_VERSION!=='undefined')?APP_VERSION:'')+')'; }
   // v917 — one technical report when the card never opened: what the tour saw, nothing personal.
   function _tourDiag(stop){
@@ -20520,6 +20538,7 @@ async function simpleQuietClimbers(){
       if(window._prepRunning) return 'The app was still loading today\u2019s data, so the card couldn\u2019t open yet. Run this chapter again once loading has finished.'+_dg;
       if((S&&S.failed==='card')||_cardFailed()) return 'The report card couldn\u2019t be graded just now \u2014 your server may be busy. Open it again in a moment, then run this chapter again.'+_dg;
       return 'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode, then run this chapter again.'+_dg; } };
+  FINMSG.deep=function(){ return 'No shares are loaded yet. Load your market, then run this chapter again.'; };
   function _loadLine(){ try{ var ls=document.getElementById('loadStatus'); var p=ls?(ls.textContent||'').replace(/\s+/g,' ').trim():''; return p.length>140?p.slice(0,140)+'\u2026':p; }catch(e){ return ''; } }
   function _loading(stop){ var t=document.getElementById('tourTitle'), x=document.getElementById('tourText'), b=document.getElementById('tourBox');
     var msg=(stop.waitFor&&WAITMSG[stop.waitFor])?WAITMSG[stop.waitFor]():'Opening\u2026';
@@ -20970,4 +20989,46 @@ async function simpleQuietClimbers(){
   window._shadowFlags=run;
   // whichever way the data loaded (live, saved on this device, or a refresh), look again for a few minutes
   var tries=0; (function poll(){ tries++; try{ run(); }catch(e){} if(tries<14)setTimeout(poll,45000); })();
+})();
+
+// ═══ v919 — TOUR CHAPTER: 🔬 A share's Deep Dive ═════════════════════════════
+// Opens the Deep Dive the way you do (deepDive) for the share with today's
+// highest Watch Score, and walks it top to bottom. Explanations come from the
+// app's own help text and from what the Deep Dive itself displays - and, by
+// design, state NO thresholds. Presses nothing: not the chart, technicals,
+// printable report, lookalikes, Research or any outside link.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var DD=['deep'], H=['main'];
+  var M=function(sel){ return '#appModal '+sel; };
+  var R=function(lbl){ return M('[data-dd^="'+lbl+'"]'); };
+  window._tourChapter('deep','\ud83d\udd2c A share\u2019s Deep Dive','Everything the app works out for one share, on one screen',[
+    {do:DD, title:'A share\u2019s Deep Dive', text:'Everything the app works out for one share, on one screen. This opens the Deep Dive for the share with today\u2019s highest Watch Score.'},
+    {do:DD, wait:180000, redo:true, waitFor:'deep', sel:M('[data-ddsec="head"]'), quote:'On screen', title:'The share', text:'Its code and name. Everything below is an estimate from price and volume, not advice.'},
+    {do:DD, when:'deep', sel:M('button[onclick^="showChart"]'), title:'Price chart', text:'Opens the share\u2019s price and volume chart.'},
+    {do:DD, when:'deep', sel:M('button[onclick^="showTechnicals"]'), title:'Technicals', text:'Opens the technical picture in more detail.'},
+    {do:DD, when:'deep', sel:M('button[onclick^="printShareReport"]'), title:'Printable report', text:'A one-page report on this share, to save or print.'},
+    {do:DD, when:'deep', sel:'#ddNews', title:'Latest news', text:'The share\u2019s most recent headlines, fetched fresh when the Deep Dive opens.'},
+    {do:DD, when:'deep', sel:M('[data-ddsec="footprint"]'), up:'div', title:'Who\u2019s actually buying?', text:'Shown when price and volume look like quiet accumulation. It links to the public filings \u2014 substantial holders, director trades and announcements \u2014 so you can check who is behind it. Buying under 5% is never publicly disclosed, so the footprint alone cannot name a buyer.'},
+    {do:DD, when:'deep', sel:M('[data-ddsec^="Price"]'), title:'Price and volume', text:'Today\u2019s close, the company\u2019s size, today\u2019s change, and how today\u2019s volume compares with its usual.'},
+    {do:DD, when:'deep', sel:R('Volume vs average'), quote:'On screen', title:'Volume against normal', text:'Today\u2019s volume measured against this share\u2019s own usual volume.'},
+    {do:DD, when:'deep', sel:R('Surge rating'), quote:'On screen', title:'Surge rating', text:'A plain-words grade of how unusual today\u2019s volume is for this share.'},
+    {do:DD, when:'deep', sel:M('[data-ddsec="Insight Trading signals"]'), title:'The app\u2019s signals', text:'Activity measures the app works out from price and volume, for this share, today.'},
+    {do:DD, when:'deep', sel:R('Watch score'), quote:'On screen', title:'Watch Score', text:'A summary out of ten of today\u2019s buying activity: accumulation, price and volume streaks, and today\u2019s move. It describes activity \u2014 it is not a graded, backtested ranking like PN Edge.'},
+    {do:DD, when:'deep', sel:R('Up-day streak'), quote:'On screen', title:'Streaks', text:'How many days in a row the price has closed higher, or lower, and how many days in a row volume has run above normal.'},
+    {do:DD, when:'deep', sel:R('Accumulation'), quote:'On screen', title:'Accumulation', text:'How many of the last ten days were heavy up-days. Near zero is a mild caution sign; more is activity, not proven to predict a better return.'},
+    {do:DD, when:'deep', sel:R('Lookalike history'), title:'Lookalike history', text:'Tap it on the Deep Dive to see what usually happened next after moments like this one.'},
+    {do:DD, when:'deep', sel:R('Sharp-mover score'), quote:'On screen', title:'Sharp-mover score', text:'How abnormal today\u2019s move is for this particular share, measured against its own usual swings.'},
+    {do:DD, when:'deep', sel:R('Unusual-activity score'), quote:'On screen', title:'Unusual activity', text:'How many of the app\u2019s five unusual-activity patterns showed up today.'},
+    {do:DD, when:'deep', sel:R('Likely-news flag'), quote:'On screen', title:'Likely news', text:'An estimate, from price and volume alone, of whether news is probably behind the move. It is not a confirmed announcement.'},
+    {do:DD, when:'deep', sel:R('MA trend'), quote:'On screen', title:'Moving averages', text:'The longer-term trend: the 50-day average price against the 200-day. A crossing is called a golden cross when it turns up, and a death cross when it turns down.'},
+    {do:DD, when:'deep', sel:R('RSI'), quote:'On screen', title:'RSI', text:'Momentum over the last 14 days, on a scale from 0 to 100. High readings are called overbought, low ones oversold.'},
+    {do:DD, when:'deep', sel:R('From 52-wk high'), quote:'On screen', title:'The 52-week high', text:'How far the price sits below its highest point of the past year.'},
+    {do:DD, when:'deep', sel:R('Volume trend'), quote:'On screen', title:'Volume trend', text:'Whether volume has been flowing in on up days or out on down days: rising, falling or flat.'},
+    {do:DD, when:'deep', sel:M('[data-ddsec$="trading range"]'), title:'Trading range', text:'The share\u2019s normal band over recent sessions, where today\u2019s price sits in it, how steady the band has been, and how wide it is. Context, not a prediction \u2014 ranges break as often as they hold.'},
+    {do:DD, when:'deep', sel:M('[data-ddsec="Your activity"]'), title:'Your activity', text:'Whether it is on one of your watchlists, a button to save it to Research for later, and any practice position you hold in it.'},
+    {do:DD, when:'deep', sel:M('[data-ddsec^="Deeper research"]'), title:'Official sources', text:'Links to the authoritative free sources for this share \u2014 announcements, shareholders and more. They are other sites: always check the official filings before deciding anything.'},
+    {do:H, whenNot:'deep', why:'deep', title:'No Deep Dive yet', text:'No shares are loaded yet. Load your market, then run this chapter again.'},
+    {do:H, title:'That\u2019s the Deep Dive', text:'Every share has one. Open it by tapping a share in the reports, in your briefing, or in Research.'}
+  ]);
 })();

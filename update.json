@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-918",
+  "version": "2026.09.22-919",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fix: the voice reads numbers properly - it said '7.8/10' as '7.8 ... 10 inches' because of the quote mark after the number. It now says '7.8 out of 10', reads '10d' as '10 days', and no longer reads emoji or symbols aloud. What's on screen is unchanged."
+  "notes": "New in the Tour menu: A share's Deep Dive - everything the app works out for one share, from the Watch Score and streaks to RSI and the trading range, walked through on today's top share with its real figures."
 }
