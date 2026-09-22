@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-928-open';
+const APP_VERSION='2026.09.22-929-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -11075,6 +11075,36 @@ async function volumeSurgeScan(){
       +' · '+up+' up / '+(rows.length-up)+' down'
       +' &nbsp;<button onclick="_surgeDoc()" title="Open the printable Volume Surge document — the old format, with rating bands, links and a Print / Save as PDF button." style="border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:6px;padding:2px 8px;font-weight:700;font-size:10px;font-family:var(--sans);cursor:pointer;">🖨 full report</button>';
   }
+  // w-ownwindow: table stays filled and the scan ALSO opens its own window,
+  // matching every other report card — Tony: "can they open in both".
+  // _selVolumeSurge/volSurgeRating (the actual ranking) is untouched, and the
+  // existing 🖨 full report button (the printable document) still works too.
+  {
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+    let body;
+    if(!rows.length){
+      body='<p style="color:var(--muted)">No shares have volume-vs-average computed yet — run a scan or load volume data first.</p>';
+    }else{
+      body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Vol vs normal</th><th style="padding:6px 8px">Band</th></tr>'
+        + rows.map(x=>{
+            const s=x.s, r=x.r, chg=s.chgPct||0;
+            return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+              +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+              +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+              +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+              +'<td style="padding:7px 8px;text-align:right">+'+Math.round(s.volPct)+'%</td>'
+              +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">'+esc(r&&r.label||'—')+'</td>'
+            +'</tr>';
+          }).join('')
+        +'</table>';
+    }
+    const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+rows.length.toLocaleString()+'</b> shares trading above their normal volume, biggest first'
+      +(hot?' · <b>'+hot+'</b> running hot (2×+)':'')+' · '+up+' up / '+(rows.length-up)+' down.</p>';
+    const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">Tap 🖨 full report on the status line below for the printable document with rating bands. Close this and the table underneath is already sorted to match.</p>';
+    window._modalLabel='📈 Volume Surge'; window._modalType='volumeSurgeAdv';
+    showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','📈 Volume Surge');
+  }
 }
 function _surgeDoc(){
   // Open the printable document for exactly what is on screen right now — no
@@ -13374,6 +13404,40 @@ async function speedingTicketScan(){
       st.innerHTML=`No sharp movers at "${P.label}" sensitivity. <button onclick="setSpeedSensitivity('loose')" style="padding:2px 8px;border-radius:4px;border:1px solid var(--blue);background:rgba(56,139,253,.12);color:var(--blue);font-weight:600;font-size:9px;font-family:var(--sans);cursor:pointer;">Try looser</button>`;
     }
   }
+  // w-ownwindow: table stays filled (sort/filter still works on it) and the
+  // scan ALSO opens its own window, matching every other report card — Tony:
+  // "can they open in both". _selSharpMovers (the actual ranking, and what
+  // the 🔬 shadow check compares against) is untouched.
+  {
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+    const sens=`<div style="display:flex;gap:4px;margin:0 0 10px;">
+      <button onclick="setSpeedSensitivity('strict')" style="padding:3px 8px;border-radius:4px;border:1px solid ${speedSensitivity==='strict'?'var(--gold)':'var(--border2)'};background:${speedSensitivity==='strict'?'rgba(255,210,0,.15)':'var(--bg3)'};color:${speedSensitivity==='strict'?'var(--gold)':'var(--muted)'};font-weight:600;font-size:9px;font-family:var(--sans);cursor:pointer;">Strict</button>
+      <button onclick="setSpeedSensitivity('normal')" style="padding:3px 8px;border-radius:4px;border:1px solid ${speedSensitivity==='normal'?'var(--gold)':'var(--border2)'};background:${speedSensitivity==='normal'?'rgba(255,210,0,.15)':'var(--bg3)'};color:${speedSensitivity==='normal'?'var(--gold)':'var(--muted)'};font-weight:600;font-size:9px;font-family:var(--sans);cursor:pointer;">Normal</button>
+      <button onclick="setSpeedSensitivity('loose')" style="padding:3px 8px;border-radius:4px;border:1px solid ${speedSensitivity==='loose'?'var(--gold)':'var(--border2)'};background:${speedSensitivity==='loose'?'rgba(255,210,0,.15)':'var(--bg3)'};color:${speedSensitivity==='loose'?'var(--gold)':'var(--muted)'};font-weight:600;font-size:9px;font-family:var(--sans);cursor:pointer;">Loose</button>
+    </div>`;
+    let body;
+    if(!scored.length){
+      body='<p style="color:var(--muted)">No sharp movers at "'+esc(P.label)+'" sensitivity — try Loose above.</p>';
+    }else{
+      body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Speed</th><th style="padding:6px 8px">News</th></tr>'
+        + scored.map(s=>{
+            const chg=s.chgPct||0;
+            return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+              +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+              +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+              +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+              +'<td style="padding:7px 8px;text-align:right">'+(s.speedMoveMult!=null?s.speedMoveMult+'×':'—')+'</td>'
+              +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">'+(s.newsFlag==='likely'?'📢 likely':'🔍 no obvious reason')+'</td>'
+            +'</tr>';
+          }).join('')
+        +'</table>';
+    }
+    const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 6px"><b style="color:var(--text)">'+scored.length+'</b> sharp movers ('+esc(P.label)+') · <span style="color:var(--orange)">📢 '+onNews.length+' on likely news</span> · <span style="color:var(--green)">🔍 '+noReason.length+' no obvious reason yet</span></p>'+sens;
+    const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">Ranked by how abnormal the move is for each share — an estimate, verify via ↗ links, never advice. Close this and the table underneath is already sorted to match.</p>';
+    window._modalLabel='🚨 Sharp Mover Detector'; window._modalType='sharpMoversAdv';
+    showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','🚨 Sharp Mover Detector');
+  }
 }
 
 // ═══ v485 — HOW technical signals rank ════════════════════════════════════
@@ -15431,6 +15495,34 @@ async function unusualScan(){
     }else{
       st.innerHTML='No unusual patterns detected in this exchange today. <span style="font-size:9px">(needs ~1-month history — try after data loads.)</span>';
     }
+  }
+  // w-ownwindow: table stays filled and the scan ALSO opens its own window,
+  // matching every other report card — Tony: "can they open in both".
+  // _selUnusual/scoreUnusual (the actual scoring) is untouched.
+  {
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+    let body;
+    if(!scored.length){
+      body='<p style="color:var(--muted)">No unusual patterns detected — needs ~1-month history, try after data loads.</p>';
+    }else{
+      body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Score</th><th style="padding:6px 8px">Pattern</th></tr>'
+        + scored.map(s=>{
+            const chg=s.chgPct||0, hits=(s.unusualHits||[]).map(h=>h.label).join(' · ')||'—';
+            return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+              +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+              +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+              +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+              +'<td style="padding:7px 8px;text-align:right">'+(s.unusualScore!=null?(+s.unusualScore).toFixed(1):'—')+'</td>'
+              +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">'+esc(hits)+'</td>'
+            +'</tr>';
+          }).join('')
+        +'</table>';
+    }
+    const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+scored.length+'</b> shares show unusual activity, scored and ranked.</p>';
+    const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">Estimate from price/volume only — use Verify ↗ on a share\'s report to check for real news. Never advice. Close this and the table underneath is already sorted to match.</p>';
+    window._modalLabel='🔍 Unusual Activity Scan'; window._modalType='unusualAdv';
+    showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','🔍 Unusual Activity Scan');
   }
 }
 
@@ -18750,15 +18842,47 @@ async function recoveryScanAdv(){
   try{ await recoveryScan(); }catch(e){}
   try{ render();statsBar();dots();mkBadges();_scanDone(); }catch(e){}
   if(st)st.innerHTML=(Array.isArray(filtered)&&filtered.length)?`✓ <strong style="color:var(--amber)">${filtered.length}</strong> potential recovery shares — see the table`:'No recovery candidates right now.';
+  // w-ownwindow: table stays filled and the scan ALSO opens its own window,
+  // matching every other report card — Tony: "can they open in both".
+  // _selRecovery (the actual selection, called via recoveryScan() above) is
+  // untouched; this reads the SAME `filtered` it just set.
+  {
+    const rows=Array.isArray(filtered)?filtered:[];
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+    let body;
+    if(!rows.length){
+      body='<p style="color:var(--muted)">No recovery candidates right now — needs volume &amp; streak data; try after a full load or another scan.</p>';
+    }else{
+      body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Volume</th><th style="padding:6px 8px">Fell</th></tr>'
+        + rows.map(s=>{
+            const chg=s.chgPct||0;
+            return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+              +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+              +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+              +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+              +'<td style="padding:7px 8px;text-align:right">+'+Math.round(s.volPct||0)+'%</td>'
+              +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">'+(s.daysDown>=2?(s.daysDown+'d down'):'basing')+'</td>'
+            +'</tr>';
+          }).join('')
+        +'</table>';
+    }
+    const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+rows.length+'</b> shares fallen for days but now stabilising on elevated volume — a reversal LEAD, not a signal to buy on its own.</p>';
+    const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">Reversals fail often. Estimate from price and volume only — never advice. Close this and the table underneath is already sorted to match.</p>';
+    window._modalLabel='↩️ Recovery Watch'; window._modalType='recoveryAdv';
+    showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','↩️ Recovery Watch');
+  }
 }
 
 async function quietMoversScan(){
-  // w-ownwindow: was a table-filling scan (filtered=...; render()), the odd one
-  // out next to every other report card's showModal() window — Tony: "can we
-  // fix this so they all open in own window". Converted to match; _selQuietMovers
-  // (the actual selection/scoring logic, and what the 🔬 shadow check compares
-  // against) is untouched — only how the results are SHOWN changed.
-  if(!Array.isArray(allData)||!allData.length){ alert('Load the market first — tap ⚡ Load.'); return; }
+  // w-ownwindow: fills the table (so Advanced's sort/filter/refine still works)
+  // AND opens its own window (matching every other report card) — Tony: "can
+  // they open in both". _selQuietMovers (the actual selection/scoring, and
+  // what the 🔬 shadow check compares against) is untouched.
+  _scanStart('🫧 Quiet Movers');
+  exitWatchView&&exitWatchView();
+  _resetBeforeScan();
+  if(!allData||!allData.length){ _scanDone&&_scanDone(); alert('Load the market first — tap ⚡ Load.'); return; }
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Finding quiet movers…</b><br>checking today\'s move against each share\'s own volume and streak.</div>','🫧 Quiet Movers'); }catch(e){}
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
@@ -18766,11 +18890,24 @@ async function quietMoversScan(){
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
     else{ if(typeof bulkVolume==='function')await bulkVolume(); }
   }
-  const m=document.getElementById('appModal');
-  if(!(m&&m.style.display!=='none'&&window._curModalLabel==='🫧 Quiet Movers'))return;   // closed while loading
   // v485 — the deciding stays in _selQuietMovers, untouched.
   const _qm=_selQuietMovers(allData);
   const scored=_qm.rows, fadeCount=_qm.fadeCount;
+  // Fill the shared table too — same as every scan before this change — so
+  // sorting and the rest of Advanced mode's filters still work on these
+  // results once the window is closed.
+  F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
+  filtered=scored.map(x=>x.s);
+  lastScanLabel='Quiet Movers';
+  _resetStatsForNewView();
+  const _ss=document.getElementById('sortSel'); if(_ss)_ss.value='watchScore';
+  sortKey='watchScore'; sortDir=-1;
+  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
+  document.getElementById('statsBar').style.display='';
+  document.getElementById('toolbar').style.display='flex';
+  // ── the window ──
+  const m=document.getElementById('appModal');
+  if(!(m&&m.style.display!=='none'&&window._curModalLabel==='🫧 Quiet Movers'))return;   // closed while loading
   const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
   const why=x=>{
@@ -18801,7 +18938,7 @@ async function quietMoversScan(){
   const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+scored.length+'</b> quiet movers — small net move today (±5%) but quietly building underneath'
     +(fadeCount?' · <span style="color:var(--gold)">🌙 '+fadeCount+' faded from an intraday high (someone took profit into the close)</span>':'')
     +'. Ranked by the accumulation score.</p>';
-  const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">An estimate from end-of-day price and volume only — never advice. Tap any share for its full report.</p>';
+  const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">An estimate from end-of-day price and volume only — never advice. Close this and the table underneath is already sorted to match.</p>';
   window._modalLabel='🫧 Quiet Movers'; window._modalType='quietMoversAdv';
   showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','🫧 Quiet Movers');
 }
@@ -19203,6 +19340,14 @@ async function gapScan(){
       +sec(`⬇ Gapped down & stayed weak`,weak)
       +`<div style="font-size:9px;color:var(--dim);margin-top:8px;">Tap any line for that share's deep dive. ${noOpen?`Opens missing for ${noOpen} share${noOpen===1?'':'s'} (older stored data) — 🔄 Refresh fills them in. `:''}End-of-day estimates — not advice.</div>`;
     showModal(head+body,'🕳 Gap Report');
+  }else{
+    // w-ownwindow: the empty case used to leave only the status line — Tony:
+    // "can they open in both". Now it opens a small window too, same as a
+    // populated result, instead of silently doing nothing.
+    const msg=(noOpen>=Math.max(1,priced)*0.7)
+      ? 'No stored opens for most shares yet — the app saves each day\'s open from now on (part of the candles fix). 🔄 Refresh / redownload data fills them in immediately.'
+      : 'No 3%+ opening gaps in today\'s data.';
+    showModal('<div style="padding:4px 2px"><p style="color:var(--muted)">'+msg+'</p></div>','🕳 Gap Report');
   }
 }
 // ═══ v282 — 🧱 Strong Trends: the full moving-average stack ═══
@@ -19243,6 +19388,34 @@ async function trendScan(){
       st.innerHTML=`No full stacks right now (${have200} shares have 200-day data${nearStack?`; ${nearStack} pass the shorter price &gt; 20 &gt; 50 test`:''}).`;
     }
   }
+  // w-ownwindow: table stays filled and the scan ALSO opens its own window,
+  // matching every other report card — Tony: "can they open in both".
+  // _selStrongTrends (the actual ranking) is untouched.
+  {
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+    let body;
+    if(!scored.length){
+      body='<p style="color:var(--muted)">'+(!have200?'None of your shares have 200 days of stored history yet — the full stack needs it. 🔄 Download data builds it up.':'No full stacks right now.')+'</p>';
+    }else{
+      body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Watch</th><th style="padding:6px 8px">Trend</th></tr>'
+        + scored.map(x=>{
+            const s=x.s, chg=s.chgPct||0;
+            return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+              +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+              +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+              +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+              +'<td style="padding:7px 8px;text-align:right">'+(s.watchScore!=null?(+s.watchScore).toFixed(1):'—')+'/10</td>'
+              +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">slope '+(s._tsTrend>=0?'+':'')+s._tsTrend+'% · '+(Math.abs(s._tsExt)<=4?'orderly':'stretched '+(s._tsExt>=0?'+':'')+s._tsExt+'%')+'</td>'
+            +'</tr>';
+          }).join('')
+        +'</table>';
+    }
+    const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+scored.length+'</b> in a full trend stack — price &gt; 20-day &gt; 50-day &gt; 200-day average. The strongest trend structure there is.</p>';
+    const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">Ranked by trend quality — steady slope, not overstretched, quiet accumulation. Estimate, never advice. Close this and the table underneath is already sorted to match.</p>';
+    window._modalLabel='🧱 Strong Trends'; window._modalType='strongTrendsAdv';
+    showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','🧱 Strong Trends');
+  }
 }
 async function pullbackScan(){
   _scanStart('🪜 Pullback in Uptrend');
@@ -19277,6 +19450,34 @@ async function pullbackScan(){
     }else{
       st.innerHTML='No clean pullbacks right now. <span style="font-size:9px">(needs moving-average &amp; RSI data — try after a full load or another scan; shares need enough price history.)</span>';
     }
+  }
+  // w-ownwindow: table stays filled and the scan ALSO opens its own window,
+  // matching every other report card — Tony: "can they open in both".
+  // _selPullback (the actual ranking) is untouched.
+  {
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+    let body;
+    if(!scored.length){
+      body='<p style="color:var(--muted)">No clean pullbacks right now — needs moving-average &amp; RSI data; try after a full load or another scan.</p>';
+    }else{
+      body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Watch</th><th style="padding:6px 8px">Pullback</th></tr>'
+        + scored.map(x=>{
+            const s=x.s, chg=s.chgPct||0;
+            return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+              +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+              +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+              +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+              +'<td style="padding:7px 8px;text-align:right">'+(s.watchScore!=null?(+s.watchScore).toFixed(1):'—')+'/10</td>'
+              +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">'+(s._pbDma20>=0?'+':'')+s._pbDma20+'% vs 20d · RSI '+s._pbRsi+'</td>'
+            +'</tr>';
+          }).join('')
+        +'</table>';
+    }
+    const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+scored.length+'</b> pullbacks in an uptrend — above the key moving averages, dipped toward its short-term average, momentum cooled but not broken. The classic "buy the dip" setup.</p>';
+    const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">Ranked by how tightly they hug the 20-day average and how strong the longer trend is. Estimate, never advice. Close this and the table underneath is already sorted to match.</p>';
+    window._modalLabel='🪜 Pullback in Uptrend'; window._modalType='pullbackAdv';
+    showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','🪜 Pullback in Uptrend');
   }
 }
 // ═══ v276 — "What's changed for YOU": your lists checked against each fresh day ═══
