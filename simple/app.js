@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-924-simple';
+const APP_VERSION='2026.09.22-925-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20338,6 +20338,11 @@ async function simpleQuietClimbers(){
     try{ toggleSelect(m[1]); }catch(e){ return; } S.tselT=m[1];
     if(!S.tselUndo){ S.tselUndo=true; _undo(function(){ try{ if(S&&S.tselT&&selected.has(S.tselT)){ var t=S.tselT; S.tselT=null; toggleSelect(t); } }catch(e){} }); } };
   ACTIONS.untsel=function(){ if(!S)return; if(S.rep)ACTIONS.main(); try{ if(S.tselT&&typeof selected!=='undefined'&&selected.has(S.tselT)){ var t=S.tselT; S.tselT=null; toggleSelect(t); } }catch(e){} };
+  // v925 — the Market Radar. On phones it starts folded to a one-line strip (class r-less), which hides
+  // every tile group. The tour unfolds it by the class alone for the chapter — never via the ▾ details
+  // button, whose choice is saved — and folds it back at the end. Tiles are never tapped.
+  ACTIONS.radar=function(){ if(!S)return; if(S.rep)ACTIONS.main(); var sb=document.getElementById('statsBar'); if(!sb)return;
+    if(sb.classList.contains('r-less')){ sb.classList.remove('r-less'); if(!S.radarUnfold){ S.radarUnfold=true; _undo(function(){ var s2=document.getElementById('statsBar'); if(s2)s2.classList.add('r-less'); }); } } };
   ACTIONS.wlmgr=function(){ if(!S)return; if(S.rep!=='wlmgr')ACTIONS.main(); if(S.rep==='wlmgr'&&CHECKS.wlMgr())return;
     if(typeof openWatchManager!=='function')return; _rep('wlmgr',function(){ openWatchManager(); }); };
   ACTIONS.research=function(){ if(!S)return; if(S.rep!=='research')ACTIONS.main(); if(S.rep==='research'&&CHECKS.res())return;
@@ -21173,4 +21178,31 @@ async function simpleQuietClimbers(){
     {do:UT, sel:'#routineBtnMain', title:'Your daily routine', text:'Runs all your saved reports in one go. It appears once you have saved a report from your filters.'},
     {do:UT, title:'That\u2019s the share table', text:'Sort it, tick a shortlist, and open any share from its row.'}
   ], '#selAll, #modeSeg');
+})();
+
+// ═══ v925 — TOUR CHAPTER: 📡 The Market Radar ═════════════════════════════════
+// The tiles above your list: what each group counts, how tiles filter (and
+// stack), and that they narrow your watchlist too. Unfolds a folded radar by
+// its class for the chapter and folds it back; never taps a tile or the
+// details button (its choice is saved). Wording is qualitative by design:
+// no thresholds.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var RA=['radar'], H=['main'];
+  var T=function(k){ return '#statsBar [onclick="statFilter(\''+k+'\')"]'; };
+  window._tourChapter('radar','\ud83d\udce1 The Market Radar','The tiles above your list: what they count, and how they narrow what you see',[
+    {do:RA, sel:'#statsBar', title:'The Market Radar', text:'The tiles above your list: live counts of what today\u2019s market is doing. Tap any tile to narrow your list to just those shares; tap it again to undo.'},
+    {do:RA, sel:T('all'), title:'Showing', text:'How many shares are in view right now. Tap it to clear every quick filter and show everything again.'},
+    {do:RA, sel:T('gainers'), title:'Up and down', text:'How many shares rose and how many fell today. Tap one to show only those.'},
+    {do:RA, sel:T('bullish'), title:'Bullish and bearish', text:'Shares with bullish price and volume patterns today \u2014 buying pressure, accumulation or an up-streak \u2014 and the bearish mirror: heavy selling, distribution or a down-streak. A data summary, not advice.'},
+    {do:RA, sel:'#statsBar .rg-ev', title:'The evidence tiles', text:'Shares grouped by the record of the strongest signal firing on them today \u2014 SOLID, PROMISING or not proven \u2014 and how many carry a PN Edge. The same grades as the report card.'},
+    {do:RA, sel:T('sghi52'), up:'.radar-grp', title:'Signals', text:'The newer signals, counted for today: new yearly highs, golden crosses, RSI recoveries, squeezes, relative-strength leaders, and news arriving with heavy volume.'},
+    {do:RA, sel:T('vol50'), up:'.radar-grp', title:'Volume', text:'Unusual volume in its different shapes: big surges and early pick-ups, streaks, records, block trades, quiet movers, and how much money actually traded.'},
+    {do:RA, sel:T('up2'), up:'.radar-grp', title:'Trend', text:'Up-streaks, shares near their yearly high or above their long-term average, breakouts, crosses, and possible big-money or quiet buying.'},
+    {do:RA, sel:T('floor'), up:'.radar-grp', title:'Caution', text:'The warning side: bearish patterns, shares near the floor of their range, and possible quiet selling.'},
+    {do:RA, sel:'#radarMoreBtn', title:'Details', text:'Folds these groups away to a single line, or opens them again. Your choice is remembered on this device; on a phone they start folded.'},
+    {do:RA, sel:T('vol'), title:'Tiles stack', text:'Tap more than one tile and only shares matching all of them stay. The counts update as you go.'},
+    {do:RA, sel:T('all'), title:'They narrow your watchlist too', text:'Quick filters also apply to your watchlist view. If your stars ever seem to vanish, tap Showing to clear the filters.'},
+    {do:H, title:'That\u2019s the radar', text:'A quick read of the market, and a one-tap way to narrow your list.'}
+  ]);
 })();
