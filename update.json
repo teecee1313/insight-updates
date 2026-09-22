@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-907",
+  "version": "2026.09.22-908",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Behind the scenes: the Signal report card gains a look-only mode for the tour (no news registration and no grade-history save during a tour visit). Your own use of the card is unchanged."
+  "notes": "New in the Tour menu: The signal report card - where SOLID and PROMISING come from, and how to read every number on it. The tour opens the card only when today's grades are ready, and it only looks: it sends nothing and saves nothing."
 }

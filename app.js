@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-907-open';
+const APP_VERSION='2026.09.22-908-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20708,4 +20708,33 @@ async function simpleQuietClimbers(){
     {do:RF, onlyIf:ADV, sel:'#routineBtn', title:'Your routine', text:'Runs your saved sequence of scans in order: your usual check, in one tap.'},
     {do:H, title:'That\u2019s settings', text:'Next: your daily briefing, the nightly email and the lessons.'}
   ]);
+})();
+
+// ═══ v907 — TOUR CHAPTER: 📋 The signal report card ══════════════════════════
+// Where SOLID and PROMISING come from. Opened ONLY when today's grades are
+// already on this device (the card's instant path) — no grading, no request —
+// and look-only: no news registration, no grade-history save while touring.
+// Never presses the window, view or news choices, the deep-dive fold or print.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var RC=['rcard'], H=['main'];
+  var M=function(sel){ return '#appModal '+sel; };
+  window._tourChapter('signals','\ud83d\udccb The signal report card','Where SOLID and PROMISING come from, and how to read every number on the card',[
+    {do:H, title:'The signal report card', text:'Where SOLID and PROMISING come from. The app re-runs every signal over your stored history and reports how each one actually did \u2014 including when the answer is bad.'},
+    {do:H, whenNot:'rcard', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
+    {do:RC, when:'rcard', sel:M('span[title^="These grades were computed on YOUR server"]')+', '+M('span[title^="Computed on this device"]'), title:'Where it was graded', text:'On your server, or on this device if the server couldn\u2019t be reached. The same maths either way.'},
+    {do:RC, when:'rcard', sel:M('[onclick^="setCardHold"]'), up:'div', title:'How long after', text:'Outcomes are measured five trading days after each signal fired \u2014 the window the auto-pilot trades on. Ten and thirty days are research views: does the edge last?'},
+    {do:RC, when:'rcard', sel:M('[onclick^="_sigView"]'), up:'div', title:'Gainers or fallers', text:'Show every fire, only the days the share rose, or only the days it fell.'},
+    {do:RC, when:'rcard', sel:M('[onclick^="_sigNews"]'), up:'div', title:'News or quiet', text:'Split the fires by whether there was a price-sensitive announcement: news-driven moves, or quiet ones.'},
+    {do:RC, when:'rcard', sel:M('div[title^="The ladder ranks every flag"]'), title:'The ladder', text:'Every signal and combination, ranked best to worst by its strength out of ten.'},
+    {do:RC, when:'rcard', sel:M('.ladrow'), title:'A signal', text:'Each line is one signal: its rank, its strength out of ten \u2014 how strong and how proven, in one number \u2014 and its PN Edge: the money made per hundred dollars, on average, in the days after it fired, beyond what the market did and before costs.'},
+    {do:RC, when:'rcard', sel:M('.ladrow'), title:'The warning sign', text:'A warning triangle means a figure is past what is plausible for an end-of-day signal, so its score is capped. Check how many fires it rests on, and the earlier years, before believing it.'},
+    {do:RC, when:'rcard', sel:M('div[title^="Combinations = two or three flags"]'), title:'Combinations', text:'Two or three signals firing on the same share on the same day. Does agreement beat any single signal on its own?'},
+    {do:RC, when:'rcard', sel:M('div[title^="Sequences = a quiet-buying flag"]'), title:'Sequences', text:'Quiet buying in the one to three days before, then an ignition signal. Does that order matter?'},
+    {do:RC, when:'rcard', sel:M('div[title^="Of the winning fires"]'), title:'The announcement question', text:'Of the winning fires, how many had a price-sensitive announcement on or just before the day? A move with news behind it is a different thing from a move without.'},
+    {do:RC, when:'rcard', sel:M('div[title^="Of the lines NOT yet SOLID"]'), title:'Climbing the ladder', text:'Of the lines not yet SOLID: which are genuinely moving toward the bar, and exactly what each one still needs.'},
+    {do:RC, when:'rcard', sel:M('div[onclick*="cardDeepOpen"]'), title:'How to read this card', text:'A plain-English deep dive into every number on the card. Tap it to unfold it.'},
+    {do:RC, when:'rcard', sel:M('[onclick^="printSignalReport"]'), title:'Save or print', text:'Keep a copy of the card as it stands today.'},
+    {do:H, title:'That\u2019s the report card', text:'Every tier in the app \u2014 every SOLID and PROMISING badge on every share \u2014 traces back to this card.'}
+  ], '#bestEvBtn, #modeSeg');
 })();
