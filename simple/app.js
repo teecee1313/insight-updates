@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-910-simple';
+const APP_VERSION='2026.09.22-911-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20753,4 +20753,40 @@ async function simpleQuietClimbers(){
     {do:H, whenNot:'rcard', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
     {do:H, title:'That\u2019s the report card', text:'Every tier in the app \u2014 every SOLID and PROMISING badge on every share \u2014 traces back to this card.'}
   ], '#bestEvBtn, #modeSeg');
+})();
+
+// ═══ v909 — TOUR CHAPTER: 🎓 Lessons, training & your briefing ══════════════
+// The daily briefing (opened look-only: it is not marked seen), then the
+// lessons panel and training mode. Never answers a quiz, opens flashcards,
+// switches training mode on or changes the briefing's auto-open setting.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var H=['nolessons'], B=['brief'], L=['lessons'];
+  var M=function(sel){ return '#appModal '+sel; };
+  var P=function(sel){ return '#lessonPanel '+sel; };
+  window._tourChapter('learn','\ud83c\udf93 Lessons, training & your briefing','Your daily briefing, the 54 lessons, flashcards and quizzes, and training mode',[
+    {do:H, title:'Learning the app', text:'Where to learn, and the one screen that checks in with you each day.'},
+    // ── the daily briefing ──
+    {do:H, sel:'#myChangesBtn', title:'What\u2019s changed for you', text:'Your holdings and watchlist, checked against each new market day.'},
+    {do:B, sel:M('#mcHead'), title:'Your daily briefing', text:'It checks everything you hold and watch against the latest data: sales the auto-pilot made, new orders, big moves, and positions that have grown too large.'},
+    {do:B, sel:M('button[onclick^="_myChangesAutoToggle"]'), title:'Opening by itself', text:'It can open by itself once each market day, or only when you tap the bell. This button switches between the two.'},
+    {do:B, sel:M('#mcHoldings'), title:'Your holdings', text:'Anything that happened to what you hold: sales, new orders, and shares grown past your size limits.'},
+    {do:B, sel:M('[title="Open this watchlist"]'), title:'Your watchlists', text:'Each watchlist, with how many of its shares moved enough to flag. Tap a list\u2019s name to open it.'},
+    {do:B, sel:M('#mcFoot'), title:'Going deeper', text:'Tap any line for that share\u2019s full story. These are end-of-day estimates, not advice.'},
+    // ── the lessons ──
+    {do:H, sel:'#lessonsBtn', title:'Lessons', text:'Fifty-four short illustrated lessons on reading the market, the signals and this app.'},
+    {do:L, sel:'#lessonProg', title:'Your progress', text:'How many lessons you have finished. It is remembered on this device.'},
+    {do:L, sel:P('a[href*="Beginners-Guide"]'), up:'div', title:'The written guides', text:'The Beginner\u2019s Guide as a PDF and the setup deck as a PowerPoint, if you would rather read.'},
+    {do:L, sel:P('[onclick="openFlashcards()"]'), title:'Flashcards', text:'Quick-fire cards to test what you remember.'},
+    {do:L, sel:P('[onclick="openStudyQuiz()"]'), title:'Quiz me', text:'A mixed quiz across everything you have studied.'},
+    {do:L, sel:'#lsnLang', title:'Language', text:'Read the lessons in another language.'},
+    {do:L, sel:'#lessonNav', title:'Every lesson', text:'The full list. A tick means you have passed that lesson\u2019s quiz.'},
+    {do:L, sel:'#lessonBody', title:'A lesson', text:'Short steps, one idea each, a few minutes long, with a quick quiz at the end.'},
+    {do:L, sel:'#lessonBody .lsn-nav', title:'Next and back', text:'Step through the lessons in order.'},
+    {do:L, sel:P('.hp-fs'), title:'Full screen', text:'Give the lesson the whole screen. Press it again to shrink it back.'},
+    {do:L, sel:'#lessonDrag', title:'Move it', text:'Drag the panel by its top bar to put it wherever suits you.'},
+    // ── training mode ──
+    {do:H, sel:'#trainBtn', title:'Training mode', text:'Turn it on and every button, column and tile explains itself when you hover over or tap it. The full tour reads its words from the same place.'},
+    {do:H, title:'That\u2019s everything', text:'You have seen the whole app. Run any chapter again from the Tour menu, any time.'}
+  ]);
 })();
