@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-920",
+  "version": "2026.09.22-921",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: Watchlists & Research - stars, your lists and the lists manager (How's my eye?, Sweep stale), and the Research to-do list for shares you want to look into later."
+  "notes": "Tour fix: the Watchlists chapter now shows your stars in Advanced too - the main table narrows to your starred shares, then goes back exactly as you had it (search included). If a quick filter is hiding your stars, the tour reads out the app's own explanation."
 }

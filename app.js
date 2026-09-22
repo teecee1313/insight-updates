@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-920-open';
+const APP_VERSION='2026.09.22-921-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -2717,14 +2717,14 @@ function _calcTools(){
    +'</div>'
    +'</div>'
    +'<div id="_cOut" style="margin-top:14px;"></div>'
-   +'<div style="text-align:center;color:var(--faint,#97a1b2);font-size:11px;margin-top:14px;line-height:1.55;">Just arithmetic on the numbers you entered — it makes no prediction about whether a trade will win.<br>Practice-money research tool. Not advice.</div>'
+   +'<div class="calc-foot" style="text-align:center;color:var(--faint,#97a1b2);font-size:11px;margin-top:14px;line-height:1.55;">Just arithmetic on the numbers you entered — it makes no prediction about whether a trade will win.<br>Practice-money research tool. Not advice.</div>'
    +'</div>';
   document.body.appendChild(ov);
   ['_cEntry','_cParcel','_cExitPct','_cExitPrice','_cBrok','_cSlip'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('input',_calcRun); });
   window._calcModeV='pct'; _calcRun();
 }
 function _calcField(label,pre,id,val,post){
-  return '<div><div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px;">'+label+'</div>'+_calcInputBare(pre,id,val,post||'')+'</div>';
+  return '<div data-calcf="'+id+'"><div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px;">'+label+'</div>'+_calcInputBare(pre,id,val,post||'')+'</div>';
 }
 function _calcInputBare(pre,id,val,post){
   return '<div style="display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--bg2);">'
@@ -2764,7 +2764,7 @@ function _calcRun(){
   var sign=function(n){return (n>=0?'+':'\u2212')+Math.abs(n).toFixed(2)+'%';};
   out.innerHTML=''
    +'<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;">'
-   +'<div style="padding:16px;text-align:center;border-bottom:1px solid var(--border);">'
+   +'<div class="calc-head" style="padding:16px;text-align:center;border-bottom:1px solid var(--border);">'
    +'<div style="font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:6px;">Net profit in your pocket</div>'
    +'<div style="font-family:var(--mono,monospace);font-size:32px;font-weight:600;color:'+col+';line-height:1;">'+_calcMoney(net)+'</div>'
    +'<div style="font-size:14px;color:var(--dim);margin-top:7px;font-family:var(--mono,monospace);">'+sign(netPct)+' on your $'+parcel.toLocaleString('en-AU')+'</div>'
@@ -2777,14 +2777,14 @@ function _calcRun(){
    +(slip>0?_calcRow('Slippage','\u2212'+_calcMoney(slipCost).replace('\u2212','')):'')
    +_calcRow('Net profit',_calcMoney(net),true,col)
    +'</div></div>'
-   +'<div style="margin-top:12px;background:var(--purplebg,#efeafc);border:1px solid #ddd3f7;border-radius:12px;padding:13px 15px;">'
+   +'<div class="calc-be" style="margin-top:12px;background:var(--purplebg,#efeafc);border:1px solid #ddd3f7;border-radius:12px;padding:13px 15px;">'
    +'<div style="font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--purple,#6a4bd0);font-weight:700;margin-bottom:5px;">Break-even move</div>'
    +'<div style="font-family:var(--mono,monospace);font-size:21px;font-weight:600;color:var(--text);">+'+be.toFixed(2)+'%</div>'
    +'<div style="font-size:12px;color:var(--dim);margin-top:6px;line-height:1.45;">The shares need to rise <b>'+be.toFixed(2)+'%</b> just to cover your costs at this parcel size. Anything above that is profit; below it, a loss. Put in more per trade and this number shrinks.</div>'
    +'</div>';
 }
 function _calcRow(lbl,val,rule,col){
-  return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 16px;'+(rule?'border-top:1px solid var(--border);margin-top:2px;':'')+'">'
+  return '<div data-calc="'+lbl+'" style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 16px;'+(rule?'border-top:1px solid var(--border);margin-top:2px;':'')+'">'
     +'<span style="color:'+(col?'var(--text);font-weight:600':'var(--dim)')+';">'+lbl+'</span>'
     +'<span style="font-family:var(--mono,monospace);font-size:14px;color:'+(col||'var(--text)')+';'+(col?'font-weight:700;':'')+'">'+val+'</span></div>';
 }
@@ -20315,10 +20315,26 @@ async function simpleQuietClimbers(){
   CHECKS.resRows=function(){ return CHECKS.res()&&!!document.querySelector('#appModal button[onclick^="removeResearch"]'); };
   ACTIONS.wl=function(){ if(!S)return; if(S.rep!=='wl')ACTIONS.main(); if(!document.body.classList.contains('simple-mode'))return;
     if(S.rep==='wl'&&CHECKS.wl())return; if(typeof _wlNavOpen!=='function')return; _rep('wl',function(){ _wlNavOpen(); }); };
+  // v921 — Advanced: your stars ARE the main table (the ⭐ button narrows it). Pressing it only
+  // redraws (toggleWatchView / renderWatch / applyF save nothing) but it clears your search, so the
+  // tour remembers your search and puts the table back exactly as it was at the end.
+  CHECKS.wlAdv=function(){ try{ return typeof watchViewOn!=='undefined'&&watchViewOn===true; }catch(e){ return false; } };
+  CHECKS.wlAdvRows=function(){ if(!CHECKS.wlAdv())return false; var tr=document.querySelectorAll('#tbody tr'); for(var i=0;i<tr.length;i++){ if(tr[i].children.length>1)return true; } return false; };   // a share row, not the app's one-cell message
+  ACTIONS.wladv=function(){ if(!S)return; if(S.rep)ACTIONS.main(); if(document.body.classList.contains('simple-mode'))return;
+    if(typeof toggleWatchView!=='function'||CHECKS.wlAdv())return;   // already showing your stars: leave it as you had it
+    var sb=document.getElementById('searchBox'), q=sb?sb.value:'';
+    try{ toggleWatchView(); }catch(e){ return; }
+    if(!S.wlAdvOn){ S.wlAdvOn=true; _undo(function(){ try{ if(CHECKS.wlAdv()){ var sb2=document.getElementById('searchBox'); if(sb2)sb2.value=q; toggleWatchView(); } }catch(e){} }); } };
   ACTIONS.wlmgr=function(){ if(!S)return; if(S.rep!=='wlmgr')ACTIONS.main(); if(S.rep==='wlmgr'&&CHECKS.wlMgr())return;
     if(typeof openWatchManager!=='function')return; _rep('wlmgr',function(){ openWatchManager(); }); };
   ACTIONS.research=function(){ if(!S)return; if(S.rep!=='research')ACTIONS.main(); if(S.rep==='research'&&CHECKS.res())return;
     if(typeof renderResearch!=='function')return; _rep('research',function(){ renderResearch(); }); };
+  // v921 — the Trade Calculator, opened the way the Tools button opens it (_calcTools). Pure
+  // arithmetic on the example numbers it opens with; nothing is typed, nothing is saved. The tour
+  // closes it at the end only if the tour opened it.
+  CHECKS.calc=function(){ return !!document.getElementById('calcToolsOv'); };
+  ACTIONS.calc=function(){ if(!S)return; if(S.rep)ACTIONS.main(); if(CHECKS.calc()||typeof _calcTools!=='function')return;
+    try{ _calcTools(); }catch(e){ return; } if(!S.calcOpened){ S.calcOpened=true; _undo(function(){ var o=document.getElementById('calcToolsOv'); if(o)o.remove(); }); } };
   ACTIONS.brief=function(){ if(S&&S.rep!=='brief')ACTIONS.main(); if(typeof showMyChanges!=='function')return; _rep('brief',function(){ showMyChanges(); }); };
   ACTIONS.lessons=function(){ ACTIONS.main(); var p=document.getElementById('lessonPanel'); if(!p||!S||typeof toggleLessons!=='function')return;
     if(!p.classList.contains('open')){ try{ toggleLessons(); }catch(e){} if(!S.lsnOpened){ S.lsnOpened=true; _undo(function(){ var pp=document.getElementById('lessonPanel'); if(pp&&pp.classList.contains('open'))try{ toggleLessons(); }catch(e){} }); } } };
@@ -20370,6 +20386,7 @@ async function simpleQuietClimbers(){
       t=t.replace(/\uD83D\uDFE9/g,'up days').replace(/\uD83D\uDFE5/g,'down days');              // the tape's green and red squares
       t=t.replace(/\u2713/g,'').replace(/\u2717/g,'not ');
       t=t.replace(/(\d)\s*\u00d7/g,'$1 times').replace(/\u00d7/g,' times ');                        // 22.0× average
+      t=t.replace(/\u2212\s*/g,'minus ');                                                            // −$6.00 -> minus $6.00
       t=t.replace(/\s+\/\s+/g,', ').replace(/\u00b7/g,',');
       t=t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'');   // other emoji
       t=t.replace(/\(\s*(\d[\d,]*)\s*\)/g,', $1,');                                                // (752)
@@ -20513,7 +20530,7 @@ async function simpleQuietClimbers(){
     S.i=i; S.el=el; try{ var _bx=document.getElementById('tourBox'); if(_bx)_bx.removeAttribute('data-loading'); }catch(e){}
     document.getElementById('tourTitle').textContent=stop.title;
     var _fin=(stop.why&&FINMSG[stop.why])?FINMSG[stop.why]():'';
-    var _q=''; if(stop.quote&&el){ var _qe=(el.hasAttribute&&el.hasAttribute('data-dd')&&el.lastElementChild)?el.lastElementChild:el;   // v919: a labelled row -> just its VALUE
+    var _q=''; if(stop.quote&&el){ var _qe=(el.hasAttribute&&(el.hasAttribute('data-dd')||el.hasAttribute('data-calc'))&&el.lastElementChild)?el.lastElementChild:el;   // v919: a labelled row -> just its VALUE
       var _qt=(_qe.textContent||'').replace(/\s+/g,' ').replace(/^[\s\u00b7]+|[\s\u00b7]+$/g,''); var _qp=(typeof stop.quote==='string')?stop.quote:'On your card';
       if(_qt&&_qt.length>70&&_qe.firstElementChild){ var _q1=(_qe.firstElementChild.textContent||'').replace(/\s+/g,' ').trim(); if(_q1&&_q1.length<=70)_qt=_q1; }   // a long value: quote its label pill
       if(_qt&&_qt.length<=70)_q=_qp+': \u201c'+_qt+'\u201d. '; }   // v915: read the real figure off the screen
@@ -20555,6 +20572,7 @@ async function simpleQuietClimbers(){
       if((S&&S.failed==='card')||_cardFailed()) return 'The report card couldn\u2019t be graded just now \u2014 your server may be busy. Open it again in a moment, then run this chapter again.'+_dg;
       return 'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode, then run this chapter again.'+_dg; } };
   FINMSG.deep=function(){ return 'No shares are loaded yet. Load your market, then run this chapter again.'; };
+  FINMSG.wlAdvMsg=function(){ var td=document.querySelector('#tbody td[colspan]'); var t=td?(td.textContent||'').replace(/\s+/g,' ').trim():''; return t?('The app says: '+t):''; };   // v921: read the app's own reason no stars show
   function _loadLine(){ try{ var ls=document.getElementById('loadStatus'); var p=ls?(ls.textContent||'').replace(/\s+/g,' ').trim():''; return p.length>140?p.slice(0,140)+'\u2026':p; }catch(e){ return ''; } }
   function _loading(stop){ var t=document.getElementById('tourTitle'), x=document.getElementById('tourText'), b=document.getElementById('tourBox');
     var msg=(stop.waitFor&&WAITMSG[stop.waitFor])?WAITMSG[stop.waitFor]():'Opening\u2026';
