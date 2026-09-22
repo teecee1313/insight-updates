@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-930-open';
+const APP_VERSION='2026.09.22-931-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20508,6 +20508,10 @@ async function simpleQuietClimbers(){
   var _CARD_CONTENT='#appModal .rc-sig, #appModal .rc-intro, #appModal .ladrow, #appModal span[title^="These grades were computed"], #appModal span[title^="Computed on this device"]';
   function _cardWaitingForLoad(){ return _cardOn()&&!!document.querySelector('#appModal .rc-wait'); }
   var CHECKS={ card:function(){ return _cardOn()&&!!document.querySelector(_CARD_CONTENT); } };   // v917: its real content, not one row type
+  // v9xx: the grading-check report's SUCCESS title differs from its placeholder/error
+  // titles by one word ('actually'), so that alone tells apart real content from a
+  // 'not ready yet' message - the .gc-verdict class confirms it, doubly safe.
+  CHECKS.gcheck=function(){ return _modalUp()&&window._curModalLabel==='\u2696 Does the grading actually work?'&&!!document.querySelector('.gc-verdict'); };
   // v919 — a share's Deep Dive, opened the way you open one (the app's own deepDive), for the
   // share with today's highest Watch Score. deepDive saves nothing and sends nothing; its news box
   // only READS. Chosen once per tour, so every stop talks about the same share.
@@ -20583,6 +20587,14 @@ async function simpleQuietClimbers(){
     if(S.rep==='rcard'&&_cardOn()&&!(_cardWaitingForLoad()&&!window._prepRunning))return;   // open, or still waiting for the load
     if(_cardWaitingForLoad()&&!window._prepRunning)S.rep=null;   // loading has finished: ask the card AGAIN (_rep would otherwise keep the waiting screen)
     _rep('rcard',function(){ signalReportCard(); }); };
+  // v9xx: 'Does the grading work?' - the app's OWN meta-test of whether a badge
+  // predicts the NEXT window, not just describes the last one. It reads the
+  // same _auditCache the report card fills, so it depends on 'rcard' having
+  // already opened; if that has not happened yet it shows its own honest
+  // 'open the report card first' message, same as the function does normally.
+  ACTIONS.gcheck=function(){ if(!S)return; if(S.rep!=='gcheck')ACTIONS.main();
+    if(typeof gradingCheckReport!=='function')return;
+    _rep('gcheck',function(){ gradingCheckReport(); }); };
   function _panel(id){ if(!S)return; var bd=document.getElementById('ovBackdrop');
     ['ovSetup','ovRefine'].forEach(function(o){ if(o!==id){ var x=document.getElementById(o); if(x&&S.panels&&S.panels[o]){ x.classList.remove('show'); } } });
     var p=document.getElementById(id); if(!p)return; S.panels=S.panels||{};
@@ -21217,6 +21229,33 @@ async function simpleQuietClimbers(){
     {do:RC, when:'card', sel:M('.rc-split'), title:'Two-way signals', text:'Some signals fire on both up days and down days, like a volume record. Those are graded separately: price-up fires as a buy signal, price-down fires as a warning.'},
     {do:H, whenNot:'card', why:'card', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
     {do:H, title:'That\u2019s one signal', text:'Every other signal on the card reads the same way.'}
+  ], '#bestEvBtn, #modeSeg');
+})();
+
+// ═══ v9xx — TOUR CHAPTER: ⚖ Does the grading work? ══════════════════════════
+// The app's own meta-test: not "has this signal beaten the market" (that's
+// signals/signal1) but "did EARNING A BADGE actually predict it would keep
+// working in the window that followed". Reads the same _auditCache the report
+// card fills, so it opens that first — same waitFor:'card' pattern as signal1
+// — then opens the grading-check report itself. Look-only: presses nothing
+// but the two report buttons.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var RC=['rcard'], GC=['gcheck'], H=['main'];
+  var M=function(sel){ return '#appModal '+sel; };
+  window._tourChapter('gradecheck','\u2696 Does the grading work?','The app\u2019s own test of whether a badge predicts what a signal does NEXT, not just what it already did',[
+    {do:RC, title:'Does the grading work?', text:'A different question from the report card itself: not \u201chas this signal beaten the market\u201d, but \u201cdid earning a badge actually predict it would keep working?\u201d'},
+    {do:RC, wait:480000, redo:true, waitFor:'card', sel:M('.rc-intro'), title:'Reading today\u2019s grades', text:'This test reads the same grades as the report card, so it opens that first.'},
+    {do:GC, when:'gcheck', sel:M('.gc-verdict'), title:'The verdict', text:'Stated plainly, whichever way it falls: did lines that had earned a badge actually go on to do better in the window that followed \u2014 or not?'},
+    {do:GC, when:'gcheck', sel:M('.gc-why'), title:'Why', text:'The number behind the verdict: what proven lines averaged afterwards, against what unproven lines averaged over the same stretch.'},
+    {do:GC, when:'gcheck', sel:M('.gc-test'), title:'The test itself', text:'Every line\u2019s verdict in one window is checked against what it actually did in the window that followed \u2014 never the window it was judged on. Judging a badge by the past it was built from would prove nothing.'},
+    {do:GC, when:'gcheck', sel:M('.gc-table'), title:'Badge vs no badge', text:'Two rows: lines that had earned a badge, and lines that had not (TOO EARLY). For each: how many lines, their average edge in the next window, and what share stayed positive.'},
+    {do:GC, when:'gcheck', sel:M('.gc-decay'), title:'The fade', text:'What proven lines averaged in the window they earned their badge, against what they averaged afterwards. Some fade is normal and expected; a total collapse would mean the edge only ever existed in the window that measured it.'},
+    {do:GC, when:'gcheck', sel:M('.gc-best'), title:'Strongest next', text:'The individual lines that held up best in the window after their badge.'},
+    {do:GC, when:'gcheck', sel:M('.gc-worst'), title:'Weakest next', text:'The lines that faded most \u2014 weakest does not mean negative: a badge can fade and still be up.'},
+    {do:GC, when:'gcheck', sel:M('.gc-caveat'), title:'What this can\u2019t tell you', text:'Lines overlap heavily, it\u2019s one market over one stretch of years, and the thresholds being tested were chosen by the app, not discovered. The best available evidence about the app\u2019s own premise, never proof.'},
+    {do:H, whenNot:'gcheck', why:'gcheck', title:'Not enough to test yet', text:'This needs today\u2019s report card open, plus enough signals with a long enough history behind them. Open the Signal report card once from the report cards in Advanced mode, then run this chapter again \u2014 if it still says the same thing, there simply isn\u2019t enough history yet to test the grading against.'},
+    {do:H, title:'That\u2019s the grading check', text:'Every badge on this app rests on this test having held up.'}
   ], '#bestEvBtn, #modeSeg');
 })();
 
