@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-915-simple';
+const APP_VERSION='2026.09.22-916-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -16164,7 +16164,7 @@ async function prepareAllSignals(auto){
     }
     window._prepDoneSig=window._prepSig; // v691: this dataset is done
   }catch(e){if(ls)ls.innerHTML='Signal preparation stopped: '+e.message;}
-  finally{window._prepRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{if(!window._prepAbort&&typeof _auditWarmIdle==='function'){ var _wi=function(){ try{_auditWarmIdle();}catch(e2){} }; if(window.requestIdleCallback)requestIdleCallback(_wi,{timeout:3500}); else setTimeout(_wi,1200); }}catch(e){}/* v551: auto-warm stays automatic but yields to first paint */
+  finally{window._prepRunning=false;try{if(typeof _resetLoadBox==='function')_resetLoadBox();}catch(e){}try{ statsBar&&statsBar(); }catch(e){} const _sb=document.getElementById('prepStopBtn');if(_sb)_sb.style.display='none';window._forceLiveRefresh=false;try{if(!window._prepAbort)maybeAutoMyReport();}catch(e){}try{ if(!window._prepAbort)setTimeout(function(){ try{ window._shadowFlags&&window._shadowFlags(); }catch(e){} },9000); }catch(e){}/* v916: shadow check once signals are ready */try{if(!window._prepAbort&&typeof _auditWarmIdle==='function'){ var _wi=function(){ try{_auditWarmIdle();}catch(e2){} }; if(window.requestIdleCallback)requestIdleCallback(_wi,{timeout:3500}); else setTimeout(_wi,1200); }}catch(e){}/* v551: auto-warm stays automatic but yields to first paint */
   try{ if(!window._prepAbort&&typeof _evWarm==='function')setTimeout(function(){ try{_evWarm();}catch(e){} },1200); }catch(e){}   // v463: grade the day once the data is ready, so the radar fills itself in
   try{ if(window._prepQueued){ window._prepQueued=false; if(!window._prepAbort)setTimeout(()=>{try{prepareAllSignals(true);}catch(e){}},400); } }catch(e){}}
 }
@@ -20854,4 +20854,67 @@ async function simpleQuietClimbers(){
     {do:H, whenNot:'card', why:'card', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
     {do:H, title:'That\u2019s one signal', text:'Every other signal on the card reads the same way.'}
   ], '#bestEvBtn, #modeSeg');
+})();
+
+// ═══ v916 — SHADOW CHECK: this page's signals vs the server's table ════════════
+// Step 2 of moving the seven report-card signals and the Watch Score off the
+// public page (w595 builds the server's table). Once per market day, after the
+// data has loaded, fetch the server's answers, compare every share's seven
+// signals and watch score with this page's own, and send a short report of any
+// disagreement. Nothing on screen changes and nothing here acts on the result.
+// Skipped during a tour (the tour only looks). Only runs when there is enough
+// loaded to compare, so an empty or half-loaded market is never reported.
+(function(){
+  var KEYS=['sigBreakout','dirBuy','instBuy','sigCross','sigDist','sigVolRecord','blockTrade'], NAMES=['bo','inf','inst','cx','di','vr','blk'];
+  var LK='asxScreener.shadowFlags.v1';
+  function _data(){ try{ return (typeof allData!=='undefined'&&Array.isArray(allData))?allData:[]; }catch(e){ return []; } }
+  function _day(data){
+    try{ var ex=(typeof currentExch!=='undefined'&&currentExch)||'ASX'; var d=window._exchDataDate&&window._exchDataDate[ex]; if(d)return String(d).slice(0,10); }catch(e){}
+    var best=''; for(var i=0;i<data.length;i++){ var s=data[i], ser=s&&s.series; if(!Array.isArray(ser)||!ser.length)continue; var b=ser[ser.length-1]; var d2=String((b&&(b.d||b.date))||'').slice(0,10); if(d2>best)best=d2; } return best;
+  }
+  async function run(){
+    if(window._shadowBusy||window._tourActive||window._prepRunning)return;
+    if(!(typeof DATA_PROXY==='string'&&DATA_PROXY))return;
+    var data=_data(); if(data.length<50)return;
+    var withFlags=0; for(var q=0;q<data.length&&withFlags<20;q++){ if(data[q]&&data[q].dirBuy!==undefined)withFlags++; } if(withFlags<20)return;   // signals not prepared yet
+    var dd=_day(data); if(!dd)return;
+    var done=''; try{ done=localStorage.getItem(LK)||''; }catch(e){} if(done===dd)return;
+    window._shadowBusy=true;
+    try{
+      var ex=(typeof currentExch!=='undefined'&&currentExch)||'ASX', base=DATA_PROXY.replace(/\/+$/,'');
+      var r=await fetch(base+'/flags?exch='+encodeURIComponent(ex)+'&day='+encodeURIComponent(dd)); if(!r.ok)return;
+      var j=await r.json(); if(!j||!Array.isArray(j.rows))return;          // table not built yet: a later load will try again
+      var byT={}; for(var a=0;a<j.rows.length;a++)byT[j.rows[a][0]]=j.rows[a];
+      var per={}; NAMES.forEach(function(n){ per[n]={both:0,pageOnly:0,serverOnly:0,pageMissing:0}; });
+      var ws={n:0,same:0,maxDiff:0,sum:0}, samples=[], compared=0, notToday=0;
+      var pin=function(s){ return {chg:+(+s.chgPct||0).toFixed(2), vol:+s.volume||0, avg:Math.round(+s.avg3mo||0)}; };
+      for(var i=0;i<data.length;i++){
+        var s=data[i]; if(!s||!s.ticker)continue; var row=byT[s.ticker]; if(!row)continue;
+        var ser=s.series, lb=(Array.isArray(ser)&&ser.length)?ser[ser.length-1]:null, ld=String((lb&&(lb.d||lb.date))||'').slice(0,10);
+        if(ld&&ld!==j.day){ notToday++; continue; }                          // compare the same day only
+        compared++;
+        for(var k=0;k<KEYS.length;k++){
+          var pv=s[KEYS[k]], sv=!!(row[1]&(1<<k)), n=NAMES[k];
+          if(pv===undefined||pv===null){ per[n].pageMissing++; continue; }
+          pv=!!pv;
+          if(pv&&sv)per[n].both++;
+          else if(pv!==sv){ if(pv)per[n].pageOnly++; else per[n].serverOnly++;
+            if(samples.length<25)samples.push({t:s.ticker,k:n,page:pv,server:sv,pIn:pin(s),sIn:{chg:row[6],vol:row[7],avg:row[8]}}); }
+        }
+        var pw=null; try{ pw=watchScore10(s).score; }catch(e){}
+        if(typeof pw==='number'&&isFinite(pw)&&typeof row[2]==='number'){
+          var df=Math.abs(pw-row[2]); ws.n++; ws.sum+=df; if(df<0.05)ws.same++; if(df>ws.maxDiff)ws.maxDiff=df;
+          if(df>=0.05&&samples.length<25)samples.push({t:s.ticker,k:'ws',page:pw,server:row[2],pIn:pin(s),sIn:{chg:row[6],vol:row[7],avg:row[8]}});
+        }
+      }
+      if(!compared)return;
+      var sum={exch:ex, day:j.day, ver:(typeof APP_VERSION!=='undefined'?APP_VERSION:''), loaded:data.length, table:j.n, compared:compared, notToday:notToday,
+               per:per, ws:{n:ws.n, same:ws.same, maxDiff:+ws.maxDiff.toFixed(2), meanDiff:ws.n?+(ws.sum/ws.n).toFixed(3):0}, samples:samples};
+      var p=await fetch(base+'/shadow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sum)});
+      if(p.ok){ try{ localStorage.setItem(LK,dd); }catch(e){} window._shadowLast=sum; }
+    }catch(e){} finally{ window._shadowBusy=false; }
+  }
+  window._shadowFlags=run;
+  // whichever way the data loaded (live, saved on this device, or a refresh), look again for a few minutes
+  var tries=0; (function poll(){ tries++; try{ run(); }catch(e){} if(tries<14)setTimeout(poll,45000); })();
 })();

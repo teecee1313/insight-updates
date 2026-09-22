@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-915",
+  "version": "2026.09.22-916",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: One signal, line by line - every number on a signal's line in the report card explained, from 'seen' and 'edge' to 'held up in both halves', the tape and earlier years, each quoting your own card's figure."
+  "notes": "Behind the scenes: a silent check that the server gives the same signal and Watch Score answers as this app, the first step to keeping those formulas off the public page. Nothing on screen changes."
 }
