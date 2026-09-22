@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-923-open';
+const APP_VERSION='2026.09.22-924-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20880,6 +20880,8 @@ async function simpleQuietClimbers(){
   window._tourChapter('signals','\ud83d\udccb The signal report card','Where SOLID and PROMISING come from, and how to read every number on the card',[
     {do:RC, title:'The signal report card', text:'Where SOLID and PROMISING come from. The app re-runs every signal over your stored history and reports how each one actually did \u2014 including when the answer is bad.'},
     {do:RC, wait:480000, redo:true, waitFor:'card', sel:M('span[title^="These grades were computed on YOUR server"]')+', '+M('span[title^="Computed on this device"]'), title:'Where it was graded', text:'On your server, or on this device if the server couldn\u2019t be reached. The same maths either way.'},
+    {do:RC, when:'card', sel:M('.rc-tape'), title:'Today\u2019s tape', text:'How much of your loaded market closed up today \u2014 risk-on when most shares rose, risk-off when most fell. Each signal\u2019s tape figure below shows how it did on days like today; some signals only work in rising markets. Context for reading the card, not a signal: no grade changes because of it.'},
+    {do:RC, when:'card', sel:M('.rc-season'), title:'The month', text:'What this calendar month has historically meant for shares in this price band, from a ten-year study. Most months show no reliable lean; July has been the strongest and June, the tax-loss-selling month, the weakest. The figure is the average daily move in hundredths of a percent. Climate, not a signal.'},
     {do:RC, when:'card', sel:M('[onclick^="setCardHold"]'), up:'div', title:'How long after', text:'Outcomes are measured five trading days after each signal fired \u2014 the window the auto-pilot trades on. Ten and thirty days are research views: does the edge last?'},
     {do:RC, when:'card', sel:M('[onclick^="_sigView"]'), up:'div', title:'Gainers or fallers', text:'Show every fire, only the days the share rose, or only the days it fell.'},
     {do:RC, when:'card', sel:M('[onclick^="_sigNews"]'), up:'div', title:'News or quiet', text:'Split the fires by whether there was a price-sensitive announcement: news-driven moves, or quiet ones.'},
