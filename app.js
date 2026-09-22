@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-931-open';
+const APP_VERSION='2026.09.22-932-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -21246,7 +21246,7 @@ async function simpleQuietClimbers(){
   window._tourChapter('gradecheck','\u2696 Does the grading work?','The app\u2019s own test of whether a badge predicts what a signal does NEXT, not just what it already did',[
     {do:RC, title:'Does the grading work?', text:'A different question from the report card itself: not \u201chas this signal beaten the market\u201d, but \u201cdid earning a badge actually predict it would keep working?\u201d'},
     {do:RC, wait:480000, redo:true, waitFor:'card', sel:M('.rc-intro'), title:'Reading today\u2019s grades', text:'This test reads the same grades as the report card, so it opens that first.'},
-    {do:GC, when:'gcheck', sel:M('.gc-verdict'), title:'The verdict', text:'Stated plainly, whichever way it falls: did lines that had earned a badge actually go on to do better in the window that followed \u2014 or not?'},
+    {do:GC, wait:5000, redo:true, waitFor:'gcheck', sel:M('.gc-verdict'), title:'The verdict', text:'Stated plainly, whichever way it falls: did lines that had earned a badge actually go on to do better in the window that followed \u2014 or not?'},
     {do:GC, when:'gcheck', sel:M('.gc-why'), title:'Why', text:'The number behind the verdict: what proven lines averaged afterwards, against what unproven lines averaged over the same stretch.'},
     {do:GC, when:'gcheck', sel:M('.gc-test'), title:'The test itself', text:'Every line\u2019s verdict in one window is checked against what it actually did in the window that followed \u2014 never the window it was judged on. Judging a badge by the past it was built from would prove nothing.'},
     {do:GC, when:'gcheck', sel:M('.gc-table'), title:'Badge vs no badge', text:'Two rows: lines that had earned a badge, and lines that had not (TOO EARLY). For each: how many lines, their average edge in the next window, and what share stayed positive.'},
@@ -21254,7 +21254,7 @@ async function simpleQuietClimbers(){
     {do:GC, when:'gcheck', sel:M('.gc-best'), title:'Strongest next', text:'The individual lines that held up best in the window after their badge.'},
     {do:GC, when:'gcheck', sel:M('.gc-worst'), title:'Weakest next', text:'The lines that faded most \u2014 weakest does not mean negative: a badge can fade and still be up.'},
     {do:GC, when:'gcheck', sel:M('.gc-caveat'), title:'What this can\u2019t tell you', text:'Lines overlap heavily, it\u2019s one market over one stretch of years, and the thresholds being tested were chosen by the app, not discovered. The best available evidence about the app\u2019s own premise, never proof.'},
-    {do:H, whenNot:'gcheck', why:'gcheck', title:'Not enough to test yet', text:'This needs today\u2019s report card open, plus enough signals with a long enough history behind them. Open the Signal report card once from the report cards in Advanced mode, then run this chapter again \u2014 if it still says the same thing, there simply isn\u2019t enough history yet to test the grading against.'},
+    {do:H, whenNot:'gcheck', why:'gcheck', title:'Not enough to test yet', text:'This needs enough signals with a long, consecutive history behind them \u2014 the app just tried to open both reports itself. If it still says this, there genuinely isn\u2019t enough graded history yet to test the grading against; nothing you need to do differently.'},
     {do:H, title:'That\u2019s the grading check', text:'Every badge on this app rests on this test having held up.'}
   ], '#bestEvBtn, #modeSeg');
 })();
