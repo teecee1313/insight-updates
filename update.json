@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-913",
+  "version": "2026.09.22-914",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fix: the signal report card chapter now opens your card on whichever window it is set to - 5, 10 or 30 days - as long as today's grades for that window are on your device. Before, a card set to 10 or 30 days could never open in the tour."
+  "notes": "Tour fixes: the voice works again (phones only let speech start from your tap), and the signal report card chapter now opens your card exactly the way you do - on any window - then walks through it. If the app is still loading it waits and says so out loud."
 }
