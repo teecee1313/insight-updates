@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-906",
+  "version": "2026.09.22-907",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: Settings & data - your account menu, the three modes, where your data comes from, the advanced settings and the filters. The tour only looks: it opens each panel to show you, presses nothing, and puts everything back."
+  "notes": "Behind the scenes: the Signal report card gains a look-only mode for the tour (no news registration and no grade-history save during a tour visit). Your own use of the card is unchanged."
 }

@@ -5718,7 +5718,7 @@ function _renderT20Card(R){
   try{ showModal(html,'🏆 Top 20 — how past picks fared'); }catch(e){}
 }
 function signalReportCard(){
-  try{ _newsRegister(); }catch(e){}
+  if(!window._tourActive){ try{ _newsRegister(); }catch(e){} }   // v907: a TOUR visit sends nothing (the next visit of yours registers as normal)
   // v321/v332: grading the whole exchange is ~1s+ of maths. v332 runs it in
   // non-blocking ≤35ms slices (_auditChunk) so the click never freezes, and
   // _auditWarmIdle usually has it pre-computed already — so the card is instant.
@@ -5801,7 +5801,7 @@ function _renderReportCard(A){
       for(const k in A.M){ const m=A.M[k]; if(m.n>=10){ snap.e[k]=(m.dirNeg?(m.edge<0):(m.edge>0))?1:0; snap.t[k]=+((m.dirNeg?-m.tstat:m.tstat).toFixed(2)); snap.f[k]=m.n; } }
       ledger=ledger.filter(x=>x&&x.d&&x.d!==dd); ledger.push(snap);
       ledger.sort((a,b)=>a.d<b.d?-1:1); if(ledger.length>26)ledger=ledger.slice(-26);
-      try{ localStorage.setItem(LKEY,JSON.stringify(ledger)); }catch(e){}
+      if(!window._tourActive){ try{ localStorage.setItem(LKEY,JSON.stringify(ledger)); }catch(e){} }   /* v907: a TOUR visit records nothing in the grade history */
     }
     const track=k=>{ const past=ledger.filter(x=>x&&x.e&&x.e[k]!=null); if(past.length<2)return '';
       const w=past.reduce((a,x)=>a+x.e[k],0);

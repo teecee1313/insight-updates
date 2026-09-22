@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-906-simple';
+const APP_VERSION='2026.09.22-907-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20276,6 +20276,14 @@ async function simpleQuietClimbers(){
       try{ sw(t); }catch(e){} }
   };
   function _undo(fn){ if(S)(S.undo=S.undo||[]).push(fn); }
+  // v907 — the Signal report card. Opened ONLY when today's grades are already on
+  // this device (its instant path): no grading, no request to the server. While
+  // _tourActive the card also skips its news registration and its grade-history
+  // save (guards in signalReportCard / _renderReportCard).
+  function _rcReady(){ try{ var ex=(typeof currentExch!=='undefined')?currentExch:'ASX'; var dd=(window._exchDataDate&&window._exchDataDate[ex])||''; var c=window._auditCache;
+      return !!(c&&c.A&&c.d===dd&&c.ex===ex&&(typeof _cardLiqKey!=='function'||c.liq===_cardLiqKey())&&(typeof _cardHold!=='function'||_cardHold()===5)); }catch(e){ return false; } }
+  var CHECKS={ rcard:_rcReady };
+  ACTIONS.rcard=function(){ if(S&&S.rep!=='rcard')ACTIONS.main(); /* tidy away other panels, never the card itself */ if(!_rcReady()||typeof signalReportCard!=='function')return; _rep('rcard',function(){ signalReportCard(); }); };
   function _panel(id){ if(!S)return; var bd=document.getElementById('ovBackdrop');
     ['ovSetup','ovRefine'].forEach(function(o){ if(o!==id){ var x=document.getElementById(o); if(x&&S.panels&&S.panels[o]){ x.classList.remove('show'); } } });
     var p=document.getElementById(id); if(!p)return; S.panels=S.panels||{};
@@ -20411,6 +20419,8 @@ async function simpleQuietClimbers(){
       // stop never opens a panel on its way past
       if(stop.unless&&_resolve({sel:stop.unless})){ i+=dir; continue; }   // v904: only when that is NOT on screen
       if(stop.onlyIf&&!_resolve({sel:stop.onlyIf})){ i+=dir; continue; }  // v905: only when that IS on screen (e.g. Advanced mode)
+      if(stop.when&&!(CHECKS[stop.when]&&CHECKS[stop.when]())){ i+=dir; continue; }      // v907: only when a readiness check passes
+      if(stop.whenNot&&CHECKS[stop.whenNot]&&CHECKS[stop.whenNot]()){ i+=dir; continue; } // v907: only when it does NOT
       if(S.didDo!==i){ S.didDo=i; _do(stop); S.until=stop.wait?Date.now()+stop.wait:0; }
       el=_resolve(stop); if(!stop.sel||el)break;
       // v902 — a report loading from the server: keep looking, then skip
