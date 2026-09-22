@@ -1778,7 +1778,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.22-916-open"></script>
+<script src="app.js?v=2026.09.22-917-open"></script>
 
 
 
@@ -3633,6 +3633,7 @@ function _rcAltOpen(dd,hold){
   // does nothing" bug. Now a wrong-window answer is never cached, and the card
   // shows a plain warning instead of silence.)
   if(hit&&hit.M&&((hit.hold||5)===hold)){ return _renderReportCard(hit); }
+  if(window._tourActive&&window._prepRunning){ try{ showModal('<div class="rc-wait" style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">\u23f3 <b style="color:var(--text)">The app is still loading today\u2019s data.</b><br>The report card grades as soon as loading finishes.</div>','\ud83d\udccb Signal report card'); }catch(e){} return; }   /* v917: during a TOUR, never grade half-loaded data - wait for the load. Your own taps are unchanged. */
   var _fail=function(){ var m=document.getElementById('appModal'); if(m&&m.style.display!=='none'&&window._curModalLabel==='📋 Signal report card'){ try{ showModal('<div style="padding:16px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">📡 <b style="color:var(--text)">Could not grade the '+hold+'-day view just now.</b><br>Longer windows are computed fresh on your server — give it a moment and try again, or switch back to 5d.</div>','📋 Signal report card'); }catch(e){} } };
   var _sh=(Array.isArray(allData)?allData:[]).filter(function(s){return Array.isArray(s.series)&&s.series.length>=_AUD.MINROWS;}).filter(_gradeTypeOk).filter(_cardLiqPassSrv); /* v572 · v777 types */
   if(!(typeof DATA_PROXY==='string'&&DATA_PROXY)||_sh.length<3){ _fail(); return; }
@@ -5724,6 +5725,7 @@ function signalReportCard(){
   var _hw=_cardHold();
   if(_hw!==5){ _rcAltOpen(_dd,_hw); return; }   // v398: research windows take their own path — the bot's 5d cache below is never touched by them
   if(window._auditCache&&window._auditCache.A&&window._auditCache.d===_dd&&window._auditCache.ex===currentExch&&window._auditCache.liq===_cardLiqKey()){ return _renderReportCard(window._auditCache.A); }
+  if(window._tourActive&&window._prepRunning){ try{ showModal('<div class="rc-wait" style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">\u23f3 <b style="color:var(--text)">The app is still loading today\u2019s data.</b><br>The report card grades as soon as loading finishes.</div>','\ud83d\udccb Signal report card'); }catch(e){} return; }   /* v917: during a TOUR, never grade half-loaded data - wait for the load. Your own taps are unchanged. */
   try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Grading every signal…</b><br>re-running each flag over the past weeks — one moment.</div>','📋 Signal report card'); }catch(e){}
   var _tok=(window._rcTok=(window._rcTok||0)+1);
   var _show=function(A){

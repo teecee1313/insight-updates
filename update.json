@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-916",
+  "version": "2026.09.22-917",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Behind the scenes: a silent check that the server gives the same signal and Watch Score answers as this app, the first step to keeping those formulas off the public page. Nothing on screen changes."
+  "notes": "Tour fix: the report card chapters now open your card even while the app is still loading, whenever today's grades are already on your phone. If they aren't, the card shows that it's waiting for the load and the tour waits with it, showing the loading progress."
 }
