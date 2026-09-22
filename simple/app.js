@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-921-simple';
+const APP_VERSION='2026.09.22-922-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -21100,5 +21100,31 @@ async function simpleQuietClimbers(){
     {do:RS, when:'resRows', sel:M('.rs-note'), title:'Your note', text:'Why you parked it. If there is no note yet, \u201cadd why\u201d lets you write one.'},
     {do:RS, when:'res', whenNot:'resRows', title:'Nothing parked yet', text:'Flag a share from its report, its Deep Dive or your briefing, and it appears here.'},
     {do:H, title:'That\u2019s watchlists and Research', text:'Stars for what you follow, Research for what to look into next.'}
+  ]);
+})();
+
+// ═══ v921 — TOUR CHAPTER: 🧮 The Trade Calculator ════════════════════════════
+// Opens the calculator the way the Tools button does and explains it using the
+// example numbers it opens with. Types nothing, presses nothing (not even the
+// % gain / sell price switch), saves nothing; closes it again at the end.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var C=['calc'], H=['main'];
+  var F=function(id){ return '#calcToolsOv [data-calcf="'+id+'"]'; };
+  var R=function(lbl){ return '#calcToolsOv [data-calc="'+lbl+'"]'; };
+  window._tourChapter('calc','\ud83e\uddee The Trade Calculator','Your real costs, profit and break-even on any trade, from your own numbers',[
+    {do:C, title:'The Trade Calculator', text:'Your numbers, your costs, your profit \u2014 just arithmetic, with nothing assumed. It opens with example numbers, and this walks through what they mean.'},
+    {do:C, wait:3000, redo:true, waitFor:'calc', sel:F('_cEntry'), title:'Entry price', text:'The price you would pay for each share.'},
+    {do:C, when:'calc', sel:F('_cParcel'), title:'How much you put in', text:'The dollars you would put into the trade. The calculator works out how many whole shares that buys.'},
+    {do:C, when:'calc', sel:'#_cMp', up:'div', title:'Your exit', text:'Set where you would sell, either as a percentage gain or as a sell price.'},
+    {do:C, when:'calc', sel:F('_cBrok'), title:'Brokerage', text:'What your broker charges on each trade. You pay it twice: once to buy and once to sell.'},
+    {do:C, when:'calc', sel:F('_cSlip'), title:'Slippage', text:'Optional. The small extra you lose by getting a slightly worse price than you hoped for.'},
+    {do:C, when:'calc', sel:'#calcToolsOv .calc-head', title:'Net profit in your pocket', text:'What you would actually keep after brokerage both ways and any slippage, in dollars and as a percentage of what you put in.'},
+    {do:C, when:'calc', sel:R('Shares bought'), quote:'On screen', title:'Shares bought', text:'Whole shares only. Any money left over stays unspent.'},
+    {do:C, when:'calc', sel:R('Brokerage (2 sides)'), quote:'On screen', title:'Brokerage, both ways', text:'Your brokerage counted twice, because every trade is a buy and then a sell.'},
+    {do:C, when:'calc', sel:R('Net profit'), quote:'On screen', title:'Net profit', text:'What is left once the costs are taken out.'},
+    {do:C, when:'calc', sel:'#calcToolsOv .calc-be', title:'Break-even move', text:'How far the price must rise just to cover your costs. Anything above that is profit; below it, a loss. Put more in per trade and this number shrinks, because the brokerage stays the same.'},
+    {do:C, when:'calc', sel:'#calcToolsOv .calc-foot', title:'Just arithmetic', text:'It makes no prediction about whether a trade will win. A practice-money research tool, not advice.'},
+    {do:H, title:'That\u2019s the calculator', text:'Try your own numbers any time from the Tools button.'}
   ]);
 })();

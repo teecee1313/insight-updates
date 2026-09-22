@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-921",
+  "version": "2026.09.22-922",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fix: the Watchlists chapter now shows your stars in Advanced too - the main table narrows to your starred shares, then goes back exactly as you had it (search included). If a quick filter is hiding your stars, the tour reads out the app's own explanation."
+  "notes": "New in the Tour menu: The Trade Calculator - your real costs, profit and break-even on any trade, walked through with the calculator's example numbers."
 }
