@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-917-simple';
+const APP_VERSION='2026.09.22-918-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20328,7 +20328,27 @@ async function simpleQuietClimbers(){
       for(var p=0;p<pref.length;p++){ for(var i=0;i<vs.length;i++){ if((vs[i].lang||'').replace('_','-').indexOf(pref[p])===0)return vs[i]; } }
     }catch(e){} return null;
   }
+  // v918 — the VOICE gets its own clean copy of the words; the screen is unchanged.
+  // Phones read a number followed by a closing quote as INCHES (“7.8/10” -> '7.8 ... 10 inches',
+  // Tony 22 Sep), and read emoji and symbols aloud by name.
+  function _speakable(t){
+    try{
+      t=String(t||'');
+      t=t.replace(/[\u201c\u201d\u201e\u2033"]/g,'').replace(/[\u2018\u2019]/g,"'");            // no quote marks (and no ″)
+      t=t.replace(/(\d)\s*\/\s*10\b/g,'$1 out of 10');                                            // 7.8/10
+      t=t.replace(/\u00b7\s*(\d+)d\b/g,', $1 days').replace(/\b(\d+)d\b/g,'$1 days');           // SOLID·10d, after 10d
+      t=t.replace(/(\d)\s*[\u2013\u2014-]\s*(\d)\s*yrs?\b/g,'$1 to $2 years').replace(/\byrs\b/g,'years');
+      t=t.replace(/\uD83D\uDFE9/g,'up days').replace(/\uD83D\uDFE5/g,'down days');              // the tape's green and red squares
+      t=t.replace(/\u2713/g,'').replace(/\u2717/g,'not ');
+      t=t.replace(/\s+\/\s+/g,', ').replace(/\u00b7/g,',');
+      t=t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'');   // other emoji
+      t=t.replace(/\(\s*(\d[\d,]*)\s*\)/g,', $1,');                                                // (752)
+      t=t.replace(/\s*,(\s*,)+/g,',').replace(/\s{2,}/g,' ').replace(/\s+([,.])/g,'$1').replace(/,\./g,'.').trim();
+      return t;
+    }catch(e){ return String(t||''); }
+  }
   function _speak(text, onend){
+    text=_speakable(text);
     if(!_canSpeak()||_muted()){ return false; }
     try{ speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(text); var v=_pickVoice(); if(v)u.voice=v; u.rate=1; u.pitch=1;
       var done=false; var fin=function(){ if(done)return; done=true; onend&&onend(); };

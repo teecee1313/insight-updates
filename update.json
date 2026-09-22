@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-917",
+  "version": "2026.09.22-918",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fix: the report card chapters now open your card even while the app is still loading, whenever today's grades are already on your phone. If they aren't, the card shows that it's waiting for the load and the tour waits with it, showing the loading progress."
+  "notes": "Tour fix: the voice reads numbers properly - it said '7.8/10' as '7.8 ... 10 inches' because of the quote mark after the number. It now says '7.8 out of 10', reads '10d' as '10 days', and no longer reads emoji or symbols aloud. What's on screen is unchanged."
 }
