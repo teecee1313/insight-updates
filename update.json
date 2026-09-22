@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-908",
+  "version": "2026.09.22-909",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: The signal report card - where SOLID and PROMISING come from, and how to read every number on it. The tour opens the card only when today's grades are ready, and it only looks: it sends nothing and saves nothing."
+  "notes": "Behind the scenes: the daily briefing gains a look-only mode for the tour (a tour visit no longer marks today's briefing as seen, so it still opens by itself later)."
 }

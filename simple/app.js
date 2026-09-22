@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-908-simple';
+const APP_VERSION='2026.09.22-909-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -19380,7 +19380,7 @@ function showMyChanges(auto){
   }else{
     let budget=30;
     if(d.holdN){
-      body+=`<div style="font-weight:700;font-size:11px;font-family:var(--sans);color:var(--text);margin:4px 0 2px;">💼 Your holdings <span style="font-weight:400;color:var(--dim);">· ${d.holdN}</span></div>`;
+      body+=`<div id="mcHoldings" style="font-weight:700;font-size:11px;font-family:var(--sans);color:var(--text);margin:4px 0 2px;">💼 Your holdings <span style="font-weight:400;color:var(--dim);">· ${d.holdN}</span></div>`;
       const its=(d.holdItems||[]).slice(0,budget); budget-=its.length;
       body+=its.length?its.map(rowHtml).join(''):quietLine;
       if(d.ruleNote) body+=`<div style="font-size:10px;color:var(--orange);padding:4px 6px;">📋 ${d.ruleNote}</div>`;
@@ -19391,15 +19391,15 @@ function showMyChanges(auto){
       else if(sec.items.length){ body+=`<div style="font-size:9px;color:var(--dim);padding:4px 6px;">…more in this list — open it to see everything.</div>`; }
       else body+=quietLine;
     }
-    body+=`<div style="font-size:9px;color:var(--dim);margin-top:8px;">Tap any line for that share's deep dive · tap a list name to open the watchlist. End-of-day estimates — not advice.</div>`;
+    body+=`<div id="mcFoot" style="font-size:9px;color:var(--dim);margin-top:8px;">Tap any line for that share's deep dive · tap a list name to open the watchlist. End-of-day estimates — not advice.</div>`;
   }
-  const head=`<div style="font-weight:700;font-size:15px;color:var(--text);">🔔 What's changed for YOU</div>
+  const head=`<div id="mcHead" style="font-weight:700;font-size:15px;color:var(--text);">🔔 What's changed for YOU</div>
     <div style="font-size:9.5px;color:var(--dim);margin:3px 0 10px;">Your holdings & watchlists checked against ${d.dataDate?`the data of <b style="color:var(--muted)">${d.dataDate}</b>`:'the latest data'} · ${d.holdN} holding${d.holdN===1?'':'s'} · ${watchTotal} watched.</div>`;
   // v895 — a switch to stop this opening by itself. It still opens on the 🔔 button.
   let _autoOff=false; try{ _autoOff=localStorage.getItem('asxScreener.myChangesAuto.v1')==='0'; }catch(e){}
   const _sw=`<div style="margin:0 0 8px;"><button onclick="_myChangesAutoToggle(this)" style="padding:4px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-size:10px;font-family:var(--sans);cursor:pointer;">${_autoOff?'🔔 Open this automatically each day: OFF — tap to turn on':'🔕 Open this automatically each day: ON — tap to turn off'}</button></div>`;
   showModal(head+_sw+body,"🔔 What's changed for me");
-  try{ if(d.dataDate)localStorage.setItem('asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){}
+  if(!window._tourActive){ try{ if(d.dataDate)localStorage.setItem('asxScreener.myChangesSeen.v1',d.dataDate); }catch(e){} }   // v909: a TOUR visit does not mark today's briefing as seen
   return true;
 }
 function _openListFromBriefing(nm){
@@ -20283,6 +20283,14 @@ async function simpleQuietClimbers(){
   function _rcReady(){ try{ var ex=(typeof currentExch!=='undefined')?currentExch:'ASX'; var dd=(window._exchDataDate&&window._exchDataDate[ex])||''; var c=window._auditCache;
       return !!(c&&c.A&&c.d===dd&&c.ex===ex&&(typeof _cardLiqKey!=='function'||c.liq===_cardLiqKey())&&(typeof _cardHold!=='function'||_cardHold()===5)); }catch(e){ return false; } }
   var CHECKS={ rcard:_rcReady };
+  // v909 — the daily briefing (look-only: showMyChanges skips its 'seen today'
+  // write while _tourActive) and the lessons panel (opening it saves nothing;
+  // which lesson you are on is held in memory). The tour closes the lessons
+  // panel again only if it was the one that opened it.
+  ACTIONS.brief=function(){ if(S&&S.rep!=='brief')ACTIONS.main(); if(typeof showMyChanges!=='function')return; _rep('brief',function(){ showMyChanges(); }); };
+  ACTIONS.lessons=function(){ ACTIONS.main(); var p=document.getElementById('lessonPanel'); if(!p||!S||typeof toggleLessons!=='function')return;
+    if(!p.classList.contains('open')){ try{ toggleLessons(); }catch(e){} if(!S.lsnOpened){ S.lsnOpened=true; _undo(function(){ var pp=document.getElementById('lessonPanel'); if(pp&&pp.classList.contains('open'))try{ toggleLessons(); }catch(e){} }); } } };
+  ACTIONS.nolessons=function(){ ACTIONS.main(); var p=document.getElementById('lessonPanel'); if(p&&S&&S.lsnOpened&&p.classList.contains('open'))try{ toggleLessons(); }catch(e){} };
   ACTIONS.rcard=function(){ if(S&&S.rep!=='rcard')ACTIONS.main(); /* tidy away other panels, never the card itself */ if(!_rcReady()||typeof signalReportCard!=='function')return; _rep('rcard',function(){ signalReportCard(); }); };
   function _panel(id){ if(!S)return; var bd=document.getElementById('ovBackdrop');
     ['ovSetup','ovRefine'].forEach(function(o){ if(o!==id){ var x=document.getElementById(o); if(x&&S.panels&&S.panels[o]){ x.classList.remove('show'); } } });
