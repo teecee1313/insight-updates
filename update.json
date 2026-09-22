@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-911",
+  "version": "2026.09.22-912",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "New in the Tour menu: Lessons, training & your briefing - your daily briefing, the 54 lessons, flashcards and quizzes, and training mode. That completes the tour: every part of the app now has its own chapter."
+  "notes": "Tour fix: the signal report card chapter now opens the card when the app loaded from the data saved on your device - before, it could never recognise the grades as ready in that case. If the card can't open, the tour now says exactly why (for example, the card set to the 10-day window)."
 }

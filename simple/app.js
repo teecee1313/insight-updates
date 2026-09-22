@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-911-simple';
+const APP_VERSION='2026.09.22-912-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20280,8 +20280,24 @@ async function simpleQuietClimbers(){
   // this device (its instant path): no grading, no request to the server. While
   // _tourActive the card also skips its news registration and its grade-history
   // save (guards in signalReportCard / _renderReportCard).
-  function _rcReady(){ try{ var ex=(typeof currentExch!=='undefined')?currentExch:'ASX'; var dd=(window._exchDataDate&&window._exchDataDate[ex])||''; var c=window._auditCache;
-      return !!(c&&c.A&&c.d===dd&&c.ex===ex&&(typeof _cardLiqKey!=='function'||c.liq===_cardLiqKey())&&(typeof _cardHold!=='function'||_cardHold()===5)); }catch(e){ return false; } }
+  // v911 — EXACTLY the card's own instant-path test (signalReportCard): the data day
+  // falls back to today's date when it isn't recorded — as on a load from the data
+  // saved on this device. v907 fell back to '' instead, so on such a load it could
+  // never say ready even with the grades sitting there (Tony, 22 Sep, twice).
+  function _rcStatus(){ try{
+      var ex=(typeof currentExch!=='undefined')?currentExch:'ASX';
+      var dd=(window._exchDataDate&&window._exchDataDate[ex])||(typeof _todayLocal==='function'?_todayLocal():'');
+      var hold=(typeof _cardHold==='function')?_cardHold():5;
+      if(hold!==5) return {ready:false, wait:false, why:'Your report card is set to the '+hold+'-day research window, which is worked out fresh each time it opens. Switch the card back to 5 days, then run this chapter again.'};
+      var c=window._auditCache, liq=(typeof _cardLiqKey==='function')?_cardLiqKey():(c&&c.liq);
+      if(c&&c.A&&c.d===dd&&c.ex===ex&&c.liq===liq) return {ready:true, wait:false, why:''};
+      if(window._prepRunning) return {ready:false, wait:true, why:'Waiting for today\u2019s grades. The app is still preparing today\u2019s signals; the report card opens as soon as it has graded them. You can pause or close this at any time.'};
+      if(window._auditWarming||window._warmState==='running'||window._warmState==='asking') return {ready:false, wait:true, why:'Grading today\u2019s signals on your server \u2014 usually a few seconds.'};
+      if(window._warmState==='failed') return {ready:false, wait:false, why:'Today\u2019s grading didn\u2019t finish \u2014 your server may have been busy. Open the Signal report card yourself to try again, then run this chapter again.'};
+      if(c&&c.A&&c.d!==dd) return {ready:false, wait:true, why:'The grades on this device are from '+c.d+'. Waiting for today\u2019s\u2026'};
+      return {ready:false, wait:true, why:'Waiting for today\u2019s grades\u2026'};
+    }catch(e){ return {ready:false, wait:false, why:''}; } }
+  function _rcReady(){ return _rcStatus().ready; }
   var CHECKS={ rcard:_rcReady };
   // v909 — the daily briefing (look-only: showMyChanges skips its 'seen today'
   // write while _tourActive) and the lessons panel (opening it saves nothing;
@@ -20412,7 +20428,8 @@ async function simpleQuietClimbers(){
   function _arm(stop){
     // advance when the voice finishes, or after reading time when muted
     var words=stop.text.split(/\s+/).length;
-    var spoke=_speak(stop.title+'. '+stop.text, function(){ if(S&&!S.paused)S.t=setTimeout(function(){ go(S.i+1); }, 900); });
+    var _said=(function(){ var x=document.getElementById('tourText'); return (x&&x.textContent)||stop.text; })();   // v911: speak what is on screen
+    var spoke=_speak(stop.title+'. '+_said, function(){ if(S&&!S.paused)S.t=setTimeout(function(){ go(S.i+1); }, 900); });
     if(!spoke) S.t=setTimeout(function(){ go(S.i+1); }, Math.max(4500, words*380));
   }
   function go(i, retry){
@@ -20433,6 +20450,7 @@ async function simpleQuietClimbers(){
       else if(retry&&stop.redo){ _do(stop); }   // v910: e.g. open the card as soon as the app's own grading lands
       // v910: once the thing waited for is ready, allow a short grace and move on either way —
       // never sit out a long wait over a pointer that does not match
+      if(S.until&&stop.waitFor&&WAITOK[stop.waitFor]&&!CHECKS[stop.waitFor]()&&!WAITOK[stop.waitFor]())S.until=0;
       if(S.until&&stop.waitFor&&CHECKS[stop.waitFor]&&CHECKS[stop.waitFor]()&&!S.readyAt){ S.readyAt=Date.now(); S.until=Math.min(S.until,S.readyAt+2500); }
       el=_resolve(stop); if(!stop.sel||el)break;
       // v902 — a report loading from the server: keep looking, then skip
@@ -20443,17 +20461,15 @@ async function simpleQuietClimbers(){
     if(i>=S.stops.length){ end(); return; }
     S.i=i; S.el=el; try{ var _bx=document.getElementById('tourBox'); if(_bx)_bx.removeAttribute('data-loading'); }catch(e){}
     document.getElementById('tourTitle').textContent=stop.title;
-    document.getElementById('tourText').textContent=stop.text;
+    document.getElementById('tourText').textContent=(stop.why&&WAITMSG[stop.why]&&_rcStatus().why)?_rcStatus().why:stop.text;   // v911: say WHY, when there is a specific reason
     document.getElementById('tourN').textContent=(i+1)+' / '+S.stops.length;
     document.querySelector('#tourProg i').style.width=Math.round(100*(i+1)/S.stops.length)+'%';
     if(el){ try{ el.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'}); }catch(e){ try{ el.scrollIntoView(); }catch(_){} } }
     setTimeout(function(){ if(S){ _place(S.el); _applyPos(); } }, el?420:0);
     if(!S.paused)_arm(stop);
   }
-  var WAITMSG={ rcard:function(){
-      if(window._prepRunning) return 'Waiting for today\u2019s grades. The app is still preparing today\u2019s signals; the report card opens as soon as it has graded them. You can pause or close this at any time.';
-      if(window._auditWarming||window._warmState==='running'||window._warmState==='asking') return 'Grading today\u2019s signals on your server \u2014 usually a few seconds.';
-      return 'Waiting for today\u2019s grades\u2026'; } };
+  var WAITMSG={ rcard:function(){ return _rcStatus().why||'Waiting for today\u2019s grades\u2026'; } };
+  var WAITOK={ rcard:function(){ return _rcStatus().wait; } };   // v911: a reason that cannot change by waiting ends the wait at once
   function _loading(stop){ var t=document.getElementById('tourTitle'), x=document.getElementById('tourText'), b=document.getElementById('tourBox'); if(t)t.textContent=stop.title; if(x)x.textContent=(stop.waitFor&&WAITMSG[stop.waitFor])?WAITMSG[stop.waitFor]():'Opening\u2026'; if(b)b.setAttribute('data-loading','1'); }
   function pause(){ if(!S)return; S.paused=true; clearTimeout(S.t); _hush(); var b=document.getElementById('tourPause'); if(b)b.textContent='\u25b6 Resume'; }
   function resume(){ if(!S)return; S.paused=false; var b=document.getElementById('tourPause'); if(b)b.textContent='\u23f8 Pause'; _arm(S.stops[S.i]); }
@@ -20736,8 +20752,8 @@ async function simpleQuietClimbers(){
   var RC=['rcard'], H=['main'];
   var M=function(sel){ return '#appModal '+sel; };
   window._tourChapter('signals','\ud83d\udccb The signal report card','Where SOLID and PROMISING come from, and how to read every number on the card',[
-    {do:RC, title:'The signal report card', text:'Where SOLID and PROMISING come from. The app re-runs every signal over your stored history and reports how each one actually did \u2014 including when the answer is bad.'},
-    {do:RC, wait:180000, redo:true, waitFor:'rcard', sel:M('span[title^="These grades were computed on YOUR server"]')+', '+M('span[title^="Computed on this device"]'), title:'Where it was graded', text:'On your server, or on this device if the server couldn\u2019t be reached. The same maths either way.'},
+    {do:RC, wait:180000, redo:true, waitFor:'rcard', sel:'#appModal', title:'The signal report card', text:'Where SOLID and PROMISING come from. The app re-runs every signal over your stored history and reports how each one actually did \u2014 including when the answer is bad.'},
+    {do:RC, when:'rcard', sel:M('span[title^="These grades were computed on YOUR server"]')+', '+M('span[title^="Computed on this device"]'), title:'Where it was graded', text:'On your server, or on this device if the server couldn\u2019t be reached. The same maths either way.'},
     {do:RC, when:'rcard', sel:M('[onclick^="setCardHold"]'), up:'div', title:'How long after', text:'Outcomes are measured five trading days after each signal fired \u2014 the window the auto-pilot trades on. Ten and thirty days are research views: does the edge last?'},
     {do:RC, when:'rcard', sel:M('[onclick^="_sigView"]'), up:'div', title:'Gainers or fallers', text:'Show every fire, only the days the share rose, or only the days it fell.'},
     {do:RC, when:'rcard', sel:M('[onclick^="_sigNews"]'), up:'div', title:'News or quiet', text:'Split the fires by whether there was a price-sensitive announcement: news-driven moves, or quiet ones.'},
@@ -20750,7 +20766,7 @@ async function simpleQuietClimbers(){
     {do:RC, when:'rcard', sel:M('div[title^="Of the lines NOT yet SOLID"]'), title:'Climbing the ladder', text:'Of the lines not yet SOLID: which are genuinely moving toward the bar, and exactly what each one still needs.'},
     {do:RC, when:'rcard', sel:M('div[onclick*="cardDeepOpen"]'), title:'How to read this card', text:'A plain-English deep dive into every number on the card. Tap it to unfold it.'},
     {do:RC, when:'rcard', sel:M('[onclick^="printSignalReport"]'), title:'Save or print', text:'Keep a copy of the card as it stands today.'},
-    {do:H, whenNot:'rcard', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
+    {do:H, whenNot:'rcard', why:'rcard', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
     {do:H, title:'That\u2019s the report card', text:'Every tier in the app \u2014 every SOLID and PROMISING badge on every share \u2014 traces back to this card.'}
   ], '#bestEvBtn, #modeSeg');
 })();
