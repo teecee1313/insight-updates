@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-927-open';
+const APP_VERSION='2026.09.22-928-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -18753,40 +18753,57 @@ async function recoveryScanAdv(){
 }
 
 async function quietMoversScan(){
-  _scanStart('🫧 Quiet Movers');
-  exitWatchView&&exitWatchView();
-  _resetBeforeScan();
-  const st=document.getElementById('smartStatus');
-  if(!allData||!allData.length){ if(st)st.textContent='Load your shares first, then run Quiet Movers.'; _scanDone&&_scanDone(); return; }
+  // w-ownwindow: was a table-filling scan (filtered=...; render()), the odd one
+  // out next to every other report card's showModal() window — Tony: "can we
+  // fix this so they all open in own window". Converted to match; _selQuietMovers
+  // (the actual selection/scoring logic, and what the 🔬 shadow check compares
+  // against) is untouched — only how the results are SHOWN changed.
+  if(!Array.isArray(allData)||!allData.length){ alert('Load the market first — tap ⚡ Load.'); return; }
+  try{ showModal('<div style="padding:18px;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">⏳ <b style="color:var(--text)">Finding quiet movers…</b><br>checking today\'s move against each share\'s own volume and streak.</div>','🫧 Quiet Movers'); }catch(e){}
   if(_freshenSeriesFromBulk)await _freshenSeriesFromBulk();
   if(!allData.some(s=>s.volCalced&&Array.isArray(s.series))){
     const hasKey=(()=>{try{return !!(document.getElementById('apiKey')&&document.getElementById('apiKey').value.trim())||!!localStorage.getItem('asxScreener.apiKey');}catch(_){return false;}})();
     if(window._offlineMode||!hasKey){if(_computeSignalsFromSeries)await _computeSignalsFromSeries();}
-    else{ if(st)st.textContent='Loading volume & streaks…'; if(typeof bulkVolume==='function')await bulkVolume(); }
+    else{ if(typeof bulkVolume==='function')await bulkVolume(); }
   }
-  // v485 — the deciding moved to _selQuietMovers. The status line still needs
-  // the fade count, so the selector hands it back rather than recomputing it.
+  const m=document.getElementById('appModal');
+  if(!(m&&m.style.display!=='none'&&window._curModalLabel==='🫧 Quiet Movers'))return;   // closed while loading
+  // v485 — the deciding stays in _selQuietMovers, untouched.
   const _qm=_selQuietMovers(allData);
   const scored=_qm.rows, fadeCount=_qm.fadeCount;
-  F.dir='all';F.daysMin=0;F.days='0';F.volLo=0;F.volHi=Infinity;F.minScore=0;
-  filtered=scored.map(x=>x.s);
-  lastScanLabel='Quiet Movers';
-  _resetStatsForNewView();
-  document.getElementById('sortSel').value='watchScore';sortKey='watchScore';sortDir=-1;
-  render();statsBar();dots&&dots();mkBadges&&mkBadges();_scanDone&&_scanDone();
-  document.getElementById('statsBar').style.display='';
-  document.getElementById('toolbar').style.display='flex';
-  if(typeof scanProgSet==='function')scanProgSet(100);
-  if(typeof scanProgHide==='function')scanProgHide();
-  if(st){
-    if(scored.length){
-      st.innerHTML=`🫧 <strong style="color:var(--amber)">${scored.length}</strong> quiet movers — small net move today (±5%) but quietly building underneath`+
-        (fadeCount?` · <span style="color:var(--gold)">🌙 ${fadeCount} faded from an intraday high (someone took profit into the close)</span>`:'')+
-        `<br><span style="font-size:9px;color:var(--orange)">Ranked by the accumulation /10 score. Small move + up-streak / accumulation / heavy volume / intraday fade. Estimate from end-of-day data — not advice.</span>`;
-    }else{
-      st.innerHTML='No quiet movers right now. <span style="font-size:9px">(needs volume &amp; streak data — try after a full load or another scan.)</span>';
-    }
+  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const px=n=>(n==null?'—':('$'+(+n).toFixed(3).replace(/0$/,'').replace(/0$/,'').replace(/\.$/,'')));
+  const why=x=>{
+    const s=x.s, tags=[];
+    if(s.daysUp>=2)tags.push('up '+s.daysUp+'d');
+    if(s.accum10>=4)tags.push('accum '+s.accum10+'/10');
+    if(s.volCalced&&s.volPct>=80)tags.push('vol +'+Math.round(s.volPct)+'%');
+    if(s._qmFade>0)tags.push('🌙 faded '+s._qmFade+'%');
+    return tags.join(' · ')||'—';
+  };
+  let body;
+  if(!scored.length){
+    body='<p style="color:var(--muted)">No quiet movers right now — needs volume &amp; streak data; try after a full load or another scan.</p>';
+  }else{
+    body='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px;text-align:right">Today</th><th style="padding:6px 8px;text-align:right">Watch</th><th style="padding:6px 8px">What\'s building</th></tr>'
+      + scored.map(x=>{
+          const s=x.s, chg=s.chgPct||0;
+          return '<tr style="border-top:1px solid var(--border2);cursor:pointer" onclick="try{closeModal();}catch(e){};deepDive(\''+esc(s.ticker)+'\')">'
+            +'<td style="padding:7px 8px;font-weight:800;color:var(--gold)">'+esc(s.ticker)+'</td>'
+            +'<td style="padding:7px 8px">'+px(s.price)+'</td>'
+            +'<td style="padding:7px 8px;text-align:right;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'+':'')+chg.toFixed(1)+'%</td>'
+            +'<td style="padding:7px 8px;text-align:right">'+(s.watchScore!=null?(+s.watchScore).toFixed(1):'—')+'/10</td>'
+            +'<td style="padding:7px 8px;font-size:11px;color:var(--muted)">'+why(x)+'</td>'
+          +'</tr>';
+        }).join('')
+      +'</table>';
   }
+  const intro='<p style="font-size:12px;color:var(--muted);margin:0 0 10px"><b style="color:var(--text)">'+scored.length+'</b> quiet movers — small net move today (±5%) but quietly building underneath'
+    +(fadeCount?' · <span style="color:var(--gold)">🌙 '+fadeCount+' faded from an intraday high (someone took profit into the close)</span>':'')
+    +'. Ranked by the accumulation score.</p>';
+  const foot='<p style="font-size:11px;color:var(--muted);margin:12px 0 0">An estimate from end-of-day price and volume only — never advice. Tap any share for its full report.</p>';
+  window._modalLabel='🫧 Quiet Movers'; window._modalType='quietMoversAdv';
+  showModal('<div style="padding:4px 2px">'+intro+body+foot+'</div>','🫧 Quiet Movers');
 }
 // ═══ v487 — THE SHADOW CHECK ══════════════════════════════════════════════
 // Ask the server to run the same reports over the same shares, and compare
