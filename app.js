@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-929-open';
+const APP_VERSION='2026.09.22-930-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -566,7 +566,7 @@ function _gtEnsure(cb){
   if(_gtLoading){ setTimeout(function(){_gtEnsure(cb);},300); return; }
   _gtLoading=true;
   window.googleTranslateElementInit=function(){
-    try{ new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'es,zh-CN,de,fr,ja,hi,ar,it,tl,vi,el',autoDisplay:false},'google_translate_element'); }catch(e){}
+    try{ new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'es,zh-CN,de,fr,ja,hi,ar,it,tl,vi,el,th',autoDisplay:false},'google_translate_element'); }catch(e){}
     setTimeout(cb,400);
   };
   var s=document.createElement('script'); s.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
@@ -20609,6 +20609,20 @@ async function simpleQuietClimbers(){
       for(var p=0;p<pref.length;p++){ for(var i=0;i<vs.length;i++){ if((vs[i].lang||'').replace('_','-').indexOf(pref[p])===0)return vs[i]; } }
     }catch(e){} return null;
   }
+  // v9xx — the WRITING already follows the selected app language (the
+  // translation layer re-runs as the DOM changes), but the VOICE stayed
+  // English-only regardless (Tony asked). A voice in the current language, if
+  // this device has one; 'fil' checks both the 'fil' and 'tl' tags browsers
+  // use for Filipino/Tagalog. Returns null when the device has none — the
+  // caller must NOT fall back to an English voice in that case, or it ends up
+  // reading translated text in the wrong accent. Same honesty-over-silence
+  // rule as the rest of this app: never fake what isn't really there.
+  function _pickVoiceForLang(lang){
+    try{ var vs=speechSynthesis.getVoices()||[];
+      var prefixes=(lang==='fil')?['fil','tl']:[lang];
+      for(var q=0;q<prefixes.length;q++){ for(var j=0;j<vs.length;j++){ if((vs[j].lang||'').replace('_','-').toLowerCase().indexOf(prefixes[q])===0)return vs[j]; } }
+    }catch(e){} return null;
+  }
   // v918 — the VOICE gets its own clean copy of the words; the screen is unchanged.
   // Phones read a number followed by a closing quote as INCHES (“7.8/10” -> '7.8 ... 10 inches',
   // Tony 22 Sep), and read emoji and symbols aloud by name.
@@ -20633,7 +20647,11 @@ async function simpleQuietClimbers(){
   function _speak(text, onend){
     text=_speakable(text);
     if(!_canSpeak()||_muted()){ return false; }
-    try{ speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(text); var v=_pickVoice(); if(v)u.voice=v; u.rate=1; u.pitch=1;
+    var lang=(typeof LANG!=='undefined'&&LANG)?LANG:'en';
+    var v=null;
+    if(lang==='en'){ v=_pickVoice(); }
+    else{ v=_pickVoiceForLang(lang); if(!v)return false; }
+    try{ speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(text); if(v)u.voice=v; u.rate=1; u.pitch=1;
       var done=false; var fin=function(){ if(done)return; done=true; onend&&onend(); };
       u.onend=fin; u.onerror=fin; speechSynthesis.speak(u);
       // some browsers never fire onend if the tab loses focus: a safety timer
