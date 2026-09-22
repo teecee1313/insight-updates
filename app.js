@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-925-open';
+const APP_VERSION='2026.09.22-926-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20754,7 +20754,7 @@ async function simpleQuietClimbers(){
     {do:H, sel:card('strongestTodayReport()'), title:'Strongest Today', text:'The day\u2019s strongest shares, in one ranked list.'},
     {do:ST, sel:'#stIntro', title:'How it\u2019s ranked', text:'Proven evidence first, then the measured PN Edge, then the score. This line also says which day the evidence was graded, and whether your card reached the server.'},
     {do:ST, sel:'#stTbl thead', title:'The columns', text:'Price and the day\u2019s move, the score out of ten, the evidence tier, any news in the last five days, and the PN Edge.'},
-    {do:ST, sel:'#stTbl thead th:nth-child(6)', title:'Evidence', text:'SOLID means luck is practically ruled out; PROMISING means it looks real, on thinner evidence. Only signals with a positive measured edge earn a tier.'},
+    {do:ST, sel:'#stTbl thead th:nth-child(6)', title:'Evidence', text:'SOLID means luck is practically ruled out; PROMISING means it looks real, on thinner evidence. Only signals with a positive measured edge earn a tier \u2014 a dash here just means nothing proven fired on that share today, not a data problem. This list ranks proven evidence first, then falls back to the score once the evidence runs out, so shares with no tier are expected further down \u2014 still worth a look on their score alone, just not evidence-backed yet.'},
     {do:ST, sel:'#stTbl thead th:nth-child(7)', title:'News', text:'Whether the company has made a price-sensitive announcement in the last five days. Quiet means none.'},
     {do:ST, sel:'#stTbl thead th:nth-child(8)', title:'PN Edge', text:'How much more a hundred dollars placed on this signal has historically made than the market over the holding period. An average from history, not a promise for this trade.'},
     {do:ST, sel:'#stTbl tbody tr', title:'A share', text:'Tap any share for its full story. This is a ranking of today\u2019s evidence, not a buy list.'},
@@ -20887,7 +20887,7 @@ async function simpleQuietClimbers(){
     {do:RC, wait:480000, redo:true, waitFor:'card', sel:M('span[title^="These grades were computed on YOUR server"]')+', '+M('span[title^="Computed on this device"]'), title:'Where it was graded', text:'On your server, or on this device if the server couldn\u2019t be reached. The same maths either way.'},
     {do:RC, when:'card', sel:M('.rc-tape'), title:'Today\u2019s tape', text:'How much of your loaded market closed up today \u2014 risk-on when most shares rose, risk-off when most fell. Each signal\u2019s tape figure below shows how it did on days like today; some signals only work in rising markets. Context for reading the card, not a signal: no grade changes because of it.'},
     {do:RC, when:'card', sel:M('.rc-season'), title:'The month', text:'What this calendar month has historically meant for shares in this price band, from a ten-year study. Most months show no reliable lean; July has been the strongest and June, the tax-loss-selling month, the weakest. The figure is the average daily move in hundredths of a percent. Climate, not a signal.'},
-    {do:RC, when:'card', sel:M('[onclick^="setCardHold"]'), up:'div', title:'How long after', text:'Outcomes are measured five trading days after each signal fired \u2014 the window the auto-pilot trades on. Ten and thirty days are research views: does the edge last?'},
+    {do:RC, when:'card', sel:M('[onclick^="setCardHold"]'), up:'div', title:'How long after', text:'This doesn\u2019t change how fast today\u2019s signals show up \u2014 same signals, same time, either way. It changes which OLD test you\u2019re looking at: did this pattern beat the market 5 days after firing in the past, or 10? A SOLID badge means a loaded die, not a guaranteed roll \u2014 rolled hundreds of times, it lands right more than luck explains. 5 days is the one that matches this app: every suggested pick retires at 5 trading days regardless, so a 10-day badge is partly measuring days you\u2019d never actually hold. Stick with 5 unless you\u2019re researching whether an edge lasts longer.'},
     {do:RC, when:'card', sel:M('[onclick^="_sigView"]'), up:'div', title:'Gainers or fallers', text:'Show every fire, only the days the share rose, or only the days it fell.'},
     {do:RC, when:'card', sel:M('[onclick^="_sigNews"]'), up:'div', title:'News or quiet', text:'Split the fires by whether there was a price-sensitive announcement: news-driven moves, or quiet ones.'},
     {do:RC, when:'card', sel:M('div[title^="The ladder ranks every flag"]'), title:'The ladder', text:'Every signal and combination, ranked best to worst by its strength out of ten.'},
