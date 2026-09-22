@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-922-simple';
+const APP_VERSION='2026.09.22-923-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20325,6 +20325,19 @@ async function simpleQuietClimbers(){
     var sb=document.getElementById('searchBox'), q=sb?sb.value:'';
     try{ toggleWatchView(); }catch(e){ return; }
     if(!S.wlAdvOn){ S.wlAdvOn=true; _undo(function(){ try{ if(CHECKS.wlAdv()){ var sb2=document.getElementById('searchBox'); if(sb2)sb2.value=q; toggleWatchView(); } }catch(e){} }); } };
+  // v923 — the share table's shortlist tools (Rate / Verify / Print / Clear) only appear once a
+  // share is ticked. If you have ticked nothing, the tour ticks ONE share the way you do
+  // (toggleSelect - it only redraws, nothing is saved) and unticks it as soon as it has shown
+  // the buttons. If you already have shares ticked, it uses yours and leaves them alone.
+  CHECKS.tsel=function(){ try{ var b=document.getElementById('rateSelBtn'); return typeof selected!=='undefined'&&selected.size>0&&!!b&&b.style.display!=='none'; }catch(e){ return false; } };
+  ACTIONS.tsel=function(){ if(!S)return; if(S.rep)ACTIONS.main(); if(typeof selected==='undefined'||typeof toggleSelect!=='function')return;
+    if(selected.size>0)return;   // your own ticks: use them, change nothing
+    var tw=document.getElementById('tblwrap'); if(!tw||!_visible(tw))return;   // never tick anything on a table you cannot see (Simple/Starter)
+    var cb=document.querySelector('#tbody input[type="checkbox"][onclick^="toggleSelect("]'); if(!cb)return;
+    var m=/toggleSelect\('([^']+)'\)/.exec(cb.getAttribute('onclick')||''); if(!m)return;
+    try{ toggleSelect(m[1]); }catch(e){ return; } S.tselT=m[1];
+    if(!S.tselUndo){ S.tselUndo=true; _undo(function(){ try{ if(S&&S.tselT&&selected.has(S.tselT)){ var t=S.tselT; S.tselT=null; toggleSelect(t); } }catch(e){} }); } };
+  ACTIONS.untsel=function(){ if(!S)return; if(S.rep)ACTIONS.main(); try{ if(S.tselT&&typeof selected!=='undefined'&&selected.has(S.tselT)){ var t=S.tselT; S.tselT=null; toggleSelect(t); } }catch(e){} };
   ACTIONS.wlmgr=function(){ if(!S)return; if(S.rep!=='wlmgr')ACTIONS.main(); if(S.rep==='wlmgr'&&CHECKS.wlMgr())return;
     if(typeof openWatchManager!=='function')return; _rep('wlmgr',function(){ openWatchManager(); }); };
   ACTIONS.research=function(){ if(!S)return; if(S.rep!=='research')ACTIONS.main(); if(S.rep==='research'&&CHECKS.res())return;
@@ -21127,4 +21140,35 @@ async function simpleQuietClimbers(){
     {do:C, when:'calc', sel:'#calcToolsOv .calc-foot', title:'Just arithmetic', text:'It makes no prediction about whether a trade will win. A practice-money research tool, not advice.'},
     {do:H, title:'That\u2019s the calculator', text:'Try your own numbers any time from the Tools button.'}
   ]);
+})();
+
+// ═══ v923 — TOUR CHAPTER: 🗂 Working the share table ══════════════════════════
+// Advanced mode's main table: the count, sorting, the columns (in the words of
+// their own tooltips), a row's controls, and the shortlist tools. If nothing
+// is ticked it ticks ONE share to show the tools and unticks it straight away;
+// your own ticks are used and left alone. Presses nothing else: no sort, star,
+// Buy, menu, Rate, Verify, Print, Clear or routine.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var H=['main'], TS=['tsel'], UT=['untsel'];
+  var TH=function(key){ return 'th[onclick="sb(\''+key+'\')"]'; };
+  window._tourChapter('table','\ud83d\uddc2 Working the share table','Advanced mode\u2019s main table: columns, sorting, a row\u2019s controls and the shortlist tools',[
+    {do:H, title:'The share table', text:'Advanced mode\u2019s main table: every loaded share, one row each, with columns you can sort and tools for working through a shortlist.'},
+    {do:H, unless:'#selAll', title:'The table lives in Advanced mode', text:'Switch to Advanced with the buttons at the top to see it, then run this chapter again.'},
+    {do:H, sel:'#rcount', title:'How many', text:'How many shares the table is showing right now, after your filters.'},
+    {do:H, sel:TH('ticker'), title:'Sort by any column', text:'Tap a column heading to sort the table by it; tap it again to flip the order.'},
+    {do:H, sel:TH('pnEdge'), title:'PN Edge', text:'Money made per $100 by the strongest proven signal firing on this share today, beyond the market and before costs. A dash is normal: most days, most shares fire nothing proven.'},
+    {do:H, sel:TH('volPct'), title:'Volume', text:'The volume story in one place: today\u2019s surge against the share\u2019s own average, the dollars traded, whether buying or selling pressure led, and a news chip when news likely explains it.'},
+    {do:H, sel:TH('daysUp'), title:'Streaks', text:'The top dots are days in a row the price closed higher; the bottom dots, days in a row volume ran above average.'},
+    {do:H, sel:TH('watchScore'), title:'Score and Accum', text:'Today\u2019s price and volume activity \u2014 not a graded, backtested ranking like PN Edge. Near zero is a mild caution sign.'},
+    {do:H, sel:TH('sigRank'), title:'Signals', text:'The scans and signals firing on the share today. Tap to sort by signal strength.'},
+    {do:H, sel:'#tbody tr td:nth-child(2)', up:'tr', title:'A share\u2019s row', text:'Each row has a star for your watchlist, a Buy button for a practice buy, and \u22ef more for its Deep Dive, chart, history, announcements and a printable report.'},
+    {do:H, sel:'#tbody input[type="checkbox"]', title:'Tick a share', text:'Tick shares to build a shortlist. The box at the top of the table ticks everything shown.'},
+    {do:TS, wait:2500, redo:true, waitFor:'tsel', sel:'#rateSelBtn', title:'Rate selected', text:'Once a share is ticked, these tools appear \u2014 the tour has ticked one for a moment. Rate scores your ticked shares out of ten, side by side: the same Watch Score as the Score column. A data summary, not advice.'},
+    {do:TS, when:'tsel', sel:'#verifySelBtn', title:'Verify selected', text:'Opens the official announcements page for every share you have ticked, so you can confirm the real filings.'},
+    {do:TS, when:'tsel', sel:'#printSelBtn', title:'Print selected', text:'A printable report of just your ticked shares.'},
+    {do:TS, when:'tsel', sel:'#clearSelBtn', title:'Clear', text:'Unticks everything in one go.'},
+    {do:UT, sel:'#routineBtnMain', title:'Your daily routine', text:'Runs all your saved reports in one go. It appears once you have saved a report from your filters.'},
+    {do:UT, title:'That\u2019s the share table', text:'Sort it, tick a shortlist, and open any share from its row.'}
+  ], '#selAll, #modeSeg');
 })();
