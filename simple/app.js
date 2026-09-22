@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-912-simple';
+const APP_VERSION='2026.09.22-913-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20288,13 +20288,18 @@ async function simpleQuietClimbers(){
       var ex=(typeof currentExch!=='undefined')?currentExch:'ASX';
       var dd=(window._exchDataDate&&window._exchDataDate[ex])||(typeof _todayLocal==='function'?_todayLocal():'');
       var hold=(typeof _cardHold==='function')?_cardHold():5;
-      if(hold!==5) return {ready:false, wait:false, why:'Your report card is set to the '+hold+'-day research window, which is worked out fresh each time it opens. Switch the card back to 5 days, then run this chapter again.'};
       var c=window._auditCache, liq=(typeof _cardLiqKey==='function')?_cardLiqKey():(c&&c.liq);
-      if(c&&c.A&&c.d===dd&&c.ex===ex&&c.liq===liq) return {ready:true, wait:false, why:''};
-      if(window._prepRunning) return {ready:false, wait:true, why:'Waiting for today\u2019s grades. The app is still preparing today\u2019s signals; the report card opens as soon as it has graded them. You can pause or close this at any time.'};
-      if(window._auditWarming||window._warmState==='running'||window._warmState==='asking') return {ready:false, wait:true, why:'Grading today\u2019s signals on your server \u2014 usually a few seconds.'};
+      // v913 — the card has TWO instant paths and the tour now uses whichever applies:
+      //  5-day: signalReportCard's own window._auditCache test;
+      //  10/30-day: _rcAltOpen's _gradesGet(market, day, window) with a matching window.
+      // Either way nothing is fetched. v912 wrongly treated 10/30 days as never-instant.
+      if(hold===5){ if(c&&c.A&&c.d===dd&&c.ex===ex&&c.liq===liq) return {ready:true, wait:false, why:''}; }
+      else { var g=(typeof _gradesGet==='function')?_gradesGet(ex,dd,hold):null; if(g&&g.A&&g.A.M&&((g.A.hold||5)===hold)) return {ready:true, wait:false, why:''}; }
+      if(window._prepRunning) return {ready:false, wait:true, fin:'The app was still preparing today\u2019s signals, so the card couldn\u2019t be graded yet. Run this chapter again once loading has finished.', why:'Waiting for today\u2019s grades. The app is still preparing today\u2019s signals; the report card opens as soon as it has graded them. You can pause or close this at any time.'};
+      if(window._auditWarming||window._warmState==='running'||window._warmState==='asking') return {ready:false, wait:true, fin:'Your server was still grading today\u2019s signals. Run this chapter again in a minute.', why:'Grading today\u2019s signals on your server \u2014 usually a few seconds.'};
       if(window._warmState==='failed') return {ready:false, wait:false, why:'Today\u2019s grading didn\u2019t finish \u2014 your server may have been busy. Open the Signal report card yourself to try again, then run this chapter again.'};
-      if(c&&c.A&&c.d!==dd) return {ready:false, wait:true, why:'The grades on this device are from '+c.d+'. Waiting for today\u2019s\u2026'};
+      if(c&&c.A&&c.d!==dd) return {ready:false, wait:true, fin:'The grades on this device are from '+c.d+', not today. Open the Signal report card yourself once to refresh them, then run this chapter again.', why:'The grades on this device are from '+c.d+'. Waiting for today\u2019s\u2026'};
+      if(hold!==5) return {ready:false, wait:true, fin:'Today\u2019s '+hold+'-day grades aren\u2019t on this device yet. Open the card yourself once \u2014 the '+hold+'-day view is worked out on your server \u2014 then run this chapter again.', why:'Waiting for today\u2019s '+hold+'-day grades \u2014 your card is set to the '+hold+'-day window, which your server works out after the app finishes loading. If they don\u2019t arrive, open the card yourself once, then run this chapter again.'};
       return {ready:false, wait:true, why:'Waiting for today\u2019s grades\u2026'};
     }catch(e){ return {ready:false, wait:false, why:''}; } }
   function _rcReady(){ return _rcStatus().ready; }
@@ -20461,7 +20466,7 @@ async function simpleQuietClimbers(){
     if(i>=S.stops.length){ end(); return; }
     S.i=i; S.el=el; try{ var _bx=document.getElementById('tourBox'); if(_bx)_bx.removeAttribute('data-loading'); }catch(e){}
     document.getElementById('tourTitle').textContent=stop.title;
-    document.getElementById('tourText').textContent=(stop.why&&WAITMSG[stop.why]&&_rcStatus().why)?_rcStatus().why:stop.text;   // v911: say WHY, when there is a specific reason
+    var _st=(stop.why&&WAITMSG[stop.why])?_rcStatus():null; document.getElementById('tourText').textContent=(_st&&(_st.fin||(!_st.wait&&_st.why)))?(_st.fin||_st.why):stop.text;   // v913: a closing reason, never 'waiting' once it has stopped   // v911: say WHY, when there is a specific reason
     document.getElementById('tourN').textContent=(i+1)+' / '+S.stops.length;
     document.querySelector('#tourProg i').style.width=Math.round(100*(i+1)/S.stops.length)+'%';
     if(el){ try{ el.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'}); }catch(e){ try{ el.scrollIntoView(); }catch(_){} } }
