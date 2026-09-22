@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-914-simple';
+const APP_VERSION='2026.09.22-915-simple';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -20309,7 +20309,9 @@ async function simpleQuietClimbers(){
   window._tourChapter=function(name, title, desc, stops, need){ CHAPTERS[name]={title:title, desc:desc, stops:stops, need:need||''}; };
 
   function _visible(el){ if(!el)return false; if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')return false; var cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.opacity==='0')return false; var r=el.getBoundingClientRect(); if(!(r.width>0&&r.height>0))return false; return true; }  // v897: no page-bounds test - scroll sizes are unreliable across browsers and it skipped real stops
-  function _resolve(stop){ if(!stop.sel)return null; var list=[]; try{ list=document.querySelectorAll(stop.sel); }catch(e){ return null; } for(var i=0;i<list.length;i++){ var el=list[i]; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } if(_visible(el))return el; } return null; }  // v897: first VISIBLE match - the same card exists in the Simple and Starter groups
+  function _resolve(stop){ if(!stop.sel)return null; var list=[];
+    var root=document; if(stop.within){ var sc=null; try{ var cands=document.querySelectorAll(stop.within); for(var z=0;z<cands.length;z++){ if(_visible(cands[z])){ sc=cands[z]; break; } } }catch(e){} if(!sc)return null; root=sc; }   // v915: point inside one block
+    try{ list=root.querySelectorAll(stop.sel); }catch(e){ return null; } for(var i=0;i<list.length;i++){ var el=list[i]; if(stop.up){ var u=el.closest(stop.up); if(u)el=u; } if(_visible(el))return el; } return null; }  // v897: first VISIBLE match - the same card exists in the Simple and Starter groups
 
   // ── voice ────────────────────────────────────────────────────────────────
   function _muted(){ try{ return localStorage.getItem(MUTE_KEY)==='1'; }catch(e){ return false; } }
@@ -20449,7 +20451,9 @@ async function simpleQuietClimbers(){
     if(i>=S.stops.length){ end(); return; }
     S.i=i; S.el=el; try{ var _bx=document.getElementById('tourBox'); if(_bx)_bx.removeAttribute('data-loading'); }catch(e){}
     document.getElementById('tourTitle').textContent=stop.title;
-    var _fin=(stop.why&&FINMSG[stop.why])?FINMSG[stop.why]():''; document.getElementById('tourText').textContent=_fin||stop.text;   // v914: a closing reason when there is one   // v911: say WHY, when there is a specific reason
+    var _fin=(stop.why&&FINMSG[stop.why])?FINMSG[stop.why]():'';
+    var _q=''; if(stop.quote&&el){ var _qt=(el.textContent||'').replace(/\s+/g,' ').replace(/^[\s\u00b7]+|[\s\u00b7]+$/g,''); if(_qt&&_qt.length<=70)_q='On your card: \u201c'+_qt+'\u201d. '; }   // v915: read the real figure off the card
+    document.getElementById('tourText').textContent=_fin||(_q+stop.text);   // v914: a closing reason when there is one   // v911: say WHY, when there is a specific reason
     document.getElementById('tourN').textContent=(i+1)+' / '+S.stops.length;
     document.querySelector('#tourProg i').style.width=Math.round(100*(i+1)/S.stops.length)+'%';
     if(el){ try{ el.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'}); }catch(e){ try{ el.scrollIntoView(); }catch(_){} } }
@@ -20808,4 +20812,46 @@ async function simpleQuietClimbers(){
     {do:H, sel:'#trainBtn', title:'Training mode', text:'Turn it on and every button, column and tile explains itself when you hover over or tap it. The full tour reads its words from the same place.'},
     {do:H, title:'That\u2019s everything', text:'You have seen the whole app. Run any chapter again from the Tour menu, any time.'}
   ]);
+})();
+
+// ═══ v915 — TOUR CHAPTER: 🔎 One signal, line by line ════════════════════════
+// Every figure on a signal's block, explained in the card's OWN words (each
+// explanation is taken from the tooltip the card's code attaches to that very
+// figure). Opens the real card exactly as the report card chapter does (v914)
+// and points inside the FIRST signal block; items the card only shows in
+// some conditions (card history, the three-year crown, the fade estimate) are
+// explained when present and skipped when not. Presses nothing on the card.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var RC=['rcard'], H=['main'], IN='#appModal .rc-sig';
+  var M=function(sel){ return '#appModal '+sel; };
+  window._tourChapter('signal1','\ud83d\udd0e One signal, line by line','Every number on a signal\u2019s line in the report card, explained',[
+    {do:RC, title:'One signal, line by line', text:'Every number on a signal\u2019s line has a precise meaning. This walks through the first signal on your report card, one piece at a time.'},
+    // ── how the card was made (the paragraph at the top) ──
+    {do:RC, wait:180000, redo:true, waitFor:'card', sel:M('.rc-intro'), title:'How the card was made', text:'The app re-ran every signal over your saved history \u2014 up to about 250 trading days \u2014 and gave each fire a set number of trading days to play out: the window your card is set to. Only tradeable shares count: the \ud83d\udca7 floor leaves out shares too thin for an edge to be traded.'},
+    {do:RC, when:'card', sel:M('span[title*="shares sit at exactly the same price"]'), title:'Barely trading or stalled', text:'Shares whose price sits unchanged on most days, and shares that have stopped trading, are set aside: they add noise without information and would drown real edges.'},
+    {do:RC, when:'card', sel:M('.rc-intro'), title:'Edge, and the baseline', text:'Every fire is measured against the average of all shares that same day, so a strong market week can\u2019t flatter a signal. The period baseline is simply what all shares did over the period \u2014 context, not a target.'},
+    // ── the first signal's block ──
+    {do:RC, when:'card', within:IN, sel:'.rc-name', quote:true, title:'The signal', text:'Its name. Tap or hover over it on the card for exactly what it looks for.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="Strength /10"]', quote:true, title:'Strength out of ten', text:'How strong AND how proven the signal is, in one number.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="\u201cBeat the market\u201d"], span[title^="This is a WARNING flag"], span[title^="This flag fires in both directions"]', quote:true, title:'The verdict', text:'\u201cBeat the market\u201d means its average edge was above zero this period: its shares outran the market on the days it fired. Red means they did not.'},
+    {do:RC, when:'card', within:IN, sel:'b[title^="How many times this signal appeared"]', quote:true, title:'Seen', text:'How many times this signal appeared, across every share on every day of the graded period.'},
+    {do:RC, when:'card', within:IN, sel:'b[title^="How often price was"]', quote:true, title:'Percent higher', text:'How often the price was higher at the end of the window. It is a plain count of up-moves, measured against nothing.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="EDGE = the average move AFTER"]', quote:true, title:'Edge', text:'The average move after the signal, minus the average move of all shares that same day, over every fire. Positive means it worked: its shares beat the market.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="The share of fires whose move BEAT"], span[title^="The share of fires that LAGGED"]', quote:true, title:'Percent beat the market', text:'The share of fires whose move beat that day\u2019s market \u2014 the win rate that goes with the edge. It can be lower than the percent higher: rising on a day the whole market rose more is not a win.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="SOLID"], span[title^="PROMISING"], span[title^="PROVEN"], span[title^="TOO EARLY"]', quote:true, title:'The tier', text:'SOLID: 50 or more fires with a consistent edge \u2014 the firmest evidence on the card. PROMISING: a decent edge on 30 or more fires. TOO EARLY: too few fires to tell from luck. PROVEN, TOO SMALL: clearly real, but under 50 cents per 100 dollars, which brokerage and the spread would eat. The number after it is the window it was graded on.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="Median = the MIDDLE"]', quote:true, title:'Median', text:'The middle outcome: half the fires did better, half worse. One giant winner can\u2019t inflate it the way it can the average.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="The average size of the winning fires"]', quote:true, title:'Wins and losses', text:'The average size of the winning fires against the losing ones \u2014 the shape of the payoff, not just how often it wins.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="The graded window was split in two"], span[title^="The edge appeared in only ONE half"]', quote:true, title:'Held up in both halves', text:'The graded period was split in two, and the edge showed up in both \u2014 a sign it is not one hot streak. \u201cFaded in one half\u201d means it appeared in only one: weaker, perhaps one good run.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="How the edge did on risk-ON days"]', quote:true, title:'The tape', text:'How the edge did on days when most shares rose, in green, against days when most fell, in red, with the number of fires in brackets. It shows whether the signal needs a friendly market. The underlined side matches today\u2019s market.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="Across the last"]', quote:true, title:'Beat in the last cards', text:'Across the report cards this app has saved on recent days, how many times this line was working. Staying good week after week is the evidence that deserves real money.'},
+    {do:RC, when:'card', within:IN, sel:'span[title*="Graded by the same maths as the live card"]', title:'Earlier years', text:'The same signal, graded by the same maths one to two years ago and two to three years ago, each against that period\u2019s own market. A tick means it worked then too; a cross means it did not.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="This line\'s edge shows in the CURRENT year"]', title:'Held across all three years', text:'It works now, and it earned a tick in both earlier years \u2014 the strongest durability evidence the card can offer. Still never a guarantee.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="The Paula\u2013Ni\u00f1o Edge"]', up:'div', title:'PN Edge', text:'The same edge in money: about how much extra a hundred dollars placed on this signal made beyond the market, on average, before costs. The bar and word grade it: under 50 cents is too small, 50 cents to 2 dollars decent, 2 to 3 dollars 50 strong, and more than that, check it \u2014 it is probably too good to be true.'},
+    {do:RC, when:'card', within:IN, sel:'span[title^="This line\'s edge ("]', quote:true, title:'After the typical fade', text:'What this edge would be if it shrinks the way badge-earning edges usually do the following year. A rule of thumb for the whole card, not a forecast for this signal.'},
+    {do:RC, when:'card', within:IN, sel:'.rc-news', title:'News or quiet', text:'The fires split by whether a price-sensitive announcement came out that day: news-driven, or quiet, with how often each went higher and its average. Unknown means there is no announcement record to say either way.'},
+    {do:RC, when:'card', sel:M('.rc-split'), title:'Two-way signals', text:'Some signals fire on both up days and down days, like a volume record. Those are graded separately: price-up fires as a buy signal, price-down fires as a warning.'},
+    {do:H, whenNot:'card', why:'card', title:'Not graded yet', text:'Today\u2019s grades aren\u2019t ready on this device yet. Open the Signal report card once from the report cards in Advanced mode \u2014 it takes a moment the first time \u2014 then run this chapter again.'},
+    {do:H, title:'That\u2019s one signal', text:'Every other signal on the card reads the same way.'}
+  ], '#bestEvBtn, #modeSeg');
 })();

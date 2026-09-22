@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.22-914",
+  "version": "2026.09.22-915",
   "url": "https://teecee1313.github.io/insight-updates/",
-  "notes": "Tour fixes: the voice works again (phones only let speech start from your tap), and the signal report card chapter now opens your card exactly the way you do - on any window - then walks through it. If the app is still loading it waits and says so out loud."
+  "notes": "New in the Tour menu: One signal, line by line - every number on a signal's line in the report card explained, from 'seen' and 'edge' to 'held up in both halves', the tape and earlier years, each quoting your own card's figure."
 }
