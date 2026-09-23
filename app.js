@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-935-open';
+const APP_VERSION='2026.09.22-936-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -6493,7 +6493,7 @@ function botScoreboard(){
   const isBot=x=>/Auto-pilot/.test(String(x&&x.note||''));
   const closed=(p.history||[]).filter(isBot).slice().reverse(); // oldest → newest
   const openH=(p.holdings||[]).filter(isBot).length, openO=(p.orders||[]).filter(o=>isBot(o)&&o.side!=='sell').length; // v515: a pending SELL's shares are still in holdings — counting the order too would double-count
-  let html='<div style="font-weight:700;font-size:15px;color:var(--text);">📊 Auto-pilot scoreboard <span style="font-size:10px;color:var(--dim);font-weight:400;">practice trades the bot made itself</span></div>';
+  let html='<div class="sb-title" style="font-weight:700;font-size:15px;color:var(--text);">📊 Auto-pilot scoreboard <span style="font-size:10px;color:var(--dim);font-weight:400;">practice trades the bot made itself</span></div>';
   if(!closed.length){
     html+='<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px;">No closed bot trades yet — '+(openH+openO?('it has <b>'+(openH+openO)+'</b> open position'+(openH+openO===1?'':'s')+'/order'+(openH+openO===1?'':'s')+' working. '):'')+'give it a few data days. Every closed trade lands here automatically, and this panel is the honest judge of whether your rule-set earns its keep.</div>';
     showModal(html,'📊 Auto-pilot scoreboard'); return;
@@ -6510,20 +6510,20 @@ function botScoreboard(){
   const hold=closed.map(t=>{try{return Math.max(1,Math.round((new Date(t.sellDate)-new Date(t.buyDate))/86400000));}catch(e){return 0;}}).filter(x=>x>0);
   const avgHold=hold.length?(hold.reduce((a,b)=>a+b,0)/hold.length):0;
   const trig=k=>closed.filter(t=>t.trigger===k).length;
-  const row=(l,v,c)=>'<div style="display:flex;justify-content:space-between;padding:6px 2px;border-bottom:1px solid var(--border2);font-size:12px;"><span style="color:var(--muted)">'+l+'</span><b style="color:'+(c||'var(--text)')+'">'+v+'</b></div>';
-  html+='<div style="margin-top:10px;">'
+  const row=(l,v,c,k)=>'<div class="sb-row'+(k?' sb-'+k:'')+'" style="display:flex;justify-content:space-between;padding:6px 2px;border-bottom:1px solid var(--border2);font-size:12px;"><span style="color:var(--muted)">'+l+'</span><b style="color:'+(c||'var(--text)')+'">'+v+'</b></div>';
+  html+='<div class="sb-rows" style="margin-top:10px;">'
     +row('Closed bot trades',n+(openH+openO?' <span style="font-weight:400;color:var(--dim)">(+'+(openH+openO)+' open)</span>':''))
-    +row('Win rate',Math.round(wr*100)+'%',wr>=0.5?'var(--green)':'#ff9caa')
+    +row('Win rate',Math.round(wr*100)+'%',wr>=0.5?'var(--green)':'#ff9caa','winrate')
     +row('Average win / loss','+'+avgW.toFixed(1)+'% / −'+avgL.toFixed(1)+'%')
-    +row('Expectancy per trade',(expct>=0?'+':'')+expct.toFixed(2)+'%',expct>=0?'var(--green)':'#ff9caa')
-    +row('Profit factor',(pf===Infinity?'∞':pf.toFixed(2)),pf>=1.5?'var(--green)':pf>=1?'var(--gold)':'#ff9caa')
+    +row('Expectancy per trade',(expct>=0?'+':'')+expct.toFixed(2)+'%',expct>=0?'var(--green)':'#ff9caa','expect')
+    +row('Profit factor',(pf===Infinity?'∞':pf.toFixed(2)),pf>=1.5?'var(--green)':pf>=1?'var(--gold)':'#ff9caa','pf')
     +row('Total P/L',(totPL>=0?'+$':'−$')+Math.abs(totPL).toFixed(2),totPL>=0?'var(--green)':'#ff9caa')
     +row('Brokerage paid','$'+fees.toFixed(2))
-    +row('Max drawdown (closed-trade equity)','−$'+maxDD.toFixed(2))
+    +row('Max drawdown (closed-trade equity)','−$'+maxDD.toFixed(2),null,'dd')
     +row('Average hold',avgHold.toFixed(1)+' days')
     +row('Exits — 🎯 / 🪤 / 🛑 / ⏱',trig('target')+' / '+trig('trail')+' / '+trig('stop')+' / '+trig('time'))
     +'</div>'
-    +'<div style="font-size:9.5px;color:var(--dim);margin-top:10px;line-height:1.5;">Expectancy = winRate×avgWin − lossRate×avgLoss, per trade. A rule-set needs POSITIVE expectancy after costs — over enough trades — before it deserves real money. Practice results, estimates, not advice.</div>';
+    +'<div class="sb-note" style="font-size:9.5px;color:var(--dim);margin-top:10px;line-height:1.5;">Expectancy = winRate×avgWin − lossRate×avgLoss, per trade. A rule-set needs POSITIVE expectancy after costs — over enough trades — before it deserves real money. Practice results, estimates, not advice.</div>';
   showModal(html,'📊 Auto-pilot scoreboard');
 
   }finally{ window._pfCtx=_pfc; }
@@ -20546,6 +20546,13 @@ async function simpleQuietClimbers(){
   // titles by one word ('actually'), so that alone tells apart real content from a
   // 'not ready yet' message - the .gc-verdict class confirms it, doubly safe.
   CHECKS.gcheck=function(){ return _modalUp()&&window._curModalLabel==='\u2696 Does the grading actually work?'&&!!document.querySelector('.gc-verdict'); };
+  // v9xx — scoreboard with real stats (.sb-rows only renders once the robot has
+  // closed at least one trade; the empty message shares the title but not the class).
+  CHECKS.sboard=function(){ return _modalUp()&&window._curModalLabel==='\ud83d\udcca Auto-pilot scoreboard'&&!!document.querySelector('.sb-rows'); };
+  // v9xx — the briefing is open at all (both its 'nothing to check yet' and its
+  // populated states carry #mcHead); mcItems says whether it has anything in it.
+  CHECKS.mychanges=function(){ return _modalUp()&&!!document.querySelector('#mcHead'); };
+  CHECKS.mcItems=function(){ return !!document.querySelector('#mcHoldings, [onclick^="_openListFromBriefing"]'); };
   // v919 — a share's Deep Dive, opened the way you open one (the app's own deepDive), for the
   // share with today's highest Watch Score. deepDive saves nothing and sends nothing; its news box
   // only READS. Chosen once per tour, so every stop talks about the same share.
@@ -20629,6 +20636,17 @@ async function simpleQuietClimbers(){
   ACTIONS.gcheck=function(){ if(!S)return; if(S.rep!=='gcheck')ACTIONS.main();
     if(typeof gradingCheckReport!=='function')return;
     _rep('gcheck',function(){ gradingCheckReport(); }); };
+  // v9xx — the auto-pilot scoreboard (botScoreboard reads closed bot trades and
+  // renders; it saves nothing, and restores _pfCtx in a finally). Look-only.
+  ACTIONS.sboard=function(){ if(!S)return; if(S.rep!=='sboard')ACTIONS.main();
+    if(typeof botScoreboard!=='function')return;
+    _rep('sboard',function(){ botScoreboard(); }); };
+  // v9xx — 'What's changed for me'. showMyChanges() already refuses to mark
+  // today's briefing as seen while _tourActive (v909), so a tour visit leaves
+  // the user's own 'seen' state exactly as it was.
+  ACTIONS.mychanges=function(){ if(!S)return; if(S.rep!=='mychanges')ACTIONS.main();
+    if(typeof showMyChanges!=='function')return;
+    _rep('mychanges',function(){ showMyChanges(); }); };
   function _panel(id){ if(!S)return; var bd=document.getElementById('ovBackdrop');
     ['ovSetup','ovRefine'].forEach(function(o){ if(o!==id){ var x=document.getElementById(o); if(x&&S.panels&&S.panels[o]){ x.classList.remove('show'); } } });
     var p=document.getElementById(id); if(!p)return; S.panels=S.panels||{};
@@ -21041,6 +21059,7 @@ async function simpleQuietClimbers(){
     {do:H, sel:card('strongestTodayReport()'), title:'Strongest Today', text:'The day\u2019s strongest shares, in one ranked list.'},
     {do:ST, sel:'#stIntro', title:'How it\u2019s ranked', text:'Proven evidence first, then the measured PN Edge, then the score. This line also says which day the evidence was graded, and whether your card reached the server.'},
     {do:ST, sel:'#stTbl thead', title:'The columns', text:'Price and the day\u2019s move, the score out of ten, the evidence tier, any news in the last five days, and the PN Edge.'},
+    {do:ST, sel:'#stTbl thead th:nth-child(1)', title:'The star', text:'Tap \u2606 on any row to add that share to your watchlist \u2014 it turns \u2605 once it\u2019s in. Starred shares stay saved whatever filters you use, and \u201cWhat\u2019s changed for me\u201d briefs you on them every time fresh data loads.'},
     {do:ST, sel:'#stTbl thead th:nth-child(6)', title:'Evidence', text:'SOLID means luck is practically ruled out; PROMISING means it looks real, on thinner evidence. Only signals with a positive measured edge earn a tier \u2014 a dash here just means nothing proven fired on that share today, not a data problem. This list ranks proven evidence first, then falls back to the score once the evidence runs out, so shares with no tier are expected further down \u2014 still worth a look on their score alone, just not evidence-backed yet.'},
     {do:ST, sel:'#stTbl thead th:nth-child(7)', title:'News', text:'Whether the company has made a price-sensitive announcement in the last five days. Quiet means none.'},
     {do:ST, sel:'#stTbl thead th:nth-child(8)', title:'PN Edge', text:'How much more a hundred dollars placed on this signal has historically made than the market over the holding period. An average from history, not a promise for this trade.'},
@@ -21294,6 +21313,62 @@ async function simpleQuietClimbers(){
     {do:H, whenNot:'gcheck', why:'gcheck', title:'Not enough to test yet', text:'This needs enough signals with a long, consecutive history behind them \u2014 the app just tried to open both reports itself. If it still says this, there genuinely isn\u2019t enough graded history yet to test the grading against; nothing you need to do differently.'},
     {do:H, title:'That\u2019s the grading check', text:'Every badge on this app rests on this test having held up.'}
   ], '#bestEvBtn, #modeSeg');
+})();
+
+// ═══ v9xx — TOUR CHAPTER: 🌱 Simple, Starter or Advanced? ════════════════════
+// The mode bar on the main screen. LOOK-ONLY: never calls setAppMode — switching
+// modes changes what the user sees and is remembered, so the tour only points.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var H=['main'];
+  window._tourChapter('modes','\ud83c\udf31 Simple, Starter or Advanced?','Which of the three views to use, and what each one adds',[
+    {do:H, sel:'#modeSeg', title:'Three views of the same app', text:'One app, three amounts of it. Tap any of these to switch \u2014 the tour won\u2019t switch for you. Your choice is remembered on this device.'},
+    {do:H, sel:'#modeLiteBtn', title:'Simple', text:'Six screens and nothing else: the daily brief, Strongest Today, tonight\u2019s picks, PN Edge, quiet climbers and your portfolio. Start here if you want the answers without the workings.'},
+    {do:H, sel:'#modeSimpleBtn', title:'Starter', text:'The essentials, complete on their own: the same brief and reports, plus a table of the fifty strongest shares ranked evidence-first. Enough to trade practice money well without touching a setting.'},
+    {do:H, sel:'#modeAdvBtn', title:'Advanced', text:'Every tool: all the scans, filters, report cards, the auto-pilot\u2019s settings and your trading rules. Nothing is hidden \u2014 and nothing is required.'},
+    {do:H, sel:'#modeHint', title:'The line underneath', text:'A one-line reminder of what the view you\u2019re in covers. Switch back to Starter any time; nothing you\u2019ve saved changes with the view.'},
+    {do:H, title:'That\u2019s the three views', text:'Most people settle in Starter and open Advanced when they want a specific tool.'}
+  ], '#modeSeg');
+})();
+
+// ═══ v9xx — TOUR CHAPTER: 🔔 What's changed for me ════════════════════════════
+// Your holdings and starred shares, checked against the latest data. Opens the
+// real panel (showMyChanges); v909 already stops a tour visit from marking
+// today's briefing as seen. Look-only: presses nothing inside it.
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var MC=['mychanges'], H=['main'];
+  var M=function(sel){ return '#appModal '+sel; };
+  window._tourChapter('mychanges','\ud83d\udd14 What\u2019s changed for me','Your own shares, checked against today\u2019s data \u2014 the first thing to read each day',[
+    {do:MC, title:'Your daily briefing', text:'Not the whole market \u2014 just YOUR shares: what you hold and what you\u2019ve starred, checked against the latest data.'},
+    {do:MC, wait:5000, redo:true, waitFor:'mychanges', sel:M('#mcHead'), title:'Checked against which day', text:'The date of the data it read, and how many holdings and watched shares it looked at. If the date is old, load fresh data first.'},
+    {do:MC, when:'mychanges', sel:M('button[onclick=\"_myChangesAutoToggle(this)\"]'), title:'Open by itself, or not', text:'By default this opens on its own each day once fresh data loads. Tap to turn that off; it still opens from the \ud83d\udd14 button whenever you want it.'},
+    {do:MC, when:'mcItems', sel:M('#mcHoldings'), up:'div', title:'Your holdings', text:'Each share you hold, with what changed: a price move worth noticing, a signal that fired, news, or a stop or target that\u2019s close.'},
+    {do:MC, when:'mcItems', sel:M('[onclick^=\"_openListFromBriefing\"]'), up:'div', title:'Your watchlists', text:'The same check for every share you\u2019ve starred, one section per list. Tap a list name to open it.'},
+    {do:MC, when:'mcItems', sel:M('div[onclick*=\"deepDive(\"]'), title:'Tap a share', text:'Any line opens that share\u2019s Deep Dive \u2014 the full picture behind the one-line change.'},
+    {do:H, whenNot:'mcItems', why:'mychanges', title:'Nothing to check yet', text:'This panel only has something to say once you hold a share or have starred one. Star a few from any report, or make a practice buy, and it will brief you on them from the next data load.'},
+    {do:H, title:'That\u2019s your briefing', text:'A quick read of your own shares, before you look at the market.'}
+  ], '#modeSeg');
+})();
+
+// ═══ v9xx — TOUR CHAPTER: 📊 The auto-pilot scoreboard ════════════════════════
+// The robot judged like a trader journals: on ITS closed trades only. Opens the
+// real scoreboard (botScoreboard saves nothing; restores _pfCtx in a finally).
+(function(){
+  if(typeof window._tourChapter!=='function')return;
+  var SB=['sboard'], H=['main'];
+  var M=function(sel){ return '#appModal '+sel; };
+  window._tourChapter('sboard','\ud83d\udcca The auto-pilot scoreboard','How the robot\u2019s own trades have done, and the one number that decides whether a rule-set deserves real money',[
+    {do:SB, title:'The robot, judged', text:'Its practice trades only \u2014 none of yours \u2014 scored the way a trader keeps a journal. This is the honest judge of whether your rule-set earns its keep.'},
+    {do:SB, wait:5000, redo:true, waitFor:'sboard', sel:M('.sb-rows'), title:'The scoreboard', text:'Every line below is built from the robot\u2019s closed trades. Open positions are counted but not scored \u2014 a trade only counts once it\u2019s finished.'},
+    {do:SB, when:'sboard', sel:M('.sb-winrate'), title:'Win rate', text:'How often it made money. On its own this says little: a high win rate can still lose if the losses are bigger than the wins.'},
+    {do:SB, when:'sboard', sel:M('.sb-expect'), title:'Expectancy \u2014 the number that matters', text:'What one trade is worth on average, after wins and losses are weighed together. It must be positive, after costs, over enough trades, before any rule-set deserves real money.'},
+    {do:SB, when:'sboard', sel:M('.sb-pf'), title:'Profit factor', text:'Total won divided by total lost. Under 1 loses money; around 1.5 or better is a set worth keeping.'},
+    {do:SB, when:'sboard', sel:M('.sb-dd'), title:'Max drawdown', text:'The deepest fall from a high point in its closed-trade results \u2014 the worst stretch you would have sat through.'},
+    {do:SB, when:'sboard', sel:M('.sb-note'), title:'How expectancy is worked out', text:'Win rate times the average win, less the loss rate times the average loss. Practice results and estimates \u2014 not advice.'},
+    {do:H, whenNot:'sboard', why:'sboard', title:'No closed trades yet', text:'The scoreboard fills in once the robot has finished at least one trade. Turn the auto-pilot on in your rules and let it run for a while \u2014 every closed trade lands here automatically.'},
+    {do:H, title:'That\u2019s the scoreboard', text:'Check it now and then, not daily \u2014 a handful of trades proves nothing either way.'}
+  ], '#modeSeg');
 })();
 
 // ═══ v916 — SHADOW CHECK: this page's signals vs the server's table ════════════
