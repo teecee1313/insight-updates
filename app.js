@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-932-open';
+const APP_VERSION='2026.09.22-933-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -936,10 +936,36 @@ function _gateBase(){ return (typeof DATA_PROXY==='string'&&DATA_PROXY)?DATA_PRO
         _to=setTimeout(function(){ try{_ctl.abort();}catch(e){} },25000);
       }
     }catch(e){}
-    return _raw(input,init).then(function(r){ if(_to)clearTimeout(_to); try{ if(r&&r.status===401)_gateLock(); }catch(e){} return r; },
+    return _raw(input,init).then(function(r){ if(_to)clearTimeout(_to); try{ if(r&&r.status===401)_gateReverify(); }catch(e){} return r; },
                                  function(err){ if(_to)clearTimeout(_to); throw err; });
   };
 })();
+let _gateReverifyPromise=null;
+function _gateReverify(){
+  // v9xx — a single 401 from ANY Worker call used to show the full lock screen
+  // immediately, whatever the endpoint or reason. A burst of calls (Deep
+  // Dive's background price refresh, a heavy load) hitting one transient or
+  // unrelated 401 could kick an already-unlocked tester back to the password
+  // screen mid-session (Tony: "keeps reverting back to password when
+  // loading"). Re-confirm with the SAME authoritative /gate check startup
+  // uses, with the currently stored key, before showing the lock — a genuine
+  // lockout still shows it; a stray 401 from something else no longer does.
+  if(_gateReverifyPromise)return _gateReverifyPromise;
+  _gateReverifyPromise=(async function(){
+    try{
+      const b=_gateBase(); if(!b)return;
+      const k=_gateKey();
+      const ctl=('AbortController' in window)?new AbortController():null;
+      const to=setTimeout(function(){ try{ ctl&&ctl.abort(); }catch(e){} },7000);
+      let r=null;
+      const opts={headers:{'X-Insight-Access':k,'X-Insight-Device':_devId()}}; if(ctl)opts.signal=ctl.signal;
+      try{ r=await (window._gateRawFetch||window.fetch)(b+'/gate',opts); }finally{ clearTimeout(to); }
+      if(r&&r.status===401)_gateLock();
+    }catch(e){} // unreachable → don't lock anyone out, same offline-friendly rule as _gateCheck
+    finally{ _gateReverifyPromise=null; }
+  })();
+  return _gateReverifyPromise;
+}
 let _gatePromise=null;
 function _gateCheck(){
   // Ask the server whether a password is required (memoised — one probe per load).
