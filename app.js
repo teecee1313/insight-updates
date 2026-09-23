@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-934-open';
+const APP_VERSION='2026.09.22-935-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -9876,7 +9876,7 @@ function showPortfolio(exSel){
     const _nowS=_adMapPf.get(t.ticker+'|'+t.exchange);
     const _nowPx=(_nowS&&_nowS.price>0)?_nowS.price:null;
     const _sd=(_nowPx&&t.sellPrice>0)?((_nowPx-t.sellPrice)/t.sellPrice)*100:null;
-    const sinceHtml=(_sd!=null&&isFinite(_sd))?`<br><span style="font-size:9px;color:${_sd>1?'var(--gold)':_sd<-1?'var(--green)':'var(--dim)'}">now ${fmtP(_nowPx,t.currency)} · ${_sd>=0?'+':''}${_sd.toFixed(1)}% since you sold${_sd>10?' — it kept climbing':_sd<-10?' — good exit':''}</span>`:'';
+    const sinceHtml=(_sd!=null&&isFinite(_sd))?`<br><span class="pf-since" style="font-size:9px;color:${_sd>1?'var(--gold)':_sd<-1?'var(--green)':'var(--dim)'}">now ${fmtP(_nowPx,t.currency)} · ${_sd>=0?'+':''}${_sd.toFixed(1)}% since you sold${_sd>10?' — it kept climbing':_sd<-10?' — good exit':''}</span>`:'';
     return `<tr>
       <td style="padding:4px 6px;"><strong><a href="#" onclick="printShareReport('${t.ticker}');return false;" title="Open the printable report for ${t.ticker}" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;cursor:pointer;">${t.ticker} 🖨</a></strong> <span style="font-size:9px;color:var(--dim)">${t.exchange}</span>${(function(){
         const ex=t.trigger==='trail'?'<span style="font-size:9px;color:var(--green)">🪤 trail stop</span>':t.trigger==='time'?'<span style="font-size:9px;color:#58a6ff">⏱ time stop</span>':t.trigger==='stop'?'<span style="font-size:9px;color:#ff9caa">🛑 stop-loss</span>':t.trigger==='target'?'<span style="font-size:9px;color:var(--gold)">🎯 target</span>':t.auto?'<span style="font-size:9px;color:var(--gold)">🎯 auto</span>':'<span style="font-size:9px;color:var(--muted)">sold at market</span>';
@@ -9895,6 +9895,14 @@ function showPortfolio(exSel){
     const c=t.plAbs>0.005?'var(--green)':t.plAbs<-0.005?'var(--red)':'var(--muted)';
     const trig=(t.trigger==='trail'?'🪤 trail stop':t.trigger==='time'?'⏱ time stop':t.trigger==='stop'?'🛑 stop-loss':t.trigger==='target'?'🎯 target':(t.auto?'🎯 auto':'sold at market'));
     const held=tradingDaysHeld(t.buyDate,t.sellDate);
+    // v9xx — mobile never had this: the desktop table shows what a sold share
+    // has done SINCE (Tony circled it, asked why cards don't). Same lookup,
+    // same thresholds, same wording — just its own line instead of packed
+    // into a table cell.
+    const _nowSc=_adMapPf.get(t.ticker+'|'+t.exchange);
+    const _nowPxc=(_nowSc&&_nowSc.price>0)?_nowSc.price:null;
+    const _sdc=(_nowPxc&&t.sellPrice>0)?((_nowPxc-t.sellPrice)/t.sellPrice)*100:null;
+    const sinceCardHtml=(_sdc!=null&&isFinite(_sdc))?`<div class="pf-since" style="font-size:10px;color:${_sdc>1?'var(--gold)':_sdc<-1?'var(--green)':'var(--dim)'};margin-bottom:4px;">now ${fmtP(_nowPxc,t.currency)} · ${_sdc>=0?'+':''}${_sdc.toFixed(1)}% since you sold${_sdc>10?' — it kept climbing':_sdc<-10?' — good exit':''}</div>`:'';
     return `<div class="pf-card">
       <div class="pf-card-top">
         <strong style="font-size:13px;"><a href="#" onclick="printShareReport('${t.ticker}');return false;" style="color:var(--gold);text-decoration:underline;text-decoration-style:dotted;">${t.ticker} 🖨</a></strong>
@@ -9906,7 +9914,7 @@ function showPortfolio(exSel){
         <div><span>Buy</span> <b>${fmtP(t.buyPrice,t.currency)}</b></div>
         <div><span>Sell</span> <b>${fmtP(t.sellPrice,t.currency)}</b></div>
         <div><span>Fees</span> <b>${t.fees>0?fmtP(t.fees,t.currency):'—'}</b></div>
-      </div>${t.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-bottom:4px;">📝 ${String(t.note).slice(0,60)}${t.note.length>60?'…':''}</div>`:''}
+      </div>${sinceCardHtml}${t.note?`<div style="font-size:10px;color:#8fa6c9;font-style:italic;margin-bottom:4px;">📝 ${String(t.note).slice(0,60)}${t.note.length>60?'…':''}</div>`:''}
 ${_undoOn()?`<div class="pf-card-actions">
         <button onclick="paperDeleteTrade('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Delete this closed trade from the ledger — it will ask you to confirm and explain what it rewrites." style="border:1px solid var(--red);color:var(--red);background:transparent;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;margin-right:6px;">🗑 delete</button><button onclick="undoSale('${t.sellDate}','${t.ticker}','${t.buyDate}')" title="Reverse this sale — put the shares back in your holdings and take the cash back out. Blocked if you've already spent the proceeds." style="padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-weight:600;font-size:10px;font-family:var(--sans);cursor:pointer;">↩ Undo</button>
       </div>`:''}
@@ -20957,6 +20965,9 @@ async function simpleQuietClimbers(){
     {do:['pfView','pending'], sel:'#pfTab_pending', title:'Pending orders', text:'Buys waiting for their price. A limit buy only fills if the market price touches your limit.'},
     {do:['pfView','pending'], sel:'button[onclick^="paperEditOrderLimit"]', up:'div', title:'Managing an order', text:'Change its price, set how long it waits, set the target and stop it will get when it fills, ask why it hasn\u2019t filled yet, or cancel it.'},
     {do:['pfView','history'], sel:'#pfTab_history', title:'History', text:'Every closed trade, marked with what sold it: your target, your stop, a trailing stop, or time. Sold trades stay exactly as they happened \u2014 a record you can trust.'},
+    {do:['pfView','history'], sel:'.pf-history tbody tr, .pf-cards > div', title:'A closed trade', text:'How long you held it and how many trading days that was, how many shares, what you paid and what you sold for, and your profit or loss including fees.'},
+    {do:['pfView','history'], sel:'.pf-since', title:'What it did after you sold', text:'Compares today\u2019s price to the price you sold at \u2014 a nudge, not a rule. Climbed a lot further and it says so; dropped since and it calls that a good exit. Shows on rows for shares still in today\u2019s data; older or delisted ones won\u2019t have it.'},
+    {do:['pfView','history'], sel:'a[onclick^="paperDedupeHistory"]', up:'div', title:'Every trade you\u2019ve ever closed', text:'Kept here permanently, however far back \u2014 CSV always exports the complete list, not just what\u2019s on screen. If the same trade ever ends up logged twice, this checks for and removes the duplicate.'},
     {do:['pfView','performance'], sel:'#pfTab_performance', title:'Performance', text:'How the account has done as a whole.'},
     {do:['pfView','performance'], sel:'#pfSummary', title:'The summary cards', text:'Account total against your starting money, cash, money set aside for pending orders, what your holdings are worth, and profit or loss \u2014 unrealised on shares you still hold, realised on those you\u2019ve sold.'},
     {do:['pfView','performance'], sel:'#pfStats', title:'Your trading stats', text:'Trades, win rate, average win and average loss. Read them together: a high win rate can still lose money if the losses are bigger than the wins.'},
