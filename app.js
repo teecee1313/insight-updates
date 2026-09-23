@@ -4,7 +4,7 @@
 // source into IndexedDB (first run of each version), keeping the last 8, so any
 // previous version can be re-downloaded as a working .html file ("versions"
 // link in Setup). Captured here, before scripts modify the page.
-const APP_VERSION='2026.09.22-933-open';
+const APP_VERSION='2026.09.22-934-open';
 // v893 — the friction verdict's multiple, shared with worker _FRICTION_MULT.
 // Was a literal 2×; lowered to 1.5× (edge must beat the round trip by half again).
 const _FRICTION_MULT=1.5;
@@ -10634,7 +10634,7 @@ function showModal(html,label){
   let sz=_isBig?{w:Math.round(window.innerWidth*0.9),h:Math.round(window.innerHeight*0.9)}:{w:460,h:0};
   try{const key=_isBig?'asxScreener.modalSize.big.v1':'asxScreener.modalSize.v1';const s=JSON.parse(localStorage.getItem(key));if(s&&s.w)sz=s;}catch(e){}
   const hStyle=sz.h>0?`height:${Math.min(sz.h,window.innerHeight*0.95)}px;`:'';
-  m.innerHTML=`<div id="modalBox" style="position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:hidden;display:flex;flex-direction:column;">
+  m.innerHTML=`<div id="modalBox" style="position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:${Math.min(sz.w,window.innerWidth*0.97)}px;max-width:97vw;max-height:95vh;min-width:300px;min-height:180px;${hStyle}box-shadow:0 12px 40px rgba(0,0,0,.5);resize:both;overflow:auto;display:flex;flex-direction:column;">
     <button id="modalCloseX" onclick="closeModal()" title="Close">✕</button>
     ${_lbl?`<div style="flex:none;display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;background:linear-gradient(90deg,var(--navy,#0d1b33),rgba(13,27,51,.6));border:1px solid var(--gold,#FFD200);border-radius:8px;"><span style="font-weight:800;font-size:13px;font-family:var(--sans);color:var(--gold,#FFD200);letter-spacing:.2px;" id="modalLbl">${_lbl}</span></div>`:''}
     <div class="modal-scroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:14px;margin-right:-6px;">${html}</div>
