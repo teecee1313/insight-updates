@@ -1778,7 +1778,7 @@ body.radar-preparing #radarPrepNote{display:block;}</style><div id="radarPrepNot
 </div>
 </div>
 
-<script src="app.js?v=2026.09.22-936-open"></script>
+<script src="app.js?v=2026.09.22-937-open"></script>
 
 
 
@@ -4846,7 +4846,17 @@ function _evEnsureMarked(){
   try{
     if(window._evMarking)return false;
     if(_evBetaBlocked())return false;
-    if(!_apGrades())return false;
+    if(!_apGrades()){
+      // v9xx — this used to just give up here, silently, forever, if whatever
+      // SHOULD have warmed the cache (prepareAllSignals' own scheduled call)
+      // never fired for any reason. Same self-heal already proven at the
+      // per-share evidence-chip site (v452): try a warm ourselves rather than
+      // leave the radar stuck at zero for the rest of the data day. _evWarm's
+      // own guards (already-warming, already-failed-this-key) keep this from
+      // ever hammering or double-firing.
+      try{ if(typeof _evWarm==='function')_evWarm(); }catch(e){}
+      return false;
+    }
     var dd=_evDD();
     if(typeof watchViewOn!=='undefined'&&watchViewOn){
       var wl=[]; try{ wl=Object.values(curWL()||{}); }catch(e){}
